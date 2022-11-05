@@ -37,9 +37,8 @@ pub fn print_ec_version(ver: ImageVersionData) {
 }
 
 pub fn read_ec_version(data: &[u8]) -> Option<ImageVersionData> {
-    let v: _ImageVersionData = unsafe {
-        std::ptr::read(data[PD_VERSION_OFFSET..].as_ptr() as *const _)
-    };
+    let v: _ImageVersionData =
+        unsafe { std::ptr::read(data[PD_VERSION_OFFSET..].as_ptr() as *const _) };
     if v.cookie1 != CROS_EC_IMAGE_DATA_COOKIE1 {
         println!("Failed to find Cookie 1");
         return None;
@@ -49,7 +48,9 @@ pub fn read_ec_version(data: &[u8]) -> Option<ImageVersionData> {
         return None;
     }
 
-    let version = std::str::from_utf8(&v.version).ok()?.trim_end_matches(char::from(0));
+    let version = std::str::from_utf8(&v.version)
+        .ok()?
+        .trim_end_matches(char::from(0));
     // Example: hx30_v0.0.1-7a61a89
     let re = regex::Regex::new(r"([a-z0-9]+)_v([0-9])\.([0-9])\.([0-9])-([0-9a-f]+)").unwrap();
     let caps = re.captures(version).unwrap();
