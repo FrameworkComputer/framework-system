@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 framework_lib = { path = "../framework_lib" }
+clap = { version = "4.0", features = ["derive"] }

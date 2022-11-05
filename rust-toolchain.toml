@@ -1,0 +1,6 @@
+# Can't use stable rust yet, since we need to support the UEFI target
+# UEFI will be supported in stable, soon.
+# For now use what System76 uses: https://github.com/system76/firmware-update/pull/56
+[toolchain]
+channel = "nightly-2022-03-18"
+components = ["rust-src", "clippy", "rustfmt"]
