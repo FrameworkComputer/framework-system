@@ -36,7 +36,7 @@ pub fn print_ec_version(ver: ImageVersionData) {
     println!("  Size:       {:>20} KB", ver.size / 1024);
 }
 
-pub fn read_ec_version(data: &Vec<u8>) -> Option<ImageVersionData> {
+pub fn read_ec_version(data: &[u8]) -> Option<ImageVersionData> {
     let v: _ImageVersionData = unsafe {
         std::ptr::read(data[PD_VERSION_OFFSET..].as_ptr() as *const _)
     };

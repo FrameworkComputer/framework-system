@@ -2,7 +2,7 @@ use std::fs;
 
 use framework_lib::ec_binary;
 
-pub fn analyze_ec_fw(data: &Vec<u8>) {
+pub fn analyze_ec_fw(data: &[u8]) {
     if let Some(ver) = ec_binary::read_ec_version(data) {
         ec_binary::print_ec_version(ver);
     } else {
