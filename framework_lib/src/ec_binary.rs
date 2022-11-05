@@ -1,8 +1,8 @@
 const CROS_EC_IMAGE_DATA_COOKIE1: u32 = 0xce778899;
 const CROS_EC_IMAGE_DATA_COOKIE2: u32 = 0xceaabbdd;
-const PD_VERSION_OFFSET: usize = 0x1158;
+// Absolute offset of the version struct inside the entire EC binary
+const EC_VERSION_OFFSET: usize = 0x1158;
 
-use core::prelude::v1::derive;
 #[derive(Clone, Copy, Debug)]
 #[repr(C, packed)]
 struct _ImageVersionData {
@@ -12,7 +12,7 @@ struct _ImageVersionData {
     rollback_version: u32,
     cookie2: u32,
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ImageVersionData {
     pub version: String,
     pub platform: String,
@@ -36,19 +36,8 @@ pub fn print_ec_version(ver: ImageVersionData) {
     println!("  Size:       {:>20} KB", ver.size / 1024);
 }
 
-pub fn read_ec_version(data: &[u8]) -> Option<ImageVersionData> {
-    let v: _ImageVersionData =
-        unsafe { std::ptr::read(data[PD_VERSION_OFFSET..].as_ptr() as *const _) };
-    if v.cookie1 != CROS_EC_IMAGE_DATA_COOKIE1 {
-        println!("Failed to find Cookie 1");
-        return None;
-    }
-    if v.cookie2 != CROS_EC_IMAGE_DATA_COOKIE2 {
-        println!("Failed to find Cookie 2");
-        return None;
-    }
-
-    let version = std::str::from_utf8(&v.version)
+fn parse_ec_version(data: &_ImageVersionData) -> Option<ImageVersionData> {
+    let version = std::str::from_utf8(&data.version)
         .ok()?
         .trim_end_matches(char::from(0));
     // Example: hx30_v0.0.1-7a61a89
@@ -62,12 +51,58 @@ pub fn read_ec_version(data: &[u8]) -> Option<ImageVersionData> {
 
     Some(ImageVersionData {
         version: version.to_string(),
-        size: v.size,
-        rollback_version: v.rollback_version,
+        size: data.size,
+        rollback_version: data.rollback_version,
         platform,
         major,
         minor,
         patch,
         commit,
     })
+}
+
+pub fn read_ec_version(data: &[u8]) -> Option<ImageVersionData> {
+    let v: _ImageVersionData =
+        unsafe { std::ptr::read(data[EC_VERSION_OFFSET..].as_ptr() as *const _) };
+    if v.cookie1 != CROS_EC_IMAGE_DATA_COOKIE1 {
+        println!("Failed to find Cookie 1");
+        return None;
+    }
+    if v.cookie2 != CROS_EC_IMAGE_DATA_COOKIE2 {
+        println!("Failed to find Cookie 2");
+        return None;
+    }
+
+    parse_ec_version(&v)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // TODO: Perhaps put the binary hex data here and test it all
+    #[test]
+    fn can_parse() {
+        let ver_chars: &[u8] = b"hx30_v0.0.1-7a61a89\0\0\0\0\0\0\0\0\0\0\0\0\0";
+        let data = _ImageVersionData {
+            cookie1: CROS_EC_IMAGE_DATA_COOKIE1,
+            version: ver_chars.try_into().unwrap(),
+            size: 2868,
+            rollback_version: 0,
+            cookie2: CROS_EC_IMAGE_DATA_COOKIE1,
+        };
+        assert_eq!(
+            parse_ec_version(&data),
+            Some(ImageVersionData {
+                version: "hx30_v0.0.1-7a61a89".to_string(),
+                size: 2868,
+                rollback_version: 0,
+                platform: "hx30".to_string(),
+                major: 0,
+                minor: 0,
+                patch: 1,
+                commit: "7a61a89".to_string(),
+            })
+        );
+    }
 }
