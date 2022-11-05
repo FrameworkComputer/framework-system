@@ -37,7 +37,7 @@ fn analyze_ccg6_pd_fw(data: &[u8]) {
 
 pub fn analyze_ec_fw(data: &[u8]) {
     if let Some(ver) = ec_binary::read_ec_version(data) {
-        ec_binary::print_ec_version(ver);
+        ec_binary::print_ec_version(&ver);
     } else {
         println!("Failed to read version")
     }

@@ -8,7 +8,7 @@ Features:
   - [x] Tested on Linux
   - [x] Tested on Windows
   - [ ] Tested on UEFI Shell
-  - [ ] Shows Firmware Binary Information
+  - [ ] Get Firmware version from binary file
     - [x] EC
     - [ ] CCG5 PD (11th Gen TigerLake)
     - [x] CCG6 PD (12th Gen AlderLake)
