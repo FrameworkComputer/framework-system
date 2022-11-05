@@ -6,7 +6,7 @@ Features:
 
 - [x] All-In-One Tool (`framework_tool`)
   - [x] Tested on Linux
-  - [ ] Tested on Windows
+  - [x] Tested on Windows
   - [ ] Tested on UEFI Shell
   - [ ] Shows Firmware Binary Information
     - [x] EC
