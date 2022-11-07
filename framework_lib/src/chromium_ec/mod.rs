@@ -1,7 +1,7 @@
 use crate::util;
 
 use num_derive::FromPrimitive;
-//mod cros_ec;
+mod cros_ec;
 mod portio;
 //mod windows;
 
@@ -55,9 +55,9 @@ struct FlashNotifiedParams {
 pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
     // TODO: Choose implementation based on support and/or configuration
     match 0 {
-        _ => portio::read_memory(offset, length),
+        0 => portio::read_memory(offset, length),
         //1 => windows::read_memory(offset, length),
-        //_ => cros_ec::read_memory(offset, length),
+        _ => cros_ec::read_memory(offset, length),
     }
 }
 
@@ -74,9 +74,9 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
     // TODO: Choose implementation based on support and/or configuration
 
     match 0 {
-        _ => portio::send_command(command, command_version, data),
+        0 => portio::send_command(command, command_version, data),
         //1 => windows::send_command(command, command_version, data),
-        //_ => cros_ec::send_command(command, command_version, data),
+        _ => cros_ec::send_command(command, command_version, data),
     }
 }
 
