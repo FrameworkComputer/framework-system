@@ -3,7 +3,7 @@ pub mod chromium_ec;
 pub mod ec_binary;
 mod os_specific;
 pub mod pd_binary;
-//pub mod power;
+pub mod power;
 mod util;
 
 //pub fn standalone_mode() -> bool {
