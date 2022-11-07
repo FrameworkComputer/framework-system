@@ -1,5 +1,5 @@
 pub mod chromium_ec;
-//pub mod commandline;
+pub mod commandline;
 pub mod ec_binary;
 mod os_specific;
 pub mod pd_binary;

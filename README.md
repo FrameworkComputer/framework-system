@@ -8,10 +8,21 @@ Features:
   - [x] Tested on Linux
   - [x] Tested on Windows
   - [ ] Tested on UEFI Shell
-  - [ ] Get Firmware version from binary file
-    - [x] EC
+  - [ ] Get firmware version from binary file
+    - [x] EC (`--ec-bin`)
     - [ ] CCG5 PD (11th Gen TigerLake)
-    - [x] CCG6 PD (12th Gen AlderLake)
+    - [x] CCG6 PD (12th Gen AlderLake) (`--pd-bin`)
+  - [ ] Get firmware version from system (`--versions`)
+    - [ ] BIOS
+    - [x] EC
+    - [ ] PD
+  - [x] Get information about battery/AC (`--power`)
+  - [x] Get information about USB-C PD ports (`--dports`)
+- [ ] Implement communication with EC
+  - [x] Port I/O communication on Linux
+  - [ ] Port I/O communication on UEFI
+  - [x] Using `cros_ec` driver in Linux kernel
+  - [ ] Using DHowett's Windows CrosEC driver
 
 ## Prerequisites
 
@@ -36,9 +47,35 @@ cargo build
 
 ## Running
 
+Run without any arguments to see the help:
+
 ```
-# Dumping PD FW Binary Information
->  cargo run pd pd-0.1.14.bin
+> cargo run
+Swiss army knife for Framework laptops
+
+Usage: framework_tool [OPTIONS]
+
+Options:
+  -v, --versions         List current firmware versions version
+      --power            Show current power status (battery and AC)
+      --pdports          Show information about USB-C PD prots
+      --privacy          Show info from SMBIOS (Only on UEFI) Show privacy switch statuses (camera and microphone)
+      --pd-bin <PD_BIN>  Parse versions from PD firmware binary file
+      --ec-bin <EC_BIN>  Parse versions from EC firmware binary file
+  -h, --help             Print help information
+```
+
+Many actions require root. First build with cargo and then run the binary with sudo:
+
+```sh
+cargo build && sudo ./target/debug/framework_tool
+```
+
+Dumping version information from firmware binaries:
+
+```
+# Dumping PD FW Binary Information:
+>  cargo run -- --pd-bin pd-0.1.14.bin
 File
   Size:                      65536 B
   Size:                         64 KB
@@ -60,7 +97,7 @@ FW 2
   Size:                         47 KB
 
 # Dumping EC FW Binary Information
-> cargo run ec ec.bin
+> cargo run -- --ec--bin ec.bin
 File
   Size:                     524288 B
   Size:                        512 KB
