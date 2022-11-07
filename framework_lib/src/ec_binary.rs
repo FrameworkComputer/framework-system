@@ -12,19 +12,29 @@ struct _ImageVersionData {
     rollback_version: u32,
     cookie2: u32,
 }
+/// Version Information about an EC FW binary
 #[derive(Debug, PartialEq)]
 pub struct ImageVersionData {
+    /// Full version string, example: hx30_v0.0.1-7a61a89
     pub version: String,
+    /// Just the platform/board name, example: hx30
     pub platform: String,
+    /// Major part of the version. X of X.Y.Z
     pub major: u32,
+    /// Minor part of the version. X of X.Y.Z
     pub minor: u32,
+    /// Patch part of the version. X of X.Y.Z
     pub patch: u32,
+    /// Commit hash the firmware was built from
     pub commit: String,
+    /// TODO: Find out exactly what this is
     pub size: u32,
+    /// TODO: Find out exactly what this is
     pub rollback_version: u32,
 }
 
-pub fn print_ec_version(ver: ImageVersionData) {
+/// Print pretty information about the EC version
+pub fn print_ec_version(ver: &ImageVersionData) {
     println!("EC");
     println!("  Version:    {:>20}", ver.version);
     println!("  RollbackVer:{:>20}", ver.rollback_version);
@@ -61,6 +71,7 @@ fn parse_ec_version(data: &_ImageVersionData) -> Option<ImageVersionData> {
     })
 }
 
+/// Parse version information from EC FW image buffer
 pub fn read_ec_version(data: &[u8]) -> Option<ImageVersionData> {
     let v: _ImageVersionData =
         unsafe { std::ptr::read(data[EC_VERSION_OFFSET..].as_ptr() as *const _) };

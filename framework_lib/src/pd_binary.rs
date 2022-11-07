@@ -51,18 +51,30 @@ const APP_VERSION_OFFSET: usize = 0xE4;
 const APP_VERSION_PATCH_BYTE: usize = 0x02;
 const APP_MAJOR_MINOR_BYTE: usize = 0x03;
 
+/// Information about all the firmware in a PD binary file
+///
+/// Each file has two firmwares.
+/// TODO: Find out what the difference is, since they're different in size.
 pub struct PdFirmwareFile {
     pub first: PdFirmware,
     pub second: PdFirmware,
 }
 
+/// Information about a single PD firmware
 pub struct PdFirmware {
+    /// TODO: Find out what this is
     pub silicon_id: u16,
+    /// Major part of the version. X of X.Y.Z
     pub major: u8,
+    /// Minor part of the version. Y of X.Y.Z
     pub minor: u8,
+    /// Patch part of the version. Z of X.Y.Z
     pub patch: u8,
+    /// At which row in the file this firmware is
     pub start_row: u32,
+    /// How many bytes the firmware is in size
     pub size: u32,
+    /// How many bytes are in a row
     pub row_size: u32,
 }
 
@@ -78,13 +90,14 @@ pub struct PdFirmware {
 // 000ffd0 0001 0000 ffff 4359 0001 0000 0000 0000
 // 000ffe0 0000 0000 0000 0000 0000 0000 0000 0000
 
-// Returns row_start, fw_size
+/// Read metadata to find FW binary location
+/// Returns row_start, fw_size
 fn read_metadata(
     file_buffer: &[u8],
     flash_row_size: u32,
     metadata_offset: u32,
 ) -> Option<(u32, u32)> {
-    let buffer = read_row(file_buffer, metadata_offset, flash_row_size);
+    let buffer = read_256_bytes(file_buffer, metadata_offset, flash_row_size);
     let metadata = &buffer[METADATA_OFFSET..];
 
     if (metadata[METADATA_MAGIC_OFFSET] == METADATA_MAGIC_1)
@@ -104,18 +117,23 @@ fn read_metadata(
     }
 }
 
-fn read_row(file_buffer: &[u8], row_no: u32, flash_row_size: u32) -> Vec<u8> {
+/// Read 256 bytes starting from a particular row
+fn read_256_bytes(file_buffer: &[u8], row_no: u32, flash_row_size: u32) -> Vec<u8> {
     let file_read_pointer = (row_no * flash_row_size) as usize;
     file_buffer[file_read_pointer..file_read_pointer + 256].to_vec()
 }
 
+/// Read version information about FW based on a particular metadata offset
+///
+/// There can be multiple metadata and FW regions in the image,
+/// so it's required to specify which metadata region to read from.
 fn read_version(
     file_buffer: &[u8],
     flash_row_size: u32,
     metadata_offset: u32,
 ) -> Option<PdFirmware> {
     let (fw_row_start, fw_size) = read_metadata(file_buffer, flash_row_size, metadata_offset)?;
-    let data = read_row(file_buffer, fw_row_start, flash_row_size);
+    let data = read_256_bytes(file_buffer, fw_row_start, flash_row_size);
     let app_version = &data[APP_VERSION_OFFSET..];
     let silicon_id = &data[SILICON_ID_OFFSET..];
 
@@ -136,6 +154,7 @@ fn read_version(
     })
 }
 
+/// Parse all PD information, given a binary file (buffer)
 pub fn read_versions(file_buffer: &[u8], flash_row_size: u32) -> Option<PdFirmwareFile> {
     let first = read_version(file_buffer, flash_row_size, FW1_METADATA_ROW)?;
     let second = read_version(file_buffer, flash_row_size, FW2_METADATA_ROW)?;
@@ -143,14 +162,12 @@ pub fn read_versions(file_buffer: &[u8], flash_row_size: u32) -> Option<PdFirmwa
     Some(PdFirmwareFile { first, second })
 }
 
-pub fn format_ver(ver: &PdFirmware) -> String {
-    format!("{}.{}.{:0>2x}", ver.major, ver.minor, ver.patch)
-}
-
+/// Pretty print information about PD firmware
 pub fn print_fw(fw: &PdFirmware) {
     let silicon_ver = format!("{:#06x}", fw.silicon_id);
+    let version = format!("{}.{}.{:0>2x}", fw.major, fw.minor, fw.patch);
     println!("  Silicon ID: {:>20}", silicon_ver);
-    println!("  Version:    {:>20}", format_ver(fw));
+    println!("  Version:    {:>20}", version);
     println!("  Row size:   {:>20} B", fw.row_size);
     println!("  Start Row:  {:>20}", fw.start_row);
     println!("  Rows:       {:>20}", fw.size / fw.row_size);
