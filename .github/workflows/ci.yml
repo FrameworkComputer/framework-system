@@ -12,10 +12,16 @@ jobs:
     - name: Setup Rust toolchain
       run: rustup show
 
-    - name: Run cargo build
+    - name: Build without optional features
       uses: actions-rs/cargo@v1
       with:
         command: build
+
+    - name: Build with all features enabled
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: --all-features
 
   test:
     name: Test Suite

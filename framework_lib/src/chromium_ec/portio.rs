@@ -1,5 +1,7 @@
 use core::convert::TryInto;
 use hwio::{Io, Pio};
+#[cfg(feature = "linux_pio")]
+use libc::ioperm;
 
 use crate::chromium_ec::EC_MEMMAP_SIZE;
 use crate::os_specific;
@@ -277,10 +279,10 @@ fn transfer_read(address: u16, size: u16) -> Vec<u8> {
     buffer
 }
 
-use libc::ioperm;
 fn init() {
     // In Linux userspace has to first request access to ioports
     // TODO: Close these again after we're done
+    #[cfg(feature = "linux_pio")]
     unsafe {
         ioperm(EC_LPC_ADDR_HOST_DATA as u64, 8, 1);
         ioperm(MEC_LPC_ADDRESS_REGISTER0 as u64, 10, 1);

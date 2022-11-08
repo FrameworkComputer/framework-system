@@ -5,6 +5,15 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = []
+# EC communication via Port I/O on Linux
+linux_pio = ["dep:libc"]
+# EC communication via raw Port I/O (e.g. UEFI or other ring 0 code)
+raw_pio = []
+# EC communication via cros_ec driver on Linux
+cros_ec_driver = ["dep:nix"]
+
 [dependencies]
 regex = "1.6.0" # TODO: Can update to 1.7.0
 # TODO: This doesn't work on:
@@ -12,14 +21,15 @@ regex = "1.6.0" # TODO: Can update to 1.7.0
 # - Linux when SecureBoot (Lockdown) is enabled
 # Need to use the driver in those cases
 redox_hwio = "0.1.6"
-libc = "0.2.137"
+libc = { version = "0.2.137", optional = true }
 clap = { version = "4.0", features = ["derive"] }
-nix = "0.25.0"
+nix = { version = "0.25.0", optional = true }
 num = "0.4"
 num-derive = "0.3"
 num-traits = "0.2"
-#[target.'cfg(windows)'.dependencies]
+
 [dependencies.windows]
+optional = true
 version = "0.42.0"
 features = [
     "Win32_Foundation",
