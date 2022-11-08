@@ -12,16 +12,11 @@ jobs:
     - name: Setup Rust toolchain
       run: rustup show
 
-    - name: Build without optional features
+    - name: Build defaeult features
       uses: actions-rs/cargo@v1
       with:
         command: build
-
-    - name: Build with all features enabled
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --all-features
+        args: -p framework_lib -p framework_tool
 
   test:
     name: Test Suite
@@ -37,6 +32,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+          args: -p framework_lib
 
   lints:
     name: Lints
@@ -57,4 +53,4 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: clippy
-        args: -- -D warnings
+        args: -p framework_lib -p framework_tool -- -D warnings

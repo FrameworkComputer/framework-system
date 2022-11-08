@@ -42,9 +42,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "clap"
-version = "4.0.20"
+version = "4.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "426eed9136e68a14d9de937db20cfd79fcc25c09709872e8005897c618a8365e"
+checksum = "91b9970d7505127a162fdaa9b96428d28a479ba78c9ec7550a63a5d9863db682"
 dependencies = [
  "atty",
  "bitflags",
@@ -57,9 +57,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.0.20"
+version = "4.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "685fbc59da060ed2cd3d79c86970ee95386b5e5fc69d9cad881912dca0c18807"
+checksum = "0177313f9f02afc995627906bbd8967e2be069f5261954222dac78290c2b9014"
 dependencies = [
  "heck",
  "proc-macro-error",
@@ -88,6 +88,7 @@ dependencies = [
  "num-derive",
  "num-traits",
  "redox_hwio",
+ "redox_uefi_std",
  "regex",
  "windows",
 ]
@@ -97,6 +98,14 @@ name = "framework_tool"
 version = "0.1.0"
 dependencies = [
  "framework_lib",
+]
+
+[[package]]
+name = "framework_uefi"
+version = "0.1.0"
+dependencies = [
+ "framework_lib",
+ "redox_uefi_std",
 ]
 
 [[package]]
@@ -113,12 +122,6 @@ checksum = "62b467343b94ba476dcb2500d242dadbb39557df889310ac77c5d99100aaac33"
 dependencies = [
  "libc",
 ]
-
-[[package]]
-name = "lazy_static"
-version = "1.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
@@ -307,15 +310,37 @@ name = "redox_hwio"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8eb516ad341a84372b5b15a5a35cf136ba901a639c8536f521b108253d7fce74"
+
+[[package]]
+name = "redox_uefi"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b317cf652e12b060987e810efe95d61d8bcd157943731c7fa66897934d92d24"
+
+[[package]]
+name = "redox_uefi_alloc"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f4ea6b35d7f7ed38a82b7af61abccef31bc8f54912d00b2220e35d07423a775"
 dependencies = [
- "lazy_static",
+ "redox_uefi",
+]
+
+[[package]]
+name = "redox_uefi_std"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01adab1a733baa2f30e4db0ca0ef7747b936ab27690cecffda3027b5262d4600"
+dependencies = [
+ "redox_uefi",
+ "redox_uefi_alloc",
 ]
 
 [[package]]
 name = "regex"
-version = "1.6.0"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c4eb3267174b8c6c2f654116623910a0fef09c4753f8dd83db29c48a0df988b"
+checksum = "e076559ef8e241f2ae3479e36f97bd5741c0330689e217ad51ce2c76808b868a"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -324,9 +349,9 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.6.27"
+version = "0.6.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3f87b73ce11b1619a3c6332f45341e0047173771e8b8b73f87bfeefb7b56244"
+checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 
 [[package]]
 name = "strsim"

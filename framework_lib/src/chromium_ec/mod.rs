@@ -1,20 +1,26 @@
 use crate::util;
 
+#[cfg(not(feature = "uefi"))]
 use num_derive::FromPrimitive;
 #[cfg(feature = "cros_ec_driver")]
 mod cros_ec;
 mod portio;
 //mod windows;
 
+#[cfg(feature = "uefi")]
+use core::prelude::rust_2021::derive;
+
 /// Total size of EC memory mapped region
 const EC_MEMMAP_SIZE: u16 = 255;
 
 /// Command to read data from EC memory map
+#[cfg(feature = "cros_ec_driver")]
 const EC_CMD_READ_MEMMAP: u16 = 0x0007;
 
 /// Response codes returned by commands
-#[derive(FromPrimitive, Debug)]
-enum EcResponseStatus {
+#[cfg_attr(not(feature = "uefi"), derive(FromPrimitive))]
+#[derive(Debug)]
+pub enum EcResponseStatus {
     Success = 0,
     InvalidCommand = 1,
     Error = 2,

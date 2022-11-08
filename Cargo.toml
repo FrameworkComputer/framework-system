@@ -3,6 +3,8 @@
 members = [
     # Linux and Windows tool to inspect and customize the system
     "framework_tool",
+    # UEFI tool to inspect and customize the system
+    "framework_uefi",
     # Catchall library that we'll probably want to split up further
     "framework_lib",
 ]
