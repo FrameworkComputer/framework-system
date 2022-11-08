@@ -18,6 +18,9 @@ jobs:
         command: build
         args: -p framework_lib -p framework_tool
 
+    - name: Build UEFI application (no ESP)
+      run: make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
+
   test:
     name: Test Suite
     runs-on: ubuntu-latest
