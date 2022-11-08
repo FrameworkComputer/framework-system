@@ -9,16 +9,20 @@ default = ["linux"]
 unix = ["std", "cros_ec_driver", "raw_pio", "smbios", "dep:nix"]
 linux = ["linux_pio", "unix"]
 # Windows does not have the cros_ec driver nor raw port I/O access to userspace
-windows = ["std", "smbios", "dep:windows"]
+windows = ["std", "smbios", "dep:windows", "win_driver"]
 smbios = ["dep:smbios-lib"]
 std = ["dep:regex", "dep:num", "dep:num-derive", "dep:num-traits", "dep:clap", "smbios-lib?/std", "dep:lazy_static"]
 uefi = ["dep:redox_uefi_std", "dep:redox_dmi", "dep:plain", "raw_pio", "smbios"]
+
 # EC communication via Port I/O on Linux
 linux_pio = ["dep:libc"]
 # EC communication via raw Port I/O (e.g. UEFI or other ring 0 code)
 raw_pio = []
 # EC communication via cros_ec driver on Linux
 cros_ec_driver = []
+
+# Chromium EC driver by DHowett
+win_driver = []
 
 [dependencies]
 regex = { version = "1.6.0", optional = true } # TODO: Can update to 1.7.0
