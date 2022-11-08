@@ -16,6 +16,10 @@ Features:
     - [ ] BIOS
     - [x] EC
     - [ ] PD
+  - [ ] Flash firmware
+    - [ ] BIOS
+    - [ ] EC
+    - [ ] PD
   - [x] Get information about battery/AC (`--power`)
   - [x] Get information about USB-C PD ports (`--dports`)
 - [ ] Implement communication with EC
@@ -33,7 +37,7 @@ will install the right toolchain and version for this project.
 
 ```sh
 # Running linter
-cargo clippy
+cargo clippy -p framework_lib -p framework_tool
 
 # Running autoformatter as a check
 cargo fmt --check
@@ -41,8 +45,12 @@ cargo fmt --check
 # Fixing format issues
 cargo fmt
 
-# Building everything
-cargo build
+# Building all OS tools
+cargo build -p framework_lib -p framework_tool
+
+# Build UEFI application
+# Can't be built with cargo! That's why we need to exclude it in the other commands.
+make -C framework_uefi
 ```
 
 ## Running
@@ -50,7 +58,7 @@ cargo build
 Run without any arguments to see the help:
 
 ```
-> cargo run
+> cargo run -p framework_tool
 Swiss army knife for Framework laptops
 
 Usage: framework_tool [OPTIONS]
@@ -68,14 +76,14 @@ Options:
 Many actions require root. First build with cargo and then run the binary with sudo:
 
 ```sh
-cargo build && sudo ./target/debug/framework_tool
+cargo build -p framework_tool && sudo ./target/debug/framework_tool
 ```
 
 Dumping version information from firmware binaries:
 
 ```
 # Dumping PD FW Binary Information:
->  cargo run -- --pd-bin pd-0.1.14.bin
+>  cargo run -p framework_tool -- --pd-bin pd-0.1.14.bin
 File
   Size:                      65536 B
   Size:                         64 KB
@@ -97,7 +105,7 @@ FW 2
   Size:                         47 KB
 
 # Dumping EC FW Binary Information
-> cargo run -- --ec--bin ec.bin
+> cargo run -p framework_tool -- --ec--bin ec.bin
 File
   Size:                     524288 B
   Size:                        512 KB
