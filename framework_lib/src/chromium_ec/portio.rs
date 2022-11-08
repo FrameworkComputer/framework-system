@@ -431,7 +431,7 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
     if util::is_debug() {
         println!("Data Len is: {:?}", { resp_header.data_len });
     }
-    if !resp_header.data_len > EC_LPC_HOST_PACKET_SIZE {
+    if resp_header.data_len > EC_LPC_HOST_PACKET_SIZE {
         println!("Packet size too big");
         return None;
     }
