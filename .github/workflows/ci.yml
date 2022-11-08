@@ -12,7 +12,7 @@ jobs:
     - name: Setup Rust toolchain
       run: rustup show
 
-    - name: Build defaeult features
+    - name: Build default features
       uses: actions-rs/cargo@v1
       with:
         command: build

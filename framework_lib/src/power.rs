@@ -413,3 +413,15 @@ pub fn read_pd_version() -> Option<EcResponseReadPdVersion> {
         controller23: info.controller23,
     })
 }
+
+pub fn standalone_mode() -> bool {
+    // TODO: Figure out how to get that information
+    // For now just say we're in standalone mode when the battery is disconnected
+    let info = power_info();
+    if let Some(i) = info {
+        i.battery.is_none()
+    } else {
+        // Default to true, when we can't find battery status, assume it's not there. Safe default.
+        true
+    }
+}
