@@ -1,3 +1,7 @@
+// TODO: Allow to dynamically change this. For example with a --verbose flag
+#[cfg(debug_assertions)]
+const DBG: bool = false; // Usually it's too verbose even for debugging
+#[cfg(not(debug_assertions))]
 const DBG: bool = false;
 
 pub fn is_debug() -> bool {

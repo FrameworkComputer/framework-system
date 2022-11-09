@@ -2,6 +2,7 @@ use core::convert::TryInto;
 use core::prelude::v1::derive;
 
 use crate::chromium_ec;
+use crate::util;
 
 // The offset address of each type of data in mapped memory.
 // TODO: Move non-power values to other modules
@@ -107,7 +108,9 @@ pub fn print_memmap_version_info() {
 // TODO: Use Result
 pub fn power_info() -> Option<PowerInfo> {
     let battery_flag = chromium_ec::read_memory(EC_MEMMAP_BATT_FLAG, 1).unwrap()[0];
-    println!("AC/Battery flag: {:#X}", battery_flag);
+    if util::is_debug() {
+        println!("AC/Battery flag: {:#X}", battery_flag);
+    }
     let battery_lfcc = read_u32(EC_MEMMAP_BATT_LFCC);
     let battery_cap = read_u32(EC_MEMMAP_BATT_CAP);
 
@@ -300,7 +303,7 @@ fn check_ac(port: u8) -> Option<EcResponseUsbPdPowerInfo> {
             2 => UsbPowerRoles::Sink,
             3 => UsbPowerRoles::SinkNotCharging,
             _ => {
-                println!("Unknown Role!!");
+                assert!(false, "Unknown Role!!");
                 UsbPowerRoles::Disconnected
             }
         },
@@ -315,7 +318,10 @@ fn check_ac(port: u8) -> Option<EcResponseUsbPdPowerInfo> {
             7 => UsbChargingType::Other,
             8 => UsbChargingType::VBus,
             9 => UsbChargingType::Unknown,
-            _ => UsbChargingType::Unknown,
+            _ => {
+                assert!(false, "Unknown Role!!");
+                UsbChargingType::Unknown
+            }
         },
         dualrole: info.dualrole != 0,
         meas: UsbChargeMeasures {
