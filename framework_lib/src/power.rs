@@ -85,7 +85,7 @@ pub struct PowerInfo {
 fn read_u32(address: u16) -> u32 {
     let bytes = chromium_ec::read_memory(address, 4).unwrap();
     if bytes.len() != 4 {
-        assert!(
+        debug_assert!(
             bytes.len() == 4,
             "Tried to read 4 bytes but got {}",
             bytes.len()
@@ -159,7 +159,7 @@ pub fn power_info() -> Option<PowerInfo> {
 // When no battery is present and we're running on AC
 pub fn is_standalone() -> bool {
     if let Some(info) = power_info() {
-        assert!(
+        debug_assert!(
             info.battery.is_some() || info.ac_present,
             "If there's no battery, we must be running off AC"
         );
@@ -303,7 +303,7 @@ fn check_ac(port: u8) -> Option<EcResponseUsbPdPowerInfo> {
             2 => UsbPowerRoles::Sink,
             3 => UsbPowerRoles::SinkNotCharging,
             _ => {
-                assert!(false, "Unknown Role!!");
+                debug_assert!(false, "Unknown Role!!");
                 UsbPowerRoles::Disconnected
             }
         },
@@ -319,7 +319,7 @@ fn check_ac(port: u8) -> Option<EcResponseUsbPdPowerInfo> {
             8 => UsbChargingType::VBus,
             9 => UsbChargingType::Unknown,
             _ => {
-                assert!(false, "Unknown Role!!");
+                debug_assert!(false, "Unknown Role!!");
                 UsbChargingType::Unknown
             }
         },

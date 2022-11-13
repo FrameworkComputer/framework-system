@@ -130,7 +130,7 @@ mod tests {
             rollback_version: 0,
             cookie2: CROS_EC_IMAGE_DATA_COOKIE1,
         };
-        assert_eq!(
+        debug_assert_eq!(
             parse_ec_version(&data),
             Some(ImageVersionData {
                 version: "hx30_v0.0.1-7a61a89".to_string(),

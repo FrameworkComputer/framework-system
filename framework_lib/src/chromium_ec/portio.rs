@@ -331,7 +331,7 @@ fn pack_request(mut request: EcHostRequest, data: &[u8]) -> Vec<u8> {
         println!("data.len(): {:?}", data.len());
     }
 
-    assert!(checksum_size <= total);
+    debug_assert!(checksum_size <= total);
 
     // Copy struct into buffer, then checksum, then copy again
     // Could avoid copying again by inserting checksum in to the buffer directly,
