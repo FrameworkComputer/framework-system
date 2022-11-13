@@ -17,6 +17,8 @@ const EC_MEMMAP_SIZE: u16 = 255;
 #[cfg(feature = "cros_ec_driver")]
 const EC_CMD_READ_MEMMAP: u16 = 0x0007;
 
+const EC_MEMMAP_ID: u16 = 0x20; /* 0x20 == 'E', 0x21 == 'C' */
+
 /// Response codes returned by commands
 #[cfg_attr(not(feature = "uefi"), derive(FromPrimitive))]
 #[derive(Debug)]
@@ -59,6 +61,28 @@ struct FlashNotifiedParams {
 /// - [ ] Linux cros_ec driver
 /// - [ ] Windows Driver
 
+pub fn check_mem_magic() -> Option<()> {
+    match read_memory(EC_MEMMAP_ID, 2) {
+        Some(ec_id) => {
+            if ec_id.len() != 2 {
+                println!("  Unexpected length returned: {:?}", ec_id.len());
+                return None;
+            }
+            if ec_id[0] != b'E' || ec_id[1] != b'C' {
+                println!("  This machine doesn't look like it has a Framework EC");
+                None
+            } else {
+                println!("  Verified that Framework EC is present!");
+                Some(())
+            }
+        }
+        None => {
+            println!("  Failed to read EC ID from memory map");
+            None
+        }
+    }
+}
+
 pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
     // TODO: Choose implementation based on support and/or configuration
     match 0 {
@@ -98,7 +122,6 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
  */
 const EC_CMD_GET_BUILD_INFO: u16 = 0x04;
 pub fn version_info() -> Option<String> {
-    println!("Trying to get version");
     let data = send_command(EC_CMD_GET_BUILD_INFO, 0, &[])?;
     Some(
         std::str::from_utf8(&data)

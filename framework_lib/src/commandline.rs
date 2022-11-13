@@ -43,7 +43,7 @@ struct Cli {
     #[arg(long)]
     ec_bin: Option<std::path::PathBuf>,
 
-    /// test
+    /// Run self-test to check if interaction with EC is possible
     #[arg(long, short)]
     test: bool,
 }
@@ -131,8 +131,6 @@ fn privacy_info() -> Option<(bool, bool)> {
 //    let data = chromium_ec::send_command_lpc_v3(command, 0, &body);
 //}
 
-const EC_MEMMAP_ID: u16 = 0x20; /* 0x20 == 'E', 0x21 == 'C' */
-
 pub fn run_with_args(args: &[String]) {
     let args = Cli::parse_from(args);
 
@@ -157,19 +155,10 @@ pub fn run_with_args(args: &[String]) {
             print!("Current image:  Unknown");
         }
     } else if args.test {
-        println!("Test");
-        match chromium_ec::read_memory(EC_MEMMAP_ID, 2) {
-            Some(ec_id) => {
-                if ec_id.len() != 2 {
-                    println!("Unexpected length returned: {:?}", ec_id.len());
-                }
-                if ec_id[0] != b'E' || ec_id[1] != b'C' {
-                    println!("This machine doesn't look like it has a Framework EC");
-                } else {
-                    println!("Verified that Framework EC is present!")
-                }
-            }
-            None => println!("Failed to read EC ID from memory map"),
+        println!("Self-Test");
+        let result = selftest();
+        if result.is_none() {
+            std::process::exit(1);
         }
     } else if args.power {
         power::get_and_print_power_info();
@@ -205,4 +194,25 @@ pub fn run_with_args(args: &[String]) {
             Err(e) => println!("Error {:?}", e),
         }
     }
+}
+
+fn selftest() -> Option<()> {
+    println!("  Checking EC memory mapped magic bytes");
+    chromium_ec::check_mem_magic()?;
+
+    println!("  Reading EC Build Version");
+    chromium_ec::version_info()?;
+
+    println!("  Reading EC Flash");
+    chromium_ec::flash_version()?;
+
+    println!("  Getting power info from EC");
+    power::power_info()?;
+
+    println!("  Getting AC info from EC");
+    if power::get_pd_info().iter().any(|x| x.is_none()) {
+        return None;
+    }
+
+    Some(())
 }
