@@ -8,3 +8,9 @@ members = [
     # Catchall library that we'll probably want to split up further
     "framework_lib",
 ]
+
+# Don't build UEFI by default. Needs special cargo invocation
+default-members = [
+    "framework_lib",
+    "framework_tool",
+]

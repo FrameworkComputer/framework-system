@@ -37,7 +37,7 @@ will install the right toolchain and version for this project.
 
 ```sh
 # Running linter
-cargo clippy -p framework_lib -p framework_tool
+cargo clippy
 
 # Running autoformatter as a check
 cargo fmt --check
@@ -45,10 +45,16 @@ cargo fmt --check
 # Fixing format issues
 cargo fmt
 
-# Building all OS tools
-cargo build -p framework_lib -p framework_tool
+# Building the library and tool
+cargo build
 
-# Build UEFI application
+# Building only the library
+cargo build -p framework_lib
+
+# Building only the tool
+cargo build -p framework_tool
+
+# Build the UEFI application
 # Can't be built with cargo! That's why we need to exclude it in the other commands.
 make -C framework_uefi
 ```
@@ -56,14 +62,11 @@ make -C framework_uefi
 Building on Windows or in general with less features:
 
 ```sh
-# Build the library
-cargo build -p framework_lib --no-default-features --features "windows"
-
-# Build the tool
-cargo build -p framework_tool --no-default-features --features "windows"
+# Build the library and tool
+cargo build --no-default-features --features "windows"
 
 # Running the tool
-cargo run -p framework_tool --no-default-features --features "windows"
+cargo run --no-default-features --features "windows"
 ```
 
 ## Running
@@ -71,7 +74,7 @@ cargo run -p framework_tool --no-default-features --features "windows"
 Run without any arguments to see the help:
 
 ```
-> cargo run -p framework_tool
+> cargo run
 Swiss army knife for Framework laptops
 
 Usage: framework_tool [OPTIONS]
@@ -89,14 +92,14 @@ Options:
 Many actions require root. First build with cargo and then run the binary with sudo:
 
 ```sh
-cargo build -p framework_tool && sudo ./target/debug/framework_tool
+cargo build && sudo ./target/debug/framework_tool
 ```
 
 Dumping version information from firmware binaries:
 
 ```
 # Dumping PD FW Binary Information:
->  cargo run -p framework_tool -- --pd-bin pd-0.1.14.bin
+>  cargo run -- --pd-bin pd-0.1.14.bin
 File
   Size:                      65536 B
   Size:                         64 KB
@@ -118,7 +121,7 @@ FW 2
   Size:                         47 KB
 
 # Dumping EC FW Binary Information
-> cargo run -p framework_tool -- --ec--bin ec.bin
+> cargo run -- --ec--bin ec.bin
 File
   Size:                     524288 B
   Size:                        512 KB
