@@ -12,7 +12,7 @@ jobs:
       matrix:
         os: ['ubuntu-22.04', 'windows-2022']
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Setup Rust toolchain
       run: rustup show
@@ -33,7 +33,7 @@ jobs:
 
     - name: Upload Linux App
       if: matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: framework_tool
         path: target/debug/framework_tool
@@ -54,7 +54,7 @@ jobs:
 
     - name: Upload Windows App
       if: matrix.os == 'windows-2022'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: framework_tool.exe
         path: target/debug/framework_tool.exe
@@ -64,7 +64,7 @@ jobs:
 
     - name: Upload UEFI App
       if: matrix.os == 'ubuntu-22.04'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: framework.efi
         path: framework_uefi/build/x86_64-unknown-uefi/boot.efi
@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup Rust toolchain
         run: rustup show
@@ -97,7 +97,7 @@ jobs:
     name: Lints
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Setup Rust toolchain
       run: rustup show
