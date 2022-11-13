@@ -3,6 +3,13 @@ const CROS_EC_IMAGE_DATA_COOKIE2: u32 = 0xceaabbdd;
 // Absolute offset of the version struct inside the entire EC binary
 const EC_VERSION_OFFSET: usize = 0x1158;
 
+#[cfg(not(feature = "uefi"))]
+#[cfg(feature = "std")]
+use regex;
+
+#[cfg(feature = "uefi")]
+use core::prelude::rust_2021::derive;
+
 #[derive(Clone, Copy, Debug)]
 #[repr(C, packed)]
 struct _ImageVersionData {
@@ -46,6 +53,27 @@ pub fn print_ec_version(ver: &ImageVersionData) {
     println!("  Size:       {:>20} KB", ver.size / 1024);
 }
 
+#[cfg(feature = "uefi")]
+fn parse_ec_version(data: &_ImageVersionData) -> Option<ImageVersionData> {
+    let version = std::str::from_utf8(&data.version)
+        .ok()?
+        .trim_end_matches(char::from(0));
+
+    // TODO: regex crate does not support no_std
+
+    Some(ImageVersionData {
+        version: version.to_string(),
+        size: data.size,
+        rollback_version: data.rollback_version,
+        platform: "".to_string(),
+        major: 0,
+        minor: 0,
+        patch: 0,
+        commit: "".to_string(),
+    })
+}
+
+#[cfg(not(feature = "uefi"))]
 fn parse_ec_version(data: &_ImageVersionData) -> Option<ImageVersionData> {
     let version = std::str::from_utf8(&data.version)
         .ok()?
@@ -102,7 +130,7 @@ mod tests {
             rollback_version: 0,
             cookie2: CROS_EC_IMAGE_DATA_COOKIE1,
         };
-        assert_eq!(
+        debug_assert_eq!(
             parse_ec_version(&data),
             Some(ImageVersionData {
                 version: "hx30_v0.0.1-7a61a89".to_string(),

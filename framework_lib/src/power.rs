@@ -2,6 +2,7 @@ use core::convert::TryInto;
 use core::prelude::v1::derive;
 
 use crate::chromium_ec;
+use crate::util;
 
 // The offset address of each type of data in mapped memory.
 // TODO: Move non-power values to other modules
@@ -84,7 +85,7 @@ pub struct PowerInfo {
 fn read_u32(address: u16) -> u32 {
     let bytes = chromium_ec::read_memory(address, 4).unwrap();
     if bytes.len() != 4 {
-        assert!(
+        debug_assert!(
             bytes.len() == 4,
             "Tried to read 4 bytes but got {}",
             bytes.len()
@@ -107,7 +108,9 @@ pub fn print_memmap_version_info() {
 // TODO: Use Result
 pub fn power_info() -> Option<PowerInfo> {
     let battery_flag = chromium_ec::read_memory(EC_MEMMAP_BATT_FLAG, 1).unwrap()[0];
-    println!("AC/Battery flag: {:#X}", battery_flag);
+    if util::is_debug() {
+        println!("AC/Battery flag: {:#X}", battery_flag);
+    }
     let battery_lfcc = read_u32(EC_MEMMAP_BATT_LFCC);
     let battery_cap = read_u32(EC_MEMMAP_BATT_CAP);
 
@@ -156,7 +159,7 @@ pub fn power_info() -> Option<PowerInfo> {
 // When no battery is present and we're running on AC
 pub fn is_standalone() -> bool {
     if let Some(info) = power_info() {
-        assert!(
+        debug_assert!(
             info.battery.is_some() || info.ac_present,
             "If there's no battery, we must be running off AC"
         );
@@ -300,7 +303,7 @@ fn check_ac(port: u8) -> Option<EcResponseUsbPdPowerInfo> {
             2 => UsbPowerRoles::Sink,
             3 => UsbPowerRoles::SinkNotCharging,
             _ => {
-                println!("Unknown Role!!");
+                debug_assert!(false, "Unknown Role!!");
                 UsbPowerRoles::Disconnected
             }
         },
@@ -315,7 +318,10 @@ fn check_ac(port: u8) -> Option<EcResponseUsbPdPowerInfo> {
             7 => UsbChargingType::Other,
             8 => UsbChargingType::VBus,
             9 => UsbChargingType::Unknown,
-            _ => UsbChargingType::Unknown,
+            _ => {
+                debug_assert!(false, "Unknown Role!!");
+                UsbChargingType::Unknown
+            }
         },
         dualrole: info.dualrole != 0,
         meas: UsbChargeMeasures {
@@ -412,4 +418,16 @@ pub fn read_pd_version() -> Option<EcResponseReadPdVersion> {
         controller01: info.controller01,
         controller23: info.controller23,
     })
+}
+
+pub fn standalone_mode() -> bool {
+    // TODO: Figure out how to get that information
+    // For now just say we're in standalone mode when the battery is disconnected
+    let info = power_info();
+    if let Some(i) = info {
+        i.battery.is_none()
+    } else {
+        // Default to true, when we can't find battery status, assume it's not there. Safe default.
+        true
+    }
 }

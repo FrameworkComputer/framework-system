@@ -1,19 +1,26 @@
 use crate::util;
 
+#[cfg(not(feature = "uefi"))]
 use num_derive::FromPrimitive;
+#[cfg(feature = "cros_ec_driver")]
 mod cros_ec;
 mod portio;
 //mod windows;
+
+#[cfg(feature = "uefi")]
+use core::prelude::rust_2021::derive;
 
 /// Total size of EC memory mapped region
 const EC_MEMMAP_SIZE: u16 = 255;
 
 /// Command to read data from EC memory map
+#[cfg(feature = "cros_ec_driver")]
 const EC_CMD_READ_MEMMAP: u16 = 0x0007;
 
 /// Response codes returned by commands
-#[derive(FromPrimitive, Debug)]
-enum EcResponseStatus {
+#[cfg_attr(not(feature = "uefi"), derive(FromPrimitive))]
+#[derive(Debug)]
+pub enum EcResponseStatus {
     Success = 0,
     InvalidCommand = 1,
     Error = 2,
@@ -57,7 +64,9 @@ pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
     match 0 {
         0 => portio::read_memory(offset, length),
         //1 => windows::read_memory(offset, length),
-        _ => cros_ec::read_memory(offset, length),
+        #[cfg(feature = "cros_ec_driver")]
+        2 => cros_ec::read_memory(offset, length),
+        _ => None,
     }
 }
 
@@ -76,7 +85,9 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
     match 0 {
         0 => portio::send_command(command, command_version, data),
         //1 => windows::send_command(command, command_version, data),
-        _ => cros_ec::send_command(command, command_version, data),
+        #[cfg(feature = "cros_ec_driver")]
+        2 => cros_ec::send_command(command, command_version, data),
+        _ => None,
     }
 }
 

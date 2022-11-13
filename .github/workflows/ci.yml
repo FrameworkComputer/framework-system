@@ -12,10 +12,14 @@ jobs:
     - name: Setup Rust toolchain
       run: rustup show
 
-    - name: Run cargo build
+    - name: Build default features
       uses: actions-rs/cargo@v1
       with:
         command: build
+        args: -p framework_lib -p framework_tool
+
+    - name: Build UEFI application (no ESP)
+      run: make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
 
   test:
     name: Test Suite
@@ -31,6 +35,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+          args: -p framework_lib
 
   lints:
     name: Lints
@@ -51,4 +56,4 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: clippy
-        args: -- -D warnings
+        args: -p framework_lib -p framework_tool -- -D warnings
