@@ -53,6 +53,19 @@ cargo build -p framework_lib -p framework_tool
 make -C framework_uefi
 ```
 
+Building on Windows or in general with less features:
+
+```sh
+# Build the library
+cargo build -p framework_lib --no-default-features --features "windows"
+
+# Build the tool
+cargo build -p framework_tool --no-default-features --features "windows"
+
+# Running the tool
+cargo run -p framework_tool --no-default-features --features "windows"
+```
+
 ## Running
 
 Run without any arguments to see the help:
