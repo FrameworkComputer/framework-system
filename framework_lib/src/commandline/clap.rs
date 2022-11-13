@@ -3,6 +3,7 @@
 //! as well as on the UEFI shell tool.
 use clap::Parser;
 
+use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::Cli;
 
 /// Swiss army knife for Framework laptops
@@ -57,6 +58,11 @@ struct ClapCli {
     #[arg(long)]
     intrusion: bool,
 
+    /// Select which driver is used. By default portio is used
+    #[clap(value_enum)]
+    #[arg(long, default_value_t = CrosEcDriverType::Portio)]
+    driver: CrosEcDriverType,
+
     /// Run self-test to check if interaction with EC is possible
     #[arg(long, short)]
     test: bool,
@@ -83,6 +89,7 @@ pub fn parse(args: &[String]) -> Cli {
             .map(|x| x.into_os_string().into_string().unwrap()),
         dump: args.dump.map(|x| x.into_os_string().into_string().unwrap()),
         intrusion: args.intrusion,
+        driver: args.driver,
         test: args.test,
         // TODO: Set help. Not very important because Clap handles this by itself
         help: false,

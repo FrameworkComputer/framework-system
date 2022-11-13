@@ -13,11 +13,14 @@ use crate::ccgx::device::{PdController, PdPort};
 use crate::chromium_ec;
 #[cfg(feature = "linux")]
 use crate::csme;
+use crate::chromium_ec::CrosEcDriver;
 use crate::ec_binary;
 use crate::esrt;
 use crate::power;
 use crate::smbios::{dmidecode_string_val, get_smbios};
 use smbioslib::*;
+
+use crate::chromium_ec::{CrosEc, CrosEcDriverType};
 
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
@@ -35,6 +38,7 @@ pub struct Cli {
     pub ec_bin: Option<String>,
     pub capsule: Option<String>,
     pub dump: Option<String>,
+    pub driver: CrosEcDriverType,
     pub test: bool,
     pub intrusion: bool,
     pub help: bool,
@@ -73,7 +77,7 @@ fn print_pd_details() {
     print_single_pd_details(&pd_23);
 }
 
-fn print_versions() {
+fn print_versions(ec: &CrosEc) {
     println!("UEFI BIOS");
     if let Some(smbios) = get_smbios() {
         let bios_entries = smbios.collect::<SMBiosInformation>();
@@ -83,10 +87,10 @@ fn print_versions() {
     }
 
     println!("EC Firmware");
-    let ver = chromium_ec::version_info().unwrap_or_else(|| "UNKNOWN".to_string());
+    let ver = ec.version_info().unwrap_or_else(|| "UNKNOWN".to_string());
     println!("  Build version:  {:?}", ver);
 
-    if let Some((ro, rw, curr)) = chromium_ec::flash_version() {
+    if let Some((ro, rw, curr)) = ec.flash_version() {
         println!("  RO Version:     {:?}", ro);
         println!("  RW Version:     {:?}", rw);
         print!("  Current image:  ");
@@ -163,6 +167,7 @@ fn print_esrt() {
 }
 
 pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
+    let ec = CrosEc::new();
     if args.help {
         // Only print with uefi feature here because without clap will already
         // have printed the help by itself.
@@ -170,12 +175,12 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_help(_allupdate);
         return 2;
     } else if args.versions {
-        print_versions();
+        print_versions(&ec);
     } else if args.esrt {
         print_esrt();
     } else if args.intrusion {
         println!("Chassis status:");
-        if let Some(status) = chromium_ec::get_intrusion_status() {
+        if let Some(status) = ec.get_intrusion_status() {
             println!(
                 "  Coin cell ever removed:   {}",
                 status.coin_cell_ever_removed
@@ -192,7 +197,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if args.test {
         println!("Self-Test");
-        let result = selftest();
+        let result = selftest(&ec);
         if result.is_none() {
             return 1;
         }
@@ -205,7 +210,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.pd_info {
         print_pd_details();
     } else if args.privacy {
-        chromium_ec::privacy_info();
+        ec.privacy_info();
     // TODO:
     //} else if arg == "-raw-command" {
     //    raw_command(&args[1..]);
@@ -321,15 +326,15 @@ Options:
     //);
 }
 
-fn selftest() -> Option<()> {
+fn selftest(ec: &CrosEc) -> Option<()> {
     println!("  Checking EC memory mapped magic bytes");
-    chromium_ec::check_mem_magic()?;
+    ec.check_mem_magic()?;
 
     println!("  Reading EC Build Version");
-    chromium_ec::version_info()?;
+    ec.version_info()?;
 
     println!("  Reading EC Flash");
-    chromium_ec::flash_version()?;
+    ec.flash_version()?;
 
     println!("  Getting power info from EC");
     power::power_info()?;
