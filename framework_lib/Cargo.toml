@@ -4,9 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["std", "linux_pio", "cros_ec_driver", "raw_pio" ]
+default = ["linux"]
+linux = ["std", "linux_pio", "cros_ec_driver", "raw_pio"]
+# Windows does not have the cros_ec driver nor raw port I/O access to userspace
+windows = ["std", "dep:windows"]
 std = ["dep:regex", "dep:num", "dep:num-derive", "dep:num-traits", "dep:clap"]
-uefi = ["dep:redox_uefi_std"]
+uefi = ["dep:redox_uefi_std", "raw_pio"]
 # EC communication via Port I/O on Linux
 linux_pio = ["dep:libc"]
 # EC communication via raw Port I/O (e.g. UEFI or other ring 0 code)

@@ -5,21 +5,56 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Test builds on Windows as well
+      # Lint and tests don't need to run on other OSes
+      matrix:
+        os: ['ubuntu-22.04', 'windows-2022']
     steps:
     - uses: actions/checkout@v2
 
     - name: Setup Rust toolchain
       run: rustup show
 
-    - name: Build default features
+    - name: Build library (Linux)
+      if: matrix.os == 'ubuntu-22.04'
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: -p framework_lib -p framework_tool
+        args: -p framework_lib
+
+    - name: Build Linux tool
+      if: matrix.os == 'ubuntu-22.04'
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: -p framework_tool
+
+    - name: Build library (Windows)
+      if: matrix.os == 'windows-2022'
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: -p framework_lib --no-default-features --features "windows"
+
+    - name: Build Windows tool
+      if: matrix.os == 'windows-2022'
+      uses: actions-rs/cargo@v1
+      with:
+        command: build
+        args: -p framework_tool --no-default-features --features "windows"
 
     - name: Build UEFI application (no ESP)
       run: make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
+
+    - name: Install mtools to build ESP (Linux)
+      if: matrix.os == 'ubuntu-22.04'
+      run: sudo apt-get install -y mtools
+
+    - name: Build ESP (Linux)
+      if: matrix.os == 'ubuntu-22.04'
+      run: make -C framework_uefi
 
   test:
     name: Test Suite
