@@ -12,7 +12,7 @@ jobs:
       matrix:
         os: ['ubuntu-22.04', 'windows-2022']
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Setup Rust toolchain
       run: rustup show
@@ -31,6 +31,13 @@ jobs:
         command: build
         args: -p framework_tool
 
+    - name: Upload Linux App
+      if: matrix.os == 'ubuntu-22.04'
+      uses: actions/upload-artifact@v3
+      with:
+        name: framework_tool
+        path: target/debug/framework_tool
+
     - name: Build library (Windows)
       if: matrix.os == 'windows-2022'
       uses: actions-rs/cargo@v1
@@ -45,8 +52,22 @@ jobs:
         command: build
         args: -p framework_tool --no-default-features --features "windows"
 
+    - name: Upload Windows App
+      if: matrix.os == 'windows-2022'
+      uses: actions/upload-artifact@v3
+      with:
+        name: framework_tool.exe
+        path: target/debug/framework_tool.exe
+
     - name: Build UEFI application (no ESP)
       run: make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
+
+    - name: Upload UEFI App
+      if: matrix.os == 'ubuntu-22.04'
+      uses: actions/upload-artifact@v3
+      with:
+        name: framework.efi
+        path: framework_uefi/build/x86_64-unknown-uefi/boot.efi
 
     - name: Install mtools to build ESP (Linux)
       if: matrix.os == 'ubuntu-22.04'
@@ -61,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup Rust toolchain
         run: rustup show
@@ -76,7 +97,7 @@ jobs:
     name: Lints
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Setup Rust toolchain
       run: rustup show
