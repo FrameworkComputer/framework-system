@@ -11,9 +11,12 @@ QEMU_FLAGS=\
 	-vga std \
 	-bios /usr/share/OVMF/OVMF_CODE.fd
 
-.PHONY: qemu
+.PHONY: qemu clean
 
 all: $(BUILD)/boot.img
+
+clean:
+	rm -r $(BUILD)
 
 qemu: $(BUILD)/boot.img
 	$(QEMU) $(QEMU_FLAGS) $<
