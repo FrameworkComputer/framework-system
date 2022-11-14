@@ -11,7 +11,6 @@ extern crate uefi_std as std;
 use std::prelude::*;
 
 pub mod chromium_ec;
-#[cfg(not(feature = "uefi"))]
 pub mod commandline;
 pub mod ec_binary;
 mod os_specific;

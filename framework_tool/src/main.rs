@@ -7,5 +7,6 @@ fn get_args() -> Vec<String> {
 }
 
 fn main() {
-    commandline::run_with_args(&get_args());
+    let args = commandline::parse(&get_args());
+    commandline::run_with_args(&args, false);
 }

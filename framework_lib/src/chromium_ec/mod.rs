@@ -191,3 +191,33 @@ pub fn flash_version() -> Option<(String, String, EcCurrentImage)> {
         curr,
     ))
 }
+
+const EC_CMD_PRIVACY_SWITCHES_CHECK_MODE: u16 = 0x3E14; /* Get information about current state of privacy switches */
+#[repr(C, packed)]
+struct EcResponsePrivacySwitches {
+    microphone: u8,
+    camera: u8,
+}
+
+pub fn privacy_info() -> Option<(bool, bool)> {
+    let data = send_command(EC_CMD_PRIVACY_SWITCHES_CHECK_MODE, 0, &[])?;
+    // TODO: Rust complains that when accessing this struct, we're reading
+    // from unaligned pointers. How can I fix this? Maybe create another struct to shadow it,
+    // which isn't packed. And copy the data to there.
+    let status: EcResponsePrivacySwitches = unsafe { std::ptr::read(data.as_ptr() as *const _) };
+
+    println!(
+        "Microphone privacy switch: {}",
+        if status.microphone == 1 {
+            "Open"
+        } else {
+            "Closed"
+        }
+    );
+    println!(
+        "Camera privacy switch:     {}",
+        if status.camera == 1 { "Open" } else { "Closed" }
+    );
+
+    Some((status.microphone == 1, status.camera == 1))
+}
