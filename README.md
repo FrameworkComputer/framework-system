@@ -7,7 +7,7 @@ Features:
 - [x] All-In-One Tool (`framework_tool`)
   - [x] Tested on Linux
   - [x] Tested on Windows
-  - [ ] Tested on UEFI Shell
+  - [x] Tested on UEFI Shell (`framework_uefi`)
   - [ ] Get firmware version from binary file
     - [x] EC (`--ec-bin`)
     - [ ] CCG5 PD (11th Gen TigerLake)
@@ -21,10 +21,10 @@ Features:
     - [ ] EC
     - [ ] PD
   - [x] Get information about battery/AC (`--power`)
-  - [x] Get information about USB-C PD ports (`--dports`)
+  - [x] Get information about USB-C PD ports (`--pdorts`)
 - [ ] Implement communication with EC
   - [x] Port I/O communication on Linux
-  - [ ] Port I/O communication on UEFI
+  - [x] Port I/O communication on UEFI
   - [x] Using `cros_ec` driver in Linux kernel
   - [ ] Using DHowett's Windows CrosEC driver
 
@@ -86,6 +86,7 @@ Options:
       --privacy          Show info from SMBIOS (Only on UEFI) Show privacy switch statuses (camera and microphone)
       --pd-bin <PD_BIN>  Parse versions from PD firmware binary file
       --ec-bin <EC_BIN>  Parse versions from EC firmware binary file
+      -t, --test         Run self-test to check if interaction with EC is possible
   -h, --help             Print help information
 ```
 

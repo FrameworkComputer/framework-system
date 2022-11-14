@@ -229,7 +229,7 @@ pub fn check_update_ready(power_info: &PowerInfo) -> bool {
 const EC_CMD_USB_PD_POWER_INFO: u16 = 0x103; /* Get information about PD controller power */
 
 #[derive(Debug, PartialEq)]
-enum UsbChargingType {
+pub enum UsbChargingType {
     None = 0,
     PD = 1,
     TypeC = 2,
@@ -242,7 +242,7 @@ enum UsbChargingType {
     Unknown = 9,
 }
 #[derive(Debug, PartialEq)]
-enum UsbPowerRoles {
+pub enum UsbPowerRoles {
     Disconnected = 0,
     Source = 1,
     Sink = 2,
@@ -257,11 +257,11 @@ struct _UsbChargeMeasures {
     current_lim: u16,
 }
 
-struct UsbChargeMeasures {
-    voltage_max: u16,
-    voltage_now: u16,
-    current_max: u16,
-    current_lim: u16,
+pub struct UsbChargeMeasures {
+    pub voltage_max: u16,
+    pub voltage_now: u16,
+    pub current_max: u16,
+    pub current_lim: u16,
 }
 
 // Private struct just for parsing binary
@@ -275,15 +275,15 @@ struct _EcResponseUsbPdPowerInfo {
     max_power: u32,
 }
 
-struct EcResponseUsbPdPowerInfo {
-    role: UsbPowerRoles,
-    charging_type: UsbChargingType,
-    dualrole: bool,
-    meas: UsbChargeMeasures,
-    max_power: u32,
+pub struct UsbPdPowerInfo {
+    pub role: UsbPowerRoles,
+    pub charging_type: UsbChargingType,
+    pub dualrole: bool,
+    pub meas: UsbChargeMeasures,
+    pub max_power: u32,
 }
 
-fn check_ac(port: u8) -> Option<EcResponseUsbPdPowerInfo> {
+fn check_ac(port: u8) -> Option<UsbPdPowerInfo> {
     // port=0 or port=1 to check right
     // port=2 or port=3 to check left
     // If dest returns 0x2 that means it's powered
@@ -296,7 +296,7 @@ fn check_ac(port: u8) -> Option<EcResponseUsbPdPowerInfo> {
 
     // TODO: Checksum
 
-    Some(EcResponseUsbPdPowerInfo {
+    Some(UsbPdPowerInfo {
         role: match info.role {
             0 => UsbPowerRoles::Disconnected,
             1 => UsbPowerRoles::Source,
@@ -334,9 +334,19 @@ fn check_ac(port: u8) -> Option<EcResponseUsbPdPowerInfo> {
     })
 }
 
-pub fn get_and_print_pd_info() {
+pub fn get_pd_info() -> Vec<Option<UsbPdPowerInfo>> {
+    // 4 ports on our current laptops
+    let mut info = vec![];
     for port in 0..4 {
-        let info = check_ac(port);
+        info.push(check_ac(port));
+    }
+
+    info
+}
+
+pub fn get_and_print_pd_info() {
+    let infos = get_pd_info();
+    for (port, info) in infos.iter().enumerate().take(4) {
         println!(
             "USB-C Port {} ({}):",
             port,
