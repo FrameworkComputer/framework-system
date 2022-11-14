@@ -8,5 +8,5 @@ fn get_args() -> Vec<String> {
 
 fn main() {
     let args = commandline::parse(&get_args());
-    commandline::run_with_args(&args);
+    commandline::run_with_args(&args, false);
 }

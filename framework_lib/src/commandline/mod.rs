@@ -40,10 +40,10 @@ pub fn parse(args: &[String]) -> Cli {
     return clap::parse(args);
 }
 
-pub fn run_with_args(args: &Cli) -> i32 {
+pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     if args.help {
         #[cfg(feature = "uefi")]
-        print_help();
+        print_help(_allupdate);
         return 2;
     } else if args.versions {
         let ver = chromium_ec::version_info().unwrap_or_else(|| "UNKNOWN".to_string());
@@ -121,7 +121,7 @@ pub fn run_with_args(args: &Cli) -> i32 {
 
 // Only on UEFI. Clap prints this by itself
 #[cfg(feature = "uefi")]
-fn print_help() {
+fn print_help(updater: bool) {
     println!(
         r#"
     Framework Laptop Firmware Update Utility
@@ -132,14 +132,25 @@ fn print_help() {
         --versions    - Display the current firmware versions of the system
         --power       - Display the current power status (battery and AC)
         --pdports     - Display information about USB-C PD ports
-        --info        - Display information about the system
-        --allupdate   - Run procedure to update everything (Involves some manual steps)
         --privacy     - Display status of the privacy switches
         --test        - Run self-test to check if interaction with EC is possible
-        --raw-command - Send a raw command to the EC
-                        Example: raw-command 0x3E14
     "#
-    )
+    );
+    if updater {
+        println!(
+            r#"
+        --info        - Display information about the system
+        --allupdate   - Run procedure to update everything (Involves some manual steps)
+    "#
+        );
+    }
+    // TODO: Not supported yet
+    //println!(
+    //    r#"
+    //    --raw-command - Send a raw command to the EC
+    //                    Example: raw-command 0x3E14
+    //"#
+    //);
 }
 
 fn selftest() -> Option<()> {
