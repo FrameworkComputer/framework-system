@@ -12,6 +12,7 @@ use crate::ec_binary;
 #[cfg(not(feature = "uefi"))]
 use crate::pd_binary;
 use crate::power;
+use smbioslib::*;
 
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
@@ -42,6 +43,8 @@ pub fn parse(args: &[String]) -> Cli {
 
 pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     if args.help {
+        // Only print with uefi feature here because without clap will already
+        // have printed the help by itself.
         #[cfg(feature = "uefi")]
         print_help(_allupdate);
         return 2;
@@ -75,8 +78,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         power::get_and_print_power_info();
     } else if args.pdports {
         power::get_and_print_pd_info();
-    //} else if args.info {
-    //    device_info();
+    } else if args.info {
+        smbios_info();
     } else if args.privacy {
         chromium_ec::privacy_info();
     // TODO:
@@ -134,12 +137,12 @@ fn print_help(updater: bool) {
         --pdports     - Display information about USB-C PD ports
         --privacy     - Display status of the privacy switches
         --test        - Run self-test to check if interaction with EC is possible
+        --info        - Display information about the system
     "#
     );
     if updater {
         println!(
             r#"
-        --info        - Display information about the system
         --allupdate   - Run procedure to update everything (Involves some manual steps)
     "#
         );
@@ -172,6 +175,85 @@ fn selftest() -> Option<()> {
     }
 
     Some(())
+}
+
+pub fn dmidecode_string_val(s: &SMBiosString) -> Option<String> {
+    match s.as_ref() {
+        Ok(val) if val.is_empty() => Some("Not Specified".to_owned()),
+        Ok(val) => Some(val.to_owned()),
+        Err(SMBiosStringError::FieldOutOfBounds) => None,
+        Err(SMBiosStringError::InvalidStringNumber(_)) => Some("<BAD INDEX>".to_owned()),
+        Err(SMBiosStringError::Utf8(val)) => {
+            Some(String::from_utf8_lossy(&val.clone().into_bytes()).to_string())
+        }
+    }
+}
+
+#[cfg(feature = "uefi")]
+fn get_smbios() -> Option<SMBiosData> {
+    let data = crate::uefi::smbios_data().unwrap();
+    let version = None; // TODO: Maybe add the version here
+    let smbios = SMBiosData::from_vec_and_version(data, version);
+    Some(smbios)
+}
+// On Linux this reads either from /dev/mem or sysfs
+// On FreeBSD from /dev/mem
+// On Windows from the kernel API
+#[cfg(not(feature = "uefi"))]
+fn get_smbios() -> Option<SMBiosData> {
+    match smbioslib::table_load_from_device() {
+        Ok(data) => Some(data),
+        Err(err) => {
+            println!("failure: {:?}", err);
+            None
+        }
+    }
+}
+
+fn smbios_info() {
+    let smbios = get_smbios();
+    if smbios.is_none() {
+        println!("Failed to find SMBIOS");
+        return;
+    }
+    for undefined_struct in smbios.unwrap().iter() {
+        match undefined_struct.defined_struct() {
+            DefinedStruct::Information(data) => {
+                println!("BIOS Information");
+                if let Some(vendor) = dmidecode_string_val(&data.vendor()) {
+                    println!("\tVendor:       {}", vendor);
+                }
+                if let Some(version) = dmidecode_string_val(&data.version()) {
+                    println!("\tVersion:      {}", version);
+                }
+                if let Some(release_date) = dmidecode_string_val(&data.release_date()) {
+                    println!("\tRelease Date: {}", release_date);
+                }
+            }
+            DefinedStruct::SystemInformation(data) => {
+                println!("BIOS Information");
+                if let Some(version) = dmidecode_string_val(&data.version()) {
+                    println!("\tVersion:      {}", version);
+                }
+                if let Some(manufacturer) = dmidecode_string_val(&data.manufacturer()) {
+                    println!("\tManufacturer: {}", manufacturer);
+                }
+                if let Some(product_name) = dmidecode_string_val(&data.product_name()) {
+                    println!("\tProduct Name: {}", product_name);
+                }
+                if let Some(wake_up_type) = data.wakeup_type() {
+                    println!("\tWake-Up-Type: {:?}", wake_up_type.value);
+                }
+                if let Some(sku_number) = dmidecode_string_val(&data.sku_number()) {
+                    println!("\tSKU Number:   {}", sku_number);
+                }
+                if let Some(family) = dmidecode_string_val(&data.family()) {
+                    println!("\tFamily:       {}", family);
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 #[cfg(not(feature = "uefi"))]

@@ -22,8 +22,8 @@ struct ClapCli {
     pdports: bool,
 
     /// Show info from SMBIOS (Only on UEFI)
-    //#[arg(long)]
-    //info: bool,
+    #[arg(long)]
+    info: bool,
 
     /// Show privacy switch statuses (camera and microphone)
     #[arg(long)]
@@ -61,7 +61,7 @@ pub fn parse(args: &[String]) -> Cli {
         help: false,
         // UEFI only for now. Don't need to handle
         allupdate: false,
-        info: false,
+        info: args.info,
         raw_command: vec![],
     }
 }

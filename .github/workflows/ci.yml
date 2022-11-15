@@ -11,8 +11,15 @@ jobs:
       # Lint and tests don't need to run on other OSes
       matrix:
         os: ['ubuntu-22.04', 'windows-2022']
+    env:
+      # To allow fetching via ssh-agent on Windows, which allows fetching a private repo
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
     - uses: actions/checkout@v3
+
+    - uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
     - name: Setup Rust toolchain
       run: rustup show
@@ -80,9 +87,16 @@ jobs:
   test:
     name: Test Suite
     runs-on: ubuntu-latest
+    env:
+      # To allow fetching via ssh-agent on Windows, which allows fetching a private repo
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+
+      - uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Setup Rust toolchain
         run: rustup show
@@ -96,8 +110,15 @@ jobs:
   lints:
     name: Lints
     runs-on: ubuntu-22.04
+    env:
+      # To allow fetching via ssh-agent on Windows, which allows fetching a private repo
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
     - uses: actions/checkout@v3
+
+    - uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
     - name: Setup Rust toolchain
       run: rustup show

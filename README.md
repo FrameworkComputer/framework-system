@@ -6,6 +6,7 @@ Features:
 
 - [x] All-In-One Tool (`framework_tool`)
   - [x] Tested on Linux
+  - [ ] Tested on FreeBSD
   - [x] Tested on Windows
   - [x] Tested on UEFI Shell (`framework_uefi`)
   - [ ] Get firmware version from binary file
