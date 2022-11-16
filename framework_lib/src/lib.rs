@@ -10,10 +10,15 @@ extern crate uefi_std as std;
 #[prelude_import]
 use std::prelude::*;
 
+#[cfg(feature = "uefi")]
+extern crate alloc;
+
 pub mod chromium_ec;
 pub mod commandline;
 pub mod ec_binary;
 mod os_specific;
 pub mod pd_binary;
 pub mod power;
+#[cfg(feature = "uefi")]
+pub mod uefi;
 mod util;

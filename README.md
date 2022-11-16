@@ -6,6 +6,7 @@ Features:
 
 - [x] All-In-One Tool (`framework_tool`)
   - [x] Tested on Linux
+  - [ ] Tested on FreeBSD
   - [x] Tested on Windows
   - [x] Tested on UEFI Shell (`framework_uefi`)
   - [ ] Get firmware version from binary file
@@ -13,7 +14,7 @@ Features:
     - [ ] CCG5 PD (11th Gen TigerLake)
     - [x] CCG6 PD (12th Gen AlderLake) (`--pd-bin`)
   - [ ] Get firmware version from system (`--versions`)
-    - [ ] BIOS
+    - [x] BIOS
     - [x] EC
     - [ ] PD
   - [ ] Flash firmware
@@ -61,7 +62,11 @@ make -C framework_uefi
 
 Building on Windows or in general with less features:
 
-```sh
+```ps1
+# Because we're fetching a private dependency from git, it might be necessary
+# to force cargo to use the git commandline. In powershell run:
+$env:CARGO_NET_GIT_FETCH_WITH_CLI='true'
+
 # Build the library and tool
 cargo build --no-default-features --features "windows"
 

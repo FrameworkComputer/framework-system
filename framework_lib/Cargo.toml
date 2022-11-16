@@ -5,11 +5,12 @@ edition = "2021"
 
 [features]
 default = ["linux"]
-linux = ["std", "linux_pio", "cros_ec_driver", "raw_pio"]
+linux = ["std", "linux_pio", "cros_ec_driver", "raw_pio", "smbios"]
 # Windows does not have the cros_ec driver nor raw port I/O access to userspace
-windows = ["std", "dep:windows"]
-std = ["dep:regex", "dep:num", "dep:num-derive", "dep:num-traits", "dep:clap"]
-uefi = ["dep:redox_uefi_std", "raw_pio"]
+windows = ["std", "smbios", "dep:windows"]
+smbios = ["dep:smbios-lib"]
+std = ["dep:regex", "dep:num", "dep:num-derive", "dep:num-traits", "dep:clap", "smbios-lib?/std"]
+uefi = ["dep:redox_uefi_std", "dep:redox_dmi", "dep:plain", "raw_pio", "smbios"]
 # EC communication via Port I/O on Linux
 linux_pio = ["dep:libc"]
 # EC communication via raw Port I/O (e.g. UEFI or other ring 0 code)
@@ -31,6 +32,18 @@ num = { version = "0.4", optional = true }
 num-derive = { version = "0.3", optional = true }
 num-traits = { version = "0.2", optional = true }
 redox_uefi_std = { version = "0.1.8", optional = true }
+redox_dmi = { version = "0.1.5", optional = true }
+plain = { version = "0.2.3", optional = true }
+
+[dependencies.smbios-lib]
+git = "ssh://git@github.com/FrameworkComputer/smbios-lib.git"
+branch = "no-std"
+optional = true
+default-features = false
+# Local development
+#path = "../../smbios-lib"
+# After my changes are upstreamed
+#version = "0.9.0"
 
 [dependencies.windows]
 optional = true
