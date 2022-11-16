@@ -14,7 +14,7 @@ Features:
     - [ ] CCG5 PD (11th Gen TigerLake)
     - [x] CCG6 PD (12th Gen AlderLake) (`--pd-bin`)
   - [ ] Get firmware version from system (`--versions`)
-    - [ ] BIOS
+    - [x] BIOS
     - [x] EC
     - [ ] PD
   - [ ] Flash firmware

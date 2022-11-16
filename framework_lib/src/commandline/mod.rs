@@ -41,6 +41,37 @@ pub fn parse(args: &[String]) -> Cli {
     return clap::parse(args);
 }
 
+fn print_versions() {
+    println!("UEFI BIOS");
+    if let Some(smbios) = get_smbios() {
+        let bios_entries = smbios.collect::<SMBiosInformation>();
+        let bios = bios_entries.get(0).unwrap();
+        println!("  Version:        {}", bios.version());
+        println!("  Release Date:   {}", bios.release_date());
+    }
+
+    println!("EC Firmware");
+    let ver = chromium_ec::version_info().unwrap_or_else(|| "UNKNOWN".to_string());
+    println!("  Build version:  {:?}", ver);
+
+    if let Some((ro, rw, curr)) = chromium_ec::flash_version() {
+        println!("  RO Version:     {:?}", ro);
+        println!("  RW Version:     {:?}", rw);
+        print!("  Current image:  ");
+        if curr == chromium_ec::EcCurrentImage::RO {
+            println!("RO");
+        } else if curr == chromium_ec::EcCurrentImage::RW {
+            println!("RW");
+        } else {
+            println!("Unknown");
+        }
+    } else {
+        println!("  RO Version:     Unknown");
+        println!("  RW Version:     Unknown");
+        print!("  Current image:  Unknown");
+    }
+}
+
 pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     if args.help {
         // Only print with uefi feature here because without clap will already
@@ -49,25 +80,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_help(_allupdate);
         return 2;
     } else if args.versions {
-        let ver = chromium_ec::version_info().unwrap_or_else(|| "UNKNOWN".to_string());
-        println!("Build version:  {:?}", ver);
-
-        if let Some((ro, rw, curr)) = chromium_ec::flash_version() {
-            println!("RO Version:     {:?}", ro);
-            println!("RW Version:     {:?}", rw);
-            print!("Current image:  ");
-            if curr == chromium_ec::EcCurrentImage::RO {
-                println!("RO");
-            } else if curr == chromium_ec::EcCurrentImage::RW {
-                println!("RW");
-            } else {
-                println!("Unknown");
-            }
-        } else {
-            println!("RO Version:     Unknown");
-            println!("RW Version:     Unknown");
-            print!("Current image:  Unknown");
-        }
+        print_versions();
     } else if args.test {
         println!("Self-Test");
         let result = selftest();
