@@ -62,7 +62,11 @@ make -C framework_uefi
 
 Building on Windows or in general with less features:
 
-```sh
+```ps1
+# Because we're fetching a private dependency from git, it might be necessary
+# to force cargo to use the git commandline. In powershell run:
+$env:CARGO_NET_GIT_FETCH_WITH_CLI='true'
+
 # Build the library and tool
 cargo build --no-default-features --features "windows"
 
