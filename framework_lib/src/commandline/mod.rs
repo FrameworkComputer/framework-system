@@ -70,6 +70,18 @@ fn print_versions() {
         println!("  RW Version:     Unknown");
         print!("  Current image:  Unknown");
     }
+
+    println!("PD Controllers");
+    if let Some(pd_versions) = power::read_pd_version() {
+        println!(
+            "  Left:           {}",
+            power::print_pd_app_ver(&pd_versions.controller01)
+        );
+        println!(
+            "  Right:          {}",
+            power::print_pd_app_ver(&pd_versions.controller23)
+        );
+    }
 }
 
 pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {

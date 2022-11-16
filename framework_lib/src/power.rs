@@ -402,13 +402,43 @@ pub fn is_charging() -> Option<(bool, bool)> {
 const EC_CMD_READ_PD_VERSION: u16 = 0x3E11; /* Get information about PD controller power */
 #[repr(C, packed)]
 struct _EcResponseReadPdVersion {
-    controller01: u8,
-    controller23: u8,
+    controller01: [u8; 8],
+    controller23: [u8; 8],
+}
+
+pub struct ControllerVersion {
+    pub base1: u8,
+    pub base2: u8,
+    pub base3: u8,
+    pub base4: u32,
+    pub app_major: u8,
+    pub app_minor: u8,
+    pub app_patch: u8,
 }
 
 pub struct EcResponseReadPdVersion {
-    pub controller01: u8,
-    pub controller23: u8,
+    pub controller01: ControllerVersion,
+    pub controller23: ControllerVersion,
+}
+
+fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
+    ControllerVersion {
+        base1: (data[3] >> 4) & 0xF,
+        base2: (data[3]) & 0xF,
+        base3: data[2],
+        base4: (data[0] as u32) + ((data[1] as u32) << 8),
+        app_major: (data[7] >> 4) & 0xF,
+        app_minor: (data[7]) & 0xF,
+        app_patch: data[6],
+    }
+}
+
+pub fn print_pd_base_ver(ver: &ControllerVersion) -> String {
+    format!("{}.{}.{}.{}", ver.base1, ver.base2, ver.base3, ver.base4)
+}
+
+pub fn print_pd_app_ver(ver: &ControllerVersion) -> String {
+    format!("{}.{}.{}", ver.app_major, ver.app_minor, ver.app_patch)
 }
 
 // NOTE: Only works on ADL!
@@ -425,8 +455,8 @@ pub fn read_pd_version() -> Option<EcResponseReadPdVersion> {
     let info: _EcResponseReadPdVersion = unsafe { std::ptr::read(data.as_ptr() as *const _) };
 
     Some(EcResponseReadPdVersion {
-        controller01: info.controller01,
-        controller23: info.controller23,
+        controller01: parse_pd_ver(&info.controller01),
+        controller23: parse_pd_ver(&info.controller23),
     })
 }
 
