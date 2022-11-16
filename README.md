@@ -16,7 +16,9 @@ Features:
   - [ ] Get firmware version from system (`--versions`)
     - [x] BIOS
     - [x] EC
-    - [ ] PD
+    - [x] PD
+    - [ ] ME
+    - [ ] Retimer
   - [ ] Flash firmware
     - [ ] BIOS
     - [ ] EC
