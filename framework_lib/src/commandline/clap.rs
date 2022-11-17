@@ -41,6 +41,10 @@ struct ClapCli {
     #[arg(long)]
     ec_bin: Option<std::path::PathBuf>,
 
+    /// Parse UEFI Capsule information from binary file
+    #[arg(long)]
+    capsule: Option<std::path::PathBuf>,
+
     /// Run self-test to check if interaction with EC is possible
     #[arg(long, short)]
     test: bool,
@@ -60,6 +64,9 @@ pub fn parse(args: &[String]) -> Cli {
             .map(|x| x.into_os_string().into_string().unwrap()),
         ec_bin: args
             .ec_bin
+            .map(|x| x.into_os_string().into_string().unwrap()),
+        capsule: args
+            .capsule
             .map(|x| x.into_os_string().into_string().unwrap()),
         test: args.test,
         // TODO: Set help. Not very important because Clap handles this by itself

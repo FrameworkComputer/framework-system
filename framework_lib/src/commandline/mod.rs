@@ -6,6 +6,8 @@ pub mod uefi;
 #[cfg(not(feature = "uefi"))]
 use std::fs;
 
+#[cfg(not(feature = "uefi"))]
+use crate::capsule;
 use crate::chromium_ec;
 #[cfg(not(feature = "uefi"))]
 use crate::ec_binary;
@@ -28,6 +30,7 @@ pub struct Cli {
     pub privacy: bool,
     pub pd_bin: Option<String>,
     pub ec_bin: Option<String>,
+    pub capsule: Option<String>,
     pub test: bool,
     pub help: bool,
     // UEFI only
@@ -183,6 +186,25 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 println!("  Size:       {:>20} B", data.len());
                 println!("  Size:       {:>20} KB", data.len() / 1024);
                 analyze_ec_fw(&data);
+            }
+            // TODO: Perhaps a more user-friendly error
+            Err(e) => println!("Error {:?}", e),
+        }
+    } else if let Some(capsule_path) = &args.capsule {
+        #[cfg(feature = "uefi")]
+        {
+            println!(
+                "Parsing Capsule binary not supported on UEFI: {}",
+                capsule_path
+            );
+        }
+        #[cfg(not(feature = "uefi"))]
+        match fs::read(capsule_path) {
+            Ok(data) => {
+                println!("File");
+                println!("  Size:       {:>20} B", data.len());
+                println!("  Size:       {:>20} KB", data.len() / 1024);
+                analyze_capsule(&data);
             }
             // TODO: Perhaps a more user-friendly error
             Err(e) => println!("Error {:?}", e),
@@ -348,5 +370,31 @@ pub fn analyze_ec_fw(data: &[u8]) {
         ec_binary::print_ec_version(&ver);
     } else {
         println!("Failed to read version")
+    }
+}
+
+#[cfg(not(feature = "uefi"))]
+pub fn analyze_capsule(data: &[u8]) {
+    let header = capsule::parse_capsule_header(data);
+    capsule::print_capsule_header(&header);
+
+    match header.capsule_guid {
+        esrt::BIOS_GUID => {
+            println!("  Type:         Framework Insyde BIOS");
+        }
+        esrt::RETIMER01_GUID => {
+            println!("  Type:    Framework Retimer01 (Left)");
+        }
+        esrt::RETIMER23_GUID => {
+            println!("  Type:   Framework Retimer23 (Right)");
+        }
+        esrt::WINUX_GUID => {
+            println!("  Type:            Windows UX capsule");
+            let ux_header = capsule::parse_ux_header(data);
+            capsule::print_ux_header(&ux_header);
+        }
+        _ => {
+            println!("  Type:                      Unknown");
+        }
     }
 }
