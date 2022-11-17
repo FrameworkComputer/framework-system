@@ -45,6 +45,10 @@ struct ClapCli {
     #[arg(long)]
     capsule: Option<std::path::PathBuf>,
 
+    /// Dump extracted UX capsule bitmap image to a file
+    #[arg(long)]
+    dump: Option<std::path::PathBuf>,
+
     /// Run self-test to check if interaction with EC is possible
     #[arg(long, short)]
     test: bool,
@@ -68,6 +72,7 @@ pub fn parse(args: &[String]) -> Cli {
         capsule: args
             .capsule
             .map(|x| x.into_os_string().into_string().unwrap()),
+        dump: args.dump.map(|x| x.into_os_string().into_string().unwrap()),
         test: args.test,
         // TODO: Set help. Not very important because Clap handles this by itself
         help: false,

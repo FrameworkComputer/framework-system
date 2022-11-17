@@ -31,6 +31,7 @@ pub struct Cli {
     pub pd_bin: Option<String>,
     pub ec_bin: Option<String>,
     pub capsule: Option<String>,
+    pub dump: Option<String>,
     pub test: bool,
     pub help: bool,
     // UEFI only
@@ -204,7 +205,14 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 println!("File");
                 println!("  Size:       {:>20} B", data.len());
                 println!("  Size:       {:>20} KB", data.len() / 1024);
-                analyze_capsule(&data);
+                let header = analyze_capsule(&data);
+                if header.capsule_guid == esrt::WINUX_GUID {
+                    let ux_header = capsule::parse_ux_header(&data);
+                    if let Some(dump_path) = &args.dump {
+                        // TODO: Better error handling, rather than just panicking
+                        capsule::dump_winux_image(&data, &ux_header, dump_path);
+                    }
+                }
             }
             // TODO: Perhaps a more user-friendly error
             Err(e) => println!("Error {:?}", e),
@@ -374,7 +382,7 @@ pub fn analyze_ec_fw(data: &[u8]) {
 }
 
 #[cfg(not(feature = "uefi"))]
-pub fn analyze_capsule(data: &[u8]) {
+pub fn analyze_capsule(data: &[u8]) -> capsule::EfiCapsuleHeader {
     let header = capsule::parse_capsule_header(data);
     capsule::print_capsule_header(&header);
 
@@ -397,4 +405,5 @@ pub fn analyze_capsule(data: &[u8]) {
             println!("  Type:                      Unknown");
         }
     }
+    header
 }

@@ -1,4 +1,8 @@
 use core::prelude::rust_2021::derive;
+#[cfg(all(not(feature = "uefi"), feature = "std"))]
+use std::fs::File;
+#[cfg(all(not(feature = "uefi"), feature = "std"))]
+use std::io::prelude::*;
 
 use crate::esrt::Guid;
 
@@ -120,4 +124,15 @@ pub fn print_ux_header(header: &DisplayCapsule) {
     let image_size = header.capsule_header.capsule_image_size as usize - header_len;
     println!("    Calculcated Size: {:>14} B", image_size);
     println!("    Calculcated Size: {:>14} KB", image_size / 1024);
+}
+
+#[cfg(all(not(feature = "uefi"), feature = "std"))]
+pub fn dump_winux_image(data: &[u8], header: &DisplayCapsule, filename: &str) {
+    let header_len = std::mem::size_of::<DisplayCapsule>();
+    let image_size = header.capsule_header.capsule_image_size as usize - header_len;
+
+    let image = &data[header_len..image_size];
+
+    let mut file = File::create(filename).unwrap();
+    file.write_all(image).unwrap();
 }

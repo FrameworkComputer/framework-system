@@ -58,6 +58,7 @@ pub fn parse(args: &[String]) -> Cli {
         pd_bin: None,
         ec_bin: None,
         capsule: None,
+        dump: None,
         test: false,
         help: false,
         allupdate: false,
