@@ -5,11 +5,11 @@ use std::slice;
 #[cfg(feature = "uefi")]
 use std::uefi::guid::GuidKind;
 
-#[cfg(all(not(feature = "uefi"), feature = "std"))]
+#[cfg(feature = "linux")]
 use std::fs;
-#[cfg(all(not(feature = "uefi"), feature = "std"))]
+#[cfg(feature = "linux")]
 use std::io;
-#[cfg(all(not(feature = "uefi"), feature = "std"))]
+#[cfg(feature = "linux")]
 use std::path::Path;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -118,7 +118,7 @@ pub struct Esrt {
 }
 
 // Current Entry Version
-const ESRT_FIRMWARE_RESOURCE_VERSION: u64 = 1;
+pub const ESRT_FIRMWARE_RESOURCE_VERSION: u64 = 1;
 
 #[derive(Debug)]
 pub enum ResourceType {
