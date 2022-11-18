@@ -10,9 +10,9 @@ Features:
   - [x] Tested on Windows
   - [x] Tested on UEFI Shell (`framework_uefi`)
   - [ ] Show system information
-    - [x] ESRT table (UEFI only)
+    - [x] ESRT table (UEFI and Linux only)
     - [x] SMBIOS
-  - [ ] Get firmware version from binary file
+  - [ ] Get firmware version from binary file (Not available in UEFI)
     - [x] EC (`--ec-bin`)
     - [ ] CCG5 PD (11th Gen TigerLake)
     - [x] CCG6 PD (12th Gen AlderLake) (`--pd-bin`)

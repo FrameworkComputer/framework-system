@@ -9,11 +9,10 @@ use std::fs;
 use crate::chromium_ec;
 #[cfg(not(feature = "uefi"))]
 use crate::ec_binary;
+use crate::esrt;
 #[cfg(not(feature = "uefi"))]
 use crate::pd_binary;
 use crate::power;
-#[cfg(feature = "uefi")]
-use crate::uefi::esrt;
 use smbioslib::*;
 
 #[cfg(feature = "uefi")]
@@ -121,7 +120,6 @@ fn print_versions() {
 }
 
 fn print_esrt() {
-    #[cfg(feature = "uefi")]
     if let Some(esrt) = esrt::get_esrt() {
         esrt::print_esrt(&esrt);
     } else {
