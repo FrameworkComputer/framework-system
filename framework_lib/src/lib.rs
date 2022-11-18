@@ -16,6 +16,7 @@ extern crate alloc;
 pub mod chromium_ec;
 pub mod commandline;
 pub mod ec_binary;
+pub mod esrt;
 mod os_specific;
 pub mod pd_binary;
 pub mod power;

@@ -13,6 +13,10 @@ struct ClapCli {
     #[arg(short, long)]
     versions: bool,
 
+    /// Display the UEFI ESRT table
+    #[arg(long)]
+    esrt: bool,
+
     /// Show current power status (battery and AC)
     #[arg(long)]
     power: bool,
@@ -47,6 +51,7 @@ pub fn parse(args: &[String]) -> Cli {
 
     Cli {
         versions: args.versions,
+        esrt: args.esrt,
         power: args.power,
         pdports: args.pdports,
         privacy: args.privacy,
