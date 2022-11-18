@@ -4,6 +4,53 @@ use std::uefi;
 use std::uefi::guid::GuidKind;
 use uefi::guid::Guid;
 
+pub const BIOS_GUID: Guid = Guid(
+    0xa30a8cf3,
+    0x847f,
+    0x5e59,
+    [0xbd, 0x59, 0xf9, 0xec, 0x14, 0x5c, 0x1a, 0x8c],
+);
+pub const RETIMER01_GUID: Guid = Guid(
+    0xa9c91b0c,
+    0xc0b8,
+    0x463d,
+    [0xa7, 0xda, 0xa5, 0xd6, 0xec, 0x64, 0x63, 0x33],
+);
+pub const RETIMER23_GUID: Guid = Guid(
+    0xba2e4e6e,
+    0x3b0c,
+    0x4f25,
+    [0x8a, 0x59, 0x4c, 0x55, 0x3f, 0xc8, 0x6e, 0xa2],
+);
+// In EDK2
+// Handled by MdeModulePkg/Library/DxeCapsuleLibFmp/DxeCapsuleLib.c
+// Defined by MdePkg/Include/IndustryStandard/WindowsUxCapsule.h
+pub const WINUX_GUID: Guid = Guid(
+    0x3b8c8162,
+    0x188c,
+    0x46a4,
+    [0xae, 0xc9, 0xbe, 0x43, 0xf1, 0xd6, 0x56, 0x97],
+);
+
+#[derive(Debug)]
+enum FrameworkGuidKind {
+    Bios,
+    Retimer01,
+    Retimer23,
+    WinUx,
+    Unknown,
+}
+
+fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
+    match guid {
+        &BIOS_GUID => FrameworkGuidKind::Bios,
+        &RETIMER01_GUID => FrameworkGuidKind::Retimer01,
+        &RETIMER23_GUID => FrameworkGuidKind::Retimer23,
+        &WINUX_GUID => FrameworkGuidKind::WinUx,
+        _ => FrameworkGuidKind::Unknown,
+    }
+}
+
 #[repr(packed)]
 struct _Esrt {
     resource_count: u32,
@@ -94,6 +141,10 @@ pub fn print_esrt(esrt: &Esrt) {
     for (i, entry) in esrt.entries.iter().enumerate() {
         println!("ESRT Entry {}", i);
         println!("  GUID:                 {}", entry.fw_class);
+        println!(
+            "  GUID:                 {:?}",
+            match_guid_kind(&entry.fw_class)
+        );
         println!(
             "  Type:                 {:?}",
             ResourceType::from_int(entry.fw_type)

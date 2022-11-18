@@ -51,6 +51,7 @@ pub fn get_args() -> Vec<String> {
 pub fn parse(args: &[String]) -> Cli {
     let mut cli = Cli {
         versions: false,
+        esrt: false,
         power: false,
         pdports: false,
         privacy: false,
@@ -70,6 +71,8 @@ pub fn parse(args: &[String]) -> Cli {
     for arg in args {
         if arg == "-v" || arg == "--versions" {
             cli.versions = true;
+        } else if arg == "--esrt" {
+            cli.esrt = true;
         } else if arg == "--power" {
             cli.power = true;
         } else if arg == "--pdports" {

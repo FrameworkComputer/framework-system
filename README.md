@@ -9,6 +9,9 @@ Features:
   - [ ] Tested on FreeBSD
   - [x] Tested on Windows
   - [x] Tested on UEFI Shell (`framework_uefi`)
+  - [ ] Show system information
+    - [x] ESRT table (UEFI only)
+    - [x] SMBIOS
   - [ ] Get firmware version from binary file
     - [x] EC (`--ec-bin`)
     - [ ] CCG5 PD (11th Gen TigerLake)
@@ -18,7 +21,7 @@ Features:
     - [x] EC
     - [x] PD
     - [ ] ME
-    - [ ] Retimer
+    - [x] Retimer (UEFI only)
   - [ ] Flash firmware
     - [ ] BIOS
     - [ ] EC

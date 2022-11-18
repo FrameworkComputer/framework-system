@@ -23,6 +23,7 @@ use core::prelude::rust_2021::derive;
 #[derive(Debug)]
 pub struct Cli {
     pub versions: bool,
+    pub esrt: bool,
     pub power: bool,
     pub pdports: bool,
     pub privacy: bool,
@@ -87,9 +88,44 @@ fn print_versions() {
 
     #[cfg(feature = "uefi")]
     {
+        let mut found_retimer = false;
         if let Some(esrt) = esrt::get_esrt() {
-            esrt::print_esrt(&esrt);
+            for entry in &esrt.entries {
+                match entry.fw_class {
+                    esrt::RETIMER01_GUID | esrt::RETIMER23_GUID => {
+                        if !found_retimer {
+                            println!("Retimers");
+                            found_retimer = true;
+                        }
+                    }
+                    _ => {}
+                }
+                match entry.fw_class {
+                    esrt::RETIMER01_GUID => {
+                        println!(
+                            "  Left:           0x{:X} ({})",
+                            entry.fw_version, entry.fw_version
+                        );
+                    }
+                    esrt::RETIMER23_GUID => {
+                        println!(
+                            "  Right:          0x{:X} ({})",
+                            entry.fw_version, entry.fw_version
+                        );
+                    }
+                    _ => {}
+                }
+            }
         }
+    }
+}
+
+fn print_esrt() {
+    #[cfg(feature = "uefi")]
+    if let Some(esrt) = esrt::get_esrt() {
+        esrt::print_esrt(&esrt);
+    } else {
+        println!("Could not find and parse ESRT table.");
     }
 }
 
@@ -102,6 +138,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         return 2;
     } else if args.versions {
         print_versions();
+    } else if args.esrt {
+        print_esrt();
     } else if args.test {
         println!("Self-Test");
         let result = selftest();
@@ -167,6 +205,7 @@ fn print_help(updater: bool) {
 
         -h            - Display this help text
         --versions    - Display the current firmware versions of the system
+        --esrt        - Display the UEFI ESRT table
         --power       - Display the current power status (battery and AC)
         --pdports     - Display information about USB-C PD ports
         --privacy     - Display status of the privacy switches
