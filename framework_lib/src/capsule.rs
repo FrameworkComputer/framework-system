@@ -22,8 +22,26 @@ pub struct EfiCapsuleHeader {
     /// of 0x10000 - 0xFFFFFFFF are defined by this specification
     pub flags: u32,
 
-    /// Size in bytes of the capsule.
+    /// Size in bytes of the entire capsule, including header.
     pub capsule_image_size: u32,
+}
+
+impl EfiCapsuleHeader {
+    pub fn is_valid(&self, data: &[u8]) -> bool {
+        let size = data.len() as u32;
+        let header_size = std::mem::size_of::<EfiCapsuleHeader>() as u32;
+        if self.capsule_image_size != size {
+            return false;
+        }
+        if self.header_size > self.capsule_image_size {
+            return false;
+        }
+        if self.header_size < header_size {
+            return false;
+        }
+
+        true
+    }
 }
 
 #[repr(C, packed)]
@@ -73,11 +91,15 @@ fn print_capsule_flags(flags: u32) {
     }
 }
 
-pub fn parse_capsule_header(data: &[u8]) -> EfiCapsuleHeader {
+pub fn parse_capsule_header(data: &[u8]) -> Option<EfiCapsuleHeader> {
     let header_len = std::mem::size_of::<EfiCapsuleHeader>();
     let header: EfiCapsuleHeader =
         unsafe { std::ptr::read(data[0..header_len].as_ptr() as *const _) };
-    header
+    if header.is_valid(data) {
+        Some(header)
+    } else {
+        None
+    }
 }
 
 pub fn print_capsule_header(header: &EfiCapsuleHeader) {

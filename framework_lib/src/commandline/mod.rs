@@ -205,13 +205,16 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 println!("File");
                 println!("  Size:       {:>20} B", data.len());
                 println!("  Size:       {:>20} KB", data.len() / 1024);
-                let header = analyze_capsule(&data);
-                if header.capsule_guid == esrt::WINUX_GUID {
-                    let ux_header = capsule::parse_ux_header(&data);
-                    if let Some(dump_path) = &args.dump {
-                        // TODO: Better error handling, rather than just panicking
-                        capsule::dump_winux_image(&data, &ux_header, dump_path);
+                if let Some(header) = analyze_capsule(&data) {
+                    if header.capsule_guid == esrt::WINUX_GUID {
+                        let ux_header = capsule::parse_ux_header(&data);
+                        if let Some(dump_path) = &args.dump {
+                            // TODO: Better error handling, rather than just panicking
+                            capsule::dump_winux_image(&data, &ux_header, dump_path);
+                        }
                     }
+                } else {
+                    println!("Capsule is invalid.");
                 }
             }
             // TODO: Perhaps a more user-friendly error
@@ -382,8 +385,8 @@ pub fn analyze_ec_fw(data: &[u8]) {
 }
 
 #[cfg(not(feature = "uefi"))]
-pub fn analyze_capsule(data: &[u8]) -> capsule::EfiCapsuleHeader {
-    let header = capsule::parse_capsule_header(data);
+pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
+    let header = capsule::parse_capsule_header(data)?;
     capsule::print_capsule_header(&header);
 
     match header.capsule_guid {
@@ -405,5 +408,5 @@ pub fn analyze_capsule(data: &[u8]) -> capsule::EfiCapsuleHeader {
             println!("  Type:                      Unknown");
         }
     }
-    header
+    Some(header)
 }
