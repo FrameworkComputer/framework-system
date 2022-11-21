@@ -8,6 +8,7 @@ use std::fs;
 
 use crate::capsule;
 use crate::chromium_ec;
+use crate::csme;
 use crate::ec_binary;
 use crate::esrt;
 use crate::pd_binary;
@@ -116,6 +117,15 @@ fn print_versions() {
                     _ => {}
                 }
             }
+        }
+    }
+
+    #[cfg(feature = "linux")]
+    {
+        println!("CSME");
+        if let Ok(csme) = csme::csme_from_sysfs() {
+            println!("  Enabled:        {}", csme.enabled);
+            println!("  Version:        {}", csme::format_csme_ver(&csme));
         }
     }
 }
