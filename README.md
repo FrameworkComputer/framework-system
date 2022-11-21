@@ -12,7 +12,7 @@ Features:
   - [ ] Show system information
     - [x] ESRT table (UEFI and Linux only)
     - [x] SMBIOS
-  - [ ] Get firmware version from binary file (Not available in UEFI)
+  - [ ] Get firmware version from binary file
     - [x] EC (`--ec-bin`)
     - [ ] CCG5 PD (11th Gen TigerLake)
     - [x] CCG6 PD (12th Gen AlderLake) (`--pd-bin`)

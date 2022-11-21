@@ -70,7 +70,7 @@ pub fn parse(args: &[String]) -> Cli {
         cli.help = true;
     }
 
-    for arg in args {
+    for (i, arg) in args.iter().enumerate() {
         if arg == "-v" || arg == "--versions" {
             cli.versions = true;
         } else if arg == "--esrt" {
@@ -89,6 +89,24 @@ pub fn parse(args: &[String]) -> Cli {
             cli.help = true;
         } else if arg == "--privacy" {
             cli.privacy = true;
+        } else if arg == "--pd-bin" {
+            cli.pd_bin = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                None
+            }
+        } else if arg == "--ec-bin" {
+            cli.ec_bin = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                None
+            }
+        } else if arg == "--capsule" {
+            cli.capsule = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                None
+            }
         } else if arg == "--raw-command" {
             cli.raw_command = args[1..].to_vec();
         }
