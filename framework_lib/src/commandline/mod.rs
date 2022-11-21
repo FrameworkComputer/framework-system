@@ -213,7 +213,6 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("  Size:       {:>20} KB", data.len() / 1024);
             if let Some(_header) = analyze_capsule(&data) {
                 // TODO: For now we can only read files on UEFI, not write them
-                #[cfg(not(feature = "uefi"))]
                 if _header.capsule_guid == esrt::WINUX_GUID {
                     let ux_header = capsule::parse_ux_header(&data);
                     if let Some(dump_path) = &args.dump {

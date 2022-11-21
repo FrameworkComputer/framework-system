@@ -107,6 +107,12 @@ pub fn parse(args: &[String]) -> Cli {
             } else {
                 None
             }
+        } else if arg == "--dump" {
+            cli.dump = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                None
+            }
         } else if arg == "--raw-command" {
             cli.raw_command = args[1..].to_vec();
         }
