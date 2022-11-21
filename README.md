@@ -2,6 +2,12 @@
 
 Rust libraries and tools to interact with the system.
 
+The tool works on Linux, Windows and the UEFI shell.
+Download it from the latest [GH Actions](https://github.com/FrameworkComputer/framework-system/actions?query=branch%3Amain) run on the main branch.
+Most features are supported on every "OS". See below for details. Windows does
+not yet support some features because they depend on the missing CrosEC driver
+implementation.
+
 Features:
 
 - [x] All-In-One Tool (`framework_tool`)
@@ -16,12 +22,14 @@ Features:
     - [x] EC (`--ec-bin`)
     - [ ] CCG5 PD (11th Gen TigerLake)
     - [x] CCG6 PD (12th Gen AlderLake) (`--pd-bin`)
+  - [x] Parse metadata from capsule binary
+    - [x] Extract bitmap image from winux capsule to file
   - [ ] Get firmware version from system (`--versions`)
     - [x] BIOS
     - [x] EC
     - [x] PD
     - [ ] ME
-    - [x] Retimer (UEFI only)
+    - [x] Retimer
   - [ ] Flash firmware
     - [ ] BIOS
     - [ ] EC
@@ -110,7 +118,7 @@ Dumping version information from firmware binaries:
 
 ```
 # Dumping PD FW Binary Information:
->  cargo run -- --pd-bin pd-0.1.14.bin
+>  cargo run -q -- --pd-bin pd-0.1.14.bin
 File
   Size:                      65536 B
   Size:                         64 KB
@@ -132,7 +140,7 @@ FW 2
   Size:                         47 KB
 
 # Dumping EC FW Binary Information
-> cargo run -- --ec--bin ec.bin
+> cargo run -q -- --ec--bin ec.bin
 File
   Size:                     524288 B
   Size:                        512 KB
@@ -144,6 +152,21 @@ EC
   Commit:                  7a61a89
   Size:                       2868 B
   Size:                          2 KB
+
+# Dumping Capsule Binary Information:
+> cargo run -q -- --capsule retimer23.cap
+File
+  Size:                    2232676 B
+  Size:                       2180 KB
+Capsule Header
+  Capsule GUID: (ba2e4e6e, 3b0c, 4f25, [8a,59,4c,55,3f,c8,6e,a2])
+  Header size:                  28 B
+  Flags:                   0x50000
+    Persist across reset  (0x10000)
+    Initiate reset        (0x40000)
+  Capsule Size:            2232676 B
+  Capsule Size:               2180 KB
+  Type:   Framework Retimer23 (Right)
 ```
 
 ## Tests
