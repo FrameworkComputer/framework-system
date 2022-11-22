@@ -3,6 +3,35 @@ on:
   push:
 
 jobs:
+  freebsd-cross-build:
+    name: Cross-Build for FreeBSD
+    runs-on: 'ubuntu-22.04'
+    env:
+      # To allow fetching via ssh-agent on Windows, which allows fetching a private repo
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: |
+            ${{ secrets.PRIVKEY_SMBIOS_LIB }}
+
+    - name: Setup Rust toolchain
+      run: rustup show
+
+    - name: Install cross compilation tool
+      run: cargo install cross
+
+    - name: Build FreeBSD tool
+      run: cross build --target=x86_64-unknown-freebsd --no-default-features --features unix
+
+    - name: Upload FreeBSD App
+      uses: actions/upload-artifact@v3
+      with:
+        name: framework_tool_freebsd
+        path: target/x86_64-unknown-freebsd/debug/framework_tool
+
   build:
     name: Build
     runs-on: ${{ matrix.os }}

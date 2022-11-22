@@ -5,7 +5,9 @@ edition = "2021"
 
 [features]
 default = ["linux"]
-linux = ["std", "linux_pio", "cros_ec_driver", "raw_pio", "smbios", "dep:nix"]
+# Linux/FreeBSD
+unix = ["std", "cros_ec_driver", "raw_pio", "smbios", "dep:nix"]
+linux = ["linux_pio", "unix"]
 # Windows does not have the cros_ec driver nor raw port I/O access to userspace
 windows = ["std", "smbios", "dep:windows"]
 smbios = ["dep:smbios-lib"]

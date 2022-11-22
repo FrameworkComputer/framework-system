@@ -87,6 +87,19 @@ cargo build --no-default-features --features "windows"
 cargo run --no-default-features --features "windows"
 ```
 
+Cross compile from Linux to FreeBSD:
+
+```sh
+# One time, install cross tool
+cargo install cross
+
+# Make sure docker is started as well
+sudo systemctl start docker
+
+# Build
+cross build --target=x86_64-unknown-freebsd --no-default-features --features unix
+```
+
 ## Running
 
 Run without any arguments to see the help:
