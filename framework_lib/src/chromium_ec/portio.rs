@@ -2,6 +2,10 @@ use core::convert::TryInto;
 use hwio::{Io, Pio};
 #[cfg(feature = "linux_pio")]
 use libc::ioperm;
+#[cfg(feature = "linux_pio")]
+use nix::unistd::Uid;
+#[cfg(feature = "linux_pio")]
+use std::sync::{Arc, Mutex};
 
 use crate::chromium_ec::EC_MEMMAP_SIZE;
 use crate::os_specific;
@@ -279,18 +283,55 @@ fn transfer_read(address: u16, size: u16) -> Vec<u8> {
     buffer
 }
 
-fn init() {
-    // In Linux userspace has to first request access to ioports
-    // TODO: Close these again after we're done
-    #[cfg(feature = "linux_pio")]
+enum Initialized {
+    NotYet,
+    Succeeded,
+    Failed,
+}
+
+#[cfg(feature = "linux_pio")]
+lazy_static! {
+    static ref INITIALIZED: Arc<Mutex<Initialized>> = Arc::new(Mutex::new(Initialized::NotYet));
+}
+
+#[cfg(not(feature = "linux_pio"))]
+fn init() -> bool {
+    // Nothing to do for bare-metal (UEFI) port I/O
+    true
+}
+
+// In Linux userspace has to first request access to ioports
+// TODO: Close these again after we're done
+#[cfg(feature = "linux_pio")]
+fn init() -> bool {
+    let mut init = INITIALIZED.lock().unwrap();
+    match *init {
+        // Can directly give up, trying again won't help
+        Initialized::Failed => return false,
+        // Already initialized, no need to do anything.
+        Initialized::Succeeded => return true,
+        Initialized::NotYet => {}
+    }
+
+    if !Uid::effective().is_root() {
+        println!("Must be root to use port based I/O for EC communication.");
+        *init = Initialized::Failed;
+        return false;
+    }
+
     unsafe {
         ioperm(EC_LPC_ADDR_HOST_DATA as u64, 8, 1);
         ioperm(MEC_LPC_ADDRESS_REGISTER0 as u64, 10, 1);
     }
+    *init = Initialized::Succeeded;
+    true
 }
 
 fn wait_for_ready() {
-    init();
+    if !init() {
+        // Failed to initialize
+        return;
+    }
     // TODO: Abort after reasonable timeout
     loop {
         let status = Pio::<u8>::new(EC_LPC_ADDR_HOST_CMD).read();
@@ -375,6 +416,10 @@ fn unpack_response_header(bytes: &[u8]) -> EcHostResponse {
 }
 
 pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Vec<u8>> {
+    if !init() {
+        // Failed to initialize
+        return None;
+    }
     let request = EcHostRequest {
         struct_version: EC_HOST_REQUEST_VERSION,
         checksum: 0,
@@ -450,7 +495,10 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
 }
 
 pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
-    init();
+    if !init() {
+        // Failed to initialize
+        return None;
+    }
     if util::is_debug() {
         println!("read_memory_lpc(offset={:#}, size={:#})", offset, length);
     }
