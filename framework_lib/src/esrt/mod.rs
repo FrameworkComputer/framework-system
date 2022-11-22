@@ -297,6 +297,13 @@ pub fn get_esrt() -> Option<Esrt> {
     None
 }
 
+#[cfg(all(not(feature = "uefi"), target_os = "freebsd"))]
+pub fn get_esrt() -> Option<Esrt> {
+    // TODO: Implement
+    println!("Reading ESRT is not implemented on FreeBSD yet.");
+    None
+}
+
 #[cfg(feature = "uefi")]
 pub fn get_esrt() -> Option<Esrt> {
     for table in std::system_table().config_tables() {
