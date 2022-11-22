@@ -6,13 +6,10 @@ pub mod uefi;
 #[cfg(not(feature = "uefi"))]
 use std::fs;
 
-#[cfg(not(feature = "uefi"))]
 use crate::capsule;
 use crate::chromium_ec;
-#[cfg(not(feature = "uefi"))]
 use crate::ec_binary;
 use crate::esrt;
-#[cfg(not(feature = "uefi"))]
 use crate::pd_binary;
 use crate::power;
 use smbioslib::*;
@@ -161,64 +158,71 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     //    raw_command(&args[1..]);
     } else if let Some(pd_bin_path) = &args.pd_bin {
         #[cfg(feature = "uefi")]
-        {
-            println!("Parsing PD binary not supported on UEFI: {}", pd_bin_path);
-        }
+        let data = crate::uefi::fs::shell_read_file(pd_bin_path);
         #[cfg(not(feature = "uefi"))]
-        match fs::read(pd_bin_path) {
-            Ok(data) => {
-                println!("File");
-                println!("  Size:       {:>20} B", data.len());
-                println!("  Size:       {:>20} KB", data.len() / 1024);
-                analyze_ccg6_pd_fw(&data);
-            }
+        let data = match fs::read(pd_bin_path) {
+            Ok(data) => Some(data),
             // TODO: Perhaps a more user-friendly error
-            Err(e) => println!("Error {:?}", e),
+            Err(e) => {
+                println!("Error {:?}", e);
+                None
+            }
+        };
+
+        if let Some(data) = data {
+            println!("File");
+            println!("  Size:       {:>20} B", data.len());
+            println!("  Size:       {:>20} KB", data.len() / 1024);
+            analyze_ccg6_pd_fw(&data);
         }
     } else if let Some(ec_bin_path) = &args.ec_bin {
         #[cfg(feature = "uefi")]
-        {
-            println!("Parsing EC binary not supported on UEFI: {}", ec_bin_path);
-        }
+        let data = crate::uefi::fs::shell_read_file(ec_bin_path);
         #[cfg(not(feature = "uefi"))]
-        match fs::read(ec_bin_path) {
-            Ok(data) => {
-                println!("File");
-                println!("  Size:       {:>20} B", data.len());
-                println!("  Size:       {:>20} KB", data.len() / 1024);
-                analyze_ec_fw(&data);
-            }
+        let data = match fs::read(ec_bin_path) {
+            Ok(data) => Some(data),
             // TODO: Perhaps a more user-friendly error
-            Err(e) => println!("Error {:?}", e),
+            Err(e) => {
+                println!("Error {:?}", e);
+                None
+            }
+        };
+
+        if let Some(data) = data {
+            println!("File");
+            println!("  Size:       {:>20} B", data.len());
+            println!("  Size:       {:>20} KB", data.len() / 1024);
+            analyze_ec_fw(&data);
         }
     } else if let Some(capsule_path) = &args.capsule {
         #[cfg(feature = "uefi")]
-        {
-            println!(
-                "Parsing Capsule binary not supported on UEFI: {}",
-                capsule_path
-            );
-        }
+        let data = crate::uefi::fs::shell_read_file(capsule_path);
         #[cfg(not(feature = "uefi"))]
-        match fs::read(capsule_path) {
-            Ok(data) => {
-                println!("File");
-                println!("  Size:       {:>20} B", data.len());
-                println!("  Size:       {:>20} KB", data.len() / 1024);
-                if let Some(header) = analyze_capsule(&data) {
-                    if header.capsule_guid == esrt::WINUX_GUID {
-                        let ux_header = capsule::parse_ux_header(&data);
-                        if let Some(dump_path) = &args.dump {
-                            // TODO: Better error handling, rather than just panicking
-                            capsule::dump_winux_image(&data, &ux_header, dump_path);
-                        }
-                    }
-                } else {
-                    println!("Capsule is invalid.");
-                }
-            }
+        let data = match fs::read(capsule_path) {
+            Ok(data) => Some(data),
             // TODO: Perhaps a more user-friendly error
-            Err(e) => println!("Error {:?}", e),
+            Err(e) => {
+                println!("Error {:?}", e);
+                None
+            }
+        };
+
+        if let Some(data) = data {
+            println!("File");
+            println!("  Size:       {:>20} B", data.len());
+            println!("  Size:       {:>20} KB", data.len() / 1024);
+            if let Some(_header) = analyze_capsule(&data) {
+                // TODO: For now we can only read files on UEFI, not write them
+                if _header.capsule_guid == esrt::WINUX_GUID {
+                    let ux_header = capsule::parse_ux_header(&data);
+                    if let Some(dump_path) = &args.dump {
+                        // TODO: Better error handling, rather than just panicking
+                        capsule::dump_winux_image(&data, &ux_header, dump_path);
+                    }
+                }
+            } else {
+                println!("Capsule is invalid.");
+            }
         }
     }
 
@@ -229,19 +233,22 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
 #[cfg(feature = "uefi")]
 fn print_help(updater: bool) {
     println!(
-        r#"
-    Framework Laptop Firmware Update Utility
+        r#"Swiss army knife for Framework laptops
 
-    FWUPDATE [-h]
+Usage: framework_tool [OPTIONS]
 
-        -h            - Display this help text
-        --versions    - Display the current firmware versions of the system
-        --esrt        - Display the UEFI ESRT table
-        --power       - Display the current power status (battery and AC)
-        --pdports     - Display information about USB-C PD ports
-        --privacy     - Display status of the privacy switches
-        --test        - Run self-test to check if interaction with EC is possible
-        --info        - Display information about the system
+Options:
+  -v, --versions           List current firmware versions version
+      --esrt               Display the UEFI ESRT table
+      --power              Show current power status (battery and AC)
+      --pdports            Show information about USB-C PD prots
+      --info               Show info from SMBIOS (Only on UEFI)
+      --privacy            Show privacy switch statuses (camera and microphone)
+      --pd-bin <PD_BIN>    Parse versions from PD firmware binary file
+      --ec-bin <EC_BIN>    Parse versions from EC firmware binary file
+      --capsule <CAPSULE>  Parse UEFI Capsule information from binary file
+  -t, --test               Run self-test to check if interaction with EC is possible
+  -h, --help               Print help information
     "#
     );
     if updater {
@@ -360,7 +367,6 @@ fn smbios_info() {
     }
 }
 
-#[cfg(not(feature = "uefi"))]
 fn analyze_ccg6_pd_fw(data: &[u8]) {
     //let flash_row_size = 256;
     let flash_row_size = 128;
@@ -375,7 +381,6 @@ fn analyze_ccg6_pd_fw(data: &[u8]) {
     }
 }
 
-#[cfg(not(feature = "uefi"))]
 pub fn analyze_ec_fw(data: &[u8]) {
     if let Some(ver) = ec_binary::read_ec_version(data) {
         ec_binary::print_ec_version(&ver);
@@ -384,7 +389,6 @@ pub fn analyze_ec_fw(data: &[u8]) {
     }
 }
 
-#[cfg(not(feature = "uefi"))]
 pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
     let header = capsule::parse_capsule_header(data)?;
     capsule::print_capsule_header(&header);

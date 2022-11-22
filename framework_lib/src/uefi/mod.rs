@@ -1,6 +1,8 @@
 use core::slice;
 use std::uefi::guid::GuidKind;
 
+pub mod fs;
+
 pub fn smbios_data() -> Option<Vec<u8>> {
     for config_table in std::system_table().config_tables() {
         let table_data = match config_table.VendorGuid.kind() {
