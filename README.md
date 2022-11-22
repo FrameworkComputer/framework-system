@@ -28,7 +28,7 @@ Features:
     - [x] BIOS
     - [x] EC
     - [x] PD
-    - [ ] ME
+    - [x] ME (Only on Linux)
     - [x] Retimer
   - [ ] Flash firmware
     - [ ] BIOS
