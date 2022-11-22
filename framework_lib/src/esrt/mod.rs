@@ -283,7 +283,11 @@ fn esrt_from_sysfs(dir: &Path) -> io::Result<Esrt> {
 
 #[cfg(all(not(feature = "uefi"), feature = "linux"))]
 pub fn get_esrt() -> Option<Esrt> {
-    esrt_from_sysfs(Path::new("/sys/firmware/efi/esrt/entries")).ok()
+    let res = esrt_from_sysfs(Path::new("/sys/firmware/efi/esrt/entries")).ok();
+    if res.is_none() {
+        println!("Make sure you're root to access ESRT from sysfs on Linux");
+    }
+    res
 }
 
 #[cfg(all(not(feature = "uefi"), feature = "windows"))]

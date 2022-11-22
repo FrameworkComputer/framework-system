@@ -5,6 +5,8 @@ pub mod uefi;
 
 #[cfg(not(feature = "uefi"))]
 use std::fs;
+#[cfg(not(feature = "uefi"))]
+use std::io::ErrorKind;
 
 use crate::capsule;
 use crate::chromium_ec;
@@ -72,7 +74,7 @@ fn print_versions() {
     } else {
         println!("  RO Version:     Unknown");
         println!("  RW Version:     Unknown");
-        print!("  Current image:  Unknown");
+        println!("  Current image:  Unknown");
     }
 
     println!("PD Controllers");
@@ -324,8 +326,12 @@ fn get_smbios() -> Option<SMBiosData> {
 fn get_smbios() -> Option<SMBiosData> {
     match smbioslib::table_load_from_device() {
         Ok(data) => Some(data),
+        Err(ref e) if e.kind() == ErrorKind::PermissionDenied => {
+            println!("Must be root to get SMBIOS data.");
+            None
+        }
         Err(err) => {
-            println!("failure: {:?}", err);
+            println!("Failed to get SMBIOS: {:?}", err);
             None
         }
     }
