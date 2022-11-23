@@ -437,8 +437,9 @@ pub fn print_pd_base_ver(ver: &ControllerVersion) -> String {
     format!("{}.{}.{}.{}", ver.base1, ver.base2, ver.base3, ver.base4)
 }
 
-pub fn print_pd_app_ver(ver: &ControllerVersion) -> String {
-    format!("{}.{}.{}", ver.app_major, ver.app_minor, ver.app_patch)
+// Must be same format as pd_binary::format_pd_app_ver
+pub fn format_pd_app_ver(ver: &ControllerVersion) -> String {
+    format!("{}.{}.{:0>2x}", ver.app_major, ver.app_minor, ver.app_patch)
 }
 
 // NOTE: Only works on ADL!

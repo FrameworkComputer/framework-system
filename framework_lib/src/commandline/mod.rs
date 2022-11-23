@@ -81,11 +81,11 @@ fn print_versions() {
     if let Some(pd_versions) = power::read_pd_version() {
         println!(
             "  Left:           {}",
-            power::print_pd_app_ver(&pd_versions.controller01)
+            power::format_pd_app_ver(&pd_versions.controller01)
         );
         println!(
             "  Right:          {}",
-            power::print_pd_app_ver(&pd_versions.controller23)
+            power::format_pd_app_ver(&pd_versions.controller23)
         );
     }
 

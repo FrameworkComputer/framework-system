@@ -162,12 +162,15 @@ pub fn read_versions(file_buffer: &[u8], flash_row_size: u32) -> Option<PdFirmwa
     Some(PdFirmwareFile { first, second })
 }
 
+pub fn format_pd_app_ver(fw: &PdFirmware) -> String {
+    format!("{}.{}.{:0>2x}", fw.major, fw.minor, fw.patch)
+}
+
 /// Pretty print information about PD firmware
 pub fn print_fw(fw: &PdFirmware) {
     let silicon_ver = format!("{:#06x}", fw.silicon_id);
-    let version = format!("{}.{}.{:0>2x}", fw.major, fw.minor, fw.patch);
     println!("  Silicon ID: {:>20}", silicon_ver);
-    println!("  Version:    {:>20}", version);
+    println!("  Version:    {:>20}", format_pd_app_ver(fw));
     println!("  Row size:   {:>20} B", fw.row_size);
     println!("  Start Row:  {:>20}", fw.start_row);
     println!("  Rows:       {:>20}", fw.size / fw.row_size);
