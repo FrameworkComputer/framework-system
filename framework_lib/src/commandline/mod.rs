@@ -89,37 +89,36 @@ fn print_versions() {
         );
     }
 
-    #[cfg(feature = "uefi")]
-    {
-        let mut found_retimer = false;
-        if let Some(esrt) = esrt::get_esrt() {
-            for entry in &esrt.entries {
-                match entry.fw_class {
-                    esrt::RETIMER01_GUID | esrt::RETIMER23_GUID => {
-                        if !found_retimer {
-                            println!("Retimers");
-                            found_retimer = true;
-                        }
+    println!("Retimers");
+    let mut found_retimer = false;
+    if let Some(esrt) = esrt::get_esrt() {
+        for entry in &esrt.entries {
+            match entry.fw_class {
+                esrt::RETIMER01_GUID | esrt::RETIMER23_GUID => {
+                    if !found_retimer {
+                        found_retimer = true;
                     }
-                    _ => {}
                 }
-                match entry.fw_class {
-                    esrt::RETIMER01_GUID => {
-                        println!(
-                            "  Left:           0x{:X} ({})",
-                            entry.fw_version, entry.fw_version
-                        );
-                    }
-                    esrt::RETIMER23_GUID => {
-                        println!(
-                            "  Right:          0x{:X} ({})",
-                            entry.fw_version, entry.fw_version
-                        );
-                    }
-                    _ => {}
+                _ => {}
+            }
+            match entry.fw_class {
+                esrt::RETIMER01_GUID => {
+                    println!(
+                        "  Left:           0x{:X} ({})",
+                        entry.fw_version, entry.fw_version
+                    );
                 }
+                esrt::RETIMER23_GUID => {
+                    println!(
+                        "  Right:          0x{:X} ({})",
+                        entry.fw_version, entry.fw_version
+                    );
+                }
+                _ => {}
             }
         }
+    } else if !found_retimer {
+        println!("  Not found");
     }
 
     #[cfg(feature = "linux")]
