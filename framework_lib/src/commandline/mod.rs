@@ -5,8 +5,6 @@ pub mod uefi;
 
 #[cfg(not(feature = "uefi"))]
 use std::fs;
-#[cfg(not(feature = "uefi"))]
-use std::io::ErrorKind;
 
 use crate::capsule;
 use crate::chromium_ec;
@@ -15,6 +13,7 @@ use crate::ec_binary;
 use crate::esrt;
 use crate::pd_binary;
 use crate::power;
+use crate::smbios::{dmidecode_string_val, get_smbios};
 use smbioslib::*;
 
 #[cfg(feature = "uefi")]
@@ -297,43 +296,6 @@ fn selftest() -> Option<()> {
     }
 
     Some(())
-}
-
-pub fn dmidecode_string_val(s: &SMBiosString) -> Option<String> {
-    match s.as_ref() {
-        Ok(val) if val.is_empty() => Some("Not Specified".to_owned()),
-        Ok(val) => Some(val.to_owned()),
-        Err(SMBiosStringError::FieldOutOfBounds) => None,
-        Err(SMBiosStringError::InvalidStringNumber(_)) => Some("<BAD INDEX>".to_owned()),
-        Err(SMBiosStringError::Utf8(val)) => {
-            Some(String::from_utf8_lossy(&val.clone().into_bytes()).to_string())
-        }
-    }
-}
-
-#[cfg(feature = "uefi")]
-fn get_smbios() -> Option<SMBiosData> {
-    let data = crate::uefi::smbios_data().unwrap();
-    let version = None; // TODO: Maybe add the version here
-    let smbios = SMBiosData::from_vec_and_version(data, version);
-    Some(smbios)
-}
-// On Linux this reads either from /dev/mem or sysfs
-// On FreeBSD from /dev/mem
-// On Windows from the kernel API
-#[cfg(not(feature = "uefi"))]
-fn get_smbios() -> Option<SMBiosData> {
-    match smbioslib::table_load_from_device() {
-        Ok(data) => Some(data),
-        Err(ref e) if e.kind() == ErrorKind::PermissionDenied => {
-            println!("Must be root to get SMBIOS data.");
-            None
-        }
-        Err(err) => {
-            println!("Failed to get SMBIOS: {:?}", err);
-            None
-        }
-    }
 }
 
 fn smbios_info() {
