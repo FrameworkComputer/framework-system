@@ -107,7 +107,7 @@ pub fn print_memmap_version_info() {
 
 // TODO: Use Result
 pub fn power_info() -> Option<PowerInfo> {
-    let battery_flag = chromium_ec::read_memory(EC_MEMMAP_BATT_FLAG, 1).unwrap()[0];
+    let battery_flag = chromium_ec::read_memory(EC_MEMMAP_BATT_FLAG, 1)?[0];
     if util::is_debug() {
         println!("AC/Battery flag: {:#X}", battery_flag);
     }

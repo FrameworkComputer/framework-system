@@ -1,3 +1,4 @@
+use crate::smbios;
 use crate::util;
 
 #[cfg(not(feature = "uefi"))]
@@ -84,6 +85,9 @@ pub fn check_mem_magic() -> Option<()> {
 }
 
 pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
+    if !smbios::is_framework() {
+        return None;
+    }
     // TODO: Choose implementation based on support and/or configuration
     match 0 {
         0 => portio::read_memory(offset, length),
@@ -102,6 +106,10 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
             command_version,
             data.len()
         );
+    }
+
+    if !smbios::is_framework() {
+        return None;
     }
 
     // TODO: Choose implementation based on support and/or configuration

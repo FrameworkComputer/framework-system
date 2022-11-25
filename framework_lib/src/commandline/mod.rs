@@ -86,6 +86,8 @@ fn print_versions() {
             "  Right:          {}",
             power::format_pd_app_ver(&pd_versions.controller23)
         );
+    } else {
+        println!("  Unknown")
     }
 
     println!("Retimers");
@@ -117,7 +119,7 @@ fn print_versions() {
             }
         }
     } else if !found_retimer {
-        println!("  Not found");
+        println!("  Unknown");
     }
 
     #[cfg(feature = "linux")]
