@@ -59,6 +59,7 @@ pub fn parse(args: &[String]) -> Cli {
         ec_bin: None,
         capsule: None,
         dump: None,
+        intrusion: false,
         test: false,
         help: false,
         allupdate: false,
@@ -83,6 +84,8 @@ pub fn parse(args: &[String]) -> Cli {
             cli.allupdate = true;
         } else if arg == "--info" {
             cli.info = true;
+        } else if arg == "--intrusion" {
+            cli.intrusion = true;
         } else if arg == "-t" || arg == "--test" {
             cli.test = true;
         } else if arg == "-h" || arg == "--help" {

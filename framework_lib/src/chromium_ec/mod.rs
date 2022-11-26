@@ -229,3 +229,54 @@ pub fn privacy_info() -> Option<(bool, bool)> {
 
     Some((status.microphone == 1, status.camera == 1))
 }
+
+/// Command to get information about the current chassis open/close status
+const EC_CMD_CHASSIS_OPEN_CHECK: u16 = 0x3E0F;
+
+#[repr(C, packed)]
+struct EcResponseChassisOpenCheck {
+    status: u8,
+}
+
+const EC_CMD_CHASSIS_INTRUSION: u16 = 0x3E09;
+
+#[repr(C, packed)]
+struct EcResponseChassisIntrusionControl {
+    chassis_ever_opened: u8,
+    coin_batt_ever_remove: u8,
+    total_open_count: u8,
+    vtr_open_count: u8,
+}
+
+pub struct IntrusionStatus {
+    /// Whether the chassis is currently open
+    pub currently_open: bool,
+    /// If the coin cell battery has ever been removed
+    pub coin_cell_ever_removed: bool,
+    /// Whether the chassis has ever been opened
+    /// TODO: Is this the same as total_opened > 0?
+    pub ever_opened: bool,
+    /// How often the chassis has been opened in total
+    pub total_opened: u8,
+    /// How often the chassis was opened while off
+    /// We can tell because opening the chassis, even when off, leaves a sticky bit that the EC can read when it powers back on.
+    /// That means we only know if it was opened at least once, while off, not how many times.
+    pub vtr_open_count: u8,
+}
+
+pub fn get_intrusion_status() -> Option<IntrusionStatus> {
+    let data = send_command(EC_CMD_CHASSIS_OPEN_CHECK, 0, &[])?;
+    let status: EcResponseChassisOpenCheck = unsafe { std::ptr::read(data.as_ptr() as *const _) };
+
+    let data = send_command(EC_CMD_CHASSIS_INTRUSION, 0, &[])?;
+    let intrusion: EcResponseChassisIntrusionControl =
+        unsafe { std::ptr::read(data.as_ptr() as *const _) };
+
+    Some(IntrusionStatus {
+        currently_open: status.status == 1,
+        coin_cell_ever_removed: intrusion.coin_batt_ever_remove == 1,
+        ever_opened: intrusion.chassis_ever_opened == 1,
+        total_opened: intrusion.total_open_count,
+        vtr_open_count: intrusion.vtr_open_count,
+    })
+}
