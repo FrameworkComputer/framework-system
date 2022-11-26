@@ -32,6 +32,7 @@ pub struct Cli {
     pub capsule: Option<String>,
     pub dump: Option<String>,
     pub test: bool,
+    pub intrusion: bool,
     pub help: bool,
     // UEFI only
     pub allupdate: bool,
@@ -151,6 +152,23 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_versions();
     } else if args.esrt {
         print_esrt();
+    } else if args.intrusion {
+        println!("Chassis status:");
+        if let Some(status) = chromium_ec::get_intrusion_status() {
+            println!(
+                "  Coin cell ever removed:   {}",
+                status.coin_cell_ever_removed
+            );
+            println!("  Chassis currently open:   {}", status.currently_open);
+            println!("  Chassis ever opened:      {}", status.ever_opened);
+            println!("  Chassis opened:           {} times", status.total_opened);
+            println!(
+                "  Chassis opened while off: {} times",
+                status.vtr_open_count
+            );
+        } else {
+            println!("  Unable to tell");
+        }
     } else if args.test {
         println!("Self-Test");
         let result = selftest();
