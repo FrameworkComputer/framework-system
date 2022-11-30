@@ -11,7 +11,7 @@ use crate::chromium_ec;
 use crate::csme;
 use crate::ec_binary;
 use crate::esrt;
-use crate::pd_binary;
+use crate::pd_binary::{self, CcgX::*};
 use crate::power;
 use crate::smbios::{dmidecode_string_val, get_smbios};
 use smbioslib::*;
@@ -185,7 +185,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("File");
             println!("  Size:       {:>20} B", data.len());
             println!("  Size:       {:>20} KB", data.len() / 1024);
-            analyze_ccg6_pd_fw(&data);
+            analyze_ccgx_pd_fw(&data);
         }
     } else if let Some(ec_bin_path) = &args.ec_bin {
         #[cfg(feature = "uefi")]
@@ -346,16 +346,30 @@ fn smbios_info() {
     }
 }
 
-fn analyze_ccg6_pd_fw(data: &[u8]) {
-    //let flash_row_size = 256;
-    let flash_row_size = 128;
-    if let Some(versions) = pd_binary::read_versions(data, flash_row_size) {
+fn analyze_ccgx_pd_fw(data: &[u8]) {
+    let mut succeeded = false;
+
+    if let Some(versions) = pd_binary::read_versions(data, Ccg5) {
+        succeeded = true;
+        println!("Detected CCG5 firmware");
         println!("FW 1");
         pd_binary::print_fw(&versions.first);
 
         println!("FW 2");
         pd_binary::print_fw(&versions.second);
-    } else {
+    }
+
+    if let Some(versions) = pd_binary::read_versions(data, Ccg6) {
+        succeeded = true;
+        println!("Detected CCG6 firmware");
+        println!("FW 1");
+        pd_binary::print_fw(&versions.first);
+
+        println!("FW 2");
+        pd_binary::print_fw(&versions.second);
+    }
+
+    if !succeeded {
         println!("Failed to read versions")
     }
 }

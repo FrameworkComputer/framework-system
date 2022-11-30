@@ -7,7 +7,7 @@
  * We build the flash binary and then embed it into the beginning of the BIOS flash.
  * Currently the flash binary is 64K but we reserved 256K.
  *
- * Row is 128 (0x80) bytes wide.
+ * Row is 128 (0x80) bytes wide on CCG6 (ADL/RPL). On CCG5 (TGL) it's 0x100
  * Flash is 65536 (0x10000) bytes in size.
  * Flash has 512 (0x200) rows.
  *
@@ -36,8 +36,12 @@
  * | 0xE8   | 0x01 | Patch version| X.Y.ZZ ZZ part of the version                   |
  * | 0xE9   | 0x01 | Version      | X.Y.ZZ X and Y part of the version (4 bits each)|
  */
+#[cfg(feature = "uefi")]
+use core::prelude::rust_2021::derive;
+
 const FW1_METADATA_ROW: u32 = 0x1FE;
-const FW2_METADATA_ROW: u32 = 0x1FD;
+const FW2_METADATA_ROW_CCG5: u32 = 0x1FF;
+const FW2_METADATA_ROW_CCG6: u32 = 0x1FD;
 const LAST_BOOTLOADER_ROW: usize = 0x05;
 const FW_SIZE_OFFSET: usize = 0x09;
 const METADATA_OFFSET: usize = 0xC0;
@@ -60,7 +64,14 @@ pub struct PdFirmwareFile {
     pub second: PdFirmware,
 }
 
+#[derive(Debug)]
+pub enum CcgX {
+    Ccg5,
+    Ccg6,
+}
+
 /// Information about a single PD firmware
+#[derive(Debug)]
 pub struct PdFirmware {
     /// TODO: Find out what this is
     pub silicon_id: u16,
@@ -97,7 +108,7 @@ fn read_metadata(
     flash_row_size: u32,
     metadata_offset: u32,
 ) -> Option<(u32, u32)> {
-    let buffer = read_256_bytes(file_buffer, metadata_offset, flash_row_size);
+    let buffer = read_256_bytes(file_buffer, metadata_offset, flash_row_size)?;
     let metadata = &buffer[METADATA_OFFSET..];
 
     if (metadata[METADATA_MAGIC_OFFSET] == METADATA_MAGIC_1)
@@ -112,15 +123,21 @@ fn read_metadata(
             + ((metadata[FW_SIZE_OFFSET + 3] as u32) << 24);
         Some((fw_row_start, fw_size))
     } else {
-        println!("Metadata is invalid");
+        // println!("Metadata is invalid");
         None
     }
 }
 
 /// Read 256 bytes starting from a particular row
-fn read_256_bytes(file_buffer: &[u8], row_no: u32, flash_row_size: u32) -> Vec<u8> {
+fn read_256_bytes(file_buffer: &[u8], row_no: u32, flash_row_size: u32) -> Option<Vec<u8>> {
     let file_read_pointer = (row_no * flash_row_size) as usize;
-    file_buffer[file_read_pointer..file_read_pointer + 256].to_vec()
+    if file_read_pointer + 256 > file_buffer.len() {
+        // Overrunning the end of the file, this can happen if we read a
+        // CCG6 binary with CCG5 parameters, because the CCG5 flash_row_size
+        // is bigger.
+        return None;
+    }
+    Some(file_buffer[file_read_pointer..file_read_pointer + 256].to_vec())
 }
 
 /// Read version information about FW based on a particular metadata offset
@@ -133,7 +150,7 @@ fn read_version(
     metadata_offset: u32,
 ) -> Option<PdFirmware> {
     let (fw_row_start, fw_size) = read_metadata(file_buffer, flash_row_size, metadata_offset)?;
-    let data = read_256_bytes(file_buffer, fw_row_start, flash_row_size);
+    let data = read_256_bytes(file_buffer, fw_row_start, flash_row_size)?;
     let app_version = &data[APP_VERSION_OFFSET..];
     let silicon_id = &data[SILICON_ID_OFFSET..];
 
@@ -155,9 +172,13 @@ fn read_version(
 }
 
 /// Parse all PD information, given a binary file (buffer)
-pub fn read_versions(file_buffer: &[u8], flash_row_size: u32) -> Option<PdFirmwareFile> {
+pub fn read_versions(file_buffer: &[u8], ccgx: CcgX) -> Option<PdFirmwareFile> {
+    let (flash_row_size, fw2_metadata_row) = match ccgx {
+        CcgX::Ccg5 => (0x100, FW2_METADATA_ROW_CCG5),
+        CcgX::Ccg6 => (0x80, FW2_METADATA_ROW_CCG6),
+    };
     let first = read_version(file_buffer, flash_row_size, FW1_METADATA_ROW)?;
-    let second = read_version(file_buffer, flash_row_size, FW2_METADATA_ROW)?;
+    let second = read_version(file_buffer, flash_row_size, fw2_metadata_row)?;
 
     Some(PdFirmwareFile { first, second })
 }
