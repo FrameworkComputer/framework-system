@@ -8,6 +8,7 @@ use std::fs;
 
 use crate::capsule;
 use crate::chromium_ec;
+#[cfg(feature = "linux")]
 use crate::csme;
 use crate::ec_binary;
 use crate::esrt;

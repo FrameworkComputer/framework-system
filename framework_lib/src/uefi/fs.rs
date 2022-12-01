@@ -21,6 +21,7 @@ type ShellFileHandle = *mut u8;
 ///  TimeZone:   -1440 to 1440 or 2047
 ///
 #[repr(C)]
+#[allow(non_snake_case)] // To mirror the UEFI definition
 pub struct EfiTime {
     Year: u16,
     Month: u8,
@@ -36,6 +37,7 @@ pub struct EfiTime {
 }
 
 #[repr(C)]
+#[allow(non_snake_case)] // To mirror the UEFI definition
 pub struct FileInfo {
     ///
     /// The size of the EFI_FILE_INFO structure, including the Null-terminated FileName string.
@@ -72,6 +74,7 @@ pub struct FileInfo {
 }
 
 #[repr(C)]
+#[allow(non_snake_case)] // To mirror the UEFI definition
 pub struct UefiShell {
     pub Execute: extern "win64" fn(
         ImageHandle: &Handle,

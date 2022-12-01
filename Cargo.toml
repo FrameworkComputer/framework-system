@@ -14,3 +14,6 @@ default-members = [
     "framework_lib",
     "framework_tool",
 ]
+
+[profile.release]
+lto = true
