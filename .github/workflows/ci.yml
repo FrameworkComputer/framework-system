@@ -56,17 +56,11 @@ jobs:
 
     - name: Build library (Linux)
       if: matrix.os == 'ubuntu-22.04'
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: -p framework_lib
+      run: cargo build -p framework_lib
 
     - name: Build Linux tool
       if: matrix.os == 'ubuntu-22.04'
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: -p framework_tool
+      run: cargo build -p framework_tool
 
     - name: Upload Linux App
       if: matrix.os == 'ubuntu-22.04'
@@ -77,17 +71,11 @@ jobs:
 
     - name: Build library (Windows)
       if: matrix.os == 'windows-2022'
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: -p framework_lib --no-default-features --features "windows"
+      run: cargo build -p framework_lib --no-default-features --features "windows"
 
     - name: Build Windows tool
       if: matrix.os == 'windows-2022'
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: -p framework_tool --no-default-features --features "windows"
+      run: cargo build -p framework_tool --no-default-features --features "windows"
 
     - name: Upload Windows App
       if: matrix.os == 'windows-2022'
@@ -133,10 +121,7 @@ jobs:
         run: rustup show
 
       - name: Run cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p framework_lib
+        run: cargo test -p framework_lib
 
   lints:
     name: Lints
@@ -156,13 +141,7 @@ jobs:
       run: rustup show
 
     - name: Run cargo fmt
-      uses: actions-rs/cargo@v1
-      with:
-        command: fmt
-        args: --all -- --check
+      run: cargo fmt --all -- --check
 
     - name: Run cargo clippy
-      uses: actions-rs/cargo@v1
-      with:
-        command: clippy
-        args: -p framework_lib -p framework_tool -- -D warnings
+      run: cargo clippy -p framework_lib -p framework_tool -- -D warnings
