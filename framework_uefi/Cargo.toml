@@ -7,9 +7,6 @@ edition = "2021"
 name = "uefitool"
 path = "src/main.rs"
 
-[profile.release]
-lto = true
-
 [dependencies]
 redox_uefi_std = "0.1.8"
 
