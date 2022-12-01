@@ -283,6 +283,7 @@ fn transfer_read(address: u16, size: u16) -> Vec<u8> {
     buffer
 }
 
+#[cfg(feature = "linux_pio")]
 enum Initialized {
     NotYet,
     Succeeded,

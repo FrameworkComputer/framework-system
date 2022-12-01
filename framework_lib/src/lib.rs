@@ -13,7 +13,7 @@ use std::prelude::*;
 #[cfg(feature = "uefi")]
 extern crate alloc;
 
-#[cfg(feature = "std")]
+#[cfg(feature = "linux_pio")]
 #[macro_use]
 extern crate lazy_static;
 
