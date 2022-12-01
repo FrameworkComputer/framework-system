@@ -25,6 +25,7 @@ pub mod ec_binary;
 pub mod esrt;
 mod os_specific;
 pub mod pd_binary;
+pub mod pd_flash;
 pub mod power;
 pub mod smbios;
 #[cfg(feature = "uefi")]

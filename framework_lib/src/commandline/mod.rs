@@ -13,6 +13,7 @@ use crate::csme;
 use crate::ec_binary;
 use crate::esrt;
 use crate::pd_binary::{self, CcgX::*};
+use crate::pd_flash::{PdController, PdPort};
 use crate::power;
 use crate::smbios::{dmidecode_string_val, get_smbios};
 use smbioslib::*;
@@ -28,6 +29,7 @@ pub struct Cli {
     pub power: bool,
     pub pdports: bool,
     pub privacy: bool,
+    pub pd_info: bool,
     pub pd_bin: Option<String>,
     pub ec_bin: Option<String>,
     pub capsule: Option<String>,
@@ -46,6 +48,28 @@ pub fn parse(args: &[String]) -> Cli {
     return uefi::parse(args);
     #[cfg(not(feature = "uefi"))]
     return clap::parse(args);
+}
+
+fn print_pd_details() {
+    let pd_01 = PdController::new(PdPort::Left01);
+    let pd_23 = PdController::new(PdPort::Left01);
+    let si_01 = pd_01.get_silicon_id();
+    let si_23 = pd_23.get_silicon_id();
+    let info_01 = pd_01.get_device_info();
+    let info_23 = pd_23.get_device_info();
+
+    println!("Left / Ports 01");
+    println!("  Silicon ID:     0x{:X}", si_01);
+    if let Some((mode, frs)) = info_01 {
+        println!("  Mode:           {:?}", mode);
+        println!("  Flash Row Size: {} B", frs);
+    }
+    println!("Right / Ports 23");
+    println!("  Silicon ID:     0x{:X}", si_23);
+    if let Some((mode, frs)) = info_23 {
+        println!("  Mode:           {:?}", mode);
+        println!("  Flash Row Size: {} B", frs);
+    }
 }
 
 fn print_versions() {
@@ -79,6 +103,7 @@ fn print_versions() {
     }
 
     println!("PD Controllers");
+
     if let Some(pd_versions) = power::read_pd_version() {
         println!(
             "  Left:           {}",
@@ -182,6 +207,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         power::get_and_print_pd_info();
     } else if args.info {
         smbios_info();
+    } else if args.pd_info {
+        print_pd_details();
     } else if args.privacy {
         chromium_ec::privacy_info();
     // TODO:
@@ -275,6 +302,7 @@ Options:
       --pdports            Show information about USB-C PD prots
       --info               Show info from SMBIOS (Only on UEFI)
       --privacy            Show privacy switch statuses (camera and microphone)
+      --pd-info            TODO
       --pd-bin <PD_BIN>    Parse versions from PD firmware binary file
       --ec-bin <EC_BIN>    Parse versions from EC firmware binary file
       --capsule <CAPSULE>  Parse UEFI Capsule information from binary file

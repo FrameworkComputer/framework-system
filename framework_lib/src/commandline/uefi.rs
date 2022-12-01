@@ -54,6 +54,7 @@ pub fn parse(args: &[String]) -> Cli {
         esrt: false,
         power: false,
         pdports: false,
+        pd_info: false,
         privacy: false,
         pd_bin: None,
         ec_bin: None,
@@ -90,6 +91,8 @@ pub fn parse(args: &[String]) -> Cli {
             cli.test = true;
         } else if arg == "-h" || arg == "--help" {
             cli.help = true;
+        } else if arg == "--pd-info" {
+            cli.pd_info = true;
         } else if arg == "--privacy" {
             cli.privacy = true;
         } else if arg == "--pd-bin" {
