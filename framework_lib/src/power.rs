@@ -176,8 +176,6 @@ pub fn is_standalone() -> bool {
 pub fn get_and_print_power_info() {
     if let Some(power_info) = power_info() {
         print_battery_information(&power_info);
-
-        check_update_ready(&power_info);
     }
 }
 
