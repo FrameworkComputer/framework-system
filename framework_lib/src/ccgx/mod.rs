@@ -2,6 +2,8 @@
 use core::prelude::rust_2021::derive;
 use std::fmt;
 
+pub mod binary;
+pub mod device;
 
 #[derive(Debug)]
 pub struct BaseVersion {

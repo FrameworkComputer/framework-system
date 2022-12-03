@@ -12,8 +12,9 @@ use crate::chromium_ec;
 use crate::csme;
 use crate::ec_binary;
 use crate::esrt;
-use crate::pd_binary::{self, CcgX::*};
-use crate::pd_flash::{PdController, PdPort};
+use crate::ccgx;
+use crate::ccgx::binary::CcgX::*;
+use crate::ccgx::device::{PdController, PdPort};
 use crate::power;
 use crate::smbios::{dmidecode_string_val, get_smbios};
 use smbioslib::*;
@@ -107,11 +108,11 @@ fn print_versions() {
     if let Some(pd_versions) = power::read_pd_version() {
         println!(
             "  Left:           {}",
-            power::format_pd_app_ver(&pd_versions.controller01)
+            pd_versions.controller01.app
         );
         println!(
             "  Right:          {}",
-            power::format_pd_app_ver(&pd_versions.controller23)
+            pd_versions.controller23.app
         );
     } else {
         println!("  Unknown")
@@ -396,24 +397,24 @@ fn smbios_info() {
 fn analyze_ccgx_pd_fw(data: &[u8]) {
     let mut succeeded = false;
 
-    if let Some(versions) = pd_binary::read_versions(data, Ccg5) {
+    if let Some(versions) = ccgx::binary::read_versions(data, Ccg5) {
         succeeded = true;
         println!("Detected CCG5 firmware");
         println!("FW 1");
-        pd_binary::print_fw(&versions.first);
+        ccgx::binary::print_fw(&versions.first);
 
         println!("FW 2");
-        pd_binary::print_fw(&versions.second);
+        ccgx::binary::print_fw(&versions.second);
     }
 
-    if let Some(versions) = pd_binary::read_versions(data, Ccg6) {
+    if let Some(versions) = ccgx::binary::read_versions(data, Ccg6) {
         succeeded = true;
         println!("Detected CCG6 firmware");
         println!("FW 1");
-        pd_binary::print_fw(&versions.first);
+        ccgx::binary::print_fw(&versions.first);
 
         println!("FW 2");
-        pd_binary::print_fw(&versions.second);
+        ccgx::binary::print_fw(&versions.second);
     }
 
     if !succeeded {
