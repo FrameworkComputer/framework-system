@@ -18,7 +18,7 @@ static mut DEVICE: Option<HANDLE> = None;
 fn init() {
     unsafe {
         if DEVICE.is_none() {
-            println!("Windows: Initializing device");
+            //println!("Windows: Initializing device");
             let path = w!(r"\\.\GLOBALROOT\Device\CrosEC");
             //static wil::unique_hfile device;
             //device.reset(CreateFileW(r"\\.\GLOBALROOT\Device\CrosEC", GENERIC_READ | GENERIC_WRITE,
@@ -45,22 +45,22 @@ pub fn read_memory(_offset: u16, _length: u16) -> Option<Vec<u8>> {
 }
 #[cfg(target_os = "windows")]
 pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
-    println!("Windows read_memory_lpc implementation");
+    //println!("Windows read_memory_lpc implementation");
     init();
     let mut rm = CrosEcReadMem {
         offset: offset as u32,
         bytes: length as u32,
         buffer: [0_u8; CROSEC_MEMMAP_SIZE],
     };
-    println!("Offset: {}", { rm.offset });
-    println!("Bytes: {}", { rm.bytes });
+    //println!("Offset: {}", { rm.offset });
+    //println!("Bytes: {}", { rm.bytes });
 
     unsafe {
         //let const_ptr = &mut rm as *const ::core::ffi::c_void;
         let const_ptr = &mut rm as *const _ as *const ::core::ffi::c_void;
         let mut_ptr = &mut rm as *mut _ as *mut ::core::ffi::c_void;
         let ptr_size = std::mem::size_of::<CrosEcReadMem>() as u32;
-        println!("ptr_size: {}", ptr_size);
+        //println!("ptr_size: {}", ptr_size);
         let retb: u32 = 0;
         DeviceIoControl(
             DEVICE,
@@ -73,8 +73,9 @@ pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
             None,
         )
         .unwrap();
-        println!("retb: {}", retb);
+        //println!("retb: {}", retb);
         let output = &rm.buffer[..(length as usize)];
+        //println!("output: {:?}", output);
         return Some(output.to_vec());
     }
     // TODO
@@ -87,21 +88,21 @@ pub fn send_command(_command: u16, _command_version: u8, _data: &[u8]) -> Option
 }
 #[cfg(target_os = "windows")]
 pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Vec<u8>> {
-    println!("Windows send_command_lpc_v3 implementation");
+    //println!("Windows send_command_lpc_v3 command: {}, command_version: {}, data: {:?}", command, command_version, data);
     init();
 
     //// Otherwise, run test mode
     let mut cmd = CrosEcCommand {
-        command: command as u32,
-        insize: data.len() as u32,
-        outsize: 0,
-        result: 0xFF,
         version: command_version as u32,
-        buffer: [0_u8; CROSEC_CMD_MAX_REQUEST],
+        command: command as u32,
+        outsize: data.len() as u32,
+        insize: CROSEC_CMD_MAX_REQUEST as u32,
+        result: 0xFF,
+        buffer: [0_u8; 256],
     };
     cmd.buffer[0..data.len()].clone_from_slice(data);
-    println!("Sent bytes: {:?}", cmd.buffer);
-    let size = std::mem::size_of::<CrosEcCommand>() + CROSEC_CMD_MAX_REQUEST;
+    //println!("in cmd: {:?}", cmd);
+    let size = std::mem::size_of::<CrosEcCommand>();
     let const_ptr = &mut cmd as *const _ as *const ::core::ffi::c_void;
     let mut_ptr = &mut cmd as *mut _ as *mut ::core::ffi::c_void;
     let _ptr_size = std::mem::size_of::<CrosEcCommand>() as u32;
@@ -122,15 +123,11 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
         );
     }
 
-    println!("OUT: {} | {}", {cmd.command}, {cmd.result});
-    //DWORD retb{};
-    //DeviceIoControl(device.get(), IOCTL_CROSEC_XCMD, cmd, (DWORD)size, cmd,
-    //                                        (DWORD)size, &retb, nullptr);
-    println!("IN: {} | {}", {cmd.command}, {cmd.result});
-    ////std::cout << "IN_: " << (char*)(CROSEC_COMMAND_DATA(cmd)) << std::endl;
-
-    println!("Returned bytes: {}", returned);
-    Some(cmd.buffer.to_vec())
+    //println!("out cmd: {:?}", cmd);
+    //println!("Returned bytes: {}", returned);
+    let out_buffer = &cmd.buffer[..(returned as usize)];
+    //println!("Returned buffer: {:?}", out_buffer);
+    Some(out_buffer.to_vec())
 }
 
 const CROSEC_CMD_MAX_REQUEST: usize = 0x100;
@@ -175,6 +172,7 @@ struct CrosEcReadMem {
     /// Buffer to receive requested bytes
     buffer: [u8; CROSEC_MEMMAP_SIZE],
 }
+#[derive(Copy, Clone, Debug)]
 #[repr(C)]
 struct CrosEcCommand {
     /// Command version. Almost always 0
