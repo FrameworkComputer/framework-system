@@ -18,7 +18,11 @@ pub struct BaseVersion {
 }
 impl fmt::Display for BaseVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{:0>2x}.{:0>2x}", self.major, self.minor, self.patch, self.build_number)
+        write!(
+            f,
+            "{}.{}.{:0>2x}.{:0>2x}",
+            self.major, self.minor, self.patch, self.build_number
+        )
     }
 }
 impl From<&[u8]> for BaseVersion {
@@ -56,7 +60,7 @@ impl fmt::Display for AppVersion {
 
 impl From<&[u8]> for AppVersion {
     fn from(data: &[u8]) -> Self {
-        let application = if data[0] == 0x62 && data[1] == 0x6e  {
+        let application = if data[0] == 0x62 && data[1] == 0x6e {
             Application::Notebook // ASCII "nb"
         } else if data[0] == 0x64 && data[1] == 0x6d {
             Application::Monitor // ASCII "md"

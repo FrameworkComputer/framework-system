@@ -457,7 +457,7 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
             // TODO: Use enum
             1 => println!("Command is unsupported."),
             3 => println!("Invalid parameter"),
-            _ => {},
+            _ => {}
         }
         return None;
     }

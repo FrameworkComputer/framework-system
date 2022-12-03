@@ -1,9 +1,9 @@
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
+use crate::ccgx::{AppVersion, BaseVersion};
 use crate::chromium_ec::send_command;
 use crate::util;
-use crate::ccgx::{AppVersion, BaseVersion};
 use std::mem::size_of;
 
 enum ControlRegisters {
@@ -67,14 +67,13 @@ struct EcParamsI2cPassthru {
 #[repr(C, packed)]
 struct _EcI2cPassthruResponse {
     i2c_status: u8,
+    /// How many messages
     messages: u8,
     data: [u8; 0],
 }
 
 struct EcI2cPassthruResponse {
     i2c_status: u8, // TODO: Can probably use enum
-    /// How many messages
-    messages: u8,
     data: Vec<u8>,
 }
 
@@ -84,7 +83,7 @@ impl EcI2cPassthruResponse {
             // Transfer not acknowledged
             return false;
         }
-         if self.i2c_status & (1 << 1) > 0{
+        if self.i2c_status & (1 << 1) > 0 {
             // Transfer timeout
             return false;
         }
@@ -107,28 +106,29 @@ pub enum FwMode {
 
 impl PdController {
     pub fn new(port: PdPort) -> Self {
-        PdController {
-            port
-        }
+        PdController { port }
     }
     /// Wrapped with support for dev id
     /// TODO: Should move into chromium_ec module
     fn send_ec_command(&self, code: u16, dev_index: u16, data: &[u8]) -> Option<Vec<u8>> {
         let command_id = code + passthrough_offset(dev_index);
-        send_command(command_id, 0, &data)
+        send_command(command_id, 0, data)
     }
 
     fn i2c_read(&self, addr: u16, len: u16) -> Option<EcI2cPassthruResponse> {
         if util::is_debug() {
             println!("i2c_read(addr: {}, len: {})", addr, len);
         }
-        let messages = vec![EcParamsI2cPassthruMsg {
-            addr_and_flags: self.port.i2c_address(),
-            transfer_len: 2,  // How much we write. Address is u16, so 2 bytes
-        }, EcParamsI2cPassthruMsg {
-            addr_and_flags: self.port.i2c_address() + I2C_READ_FLAG,
-            transfer_len: len, // How much we read
-        }];
+        let messages = vec![
+            EcParamsI2cPassthruMsg {
+                addr_and_flags: self.port.i2c_address(),
+                transfer_len: 2, // How much we write. Address is u16, so 2 bytes
+            },
+            EcParamsI2cPassthruMsg {
+                addr_and_flags: self.port.i2c_address() + I2C_READ_FLAG,
+                transfer_len: len, // How much we read
+            },
+        ];
         let msgs_len = size_of::<EcParamsI2cPassthruMsg>() * 2;
 
         let msgs_buffer: &[u8] = unsafe { util::any_vec_as_u8_slice(&messages) };
@@ -145,8 +145,8 @@ impl PdController {
 
         let mut buffer: Vec<u8> = vec![0; params_len + msgs_len + addr_bytes.len()];
         buffer[0..params_len].copy_from_slice(params_buffer);
-        buffer[params_len..params_len+msgs_len].copy_from_slice(msgs_buffer);
-        buffer[params_len+msgs_len..].copy_from_slice(&addr_bytes);
+        buffer[params_len..params_len + msgs_len].copy_from_slice(msgs_buffer);
+        buffer[params_len + msgs_len..].copy_from_slice(&addr_bytes);
 
         let data = self.send_ec_command(EC_CMD_I2C_PASSTHROUGH, 0, &buffer);
         let data = if let Some(data) = data {
@@ -160,7 +160,6 @@ impl PdController {
         debug_assert_eq!(res.messages as usize, messages.len());
         Some(EcI2cPassthruResponse {
             i2c_status: res.i2c_status,
-            messages: res.messages,
             data: res_data.to_vec(),
         })
     }

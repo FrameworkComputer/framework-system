@@ -1,7 +1,7 @@
 use core::convert::TryInto;
 use core::prelude::v1::derive;
 
-use crate::ccgx::{Application, AppVersion, BaseVersion};
+use crate::ccgx::{AppVersion, Application, BaseVersion};
 use crate::chromium_ec;
 use crate::util;
 
@@ -430,7 +430,7 @@ fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
             major: (data[7] >> 4) & 0xF,
             minor: (data[7]) & 0xF,
             circuit: data[6],
-        }
+        },
     }
 }
 

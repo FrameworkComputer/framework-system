@@ -7,14 +7,14 @@ pub mod uefi;
 use std::fs;
 
 use crate::capsule;
+use crate::ccgx;
+use crate::ccgx::binary::CcgX::*;
+use crate::ccgx::device::{PdController, PdPort};
 use crate::chromium_ec;
 #[cfg(feature = "linux")]
 use crate::csme;
 use crate::ec_binary;
 use crate::esrt;
-use crate::ccgx;
-use crate::ccgx::binary::CcgX::*;
-use crate::ccgx::device::{PdController, PdPort};
 use crate::power;
 use crate::smbios::{dmidecode_string_val, get_smbios};
 use smbioslib::*;
@@ -106,14 +106,8 @@ fn print_versions() {
     println!("PD Controllers");
 
     if let Some(pd_versions) = power::read_pd_version() {
-        println!(
-            "  Left:           {}",
-            pd_versions.controller01.app
-        );
-        println!(
-            "  Right:          {}",
-            pd_versions.controller23.app
-        );
+        println!("  Left:           {}", pd_versions.controller01.app);
+        println!("  Right:          {}", pd_versions.controller23.app);
     } else {
         println!("  Unknown")
     }
