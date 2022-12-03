@@ -11,31 +11,35 @@ use windows::{
         System::{Ioctl::*, IO::*},
     },
 };
+use std::sync::{Arc, Mutex};
 
-// TODO: Wrap to make sure it's thread-safe
-static mut DEVICE: Option<HANDLE> = None;
+use crate::chromium_ec::EC_MEMMAP_SIZE;
+
+lazy_static! {
+    static ref DEVICE: Arc<Mutex<Option<HANDLE>>> = Arc::new(Mutex::new(None));
+}
 
 fn init() {
+    let mut device = DEVICE.lock().unwrap();
+    if (*device).is_some() {
+        return;
+    }
+
+    //println!("Windows: Initializing device");
+    let path = w!(r"\\.\GLOBALROOT\Device\CrosEC");
     unsafe {
-        if DEVICE.is_none() {
-            //println!("Windows: Initializing device");
-            let path = w!(r"\\.\GLOBALROOT\Device\CrosEC");
-            //static wil::unique_hfile device;
-            //device.reset(CreateFileW(r"\\.\GLOBALROOT\Device\CrosEC", GENERIC_READ | GENERIC_WRITE,
-            //                            FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr));
-            DEVICE = Some(
-                CreateFileW(
-                    path,
-                    FILE_GENERIC_READ | FILE_GENERIC_WRITE,
-                    FILE_SHARE_READ | FILE_SHARE_WRITE,
-                    None,
-                    OPEN_EXISTING,
-                    FILE_FLAGS_AND_ATTRIBUTES(0),
-                    None,
-                )
-                .unwrap(),
-            );
-        }
+        *device = Some(
+            CreateFileW(
+                path,
+                FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+                FILE_SHARE_READ | FILE_SHARE_WRITE,
+                None,
+                OPEN_EXISTING,
+                FILE_FLAGS_AND_ATTRIBUTES(0),
+                None,
+            )
+            .unwrap(),
+        );
     }
 }
 
@@ -55,15 +59,16 @@ pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
     //println!("Offset: {}", { rm.offset });
     //println!("Bytes: {}", { rm.bytes });
 
+    //let const_ptr = &mut rm as *const ::core::ffi::c_void;
+    let const_ptr = &mut rm as *const _ as *const ::core::ffi::c_void;
+    let mut_ptr = &mut rm as *mut _ as *mut ::core::ffi::c_void;
+    let ptr_size = std::mem::size_of::<CrosEcReadMem>() as u32;
+    //println!("ptr_size: {}", ptr_size);
+    let retb: u32 = 0;
     unsafe {
-        //let const_ptr = &mut rm as *const ::core::ffi::c_void;
-        let const_ptr = &mut rm as *const _ as *const ::core::ffi::c_void;
-        let mut_ptr = &mut rm as *mut _ as *mut ::core::ffi::c_void;
-        let ptr_size = std::mem::size_of::<CrosEcReadMem>() as u32;
-        //println!("ptr_size: {}", ptr_size);
-        let retb: u32 = 0;
+        let device = DEVICE.lock().unwrap();
         DeviceIoControl(
-            DEVICE,
+            *device,
             IOCTL_CROSEC_RDMEM,
             Some(const_ptr),
             ptr_size,
@@ -73,13 +78,11 @@ pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
             None,
         )
         .unwrap();
-        //println!("retb: {}", retb);
-        let output = &rm.buffer[..(length as usize)];
-        //println!("output: {:?}", output);
-        return Some(output.to_vec());
     }
-    // TODO
-    None
+    //println!("retb: {}", retb);
+    let output = &rm.buffer[..(length as usize)];
+    //println!("output: {:?}", output);
+    return Some(output.to_vec());
 }
 
 #[cfg(target_family = "unix")]
@@ -110,8 +113,9 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
     let mut returned: u32 = 0;
 
     unsafe {
+        let device = DEVICE.lock().unwrap();
         DeviceIoControl(
-            DEVICE,
+            *device,
             IOCTL_CROSEC_XCMD,
             Some(const_ptr),
             //Some(::core::mem::transmute_copy(&cmd)),
