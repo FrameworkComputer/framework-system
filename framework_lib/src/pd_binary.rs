@@ -39,6 +39,8 @@
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
+use crate::ccgx::{AppVersion, BaseVersion};
+
 const FW1_METADATA_ROW: u32 = 0x1FE;
 const FW2_METADATA_ROW_CCG5: u32 = 0x1FF;
 const FW2_METADATA_ROW_CCG6: u32 = 0x1FD;
@@ -51,9 +53,10 @@ const METADATA_MAGIC_2: u8 = 0x43;
 const SILICON_ID_OFFSET: usize = 0xE8;
 const SILICON_FAMILY_BYTE: usize = 0x02;
 
+/// Base Version, 4 bytes long
+const BASE_VERSION_OFFSET: usize = 0xE0;
+/// App Version, 4 bytes long
 const APP_VERSION_OFFSET: usize = 0xE4;
-const APP_VERSION_PATCH_BYTE: usize = 0x02;
-const APP_MAJOR_MINOR_BYTE: usize = 0x03;
 
 /// Information about all the firmware in a PD binary file
 ///
@@ -75,12 +78,8 @@ pub enum CcgX {
 pub struct PdFirmware {
     /// TODO: Find out what this is
     pub silicon_id: u16,
-    /// Major part of the version. X of X.Y.Z
-    pub major: u8,
-    /// Minor part of the version. Y of X.Y.Z
-    pub minor: u8,
-    /// Patch part of the version. Z of X.Y.Z
-    pub patch: u8,
+    pub base_version: BaseVersion,
+    pub app_version: AppVersion,
     /// At which row in the file this firmware is
     pub start_row: u32,
     /// How many bytes the firmware is in size
@@ -151,20 +150,17 @@ fn read_version(
 ) -> Option<PdFirmware> {
     let (fw_row_start, fw_size) = read_metadata(file_buffer, flash_row_size, metadata_offset)?;
     let data = read_256_bytes(file_buffer, fw_row_start, flash_row_size)?;
-    let app_version = &data[APP_VERSION_OFFSET..];
+    let base_version = BaseVersion::from(&data[BASE_VERSION_OFFSET..]);
+    let app_version = AppVersion::from(&data[APP_VERSION_OFFSET..]);
     let silicon_id = &data[SILICON_ID_OFFSET..];
 
-    let fw_minor_version = app_version[APP_MAJOR_MINOR_BYTE] & 0x0F;
-    let fw_major_version = (app_version[APP_MAJOR_MINOR_BYTE] & 0xF0) >> 4;
-    let fw_patch_version = app_version[APP_VERSION_PATCH_BYTE];
     let fw_silicon_id = (silicon_id[SILICON_FAMILY_BYTE] as u16)
         + ((silicon_id[SILICON_FAMILY_BYTE + 1] as u16) << 8);
 
     Some(PdFirmware {
         silicon_id: fw_silicon_id,
-        major: fw_major_version,
-        minor: fw_minor_version,
-        patch: fw_patch_version,
+        base_version,
+        app_version,
         start_row: fw_row_start,
         size: fw_size,
         row_size: flash_row_size,
@@ -183,15 +179,13 @@ pub fn read_versions(file_buffer: &[u8], ccgx: CcgX) -> Option<PdFirmwareFile> {
     Some(PdFirmwareFile { first, second })
 }
 
-pub fn format_pd_app_ver(fw: &PdFirmware) -> String {
-    format!("{}.{}.{:0>2x}", fw.major, fw.minor, fw.patch)
-}
-
 /// Pretty print information about PD firmware
 pub fn print_fw(fw: &PdFirmware) {
     let silicon_ver = format!("{:#06x}", fw.silicon_id);
     println!("  Silicon ID: {:>20}", silicon_ver);
-    println!("  Version:    {:>20}", format_pd_app_ver(fw));
+    // TODO: Why does the padding not work? I shouldn't have to manually pad it
+    println!("  Version:                  {:>20}", fw.app_version);
+    println!("  Base Ver:                 {:>20}", fw.base_version);
     println!("  Row size:   {:>20} B", fw.row_size);
     println!("  Start Row:  {:>20}", fw.start_row);
     println!("  Rows:       {:>20}", fw.size / fw.row_size);

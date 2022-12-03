@@ -18,6 +18,7 @@ extern crate alloc;
 extern crate lazy_static;
 
 pub mod capsule;
+pub mod ccgx;
 pub mod chromium_ec;
 pub mod commandline;
 pub mod csme;

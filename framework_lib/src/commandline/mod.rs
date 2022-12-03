@@ -50,26 +50,26 @@ pub fn parse(args: &[String]) -> Cli {
     return clap::parse(args);
 }
 
+fn print_single_pd_details(pd: &PdController) {
+    let si = pd.get_silicon_id();
+    let info = pd.get_device_info();
+    pd.print_fw_info();
+
+    println!("  Silicon ID:     0x{:X}", si);
+    if let Some((mode, frs)) = info {
+        println!("  Mode:           {:?}", mode);
+        println!("  Flash Row Size: {} B", frs);
+    }
+}
+
 fn print_pd_details() {
     let pd_01 = PdController::new(PdPort::Left01);
     let pd_23 = PdController::new(PdPort::Left01);
-    let si_01 = pd_01.get_silicon_id();
-    let si_23 = pd_23.get_silicon_id();
-    let info_01 = pd_01.get_device_info();
-    let info_23 = pd_23.get_device_info();
 
     println!("Left / Ports 01");
-    println!("  Silicon ID:     0x{:X}", si_01);
-    if let Some((mode, frs)) = info_01 {
-        println!("  Mode:           {:?}", mode);
-        println!("  Flash Row Size: {} B", frs);
-    }
+    print_single_pd_details(&pd_01);
     println!("Right / Ports 23");
-    println!("  Silicon ID:     0x{:X}", si_23);
-    if let Some((mode, frs)) = info_23 {
-        println!("  Mode:           {:?}", mode);
-        println!("  Flash Row Size: {} B", frs);
-    }
+    print_single_pd_details(&pd_23);
 }
 
 fn print_versions() {

@@ -3,11 +3,15 @@ use core::prelude::rust_2021::derive;
 
 use crate::chromium_ec::send_command;
 use crate::util;
+use crate::ccgx::{AppVersion, BaseVersion};
 use std::mem::size_of;
 
 enum ControlRegisters {
     DeviceMode = 0,
     SiliconId = 2, // Two bytes long, First LSB, then MSB
+    BootLoaderVersion = 0x10,
+    Firmware1Version = 0x18,
+    Firmware2Version = 0x20,
 }
 
 #[derive(Debug)]
@@ -193,10 +197,12 @@ impl PdController {
             _ => return None,
         };
 
-        let flash_row_size = if data & 0x70 > 0 {
-            256 // 0x100
-        } else {
-            128 // 0x80
+        let flash_row_size = match data & 0x70 {
+            0 => 128, // 0x80
+            1 => 256, // 0x100
+            2 => panic!("Reserved"),
+            3 => 64, // 0x40
+            _ => panic!("Invalid"),
         };
 
         Some((fw_mode, flash_row_size))
@@ -208,5 +214,28 @@ impl PdController {
         // TODO: Make sure silicon ID is the same in binary and device
 
         // TODO: Implement the rest
+    }
+
+    pub fn print_fw_info(&self) {
+        let data = self.ccgx_read(ControlRegisters::BootLoaderVersion as u16, 8);
+        let data = data.unwrap();
+        assert_eq!(data.len(), 8);
+        let base_ver = BaseVersion::from(&data[..4]);
+        let app_ver = AppVersion::from(&data[4..]);
+        println!("Bootloader Version: {} {}", base_ver, app_ver);
+
+        let data = self.ccgx_read(ControlRegisters::Firmware1Version as u16, 8);
+        let data = data.unwrap();
+        assert_eq!(data.len(), 8);
+        let base_ver = BaseVersion::from(&data[..4]);
+        let app_ver = AppVersion::from(&data[4..]);
+        println!("FW1 Version: {} {}", base_ver, app_ver);
+
+        let data = self.ccgx_read(ControlRegisters::Firmware2Version as u16, 8);
+        let data = data.unwrap();
+        assert_eq!(data.len(), 8);
+        let base_ver = BaseVersion::from(&data[..4]);
+        let app_ver = AppVersion::from(&data[4..]);
+        println!("FW2 Version: {} {}", base_ver, app_ver);
     }
 }
