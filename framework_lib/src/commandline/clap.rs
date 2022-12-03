@@ -60,8 +60,8 @@ struct ClapCli {
 
     /// Select which driver is used. By default portio is used
     #[clap(value_enum)]
-    #[arg(long, default_value_t = CrosEcDriverType::Portio)]
-    driver: CrosEcDriverType,
+    #[arg(long)]
+    driver: Option<CrosEcDriverType>,
 
     /// Run self-test to check if interaction with EC is possible
     #[arg(long, short)]

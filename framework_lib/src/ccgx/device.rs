@@ -2,7 +2,7 @@
 use core::prelude::rust_2021::derive;
 
 use crate::ccgx::{AppVersion, BaseVersion};
-use crate::chromium_ec::send_command;
+use crate::chromium_ec::{CrosEc, CrosEcDriver};
 use crate::util;
 use std::mem::size_of;
 
@@ -112,7 +112,7 @@ impl PdController {
     /// TODO: Should move into chromium_ec module
     fn send_ec_command(&self, code: u16, dev_index: u16, data: &[u8]) -> Option<Vec<u8>> {
         let command_id = code + passthrough_offset(dev_index);
-        send_command(command_id, 0, data)
+        CrosEc::new().send_command(command_id, 0, data)
     }
 
     fn i2c_read(&self, addr: u16, len: u16) -> Option<EcI2cPassthruResponse> {

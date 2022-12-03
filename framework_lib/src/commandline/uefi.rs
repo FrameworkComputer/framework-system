@@ -63,7 +63,7 @@ pub fn parse(args: &[String]) -> Cli {
         dump: None,
         intrusion: false,
         // This is the only driver that works on UEFI
-        driver: CrosEcDriverType::Portio,
+        driver: Some(CrosEcDriverType::Portio),
         test: false,
         help: false,
         allupdate: false,

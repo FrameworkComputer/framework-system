@@ -37,7 +37,7 @@ pub struct Cli {
     pub ec_bin: Option<String>,
     pub capsule: Option<String>,
     pub dump: Option<String>,
-    pub driver: CrosEcDriverType,
+    pub driver: Option<CrosEcDriverType>,
     pub test: bool,
     pub intrusion: bool,
     pub help: bool,
@@ -166,7 +166,16 @@ fn print_esrt() {
 }
 
 pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
-    let ec = CrosEc::new();
+    let ec = if let Some(driver) = args.driver {
+        if let Some(driver) = CrosEc::with(driver) {
+            driver
+        } else {
+            println!("Selected driver {:?} not available.", driver);
+            return 1;
+        }
+    } else {
+        CrosEc::new()
+    };
     if args.help {
         // Only print with uefi feature here because without clap will already
         // have printed the help by itself.

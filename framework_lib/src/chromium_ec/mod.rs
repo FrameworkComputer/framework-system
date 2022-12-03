@@ -88,11 +88,32 @@ impl Default for CrosEc {
     }
 }
 
+// Depending on the availability we choose the first one as default
+fn available_drivers() -> Vec<CrosEcDriverType> {
+    vec![
+        #[cfg(feature = "win_driver")]
+        CrosEcDriverType::Windows,
+        #[cfg(feature = "cros_ec_driver")]
+        CrosEcDriverType::CrosEc,
+        #[cfg(not(feature = "windows"))]
+        CrosEcDriverType::Portio,
+    ]
+}
+
 impl CrosEc {
     pub fn new() -> CrosEc {
         CrosEc {
-            driver: CrosEcDriverType::CrosEc,
+            driver: available_drivers()[0]
         }
+    }
+
+    pub fn with(driver: CrosEcDriverType) -> Option<CrosEc> {
+        if !available_drivers().contains(&driver) {
+            return None;
+        }
+        Some(CrosEc {
+            driver
+        })
     }
 
     pub fn check_mem_magic(&self) -> Option<()> {
@@ -208,7 +229,7 @@ impl CrosEc {
 }
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy, PartialEq)]
 pub enum CrosEcDriverType {
     Portio,
     CrosEc,
