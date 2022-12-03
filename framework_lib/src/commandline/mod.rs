@@ -13,7 +13,6 @@ use crate::ccgx::device::{PdController, PdPort};
 use crate::chromium_ec;
 #[cfg(feature = "linux")]
 use crate::csme;
-use crate::chromium_ec::CrosEcDriver;
 use crate::ec_binary;
 use crate::esrt;
 use crate::power;
