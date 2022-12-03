@@ -103,7 +103,7 @@ fn available_drivers() -> Vec<CrosEcDriverType> {
 impl CrosEc {
     pub fn new() -> CrosEc {
         CrosEc {
-            driver: available_drivers()[0]
+            driver: available_drivers()[0],
         }
     }
 
@@ -111,9 +111,7 @@ impl CrosEc {
         if !available_drivers().contains(&driver) {
             return None;
         }
-        Some(CrosEc {
-            driver
-        })
+        Some(CrosEc { driver })
     }
 
     pub fn check_mem_magic(&self) -> Option<()> {
@@ -212,7 +210,8 @@ impl CrosEc {
 
     pub fn get_intrusion_status(&self) -> Option<IntrusionStatus> {
         let data = self.send_command(EC_CMD_CHASSIS_OPEN_CHECK, 0, &[])?;
-        let status: EcResponseChassisOpenCheck = unsafe { std::ptr::read(data.as_ptr() as *const _) };
+        let status: EcResponseChassisOpenCheck =
+            unsafe { std::ptr::read(data.as_ptr() as *const _) };
 
         let data = self.send_command(EC_CMD_CHASSIS_INTRUSION, 0, &[])?;
         let intrusion: EcResponseChassisIntrusionControl =

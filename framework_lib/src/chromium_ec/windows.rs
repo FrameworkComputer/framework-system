@@ -1,3 +1,4 @@
+use std::sync::{Arc, Mutex};
 /// Implementation to talk to DHowett's Windows Chrome EC driver
 #[allow(unused_imports)]
 use windows::{
@@ -9,7 +10,6 @@ use windows::{
         System::{Ioctl::*, IO::*},
     },
 };
-use std::sync::{Arc, Mutex};
 
 use crate::chromium_ec::EC_MEMMAP_SIZE;
 
@@ -67,7 +67,7 @@ pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
         .unwrap();
     }
     let output = &rm.buffer[..(length as usize)];
-    return Some(output.to_vec());
+    Some(output.to_vec())
 }
 
 pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Vec<u8>> {
@@ -105,13 +105,12 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
     }
 
     match cmd.result {
-        0 => {}, // Success
+        0 => {} // Success
         1 => {
             println!("Unsupported Command");
             return None;
-        },
+        }
         _ => panic!("Error: {}", cmd.result),
-
     }
 
     let out_buffer = &cmd.buffer[..(returned as usize)];
@@ -134,7 +133,6 @@ const IOCTL_CROSEC_RDMEM: u32 = ctl_code(
     METHOD_BUFFERED,
     FILE_READ_ACCESS,
 );
-
 
 /// Shadows CTL_CODE from microsoft headers
 const fn ctl_code(device_type: u32, function: u32, method: u32, access: u32) -> u32 {
