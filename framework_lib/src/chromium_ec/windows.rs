@@ -136,20 +136,18 @@ const CROSEC_MEMMAP_SIZE: usize = 0xFF;
 
 const FILE_DEVICE_CROS_EMBEDDED_CONTROLLER: u32 = 0x80EC;
 
-const IOCTL_CROSEC_XCMD: u32 = (-2131959804 as i32) as u32;
-const IOCTL_CROSEC_RDMEM: u32 = (-2131992568 as i32) as u32;
-//const IOCTL_CROSEC_XCMD: u32 = ctl_code(
-//    FILE_DEVICE_CROS_EMBEDDED_CONTROLLER,
-//    0x801,
-//    METHOD_BUFFERED,
-//    FILE_READ_DATA.0 | FILE_WRITE_DATA.0,
-//);
-//const IOCTL_CROSEC_RDMEM: u32 = ctl_code(
-//    FILE_DEVICE_CROS_EMBEDDED_CONTROLLER,
-//    0x802,
-//    METHOD_BUFFERED,
-//    FILE_READ_ACCESS,
-//);
+const IOCTL_CROSEC_XCMD: u32 = ctl_code(
+    FILE_DEVICE_CROS_EMBEDDED_CONTROLLER,
+    0x801,
+    METHOD_BUFFERED,
+    FILE_READ_DATA.0 | FILE_WRITE_DATA.0,
+);
+const IOCTL_CROSEC_RDMEM: u32 = ctl_code(
+    FILE_DEVICE_CROS_EMBEDDED_CONTROLLER,
+    0x802,
+    METHOD_BUFFERED,
+    FILE_READ_ACCESS,
+);
 
 //#define IOCTL_CROSEC_XCMD \
 //	CTL_CODE(FILE_DEVICE_CROS_EMBEDDED_CONTROLLER, 0x801, METHOD_BUFFERED, FILE_READ_DATA | FILE_WRITE_DATA)
@@ -157,7 +155,7 @@ const IOCTL_CROSEC_RDMEM: u32 = (-2131992568 as i32) as u32;
 
 /// Shadows CTL_CODE from microsoft headers
 const fn ctl_code(device_type: u32, function: u32, method: u32, access: u32) -> u32 {
-    ((device_type) << 16) + ((function) << 14) + ((method) << 2) + access
+    ((device_type) << 16) + ((access) << 14) + ((function) << 2) + method
 }
 
 //const CROSEC_STATUS_IN_PROGRESS: NTSTATUS = NTSTATUS(0xE0EC0001);  // EC Command in progress
