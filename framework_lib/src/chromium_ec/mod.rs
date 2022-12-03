@@ -220,6 +220,14 @@ impl CrosEcDriver for CrosEc {
         if !smbios::is_framework() {
             return None;
         }
+
+        if util::is_debug() {
+            println!("read_memory(offset={:#}, size={:#})", offset, length);
+        }
+        if offset + length > EC_MEMMAP_SIZE {
+            return None;
+        }
+
         // TODO: Choose implementation based on support and/or configuration
         match self.driver {
             CrosEcDriverType::Portio => portio::read_memory(offset, length),
@@ -234,7 +242,7 @@ impl CrosEcDriver for CrosEc {
     fn send_command(&self, command: u16, command_version: u8, data: &[u8]) -> Option<Vec<u8>> {
         if util::is_debug() {
             println!(
-                "send_command_lpc_v3(command={:?}, ver={:?}, data_len={:?})",
+                "send_command(command={:?}, ver={:?}, data_len={:?})",
                 command,
                 command_version,
                 data.len()

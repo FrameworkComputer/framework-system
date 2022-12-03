@@ -7,7 +7,6 @@ use nix::unistd::Uid;
 #[cfg(feature = "linux_pio")]
 use std::sync::{Arc, Mutex};
 
-use crate::chromium_ec::EC_MEMMAP_SIZE;
 use crate::os_specific;
 use crate::util;
 
@@ -501,12 +500,6 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
 pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
     if !init() {
         // Failed to initialize
-        return None;
-    }
-    if util::is_debug() {
-        println!("read_memory_lpc(offset={:#}, size={:#})", offset, length);
-    }
-    if offset + length > EC_MEMMAP_SIZE {
         return None;
     }
 
