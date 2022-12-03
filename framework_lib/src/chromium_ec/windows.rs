@@ -123,6 +123,16 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
         );
     }
 
+    match cmd.result {
+        0 => {}, // Success
+        1 => {
+            println!("Unsupported Command");
+            return None;
+        },
+        _ => panic!("Error: {}", cmd.result),
+
+    }
+
     //println!("out cmd: {:?}", cmd);
     //println!("Returned bytes: {}", returned);
     let out_buffer = &cmd.buffer[..(returned as usize)];
