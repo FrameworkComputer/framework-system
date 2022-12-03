@@ -74,6 +74,8 @@ pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
         )
         .unwrap();
         println!("retb: {}", retb);
+        let output = &rm.buffer[..(length as usize)];
+        return Some(output.to_vec());
     }
     // TODO
     None
@@ -137,18 +139,24 @@ const CROSEC_MEMMAP_SIZE: usize = 0xFF;
 
 const FILE_DEVICE_CROS_EMBEDDED_CONTROLLER: u32 = 0x80EC;
 
-const IOCTL_CROSEC_XCMD: u32 = ctl_code(
-    FILE_DEVICE_CROS_EMBEDDED_CONTROLLER,
-    0x801,
-    METHOD_BUFFERED,
-    FILE_READ_DATA.0 | FILE_WRITE_DATA.0,
-);
-const IOCTL_CROSEC_RDMEM: u32 = ctl_code(
-    FILE_DEVICE_CROS_EMBEDDED_CONTROLLER,
-    0x802,
-    METHOD_BUFFERED,
-    FILE_READ_ACCESS,
-);
+const IOCTL_CROSEC_XCMD: u32 = (-2131959804 as i32) as u32;
+const IOCTL_CROSEC_RDMEM: u32 = (-2131992568 as i32) as u32;
+//const IOCTL_CROSEC_XCMD: u32 = ctl_code(
+//    FILE_DEVICE_CROS_EMBEDDED_CONTROLLER,
+//    0x801,
+//    METHOD_BUFFERED,
+//    FILE_READ_DATA.0 | FILE_WRITE_DATA.0,
+//);
+//const IOCTL_CROSEC_RDMEM: u32 = ctl_code(
+//    FILE_DEVICE_CROS_EMBEDDED_CONTROLLER,
+//    0x802,
+//    METHOD_BUFFERED,
+//    FILE_READ_ACCESS,
+//);
+
+//#define IOCTL_CROSEC_XCMD \
+//	CTL_CODE(FILE_DEVICE_CROS_EMBEDDED_CONTROLLER, 0x801, METHOD_BUFFERED, FILE_READ_DATA | FILE_WRITE_DATA)
+//#define IOCTL_CROSEC_RDMEM CTL_CODE(FILE_DEVICE_CROS_EMBEDDED_CONTROLLER, 0x802, METHOD_BUFFERED, FILE_READ_DATA)
 
 /// Shadows CTL_CODE from microsoft headers
 const fn ctl_code(device_type: u32, function: u32, method: u32, access: u32) -> u32 {
