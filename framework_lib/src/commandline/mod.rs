@@ -7,12 +7,14 @@ pub mod uefi;
 use std::fs;
 
 use crate::capsule;
+use crate::ccgx;
+use crate::ccgx::binary::CcgX::*;
+use crate::ccgx::device::{PdController, PdPort};
 use crate::chromium_ec;
 #[cfg(feature = "linux")]
 use crate::csme;
 use crate::ec_binary;
 use crate::esrt;
-use crate::pd_binary::{self, CcgX::*};
 use crate::power;
 use crate::smbios::{dmidecode_string_val, get_smbios};
 use smbioslib::*;
@@ -28,6 +30,7 @@ pub struct Cli {
     pub power: bool,
     pub pdports: bool,
     pub privacy: bool,
+    pub pd_info: bool,
     pub pd_bin: Option<String>,
     pub ec_bin: Option<String>,
     pub capsule: Option<String>,
@@ -46,6 +49,28 @@ pub fn parse(args: &[String]) -> Cli {
     return uefi::parse(args);
     #[cfg(not(feature = "uefi"))]
     return clap::parse(args);
+}
+
+fn print_single_pd_details(pd: &PdController) {
+    let si = pd.get_silicon_id();
+    let info = pd.get_device_info();
+    pd.print_fw_info();
+
+    println!("  Silicon ID:     0x{:X}", si);
+    if let Some((mode, frs)) = info {
+        println!("  Mode:           {:?}", mode);
+        println!("  Flash Row Size: {} B", frs);
+    }
+}
+
+fn print_pd_details() {
+    let pd_01 = PdController::new(PdPort::Left01);
+    let pd_23 = PdController::new(PdPort::Left01);
+
+    println!("Left / Ports 01");
+    print_single_pd_details(&pd_01);
+    println!("Right / Ports 23");
+    print_single_pd_details(&pd_23);
 }
 
 fn print_versions() {
@@ -79,15 +104,10 @@ fn print_versions() {
     }
 
     println!("PD Controllers");
+
     if let Some(pd_versions) = power::read_pd_version() {
-        println!(
-            "  Left:           {}",
-            power::format_pd_app_ver(&pd_versions.controller01)
-        );
-        println!(
-            "  Right:          {}",
-            power::format_pd_app_ver(&pd_versions.controller23)
-        );
+        println!("  Left:           {}", pd_versions.controller01.app);
+        println!("  Right:          {}", pd_versions.controller23.app);
     } else {
         println!("  Unknown")
     }
@@ -182,6 +202,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         power::get_and_print_pd_info();
     } else if args.info {
         smbios_info();
+    } else if args.pd_info {
+        print_pd_details();
     } else if args.privacy {
         chromium_ec::privacy_info();
     // TODO:
@@ -275,6 +297,7 @@ Options:
       --pdports            Show information about USB-C PD prots
       --info               Show info from SMBIOS (Only on UEFI)
       --privacy            Show privacy switch statuses (camera and microphone)
+      --pd-info            TODO
       --pd-bin <PD_BIN>    Parse versions from PD firmware binary file
       --ec-bin <EC_BIN>    Parse versions from EC firmware binary file
       --capsule <CAPSULE>  Parse UEFI Capsule information from binary file
@@ -368,24 +391,24 @@ fn smbios_info() {
 fn analyze_ccgx_pd_fw(data: &[u8]) {
     let mut succeeded = false;
 
-    if let Some(versions) = pd_binary::read_versions(data, Ccg5) {
+    if let Some(versions) = ccgx::binary::read_versions(data, Ccg5) {
         succeeded = true;
         println!("Detected CCG5 firmware");
         println!("FW 1");
-        pd_binary::print_fw(&versions.first);
+        ccgx::binary::print_fw(&versions.first);
 
         println!("FW 2");
-        pd_binary::print_fw(&versions.second);
+        ccgx::binary::print_fw(&versions.second);
     }
 
-    if let Some(versions) = pd_binary::read_versions(data, Ccg6) {
+    if let Some(versions) = ccgx::binary::read_versions(data, Ccg6) {
         succeeded = true;
         println!("Detected CCG6 firmware");
         println!("FW 1");
-        pd_binary::print_fw(&versions.first);
+        ccgx::binary::print_fw(&versions.first);
 
         println!("FW 2");
-        pd_binary::print_fw(&versions.second);
+        ccgx::binary::print_fw(&versions.second);
     }
 
     if !succeeded {

@@ -453,8 +453,11 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
     //assert!(res == 0);
     if res != 0 {
         println!("Error ({:?})! Failed to set command version.", res);
-        if res == 1 {
-            println!("Probably command is unsupported.");
+        match res {
+            // TODO: Use enum
+            1 => println!("Command is unsupported."),
+            3 => println!("Invalid parameter"),
+            _ => {}
         }
         return None;
     }

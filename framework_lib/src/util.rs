@@ -10,7 +10,13 @@ pub fn is_debug() -> bool {
 
 /// Convert any type to a u8 slice (Like a C byte buffer)
 pub unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
-    ::std::slice::from_raw_parts((p as *const T) as *const u8, ::std::mem::size_of::<T>())
+    let len = ::std::mem::size_of::<T>();
+    ::std::slice::from_raw_parts((p as *const T) as *const u8, len)
+}
+
+pub unsafe fn any_vec_as_u8_slice<T: Sized>(p: &[T]) -> &[u8] {
+    let len = ::std::mem::size_of::<T>() * p.len();
+    ::std::slice::from_raw_parts((p.as_ptr() as *const T) as *const u8, len)
 }
 
 pub fn print_buffer(buffer: &[u8]) {

@@ -29,6 +29,10 @@ struct ClapCli {
     #[arg(long)]
     info: bool,
 
+    /// Show details about the PD controllers
+    #[arg(long)]
+    pd_info: bool,
+
     /// Show privacy switch statuses (camera and microphone)
     #[arg(long)]
     privacy: bool,
@@ -66,6 +70,7 @@ pub fn parse(args: &[String]) -> Cli {
         esrt: args.esrt,
         power: args.power,
         pdports: args.pdports,
+        pd_info: args.pd_info,
         privacy: args.privacy,
         pd_bin: args
             .pd_bin

@@ -1,6 +1,7 @@
 use core::convert::TryInto;
 use core::prelude::v1::derive;
 
+use crate::ccgx::{AppVersion, Application, BaseVersion};
 use crate::chromium_ec;
 use crate::util;
 
@@ -407,13 +408,8 @@ struct _EcResponseReadPdVersion {
 }
 
 pub struct ControllerVersion {
-    pub base1: u8,
-    pub base2: u8,
-    pub base3: u8,
-    pub base4: u32,
-    pub app_major: u8,
-    pub app_minor: u8,
-    pub app_patch: u8,
+    pub base: BaseVersion,
+    pub app: AppVersion,
 }
 
 pub struct EcResponseReadPdVersion {
@@ -423,23 +419,19 @@ pub struct EcResponseReadPdVersion {
 
 fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
     ControllerVersion {
-        base1: (data[3] >> 4) & 0xF,
-        base2: (data[3]) & 0xF,
-        base3: data[2],
-        base4: (data[0] as u32) + ((data[1] as u32) << 8),
-        app_major: (data[7] >> 4) & 0xF,
-        app_minor: (data[7]) & 0xF,
-        app_patch: data[6],
+        base: BaseVersion {
+            major: (data[3] >> 4) & 0xF,
+            minor: (data[3]) & 0xF,
+            patch: data[2],
+            build_number: (data[0] as u16) + ((data[1] as u16) << 8),
+        },
+        app: AppVersion {
+            application: Application::Notebook,
+            major: (data[7] >> 4) & 0xF,
+            minor: (data[7]) & 0xF,
+            circuit: data[6],
+        },
     }
-}
-
-pub fn print_pd_base_ver(ver: &ControllerVersion) -> String {
-    format!("{}.{}.{}.{}", ver.base1, ver.base2, ver.base3, ver.base4)
-}
-
-// Must be same format as pd_binary::format_pd_app_ver
-pub fn format_pd_app_ver(ver: &ControllerVersion) -> String {
-    format!("{}.{}.{:0>2x}", ver.app_major, ver.app_minor, ver.app_patch)
 }
 
 // NOTE: Only works on ADL!

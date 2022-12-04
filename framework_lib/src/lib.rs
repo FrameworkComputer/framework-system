@@ -18,13 +18,13 @@ extern crate alloc;
 extern crate lazy_static;
 
 pub mod capsule;
+pub mod ccgx;
 pub mod chromium_ec;
 pub mod commandline;
 pub mod csme;
 pub mod ec_binary;
 pub mod esrt;
 mod os_specific;
-pub mod pd_binary;
 pub mod power;
 pub mod smbios;
 #[cfg(feature = "uefi")]
