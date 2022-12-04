@@ -4,9 +4,7 @@ Rust libraries and tools to interact with the system.
 
 The tool works on Linux, Windows and the UEFI shell.
 Download it from the latest [GH Actions](https://github.com/FrameworkComputer/framework-system/actions?query=branch%3Amain) run on the main branch.
-Most features are supported on every "OS". See below for details. Windows does
-not yet support some features because they depend on the missing CrosEC driver
-implementation.
+Most features are supported on every "OS". See below for details.
 
 Features:
 
@@ -36,11 +34,11 @@ Features:
     - [ ] PD
   - [x] Get information about battery/AC (`--power`)
   - [x] Get information about USB-C PD ports (`--pdorts`)
-- [ ] Implement communication with EC
+- [x] Implement communication with EC
   - [x] Port I/O communication on Linux
   - [x] Port I/O communication on UEFI
   - [x] Using `cros_ec` driver in Linux kernel
-  - [ ] Using DHowett's Windows CrosEC driver
+  - [x] Using [DHowett's Windows CrosEC driver](https://github.com/DHowett/FrameworkWindowsUtils)
 
 ## Prerequisites
 
@@ -73,7 +71,7 @@ cargo build -p framework_tool
 make -C framework_uefi
 ```
 
-Building on Windows or in general with less features:
+Building on Windows or in general with fewer features:
 
 ```ps1
 # Because we're fetching a private dependency from git, it might be necessary
@@ -186,6 +184,13 @@ Capsule Header
   Capsule Size:               2180 KB
   Type:   Framework Retimer23 (Right)
 ```
+
+###### Running on Windows
+Windows does not ship with a Chrome EC driver. However there is an open-source implementation that this tool can take advantage of.
+The project is hosted on GitHub and you can download pre-built binaries
+[there](https://github.com/DHowett/FrameworkWindowsUtils/releases).
+
+The driver is not signed by Microsoft, so you will have to enable testsigning.
 
 ## Tests
 

@@ -1,5 +1,3 @@
-use crate::commandline::Cli;
-
 use std::uefi;
 
 use core::convert::TryInto;
@@ -7,6 +5,9 @@ use uefi::guid::{Guid, SHELL_PARAMETERS_GUID};
 use uefi::shell::ShellParameters as UefiShellParameters;
 use uefi_std::ffi;
 use uefi_std::proto::Protocol;
+
+use crate::chromium_ec::CrosEcDriverType;
+use crate::commandline::Cli;
 
 pub struct ShellParameters(pub &'static mut UefiShellParameters);
 
@@ -61,6 +62,8 @@ pub fn parse(args: &[String]) -> Cli {
         capsule: None,
         dump: None,
         intrusion: false,
+        // This is the only driver that works on UEFI
+        driver: Some(CrosEcDriverType::Portio),
         test: false,
         help: false,
         allupdate: false,

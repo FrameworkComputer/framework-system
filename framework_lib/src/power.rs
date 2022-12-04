@@ -2,7 +2,7 @@ use core::convert::TryInto;
 use core::prelude::v1::derive;
 
 use crate::ccgx::{AppVersion, Application, BaseVersion};
-use crate::chromium_ec;
+use crate::chromium_ec::{CrosEc, CrosEcDriver};
 use crate::util;
 
 // The offset address of each type of data in mapped memory.
@@ -84,7 +84,8 @@ pub struct PowerInfo {
 }
 
 fn read_u32(address: u16) -> u32 {
-    let bytes = chromium_ec::read_memory(address, 4).unwrap();
+    let ec = CrosEc::new();
+    let bytes = ec.read_memory(address, 4).unwrap();
     if bytes.len() != 4 {
         debug_assert!(
             bytes.len() == 4,
@@ -98,17 +99,19 @@ fn read_u32(address: u16) -> u32 {
 }
 
 pub fn print_memmap_version_info() {
+    let ec = CrosEc::new();
     // TODO: I don't think these are very useful
-    let _id_ver = chromium_ec::read_memory(EC_MEMMAP_ID_VERSION, 2).unwrap(); /* Version of data in 0x20 - 0x2f */
-    let _thermal_ver = chromium_ec::read_memory(EC_MEMMAP_THERMAL_VERSION, 2).unwrap(); /* Version of data in 0x00 - 0x1f */
-    let _battery_ver = chromium_ec::read_memory(EC_MEMMAP_BATTERY_VERSION, 2).unwrap(); /* Version of data in 0x40 - 0x7f */
-    let _switches_ver = chromium_ec::read_memory(EC_MEMMAP_SWITCHES_VERSION, 2).unwrap(); /* Version of data in 0x30 - 0x33 */
-    let _events_ver = chromium_ec::read_memory(EC_MEMMAP_EVENTS_VERSION, 2).unwrap();
+    let _id_ver = ec.read_memory(EC_MEMMAP_ID_VERSION, 2).unwrap(); /* Version of data in 0x20 - 0x2f */
+    let _thermal_ver = ec.read_memory(EC_MEMMAP_THERMAL_VERSION, 2).unwrap(); /* Version of data in 0x00 - 0x1f */
+    let _battery_ver = ec.read_memory(EC_MEMMAP_BATTERY_VERSION, 2).unwrap(); /* Version of data in 0x40 - 0x7f */
+    let _switches_ver = ec.read_memory(EC_MEMMAP_SWITCHES_VERSION, 2).unwrap(); /* Version of data in 0x30 - 0x33 */
+    let _events_ver = ec.read_memory(EC_MEMMAP_EVENTS_VERSION, 2).unwrap();
 }
 
 // TODO: Use Result
 pub fn power_info() -> Option<PowerInfo> {
-    let battery_flag = chromium_ec::read_memory(EC_MEMMAP_BATT_FLAG, 1)?[0];
+    let ec = CrosEc::new();
+    let battery_flag = ec.read_memory(EC_MEMMAP_BATT_FLAG, 1)?[0];
     if util::is_debug() {
         println!("AC/Battery flag: {:#X}", battery_flag);
     }
@@ -118,8 +121,8 @@ pub fn power_info() -> Option<PowerInfo> {
     let present_voltage = read_u32(EC_MEMMAP_BATT_VOLT);
     let present_rate = read_u32(EC_MEMMAP_BATT_RATE);
     let _remaining_capacity = read_u32(EC_MEMMAP_BATT_CAP); // TODO: Why didn't I use this?
-    let battery_count = chromium_ec::read_memory(EC_MEMMAP_BATT_COUNT, 1).unwrap()[0]; // 8 bit
-    let current_battery_index = chromium_ec::read_memory(EC_MEMMAP_BATT_INDEX, 1).unwrap()[0]; // 8 bit
+    let battery_count = ec.read_memory(EC_MEMMAP_BATT_COUNT, 1).unwrap()[0]; // 8 bit
+    let current_battery_index = ec.read_memory(EC_MEMMAP_BATT_INDEX, 1).unwrap()[0]; // 8 bit
     let design_capacity = read_u32(EC_MEMMAP_BATT_DCAP);
     let design_voltage = read_u32(EC_MEMMAP_BATT_DVLT);
     let cycle_count = read_u32(EC_MEMMAP_BATT_CCNT);
@@ -173,8 +176,6 @@ pub fn is_standalone() -> bool {
 pub fn get_and_print_power_info() {
     if let Some(power_info) = power_info() {
         print_battery_information(&power_info);
-
-        check_update_ready(&power_info);
     }
 }
 
@@ -285,11 +286,12 @@ pub struct UsbPdPowerInfo {
 }
 
 fn check_ac(port: u8) -> Option<UsbPdPowerInfo> {
+    let ec = CrosEc::new();
     // port=0 or port=1 to check right
     // port=2 or port=3 to check left
     // If dest returns 0x2 that means it's powered
 
-    let data = chromium_ec::send_command(EC_CMD_USB_PD_POWER_INFO, 0, &[port])?;
+    let data = ec.send_command(EC_CMD_USB_PD_POWER_INFO, 0, &[port])?;
     // TODO: Rust complains that when accessing this struct, we're reading
     // from unaligned pointers. How can I fix this? Maybe create another struct to shadow it,
     // which isn't packed. And copy the data to there.
@@ -437,11 +439,12 @@ fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
 // NOTE: Only works on ADL!
 // TODO: Handle cases when command doesn't exist.
 pub fn read_pd_version() -> Option<EcResponseReadPdVersion> {
+    let ec = CrosEc::new();
     // port=0 or port=1 to check right
     // port=2 or port=3 to check left
     // If dest returns 0x2 that means it's powered
 
-    let data = chromium_ec::send_command(EC_CMD_READ_PD_VERSION, 0, &[])?;
+    let data = ec.send_command(EC_CMD_READ_PD_VERSION, 0, &[])?;
     // TODO: Rust complains that when accessing this struct, we're reading
     // from unaligned pointers. How can I fix this? Maybe create another struct to shadow it,
     // which isn't packed. And copy the data to there.
