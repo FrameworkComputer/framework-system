@@ -3,7 +3,7 @@ use core::prelude::rust_2021::derive;
 
 use crate::ccgx::{AppVersion, BaseVersion, ControllerVersion};
 use crate::chromium_ec::{CrosEc, CrosEcDriver};
-use crate::util;
+use crate::util::{self, Config, Platform};
 use std::mem::size_of;
 
 enum ControlRegisters {
@@ -31,10 +31,14 @@ impl PdPort {
 
     /// I2C port on the EC
     fn i2c_port(&self) -> u8 {
-        match self {
-            PdPort::Left01 => 6,
-            // TODO: On TGL EVT both are 6
-            PdPort::Right23 => 7,
+        let config = Config::get();
+        let platform = &(*config).as_ref().unwrap().platform;
+
+        match (platform, self) {
+            (Platform::IntelGen11, _) => 6,
+            (Platform::IntelGen12, PdPort::Left01) => 6,
+            (Platform::IntelGen12, PdPort::Right23) => 7,
+            (_, _) => panic!("Unsupported platform"),
         }
     }
 }

@@ -1,7 +1,11 @@
 #[cfg(not(feature = "uefi"))]
 use std::io::ErrorKind;
 
+use crate::util::Platform;
 use smbioslib::*;
+
+// TODO: Should cache SMBIOS and values gotten from it
+// SMBIOS is fixed after boot. Oh, so maybe not cache when we're running in UEFI
 
 /// Check whether the manufacturer in the SMBIOS says Framework
 pub fn is_framework() -> bool {
@@ -57,4 +61,27 @@ pub fn get_smbios() -> Option<SMBiosData> {
             None
         }
     }
+}
+
+pub fn get_platform() -> Option<Platform> {
+    let smbios = get_smbios();
+    if smbios.is_none() {
+        println!("Failed to find SMBIOS");
+        return None;
+    }
+    for undefined_struct in smbios.unwrap().iter() {
+        if let DefinedStruct::SystemInformation(data) = undefined_struct.defined_struct() {
+            if let Some(family) = dmidecode_string_val(&data.family()) {
+                match family.as_ref() {
+                    // Our serial number of the mainboard
+                    "FRANBMCP" => return Some(Platform::IntelGen11),
+                    "FRANMACP" => return Some(Platform::IntelGen12),
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    println!("Failed to find PlatformFamily");
+    None
 }
