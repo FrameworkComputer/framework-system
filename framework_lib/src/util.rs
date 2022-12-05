@@ -49,7 +49,10 @@ impl Config {
 
         if (*config).is_none() {
             let mut cfg = Config::new();
-            cfg.platform = smbios::get_platform().unwrap();
+            if let Some(platform) = smbios::get_platform() {
+                // TODO: Perhaps add Qemu or NonFramework as a platform
+                cfg.platform = platform;
+            }
             *config = Some(cfg);
         }
 

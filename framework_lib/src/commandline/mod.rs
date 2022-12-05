@@ -16,7 +16,7 @@ use crate::csme;
 use crate::ec_binary;
 use crate::esrt;
 use crate::power;
-use crate::smbios::{dmidecode_string_val, get_smbios};
+use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
 use smbioslib::*;
 
 use crate::chromium_ec::{CrosEc, CrosEcDriverType};
@@ -67,6 +67,10 @@ fn print_single_pd_details(pd: &PdController) {
 }
 
 fn print_pd_details() {
+    if !is_framework() {
+        println!("Only supported on Framework systems");
+        return;
+    }
     let pd_01 = PdController::new(PdPort::Left01);
     let pd_23 = PdController::new(PdPort::Right23);
 
