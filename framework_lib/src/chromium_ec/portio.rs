@@ -449,7 +449,6 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
     Pio::<u8>::new(EC_LPC_ADDR_HOST_CMD).write(EC_COMMAND_PROTOCOL_3);
     wait_for_ready();
     let res = Pio::<u8>::new(EC_LPC_ADDR_HOST_DATA).read();
-    //assert!(res == 0);
     if res != 0 {
         println!("Error ({:?})! Failed to set command version.", res);
         match res {
@@ -464,6 +463,10 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
     // Read response
     let resp_hdr_buffer = transfer_read(0, std::mem::size_of::<EcHostResponse>() as u16);
     let resp_header = unpack_response_header(&resp_hdr_buffer);
+    // TODO: I think we're already covered by checking res above
+    // But this seems also to be the EC reponse code, so make sure it's 0 (Success)
+    assert_eq!({resp_header.result}, 0);
+    println!("resp_header.result: {:?}", {resp_header.result});
 
     if resp_header.struct_version != EC_HOST_RESPONSE_VERSION {
         println!(
