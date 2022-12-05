@@ -107,7 +107,7 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
     }
 
     match FromPrimitive::from_u32(cmd.result) {
-        Some(EcResponseStatus::Success) => {} // Success
+        Some(EcResponseStatus::Success) => {}
         Some(EcResponseStatus::InvalidCommand) => {
             println!("Unsupported Command");
             return None;

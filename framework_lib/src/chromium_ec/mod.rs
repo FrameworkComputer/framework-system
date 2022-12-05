@@ -1,7 +1,6 @@
 use crate::smbios;
 use crate::util;
 
-#[cfg(not(feature = "uefi"))]
 use num_derive::FromPrimitive;
 
 #[cfg(feature = "cros_ec_driver")]
@@ -37,8 +36,7 @@ const EC_CMD_READ_MEMMAP: u16 = 0x0007;
 const EC_MEMMAP_ID: u16 = 0x20; /* 0x20 == 'E', 0x21 == 'C' */
 
 /// Response codes returned by commands
-#[cfg_attr(not(feature = "uefi"), derive(FromPrimitive))]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, FromPrimitive)]
 pub enum EcResponseStatus {
     Success = 0,
     InvalidCommand = 1,
