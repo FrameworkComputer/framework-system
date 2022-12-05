@@ -1,3 +1,4 @@
+use num::FromPrimitive;
 use std::sync::{Arc, Mutex};
 /// Implementation to talk to DHowett's Windows Chrome EC driver
 #[allow(unused_imports)]
@@ -11,6 +12,7 @@ use windows::{
     },
 };
 
+use crate::chromium_ec::EcResponseStatus;
 use crate::chromium_ec::EC_MEMMAP_SIZE;
 
 lazy_static! {
@@ -104,13 +106,16 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
         );
     }
 
-    match cmd.result {
-        0 => {} // Success
-        1 => {
+    match FromPrimitive::from_u32(cmd.result) {
+        Some(EcResponseStatus::Success) => {} // Success
+        Some(EcResponseStatus::InvalidCommand) => {
             println!("Unsupported Command");
             return None;
         }
-        _ => panic!("Error: {}", cmd.result),
+        err => panic!(
+            "Error: {:?}, command: {}, cmd_ver: {}, data: {:?}",
+            err, command, command_version, data
+        ),
     }
 
     let out_buffer = &cmd.buffer[..(returned as usize)];

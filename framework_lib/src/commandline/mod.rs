@@ -68,7 +68,7 @@ fn print_single_pd_details(pd: &PdController) {
 
 fn print_pd_details() {
     let pd_01 = PdController::new(PdPort::Left01);
-    let pd_23 = PdController::new(PdPort::Left01);
+    let pd_23 = PdController::new(PdPort::Right23);
 
     println!("Left / Ports 01");
     print_single_pd_details(&pd_01);
@@ -109,6 +109,10 @@ fn print_versions(ec: &CrosEc) {
     println!("PD Controllers");
 
     if let Some(pd_versions) = power::read_pd_version() {
+        println!("  Left:           {}", pd_versions.controller01.app);
+        println!("  Right:          {}", pd_versions.controller23.app);
+    } else if let Some(pd_versions) = ccgx::get_pd_controller_versions() {
+        // If EC doesn't have host command, get it directly from the PD controllers
         println!("  Left:           {}", pd_versions.controller01.app);
         println!("  Right:          {}", pd_versions.controller23.app);
     } else {

@@ -1,7 +1,7 @@
 use core::convert::TryInto;
 use core::prelude::v1::derive;
 
-use crate::ccgx::{AppVersion, Application, BaseVersion};
+use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, PdVersions};
 use crate::chromium_ec::{CrosEc, CrosEcDriver};
 use crate::util;
 
@@ -409,16 +409,6 @@ struct _EcResponseReadPdVersion {
     controller23: [u8; 8],
 }
 
-pub struct ControllerVersion {
-    pub base: BaseVersion,
-    pub app: AppVersion,
-}
-
-pub struct EcResponseReadPdVersion {
-    pub controller01: ControllerVersion,
-    pub controller23: ControllerVersion,
-}
-
 fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
     ControllerVersion {
         base: BaseVersion {
@@ -438,7 +428,7 @@ fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
 
 // NOTE: Only works on ADL!
 // TODO: Handle cases when command doesn't exist.
-pub fn read_pd_version() -> Option<EcResponseReadPdVersion> {
+pub fn read_pd_version() -> Option<PdVersions> {
     let ec = CrosEc::new();
     // port=0 or port=1 to check right
     // port=2 or port=3 to check left
@@ -450,7 +440,7 @@ pub fn read_pd_version() -> Option<EcResponseReadPdVersion> {
     // which isn't packed. And copy the data to there.
     let info: _EcResponseReadPdVersion = unsafe { std::ptr::read(data.as_ptr() as *const _) };
 
-    Some(EcResponseReadPdVersion {
+    Some(PdVersions {
         controller01: parse_pd_ver(&info.controller01),
         controller23: parse_pd_ver(&info.controller23),
     })

@@ -1,7 +1,7 @@
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
-use crate::ccgx::{AppVersion, BaseVersion};
+use crate::ccgx::{AppVersion, BaseVersion, ControllerVersion};
 use crate::chromium_ec::{CrosEc, CrosEcDriver};
 use crate::util;
 use std::mem::size_of;
@@ -215,9 +215,18 @@ impl PdController {
     pub fn flash_pd(&self) {
         println!("Flashing port: {:?}", self.port);
 
+        // Seems TGL silicon ID is 0x2100 and ADL is 0x3000
         // TODO: Make sure silicon ID is the same in binary and device
 
         // TODO: Implement the rest
+    }
+
+    pub fn get_fw_versions(&self) -> Option<ControllerVersion> {
+        let data = self.ccgx_read(ControlRegisters::Firmware1Version as u16, 8)?;
+        Some(ControllerVersion {
+            base: BaseVersion::from(&data[..4]),
+            app: AppVersion::from(&data[4..]),
+        })
     }
 
     pub fn print_fw_info(&self) {

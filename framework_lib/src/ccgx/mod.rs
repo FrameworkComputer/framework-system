@@ -2,6 +2,8 @@
 use core::prelude::rust_2021::derive;
 use std::fmt;
 
+use self::device::{PdController, PdPort};
+
 pub mod binary;
 pub mod device;
 
@@ -75,4 +77,21 @@ impl From<&[u8]> for AppVersion {
             minor: data[3] & 0x0F,
         }
     }
+}
+
+pub struct ControllerVersion {
+    pub base: BaseVersion,
+    pub app: AppVersion,
+}
+
+pub struct PdVersions {
+    pub controller01: ControllerVersion,
+    pub controller23: ControllerVersion,
+}
+
+pub fn get_pd_controller_versions() -> Option<PdVersions> {
+    Some(PdVersions {
+        controller01: PdController::new(PdPort::Left01).get_fw_versions()?,
+        controller23: PdController::new(PdPort::Right23).get_fw_versions()?,
+    })
 }
