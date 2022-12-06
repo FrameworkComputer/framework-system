@@ -22,7 +22,7 @@ impl fmt::Display for BaseVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{}.{}.{:0>2x}.{:0>2x}",
+            "{}.{}.{}.{}",
             self.major, self.minor, self.patch, self.build_number
         )
     }
@@ -56,7 +56,7 @@ pub struct AppVersion {
 }
 impl fmt::Display for AppVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{:0>2x}", self.major, self.minor, self.circuit)
+        write!(f, "{}.{}.{}", self.major, self.minor, self.circuit)
     }
 }
 
@@ -79,6 +79,7 @@ impl From<&[u8]> for AppVersion {
     }
 }
 
+// TODO: Consider bootloader and both firmwares
 pub struct ControllerVersion {
     pub base: BaseVersion,
     pub app: AppVersion,
