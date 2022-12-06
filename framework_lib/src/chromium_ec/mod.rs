@@ -211,7 +211,7 @@ impl CrosEc {
         let status: EcResponseChassisOpenCheck =
             unsafe { std::ptr::read(data.as_ptr() as *const _) };
 
-        let data = self.send_command(EC_CMD_CHASSIS_INTRUSION, 0, &[])?;
+        let data = self.send_command(EC_CMD_CHASSIS_INTRUSION, 0, &[0x0, 0x0])?;
         // TODO: Add this into send_command, so that if the size doesn't match the expected, we can return None
         if data.len() != std::mem::size_of::<EcResponseChassisIntrusionControl>() {
             // TODO: Figure out why this happens on TGL
