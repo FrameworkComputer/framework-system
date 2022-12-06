@@ -181,27 +181,26 @@ impl PdController {
         Some(i2c_response.data)
     }
 
-    pub fn get_silicon_id(&self) -> u16 {
-        let data = self.ccgx_read(ControlRegisters::SiliconId as u16, 2);
-        let data = data.unwrap();
+    pub fn get_silicon_id(&self) -> Option<u16> {
+        let data = self.ccgx_read(ControlRegisters::SiliconId as u16, 2)?;
         assert!(data.len() >= 2);
         debug_assert_eq!(data.len(), 2);
-        ((data[1] as u16) << 8) + (data[0] as u16)
+        Some(((data[1] as u16) << 8) + (data[0] as u16))
     }
 
     pub fn get_device_info(&self) -> Option<(FwMode, u16)> {
-        let data = self.ccgx_read(ControlRegisters::DeviceMode as u16, 1);
-        let data = data.unwrap()[0];
+        let data = self.ccgx_read(ControlRegisters::DeviceMode as u16, 1)?;
+        let byte = data[0];
 
         // Currently used firmware
-        let fw_mode = match data & 0b0000_0011 {
+        let fw_mode = match byte & 0b0000_0011 {
             0 => FwMode::BootLoader,
             1 => FwMode::BackupFw,
             2 => FwMode::MainFw,
             _ => return None,
         };
 
-        let flash_row_size = match (data & 0b0011_0000) >> 4 {
+        let flash_row_size = match (byte & 0b0011_0000) >> 4 {
             0 => 128, // 0x80
             1 => 256, // 0x100
             2 => panic!("Reserved"),
@@ -210,7 +209,7 @@ impl PdController {
         };
 
         // All our devices support HPI v2 and we expect to use that to interact with them
-        let hpi_v2 = (data & (1 << 7)) > 0;
+        let hpi_v2 = (byte & (1 << 7)) > 0;
         debug_assert!(hpi_v2);
 
         Some((fw_mode, flash_row_size))

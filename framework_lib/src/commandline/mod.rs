@@ -55,15 +55,18 @@ pub fn parse(args: &[String]) -> Cli {
 }
 
 fn print_single_pd_details(pd: &PdController) {
-    let si = pd.get_silicon_id();
-    let info = pd.get_device_info();
-    pd.print_fw_info();
-
-    println!("  Silicon ID:     0x{:X}", si);
-    if let Some((mode, frs)) = info {
+    if let Some(si) = pd.get_silicon_id() {
+        println!("  Silicon ID:     0x{:X}", si);
+    } else {
+        println!("  Failed to read Silicon ID");
+    }
+    if let Some((mode, frs)) = pd.get_device_info() {
         println!("  Mode:           {:?}", mode);
         println!("  Flash Row Size: {} B", frs);
+    } else {
+        println!("  Failed to device info");
     }
+    pd.print_fw_info();
 }
 
 fn print_pd_details() {
@@ -359,6 +362,15 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     if power::get_pd_info().iter().any(|x| x.is_none()) {
         return None;
     }
+
+    let pd_01 = PdController::new(PdPort::Left01);
+    let pd_23 = PdController::new(PdPort::Right23);
+    println!("  Getting PD01 info");
+    pd_01.get_silicon_id()?;
+    pd_01.get_device_info()?;
+    println!("  Getting PD23 info");
+    pd_23.get_silicon_id()?;
+    pd_23.get_device_info()?;
 
     Some(())
 }
