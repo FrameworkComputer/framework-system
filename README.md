@@ -13,16 +13,17 @@ Features:
   - [ ] Tested on FreeBSD
   - [x] Tested on Windows
   - [x] Tested on UEFI Shell (`framework_uefi`)
-  - [ ] Show system information
-    - [x] ESRT table (UEFI and Linux only)
+  - [x] Show system information
+    - [x] ESRT table (UEFI and Linux only) (`--esrt`)
     - [x] SMBIOS
-  - [ ] Get firmware version from binary file
+  - [x] Get firmware version from binary file
     - [x] EC (`--ec-bin`)
-    - [ ] CCG5 PD (11th Gen TigerLake)
+    - [x] CCG5 PD (11th Gen TigerLake) (`--pd-bin`)
     - [x] CCG6 PD (12th Gen AlderLake) (`--pd-bin`)
+    - [x] UEFI Capsule (`--capsule`)
   - [x] Parse metadata from capsule binary
     - [x] Extract bitmap image from winux capsule to file
-  - [ ] Get firmware version from system (`--versions`)
+  - [x] Get firmware version from system (`--versions`)
     - [x] BIOS
     - [x] EC
     - [x] PD
@@ -34,6 +35,9 @@ Features:
     - [ ] PD
   - [x] Get information about battery/AC (`--power`)
   - [x] Get information about USB-C PD ports (`--pdorts`)
+  - [x] Get information about CCGX PD Controllers (`--pd-info`)
+  - [x] Show status of intrusion switche (`--intrusion`)
+  - [x] Show status of privacy switches (`--privacy`)
 - [x] Implement communication with EC
   - [x] Port I/O communication on Linux
   - [x] Port I/O communication on UEFI
@@ -114,12 +118,14 @@ Options:
       --power              Show current power status (battery and AC)
       --pdports            Show information about USB-C PD prots
       --info               Show info from SMBIOS (Only on UEFI)
+      --pd-info            Show details about the PD controllers
       --privacy            Show privacy switch statuses (camera and microphone)
       --pd-bin <PD_BIN>    Parse versions from PD firmware binary file
       --ec-bin <EC_BIN>    Parse versions from EC firmware binary file
       --capsule <CAPSULE>  Parse UEFI Capsule information from binary file
       --dump <DUMP>        Dump extracted UX capsule bitmap image to a file
       --intrusion          Show status of intrusion switch
+      --driver <DRIVER>    Select which driver is used. By default portio is used [possible values: portio, cros-ec, windows]
   -t, --test               Run self-test to check if interaction with EC is possible
   -h, --help               Print help information
 ```
@@ -191,6 +197,13 @@ The project is hosted on GitHub and you can download pre-built binaries
 [there](https://github.com/DHowett/FrameworkWindowsUtils/releases).
 
 The driver is not signed by Microsoft, so you will have to enable testsigning.
+
+##### Running on ChromeOS
+
+The application can run on ChromeOS but most commands rely on custom host
+commands that we built into the EC firmware of non-Chromebook Framework laptops.
+In theory you could add those patches to the Chromebook platform, build your
+own EC firmware and flash it.
 
 ## Tests
 

@@ -1,9 +1,11 @@
+use crate::chromium_ec::EcResponseStatus;
 use core::convert::TryInto;
 use hwio::{Io, Pio};
 #[cfg(feature = "linux_pio")]
 use libc::ioperm;
 #[cfg(feature = "linux_pio")]
 use nix::unistd::Uid;
+use num::FromPrimitive;
 #[cfg(feature = "linux_pio")]
 use std::sync::{Arc, Mutex};
 
@@ -449,21 +451,28 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
     Pio::<u8>::new(EC_LPC_ADDR_HOST_CMD).write(EC_COMMAND_PROTOCOL_3);
     wait_for_ready();
     let res = Pio::<u8>::new(EC_LPC_ADDR_HOST_DATA).read();
-    //assert!(res == 0);
-    if res != 0 {
-        println!("Error ({:?})! Failed to set command version.", res);
-        match res {
-            // TODO: Use enum
-            1 => println!("Command is unsupported."),
-            3 => println!("Invalid parameter"),
-            _ => {}
+    // TODO: use Result and handle the cases in the calling function
+    match FromPrimitive::from_u8(res) {
+        Some(EcResponseStatus::Success) => {}
+        Some(EcResponseStatus::InvalidCommand) => {
+            println!("Unsupported Command");
+            return None;
         }
-        return None;
+        err => panic!(
+            "Error: {:?}, command: {}, cmd_ver: {}, data: {:?}",
+            err, command, command_version, data
+        ),
     }
 
     // Read response
     let resp_hdr_buffer = transfer_read(0, std::mem::size_of::<EcHostResponse>() as u16);
     let resp_header = unpack_response_header(&resp_hdr_buffer);
+    // TODO: I think we're already covered by checking res above
+    // But this seems also to be the EC reponse code, so make sure it's 0 (Success)
+    assert_eq!(
+        FromPrimitive::from_u16(resp_header.result),
+        Some(EcResponseStatus::Success)
+    );
 
     if resp_header.struct_version != EC_HOST_RESPONSE_VERSION {
         println!(

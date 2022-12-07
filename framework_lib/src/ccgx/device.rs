@@ -1,9 +1,9 @@
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
-use crate::ccgx::{AppVersion, BaseVersion};
+use crate::ccgx::{AppVersion, BaseVersion, ControllerVersion};
 use crate::chromium_ec::{CrosEc, CrosEcDriver};
-use crate::util;
+use crate::util::{self, Config, Platform};
 use std::mem::size_of;
 
 enum ControlRegisters {
@@ -31,10 +31,14 @@ impl PdPort {
 
     /// I2C port on the EC
     fn i2c_port(&self) -> u8 {
-        match self {
-            PdPort::Left01 => 6,
-            // TODO: On TGL EVT both are 6
-            PdPort::Right23 => 7,
+        let config = Config::get();
+        let platform = &(*config).as_ref().unwrap().platform;
+
+        match (platform, self) {
+            (Platform::IntelGen11, _) => 6,
+            (Platform::IntelGen12, PdPort::Left01) => 6,
+            (Platform::IntelGen12, PdPort::Right23) => 7,
+            (_, _) => panic!("Unsupported platform"),
         }
     }
 }
@@ -177,32 +181,36 @@ impl PdController {
         Some(i2c_response.data)
     }
 
-    pub fn get_silicon_id(&self) -> u16 {
-        let data = self.ccgx_read(ControlRegisters::SiliconId as u16, 2);
-        let data = data.unwrap();
-        assert_eq!(data.len(), 2);
-        ((data[1] as u16) << 8) + (data[0] as u16)
+    pub fn get_silicon_id(&self) -> Option<u16> {
+        let data = self.ccgx_read(ControlRegisters::SiliconId as u16, 2)?;
+        assert!(data.len() >= 2);
+        debug_assert_eq!(data.len(), 2);
+        Some(((data[1] as u16) << 8) + (data[0] as u16))
     }
 
     pub fn get_device_info(&self) -> Option<(FwMode, u16)> {
-        let data = self.ccgx_read(ControlRegisters::DeviceMode as u16, 1);
-        let data = data.unwrap()[0];
+        let data = self.ccgx_read(ControlRegisters::DeviceMode as u16, 1)?;
+        let byte = data[0];
 
         // Currently used firmware
-        let fw_mode = match data & 0x03 {
+        let fw_mode = match byte & 0b0000_0011 {
             0 => FwMode::BootLoader,
             1 => FwMode::BackupFw,
             2 => FwMode::MainFw,
             _ => return None,
         };
 
-        let flash_row_size = match data & 0x70 {
+        let flash_row_size = match (byte & 0b0011_0000) >> 4 {
             0 => 128, // 0x80
             1 => 256, // 0x100
             2 => panic!("Reserved"),
             3 => 64, // 0x40
-            _ => panic!("Invalid"),
+            x => panic!("Unexpected value: {}", x),
         };
+
+        // All our devices support HPI v2 and we expect to use that to interact with them
+        let hpi_v2 = (byte & (1 << 7)) > 0;
+        debug_assert!(hpi_v2);
 
         Some((fw_mode, flash_row_size))
     }
@@ -210,31 +218,46 @@ impl PdController {
     pub fn flash_pd(&self) {
         println!("Flashing port: {:?}", self.port);
 
+        // Seems TGL silicon ID is 0x2100 and ADL is 0x3000
         // TODO: Make sure silicon ID is the same in binary and device
 
         // TODO: Implement the rest
     }
 
+    pub fn get_fw_versions(&self) -> Option<ControllerVersion> {
+        let data = self.ccgx_read(ControlRegisters::Firmware1Version as u16, 8)?;
+        Some(ControllerVersion {
+            base: BaseVersion::from(&data[..4]),
+            app: AppVersion::from(&data[4..]),
+        })
+    }
+
     pub fn print_fw_info(&self) {
         let data = self.ccgx_read(ControlRegisters::BootLoaderVersion as u16, 8);
         let data = data.unwrap();
-        assert_eq!(data.len(), 8);
+        assert!(data.len() >= 8);
+        debug_assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::from(&data[4..]);
-        println!("Bootloader Version: {} {}", base_ver, app_ver);
+        println!(
+            "  Bootloader Version: Base: {},  App: {}",
+            base_ver, app_ver
+        );
 
         let data = self.ccgx_read(ControlRegisters::Firmware1Version as u16, 8);
         let data = data.unwrap();
-        assert_eq!(data.len(), 8);
+        assert!(data.len() >= 8);
+        debug_assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::from(&data[4..]);
-        println!("FW1 Version: {} {}", base_ver, app_ver);
+        println!("  FW1 Version: Base: {},  App: {}", base_ver, app_ver);
 
         let data = self.ccgx_read(ControlRegisters::Firmware2Version as u16, 8);
         let data = data.unwrap();
-        assert_eq!(data.len(), 8);
+        assert!(data.len() >= 8);
+        debug_assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::from(&data[4..]);
-        println!("FW2 Version: {} {}", base_ver, app_ver);
+        println!("  FW2 Version: Base: {},  App: {}", base_ver, app_ver);
     }
 }
