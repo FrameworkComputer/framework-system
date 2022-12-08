@@ -228,6 +228,13 @@ impl CrosEc {
             vtr_open_count: intrusion.vtr_open_count,
         })
     }
+
+    pub fn set_keyboard_backlight(&self, percent: u8) {
+        let params = EcParamsPwmSetKeyboardBacklight { percent };
+        let params: &[u8] = unsafe { util::any_as_u8_slice(&params) };
+        let _data = self.send_command(EC_CMD_PWM_SET_KEYBOARD_BACKLIGHT, 0, params);
+        //assert_eq!(_data, Some(vec![]))
+    }
 }
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
@@ -344,4 +351,13 @@ pub struct IntrusionStatus {
     /// We can tell because opening the chassis, even when off, leaves a sticky bit that the EC can read when it powers back on.
     /// That means we only know if it was opened at least once, while off, not how many times.
     pub vtr_open_count: u8,
+}
+
+/* Set keyboard backlight */
+/* OBSOLETE - Use EC_CMD_PWM_SET_DUTY */
+const EC_CMD_PWM_SET_KEYBOARD_BACKLIGHT: u16 = 0x0023;
+
+#[repr(C, packed)]
+struct EcParamsPwmSetKeyboardBacklight {
+    percent: u8,
 }

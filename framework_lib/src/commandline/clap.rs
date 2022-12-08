@@ -58,6 +58,10 @@ struct ClapCli {
     #[arg(long)]
     intrusion: bool,
 
+    /// Set keyboard backlight percentage
+    #[arg(long)]
+    kblight: Option<u8>,
+
     /// Select which driver is used. By default portio is used
     #[clap(value_enum)]
     #[arg(long)]
@@ -89,6 +93,7 @@ pub fn parse(args: &[String]) -> Cli {
             .map(|x| x.into_os_string().into_string().unwrap()),
         dump: args.dump.map(|x| x.into_os_string().into_string().unwrap()),
         intrusion: args.intrusion,
+        kblight: args.kblight,
         driver: args.driver,
         test: args.test,
         // TODO: Set help. Not very important because Clap handles this by itself

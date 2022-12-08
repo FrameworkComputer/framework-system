@@ -1,8 +1,7 @@
 use framework_lib::commandline;
 
-// Get commandline arguments
+/// Get commandline arguments
 fn get_args() -> Vec<String> {
-    // TODO: Port to UEFI
     std::env::args().collect()
 }
 
