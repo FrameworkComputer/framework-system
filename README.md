@@ -113,22 +113,22 @@ Swiss army knife for Framework laptops
 Usage: framework_tool [OPTIONS]
 
 Options:
-  -v, --versions           List current firmware versions version
-      --esrt               Display the UEFI ESRT table
-      --power              Show current power status (battery and AC)
-      --pdports            Show information about USB-C PD prots
-      --info               Show info from SMBIOS (Only on UEFI)
-      --pd-info            Show details about the PD controllers
-      --privacy            Show privacy switch statuses (camera and microphone)
-      --pd-bin <PD_BIN>    Parse versions from PD firmware binary file
-      --ec-bin <EC_BIN>    Parse versions from EC firmware binary file
-      --capsule <CAPSULE>  Parse UEFI Capsule information from binary file
-      --dump <DUMP>        Dump extracted UX capsule bitmap image to a file
-      --intrusion          Show status of intrusion switch
-      --kblight <KBLIGHT>  Set keyboard backlight percentage
-      --driver <DRIVER>    Select which driver is used. By default portio is used [possible values: portio, cros-ec, windows]
-  -t, --test               Run self-test to check if interaction with EC is possible
-  -h, --help               Print help information
+  -v, --versions             List current firmware versions version
+      --esrt                 Display the UEFI ESRT table
+      --power                Show current power status (battery and AC)
+      --pdports              Show information about USB-C PD prots
+      --info                 Show info from SMBIOS (Only on UEFI)
+      --pd-info              Show details about the PD controllers
+      --privacy              Show privacy switch statuses (camera and microphone)
+      --pd-bin <PD_BIN>      Parse versions from PD firmware binary file
+      --ec-bin <EC_BIN>      Parse versions from EC firmware binary file
+      --capsule <CAPSULE>    Parse UEFI Capsule information from binary file
+      --dump <DUMP>          Dump extracted UX capsule bitmap image to a file
+      --intrusion            Show status of intrusion switch
+      --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
+      --driver <DRIVER>      Select which driver is used. By default portio is used [possible values: portio, cros-ec, windows]
+  -t, --test                 Run self-test to check if interaction with EC is possible
+  -h, --help                 Print help information
 ```
 
 Many actions require root. First build with cargo and then run the binary with sudo:

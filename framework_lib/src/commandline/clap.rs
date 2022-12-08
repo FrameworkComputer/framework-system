@@ -58,9 +58,9 @@ struct ClapCli {
     #[arg(long)]
     intrusion: bool,
 
-    /// Set keyboard backlight percentage
+    /// Set keyboard backlight percentage or get, if no value provided
     #[arg(long)]
-    kblight: Option<u8>,
+    kblight: Option<Option<u8>>,
 
     /// Select which driver is used. By default portio is used
     #[clap(value_enum)]

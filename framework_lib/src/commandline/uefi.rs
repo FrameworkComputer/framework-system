@@ -94,12 +94,9 @@ pub fn parse(args: &[String]) -> Cli {
         } else if arg == "--kblight" {
             cli.kblight = if args.len() > i + 1 {
                 if let Ok(percent) = args[i + 1].parse::<u8>() {
-                    Some(percent)
+                    Some(Some(percent))
                 } else {
-                    println!(
-                        "Invalid parameter for --kblight. Must be percentage as number. E.g. 100"
-                    );
-                    None
+                    Some(None)
                 }
             } else {
                 None
