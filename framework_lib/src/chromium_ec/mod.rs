@@ -228,6 +228,28 @@ impl CrosEc {
             vtr_open_count: intrusion.vtr_open_count,
         })
     }
+
+    pub fn set_keyboard_backlight(&self, percent: u8) {
+        let params = EcParamsPwmSetKeyboardBacklight { percent };
+        let params: &[u8] = unsafe { util::any_as_u8_slice(&params) };
+        let _data = self.send_command(EC_CMD_PWM_SET_KEYBOARD_BACKLIGHT, 0, params);
+        //assert_eq!(_data, Some(vec![]))
+    }
+
+    pub fn get_keyboard_backlight(&self) -> Option<u8> {
+        let data = self.send_command(EC_CMD_PWM_GET_KEYBOARD_BACKLIGHT, 0, &[])?;
+        if data.len() != std::mem::size_of::<EcResponsePwmGetKeyboardBacklight>() {
+            return None;
+        }
+        let kblight: EcResponsePwmGetKeyboardBacklight =
+            unsafe { std::ptr::read(data.as_ptr() as *const _) };
+
+        debug_assert_eq!(kblight.enabled, 1);
+        if !kblight.enabled == 0 {
+            println!("Should always be enabled, even if OFF");
+        }
+        Some(kblight.percent)
+    }
 }
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
@@ -344,4 +366,21 @@ pub struct IntrusionStatus {
     /// We can tell because opening the chassis, even when off, leaves a sticky bit that the EC can read when it powers back on.
     /// That means we only know if it was opened at least once, while off, not how many times.
     pub vtr_open_count: u8,
+}
+
+/// Set keyboard backlight
+const EC_CMD_PWM_SET_KEYBOARD_BACKLIGHT: u16 = 0x0023;
+
+#[repr(C, packed)]
+struct EcParamsPwmSetKeyboardBacklight {
+    percent: u8,
+}
+
+/// Get keyboard backlight
+const EC_CMD_PWM_GET_KEYBOARD_BACKLIGHT: u16 = 0x0022;
+
+#[repr(C, packed)]
+struct EcResponsePwmGetKeyboardBacklight {
+    percent: u8,
+    enabled: u8,
 }

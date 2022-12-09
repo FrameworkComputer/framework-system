@@ -62,6 +62,7 @@ pub fn parse(args: &[String]) -> Cli {
         capsule: None,
         dump: None,
         intrusion: false,
+        kblight: None,
         // This is the only driver that works on UEFI
         driver: Some(CrosEcDriverType::Portio),
         test: false,
@@ -90,6 +91,16 @@ pub fn parse(args: &[String]) -> Cli {
             cli.info = true;
         } else if arg == "--intrusion" {
             cli.intrusion = true;
+        } else if arg == "--kblight" {
+            cli.kblight = if args.len() > i + 1 {
+                if let Ok(percent) = args[i + 1].parse::<u8>() {
+                    Some(Some(percent))
+                } else {
+                    Some(None)
+                }
+            } else {
+                None
+            }
         } else if arg == "-t" || arg == "--test" {
             cli.test = true;
         } else if arg == "-h" || arg == "--help" {

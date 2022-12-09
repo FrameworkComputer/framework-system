@@ -40,6 +40,7 @@ pub struct Cli {
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
     pub intrusion: bool,
+    pub kblight: Option<Option<u8>>,
     pub help: bool,
     // UEFI only
     pub allupdate: bool,
@@ -214,6 +215,16 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         } else {
             println!("  Unable to tell");
         }
+    } else if let Some(Some(kblight)) = args.kblight {
+        assert!(kblight <= 100);
+        ec.set_keyboard_backlight(kblight);
+    } else if let Some(None) = args.kblight {
+        print!("Keyboard backlight: ");
+        if let Some(percentage) = ec.get_keyboard_backlight() {
+            println!("{}%", percentage);
+        } else {
+            println!("Unable to tell");
+        }
     } else if args.test {
         println!("Self-Test");
         let result = selftest(&ec);
@@ -315,18 +326,20 @@ fn print_help(updater: bool) {
 Usage: framework_tool [OPTIONS]
 
 Options:
-  -v, --versions           List current firmware versions version
-      --esrt               Display the UEFI ESRT table
-      --power              Show current power status (battery and AC)
-      --pdports            Show information about USB-C PD prots
-      --info               Show info from SMBIOS (Only on UEFI)
-      --privacy            Show privacy switch statuses (camera and microphone)
-      --pd-info            TODO
-      --pd-bin <PD_BIN>    Parse versions from PD firmware binary file
-      --ec-bin <EC_BIN>    Parse versions from EC firmware binary file
-      --capsule <CAPSULE>  Parse UEFI Capsule information from binary file
-  -t, --test               Run self-test to check if interaction with EC is possible
-  -h, --help               Print help information
+  -v, --versions             List current firmware versions version
+      --esrt                 Display the UEFI ESRT table
+      --power                Show current power status (battery and AC)
+      --pdports              Show information about USB-C PD prots
+      --info                 Show info from SMBIOS (Only on UEFI)
+      --pd-info              Show details about the PD controllers
+      --privacy              Show privacy switch statuses (camera and microphone)
+      --pd-bin <PD_BIN>      Parse versions from PD firmware binary file
+      --ec-bin <EC_BIN>      Parse versions from EC firmware binary file
+      --capsule <CAPSULE>    Parse UEFI Capsule information from binary file
+      --intrusion            Show status of intrusion switch
+      --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
+  -t, --test                 Run self-test to check if interaction with EC is possible
+  -h, --help                 Print help information
     "#
     );
     if updater {
