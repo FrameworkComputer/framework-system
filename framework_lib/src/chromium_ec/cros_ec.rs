@@ -2,7 +2,7 @@ use nix::ioctl_readwrite;
 use num_traits::FromPrimitive;
 use std::os::unix::io::AsRawFd;
 
-use crate::chromium_ec::{EcResponseStatus, EC_CMD_READ_MEMMAP, EC_MEMMAP_SIZE};
+use crate::chromium_ec::{EcError, EcResponseStatus, EC_CMD_READ_MEMMAP, EC_MEMMAP_SIZE};
 use crate::util;
 
 // TODO: There's no actual limit. I hope this is enough.
@@ -89,7 +89,7 @@ struct EcParamsReadMemMap {
     size: u8,
 }
 
-pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
+pub fn read_memory(offset: u16, length: u16) -> Result<Vec<u8>, EcError> {
     if READ_DIRECTLY {
         read_mem_directly(offset, length)
     } else {
@@ -99,7 +99,7 @@ pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
 }
 
 // TODO: Doesn't seem to work
-fn read_mem_via_cmd(offset: u16, length: u16) -> Option<Vec<u8>> {
+fn read_mem_via_cmd(offset: u16, length: u16) -> Result<Vec<u8>, EcError> {
     println!(
         "Trying to read via cmd. Offset: {}, length: {}",
         offset, length
@@ -114,7 +114,7 @@ fn read_mem_via_cmd(offset: u16, length: u16) -> Option<Vec<u8>> {
     send_command(EC_CMD_READ_MEMMAP, 0, data)
 }
 
-fn read_mem_directly(offset: u16, length: u16) -> Option<Vec<u8>> {
+fn read_mem_directly(offset: u16, length: u16) -> Result<Vec<u8>, EcError> {
     init();
 
     let mut data = CrosEcReadMem {
@@ -126,11 +126,11 @@ fn read_mem_directly(offset: u16, length: u16) -> Option<Vec<u8>> {
         // TODO: Check result
         let _result = cros_ec_mem(get_fildes(), &mut data).unwrap();
     }
-    Some(data.out_buffer[0..length as usize].to_vec())
+    Ok(data.out_buffer[0..length as usize].to_vec())
 }
 
 // TODO: Clean this up
-pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Vec<u8>> {
+pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Result<Vec<u8>, EcError> {
     init();
 
     let size = std::cmp::min(IN_SIZE, data.len());
@@ -155,16 +155,9 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
         let result = cros_ec_cmd(get_fildes(), cmd_ptr);
         let status: Option<EcResponseStatus> = FromPrimitive::from_u32(cmd.result);
         match &status {
-            None => {
-                println!("Invalid response code from EC command: {}", cmd.result);
-            }
-            Some(EcResponseStatus::Success) => {} // All good
-            Some(status) => {
-                // Not good
-                // TODO: Some errors we can handle and retry, like Busy, Timeout, InProgress, ...
-                println!("EC command failed with status: {:?}", status);
-                return None;
-            }
+            None => return Err(EcError::UnknownResponseCode(cmd.result)),
+            Some(EcResponseStatus::Success) => {}
+            Some(status) => return Err(EcError::Response(*status)),
         }
 
         match result {
@@ -172,12 +165,12 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
                 let result_size = result as usize; // How many bytes were returned
                 let result_data = &cmd.data[0..result_size];
 
-                Some(result_data.to_vec())
+                Ok(result_data.to_vec())
             }
-            Err(err) => {
-                println!("ioctl to send command to EC failed with {:?}", err);
-                None
-            }
+            Err(err) => Err(EcError::DeviceError(format!(
+                "ioctl to send command to EC failed with {:?}",
+                err
+            ))),
         }
     }
 }

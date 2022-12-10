@@ -1,4 +1,4 @@
-use crate::chromium_ec::EcResponseStatus;
+use crate::chromium_ec::{EcError, EcResponseStatus};
 use core::convert::TryInto;
 use hwio::{Io, Pio};
 #[cfg(feature = "linux_pio")]
@@ -417,10 +417,9 @@ fn unpack_response_header(bytes: &[u8]) -> EcHostResponse {
     response
 }
 
-pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Vec<u8>> {
+pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Result<Vec<u8>, EcError> {
     if !init() {
-        // Failed to initialize
-        return None;
+        return Err(EcError::DeviceError("Failed to initialize".to_string()));
     }
     let request = EcHostRequest {
         struct_version: EC_HOST_REQUEST_VERSION,
@@ -451,17 +450,10 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
     Pio::<u8>::new(EC_LPC_ADDR_HOST_CMD).write(EC_COMMAND_PROTOCOL_3);
     wait_for_ready();
     let res = Pio::<u8>::new(EC_LPC_ADDR_HOST_DATA).read();
-    // TODO: use Result and handle the cases in the calling function
     match FromPrimitive::from_u8(res) {
+        None => return Err(EcError::UnknownResponseCode(res as u32)),
         Some(EcResponseStatus::Success) => {}
-        Some(EcResponseStatus::InvalidCommand) => {
-            println!("Unsupported Command");
-            return None;
-        }
-        err => panic!(
-            "Error: {:?}, command: {}, cmd_ver: {}, data: {:?}",
-            err, command, command_version, data
-        ),
+        Some(status) => return Err(EcError::Response(status)),
     }
 
     // Read response
@@ -475,24 +467,22 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
     );
 
     if resp_header.struct_version != EC_HOST_RESPONSE_VERSION {
-        println!(
+        return Err(EcError::DeviceError(format!(
             "Struct version invalid. Should be {:#X}, is {:#X}",
             EC_HOST_RESPONSE_VERSION, resp_header.struct_version
-        );
-        return None;
+        )));
     }
     if resp_header.reserved != 0 {
-        println!("Reserved invalid. Should be 0, is {:#X}", {
-            resp_header.reserved
-        });
-        return None;
+        return Err(EcError::DeviceError(format!(
+            "Reserved invalid. Should be 0, is {:#X}",
+            { resp_header.reserved }
+        )));
     };
     if util::is_debug() {
         println!("Data Len is: {:?}", { resp_header.data_len });
     }
     if resp_header.data_len > EC_LPC_HOST_PACKET_SIZE {
-        println!("Packet size too big");
-        return None;
+        return Err(EcError::DeviceError("Packet size too big".to_string()));
     }
     let resp_buffer = if resp_header.data_len > 0 {
         transfer_read(8, resp_header.data_len)
@@ -503,14 +493,13 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Option<Ve
 
     // TODO: Check checksum
 
-    Some(resp_buffer)
+    Ok(resp_buffer)
 }
 
-pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
+pub fn read_memory(offset: u16, length: u16) -> Result<Vec<u8>, EcError> {
     if !init() {
-        // Failed to initialize
-        return None;
+        return Err(EcError::DeviceError("Failed to initialize".to_string()));
     }
 
-    Some(transfer_read(0x100 + offset, length))
+    Ok(transfer_read(0x100 + offset, length))
 }

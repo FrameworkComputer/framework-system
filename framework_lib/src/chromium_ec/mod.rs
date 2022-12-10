@@ -35,8 +35,16 @@ const EC_CMD_READ_MEMMAP: u16 = 0x0007;
 
 const EC_MEMMAP_ID: u16 = 0x20; /* 0x20 == 'E', 0x21 == 'C' */
 
+#[derive(Debug, PartialEq)]
+pub enum EcError {
+    Response(EcResponseStatus),
+    UnknownResponseCode(u32),
+    // Failed to comcmunicate with the EC
+    DeviceError(String),
+}
+
 /// Response codes returned by commands
-#[derive(Debug, PartialEq, FromPrimitive)]
+#[derive(Debug, PartialEq, FromPrimitive, Clone, Copy)]
 pub enum EcResponseStatus {
     Success = 0,
     InvalidCommand = 1,
@@ -273,15 +281,14 @@ impl CrosEcDriver for CrosEc {
             return None;
         }
 
-        // TODO: Choose implementation based on support and/or configuration
-        match self.driver {
+        print_err(match self.driver {
             CrosEcDriverType::Portio => portio::read_memory(offset, length),
             #[cfg(feature = "win_driver")]
             CrosEcDriverType::Windows => windows::read_memory(offset, length),
             #[cfg(feature = "cros_ec_driver")]
             CrosEcDriverType::CrosEc => cros_ec::read_memory(offset, length),
-            _ => None,
-        }
+            _ => Err(EcError::DeviceError("No EC driver available".to_string())),
+        })
     }
 
     fn send_command(&self, command: u16, command_version: u8, data: &[u8]) -> Option<Vec<u8>> {
@@ -298,13 +305,32 @@ impl CrosEcDriver for CrosEc {
             return None;
         }
 
-        match self.driver {
+        print_err(match self.driver {
             CrosEcDriverType::Portio => portio::send_command(command, command_version, data),
             #[cfg(feature = "win_driver")]
             CrosEcDriverType::Windows => windows::send_command(command, command_version, data),
             #[cfg(feature = "cros_ec_driver")]
             CrosEcDriverType::CrosEc => cros_ec::send_command(command, command_version, data),
-            _ => None,
+            _ => Err(EcError::DeviceError("No EC driver available".to_string())),
+        })
+    }
+}
+
+fn print_err(something: Result<Vec<u8>, EcError>) -> Option<Vec<u8>> {
+    match something {
+        Ok(v) => Some(v),
+        // TODO: Some errors we can handle and retry, like Busy, Timeout, InProgress, ...
+        Err(EcError::Response(status)) => {
+            println!("Error code returned by EC: {:?}", status);
+            None
+        }
+        Err(EcError::UnknownResponseCode(code)) => {
+            println!("Invalid response code from EC command: {}", code);
+            None
+        }
+        Err(EcError::DeviceError(str)) => {
+            println!("Failed to communicate with EC. Reason: {}", str);
+            None
         }
     }
 }
