@@ -2,7 +2,8 @@
 use core::prelude::rust_2021::derive;
 
 use crate::ccgx::{AppVersion, BaseVersion, ControllerVersion};
-use crate::chromium_ec::{CrosEc, CrosEcDriver};
+use crate::chromium_ec::command::EcCommands;
+use crate::chromium_ec::{CrosEc, CrosEcDriver, EcError, EcResult};
 use crate::util::{self, Config, Platform};
 use std::mem::size_of;
 
@@ -50,8 +51,6 @@ pub struct PdController {
 fn passthrough_offset(dev_index: u16) -> u16 {
     dev_index * 0x4000
 }
-
-const EC_CMD_I2C_PASSTHROUGH: u16 = 0x9e;
 
 #[repr(C, packed)]
 struct EcParamsI2cPassthruMsg {
@@ -114,12 +113,12 @@ impl PdController {
     }
     /// Wrapped with support for dev id
     /// TODO: Should move into chromium_ec module
-    fn send_ec_command(&self, code: u16, dev_index: u16, data: &[u8]) -> Option<Vec<u8>> {
+    fn send_ec_command(&self, code: u16, dev_index: u16, data: &[u8]) -> EcResult<Vec<u8>> {
         let command_id = code + passthrough_offset(dev_index);
         CrosEc::new().send_command(command_id, 0, data)
     }
 
-    fn i2c_read(&self, addr: u16, len: u16) -> Option<EcI2cPassthruResponse> {
+    fn i2c_read(&self, addr: u16, len: u16) -> EcResult<EcI2cPassthruResponse> {
         if util::is_debug() {
             println!("i2c_read(addr: {}, len: {})", addr, len);
         }
@@ -152,43 +151,42 @@ impl PdController {
         buffer[params_len..params_len + msgs_len].copy_from_slice(msgs_buffer);
         buffer[params_len + msgs_len..].copy_from_slice(&addr_bytes);
 
-        let data = self.send_ec_command(EC_CMD_I2C_PASSTHROUGH, 0, &buffer);
-        let data = if let Some(data) = data {
-            data
-        } else {
-            println!("Failed to send I2C read command");
-            return None;
+        let data = self.send_ec_command(EcCommands::I2cPassthrough as u16, 0, &buffer);
+        let data = match data {
+            Ok(data) => data,
+            Err(err) => return Err(err),
         };
         let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
         let res_data = &data[size_of::<_EcI2cPassthruResponse>()..];
         debug_assert_eq!(res.messages as usize, messages.len());
-        Some(EcI2cPassthruResponse {
+        Ok(EcI2cPassthruResponse {
             i2c_status: res.i2c_status,
             data: res_data.to_vec(),
         })
     }
 
-    fn ccgx_read(&self, addr: u16, len: u16) -> Option<Vec<u8>> {
+    fn ccgx_read(&self, addr: u16, len: u16) -> EcResult<Vec<u8>> {
         // TODO: Read more than that chunk
         let chunk_len = 128; // Our chip supports this max transfer size
         assert!(len <= chunk_len);
         // TODO: It has an error code
         let i2c_response = self.i2c_read(addr, std::cmp::min(chunk_len, len))?;
         if !i2c_response.is_successful() {
-            println!("I2C read was not successful");
-            return None;
+            return Err(EcError::DeviceError(
+                "I2C read was not successful".to_string(),
+            ));
         }
-        Some(i2c_response.data)
+        Ok(i2c_response.data)
     }
 
-    pub fn get_silicon_id(&self) -> Option<u16> {
+    pub fn get_silicon_id(&self) -> EcResult<u16> {
         let data = self.ccgx_read(ControlRegisters::SiliconId as u16, 2)?;
         assert!(data.len() >= 2);
         debug_assert_eq!(data.len(), 2);
-        Some(((data[1] as u16) << 8) + (data[0] as u16))
+        Ok(((data[1] as u16) << 8) + (data[0] as u16))
     }
 
-    pub fn get_device_info(&self) -> Option<(FwMode, u16)> {
+    pub fn get_device_info(&self) -> EcResult<(FwMode, u16)> {
         let data = self.ccgx_read(ControlRegisters::DeviceMode as u16, 1)?;
         let byte = data[0];
 
@@ -197,7 +195,7 @@ impl PdController {
             0 => FwMode::BootLoader,
             1 => FwMode::BackupFw,
             2 => FwMode::MainFw,
-            _ => return None,
+            x => return Err(EcError::DeviceError(format!("FW Mode invalid: {}", x))),
         };
 
         let flash_row_size = match (byte & 0b0011_0000) >> 4 {
@@ -212,7 +210,7 @@ impl PdController {
         let hpi_v2 = (byte & (1 << 7)) > 0;
         debug_assert!(hpi_v2);
 
-        Some((fw_mode, flash_row_size))
+        Ok((fw_mode, flash_row_size))
     }
 
     pub fn flash_pd(&self) {
@@ -224,9 +222,9 @@ impl PdController {
         // TODO: Implement the rest
     }
 
-    pub fn get_fw_versions(&self) -> Option<ControllerVersion> {
+    pub fn get_fw_versions(&self) -> EcResult<ControllerVersion> {
         let data = self.ccgx_read(ControlRegisters::Firmware1Version as u16, 8)?;
-        Some(ControllerVersion {
+        Ok(ControllerVersion {
             base: BaseVersion::from(&data[..4]),
             app: AppVersion::from(&data[4..]),
         })

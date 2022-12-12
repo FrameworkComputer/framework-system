@@ -2,6 +2,8 @@
 use core::prelude::rust_2021::derive;
 use std::fmt;
 
+use crate::chromium_ec::EcResult;
+
 use self::device::{PdController, PdPort};
 
 pub mod binary;
@@ -90,8 +92,8 @@ pub struct PdVersions {
     pub controller23: ControllerVersion,
 }
 
-pub fn get_pd_controller_versions() -> Option<PdVersions> {
-    Some(PdVersions {
+pub fn get_pd_controller_versions() -> EcResult<PdVersions> {
+    Ok(PdVersions {
         controller01: PdController::new(PdPort::Left01).get_fw_versions()?,
         controller23: PdController::new(PdPort::Right23).get_fw_versions()?,
     })

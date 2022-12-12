@@ -13,7 +13,7 @@ use windows::{
 };
 
 use crate::chromium_ec::EC_MEMMAP_SIZE;
-use crate::chromium_ec::{EcError, EcResponseStatus};
+use crate::chromium_ec::{EcError, EcResponseStatus, EcResult};
 
 lazy_static! {
     static ref DEVICE: Arc<Mutex<Option<HANDLE>>> = Arc::new(Mutex::new(None));
@@ -42,7 +42,7 @@ fn init() {
     }
 }
 
-pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
+pub fn read_memory(offset: u16, length: u16) -> EcResult<Vec<u8>> {
     init();
     let mut rm = CrosEcReadMem {
         offset: offset as u32,
@@ -69,10 +69,10 @@ pub fn read_memory(offset: u16, length: u16) -> Option<Vec<u8>> {
         .unwrap();
     }
     let output = &rm.buffer[..(length as usize)];
-    Some(output.to_vec())
+    Ok(output.to_vec())
 }
 
-pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Result<Vec<u8>, EcError> {
+pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<Vec<u8>> {
     init();
 
     let mut cmd = CrosEcCommand {

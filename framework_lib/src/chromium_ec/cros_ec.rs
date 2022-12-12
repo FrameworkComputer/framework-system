@@ -2,7 +2,8 @@ use nix::ioctl_readwrite;
 use num_traits::FromPrimitive;
 use std::os::unix::io::AsRawFd;
 
-use crate::chromium_ec::{EcError, EcResponseStatus, EC_CMD_READ_MEMMAP, EC_MEMMAP_SIZE};
+use crate::chromium_ec::command::EcCommands;
+use crate::chromium_ec::{EcError, EcResponseStatus, EcResult, EC_MEMMAP_SIZE};
 use crate::util;
 
 // TODO: There's no actual limit. I hope this is enough.
@@ -89,7 +90,7 @@ struct EcParamsReadMemMap {
     size: u8,
 }
 
-pub fn read_memory(offset: u16, length: u16) -> Result<Vec<u8>, EcError> {
+pub fn read_memory(offset: u16, length: u16) -> EcResult<Vec<u8>> {
     if READ_DIRECTLY {
         read_mem_directly(offset, length)
     } else {
@@ -99,7 +100,7 @@ pub fn read_memory(offset: u16, length: u16) -> Result<Vec<u8>, EcError> {
 }
 
 // TODO: Doesn't seem to work
-fn read_mem_via_cmd(offset: u16, length: u16) -> Result<Vec<u8>, EcError> {
+fn read_mem_via_cmd(offset: u16, length: u16) -> EcResult<Vec<u8>> {
     println!(
         "Trying to read via cmd. Offset: {}, length: {}",
         offset, length
@@ -111,10 +112,10 @@ fn read_mem_via_cmd(offset: u16, length: u16) -> Result<Vec<u8>, EcError> {
         size: length as u8,
     };
     let data: &[u8] = unsafe { util::any_as_u8_slice(&cmd) };
-    send_command(EC_CMD_READ_MEMMAP, 0, data)
+    send_command(EcCommands::ReadMemMap as u16, 0, data)
 }
 
-fn read_mem_directly(offset: u16, length: u16) -> Result<Vec<u8>, EcError> {
+fn read_mem_directly(offset: u16, length: u16) -> EcResult<Vec<u8>> {
     init();
 
     let mut data = CrosEcReadMem {
@@ -130,7 +131,7 @@ fn read_mem_directly(offset: u16, length: u16) -> Result<Vec<u8>, EcError> {
 }
 
 // TODO: Clean this up
-pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Result<Vec<u8>, EcError> {
+pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<Vec<u8>> {
     init();
 
     let size = std::cmp::min(IN_SIZE, data.len());

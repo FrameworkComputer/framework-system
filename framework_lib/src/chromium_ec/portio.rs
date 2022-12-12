@@ -1,4 +1,4 @@
-use crate::chromium_ec::{EcError, EcResponseStatus};
+use crate::chromium_ec::{EcError, EcResponseStatus, EcResult};
 use core::convert::TryInto;
 use hwio::{Io, Pio};
 #[cfg(feature = "linux_pio")]
@@ -417,7 +417,7 @@ fn unpack_response_header(bytes: &[u8]) -> EcHostResponse {
     response
 }
 
-pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Result<Vec<u8>, EcError> {
+pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<Vec<u8>> {
     if !init() {
         return Err(EcError::DeviceError("Failed to initialize".to_string()));
     }
@@ -496,7 +496,7 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> Result<Ve
     Ok(resp_buffer)
 }
 
-pub fn read_memory(offset: u16, length: u16) -> Result<Vec<u8>, EcError> {
+pub fn read_memory(offset: u16, length: u16) -> EcResult<Vec<u8>> {
     if !init() {
         return Err(EcError::DeviceError("Failed to initialize".to_string()));
     }
