@@ -118,6 +118,8 @@ pub fn read_ec_version(data: &[u8]) -> Option<ImageVersionData> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    use std::path::PathBuf;
 
     // TODO: Perhaps put the binary hex data here and test it all
     #[test]
@@ -141,6 +143,29 @@ mod tests {
                 minor: 0,
                 patch: 1,
                 commit: "7a61a89".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn can_parse_binary() {
+        let mut ec_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        ec_bin_path.push("test_bins/adl-ec-0.0.1.bin");
+        let data = fs::read(ec_bin_path).unwrap();
+        let ver = read_ec_version(&data);
+        assert_eq!(
+            ver,
+            Some({
+                ImageVersionData {
+                    version: "hx30_v0.0.1-7a61a89".to_string(),
+                    platform: "hx30".to_string(),
+                    major: 0,
+                    minor: 0,
+                    patch: 1,
+                    commit: "7a61a89".to_string(),
+                    size: 2868,
+                    rollback_version: 0,
+                }
             })
         );
     }
