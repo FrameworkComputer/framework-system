@@ -7,7 +7,6 @@ jobs:
     name: Cross-Build for FreeBSD
     runs-on: 'ubuntu-22.04'
     env:
-      # To allow fetching via ssh-agent on Windows, which allows fetching a private repo
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
     - uses: actions/checkout@v3
@@ -34,14 +33,8 @@ jobs:
 
   build:
     name: Build
-    runs-on: ${{ matrix.os }}
-    strategy:
-      # Test builds on Windows as well
-      # Lint and tests don't need to run on other OSes
-      matrix:
-        os: ['ubuntu-22.04', 'windows-2022']
+    runs-on: ubuntu-22.04
     env:
-      # To allow fetching via ssh-agent on Windows, which allows fetching a private repo
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
     - uses: actions/checkout@v3
@@ -55,58 +48,70 @@ jobs:
       run: rustup show
 
     - name: Build library (Linux)
-      if: matrix.os == 'ubuntu-22.04'
       run: cargo build -p framework_lib
 
     - name: Build Linux tool
-      if: matrix.os == 'ubuntu-22.04'
       run: cargo build -p framework_tool
 
+    - name: Check if Linux tool can start
+      run: cargo run -- --help
+
     - name: Upload Linux App
-      if: matrix.os == 'ubuntu-22.04'
       uses: actions/upload-artifact@v3
       with:
         name: framework_tool
         path: target/debug/framework_tool
 
-    - name: Build library (Windows)
-      if: matrix.os == 'windows-2022'
-      run: cargo build -p framework_lib --no-default-features --features "windows"
-
-    - name: Build Windows tool
-      if: matrix.os == 'windows-2022'
-      run: cargo build -p framework_tool --no-default-features --features "windows"
-
-    - name: Upload Windows App
-      if: matrix.os == 'windows-2022'
-      uses: actions/upload-artifact@v3
-      with:
-        name: framework_tool.exe
-        path: target/debug/framework_tool.exe
-
     - name: Build UEFI application (no ESP)
       run: make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
 
     - name: Upload UEFI App
-      if: matrix.os == 'ubuntu-22.04'
       uses: actions/upload-artifact@v3
       with:
         name: framework.efi
         path: framework_uefi/build/x86_64-unknown-uefi/boot.efi
 
     - name: Install mtools to build ESP (Linux)
-      if: matrix.os == 'ubuntu-22.04'
       run: sudo apt-get install -y mtools
 
     - name: Build ESP (Linux)
-      if: matrix.os == 'ubuntu-22.04'
       run: make -C framework_uefi
+
+  build-windows:
+    runs-on: windows-2022
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: |
+            ${{ secrets.PRIVKEY_SMBIOS_LIB }}
+
+    - name: Setup Rust toolchain
+      run: rustup show
+
+    - name: Build library (Windows)
+      run: cargo build -p framework_lib --no-default-features --features "windows"
+
+    - name: Build Windows tool
+      run: cargo build -p framework_tool --no-default-features --features "windows"
+
+    - name: Check if Windows tool can start
+      run: cargo run --no-default-features --features "windows" -- --help
+
+    - name: Upload Windows App
+      uses: actions/upload-artifact@v3
+      with:
+        name: framework_tool.exe
+        path: target/debug/framework_tool.exe
+
 
   test:
     name: Test Suite
     runs-on: ubuntu-latest
     env:
-      # To allow fetching via ssh-agent on Windows, which allows fetching a private repo
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
       - name: Checkout sources
@@ -127,7 +132,6 @@ jobs:
     name: Lints
     runs-on: ubuntu-22.04
     env:
-      # To allow fetching via ssh-agent on Windows, which allows fetching a private repo
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
     - uses: actions/checkout@v3
