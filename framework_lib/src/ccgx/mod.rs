@@ -9,7 +9,7 @@ use self::device::{PdController, PdPort};
 pub mod binary;
 pub mod device;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct BaseVersion {
     /// Major part of the version. X of X.Y.Z.BB
     pub major: u8,
@@ -39,14 +39,14 @@ impl From<&[u8]> for BaseVersion {
         }
     }
 }
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Application {
     Notebook,
     Monitor,
     Invalid,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct AppVersion {
     pub application: Application,
     /// Major part of the version. X of X.Y.Z

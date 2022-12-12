@@ -44,6 +44,7 @@ impl EfiCapsuleHeader {
     }
 }
 
+#[derive(PartialEq, Clone, Copy, Debug)]
 #[repr(C, packed)]
 pub struct DisplayPayload {
     version: u8,
@@ -56,6 +57,7 @@ pub struct DisplayPayload {
     //Image[u8, 0];
 }
 
+#[derive(PartialEq, Clone, Copy, Debug)]
 #[repr(C, packed)]
 pub struct DisplayCapsule {
     capsule_header: EfiCapsuleHeader,
@@ -165,5 +167,47 @@ pub fn dump_winux_image(data: &[u8], header: &DisplayCapsule, filename: &str) {
         if ret.0 != 0 {
             println!("Failed to dump winux image.");
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::esrt;
+    use std::fs;
+    use std::path::PathBuf;
+
+    #[test]
+    fn can_parse_winux_binary() {
+        let mut capsule_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        capsule_path.push("test_bins/winux.bin");
+
+        let data = fs::read(capsule_path).unwrap();
+        let cap = parse_capsule_header(&data).unwrap();
+        let expected_header = EfiCapsuleHeader {
+            capsule_guid: esrt::WINUX_GUID,
+            header_size: 28,
+            flags: 65536,
+            capsule_image_size: 676898,
+        };
+        assert_eq!(cap, expected_header);
+
+        assert_eq!(cap.capsule_guid, esrt::WINUX_GUID);
+        let ux_header = parse_ux_header(&data);
+        assert_eq!(
+            ux_header,
+            DisplayCapsule {
+                capsule_header: expected_header,
+                image_payload: DisplayPayload {
+                    version: 1,
+                    checksum: 61,
+                    image_type: 0,
+                    reserved: 0,
+                    mode: 0,
+                    offset_x: 0,
+                    offset_y: 1228,
+                }
+            }
+        );
     }
 }
