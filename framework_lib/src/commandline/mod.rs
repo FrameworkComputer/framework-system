@@ -11,6 +11,7 @@ use crate::ccgx;
 use crate::ccgx::binary::CcgX::*;
 use crate::ccgx::device::{PdController, PdPort};
 use crate::chromium_ec;
+use crate::chromium_ec::print_err;
 #[cfg(feature = "linux")]
 use crate::csme;
 use crate::ec_binary;
@@ -56,12 +57,12 @@ pub fn parse(args: &[String]) -> Cli {
 }
 
 fn print_single_pd_details(pd: &PdController) {
-    if let Some(si) = pd.get_silicon_id() {
+    if let Ok(si) = pd.get_silicon_id() {
         println!("  Silicon ID:     0x{:X}", si);
     } else {
         println!("  Failed to read Silicon ID");
     }
-    if let Some((mode, frs)) = pd.get_device_info() {
+    if let Ok((mode, frs)) = pd.get_device_info() {
         println!("  Mode:           {:?}", mode);
         println!("  Flash Row Size: {} B", frs);
     } else {
@@ -94,7 +95,7 @@ fn print_versions(ec: &CrosEc) {
     }
 
     println!("EC Firmware");
-    let ver = ec.version_info().unwrap_or_else(|| "UNKNOWN".to_string());
+    let ver = print_err(ec.version_info()).unwrap_or_else(|| "UNKNOWN".to_string());
     println!("  Build version:  {:?}", ver);
 
     if let Some((ro, rw, curr)) = ec.flash_version() {
@@ -116,10 +117,10 @@ fn print_versions(ec: &CrosEc) {
 
     println!("PD Controllers");
 
-    if let Some(pd_versions) = power::read_pd_version() {
+    if let Ok(pd_versions) = power::read_pd_version() {
         println!("  Left:           {}", pd_versions.controller01.app);
         println!("  Right:          {}", pd_versions.controller23.app);
-    } else if let Some(pd_versions) = ccgx::get_pd_controller_versions() {
+    } else if let Ok(pd_versions) = ccgx::get_pd_controller_versions() {
         // If EC doesn't have host command, get it directly from the PD controllers
         println!("  Left:           {}", pd_versions.controller01.app);
         println!("  Right:          {}", pd_versions.controller23.app);
@@ -200,7 +201,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_esrt();
     } else if args.intrusion {
         println!("Chassis status:");
-        if let Some(status) = ec.get_intrusion_status() {
+        if let Some(status) = print_err(ec.get_intrusion_status()) {
             println!(
                 "  Coin cell ever removed:   {}",
                 status.coin_cell_ever_removed
@@ -220,7 +221,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         ec.set_keyboard_backlight(kblight);
     } else if let Some(None) = args.kblight {
         print!("Keyboard backlight: ");
-        if let Some(percentage) = ec.get_keyboard_backlight() {
+        if let Some(percentage) = print_err(ec.get_keyboard_backlight()) {
             println!("{}%", percentage);
         } else {
             println!("Unable to tell");
@@ -240,7 +241,16 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.pd_info {
         print_pd_details();
     } else if args.privacy {
-        ec.privacy_info();
+        if let Some((mic, cam)) = print_err(ec.get_privacy_info()) {
+            println!(
+                "Microphone privacy switch: {}",
+                if mic { "Open" } else { "Closed" }
+            );
+            println!(
+                "Camera privacy switch:     {}",
+                if cam { "Open" } else { "Closed" }
+            );
+        };
     // TODO:
     //} else if arg == "-raw-command" {
     //    raw_command(&args[1..]);
@@ -363,7 +373,7 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     ec.check_mem_magic()?;
 
     println!("  Reading EC Build Version");
-    ec.version_info()?;
+    print_err(ec.version_info())?;
 
     println!("  Reading EC Flash");
     ec.flash_version()?;
@@ -372,18 +382,18 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     power::power_info()?;
 
     println!("  Getting AC info from EC");
-    if power::get_pd_info().iter().any(|x| x.is_none()) {
+    if power::get_pd_info().iter().any(|x| x.is_err()) {
         return None;
     }
 
     let pd_01 = PdController::new(PdPort::Left01);
     let pd_23 = PdController::new(PdPort::Right23);
     println!("  Getting PD01 info");
-    pd_01.get_silicon_id()?;
-    pd_01.get_device_info()?;
+    print_err(pd_01.get_silicon_id())?;
+    print_err(pd_01.get_device_info())?;
     println!("  Getting PD23 info");
-    pd_23.get_silicon_id()?;
-    pd_23.get_device_info()?;
+    print_err(pd_23.get_silicon_id())?;
+    print_err(pd_23.get_device_info())?;
 
     Some(())
 }

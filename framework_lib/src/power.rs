@@ -2,7 +2,9 @@ use core::convert::TryInto;
 use core::prelude::v1::derive;
 
 use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, PdVersions};
-use crate::chromium_ec::{CrosEc, CrosEcDriver};
+use crate::chromium_ec::command::EcRequest;
+use crate::chromium_ec::commands::{EcRequestReadPdVersion, EcRequestUsbPdPowerInfo};
+use crate::chromium_ec::{print_err_ref, CrosEc, CrosEcDriver, EcResult};
 use crate::util;
 
 // The offset address of each type of data in mapped memory.
@@ -228,8 +230,6 @@ pub fn check_update_ready(power_info: &PowerInfo) -> bool {
     }
 }
 
-const EC_CMD_USB_PD_POWER_INFO: u16 = 0x103; /* Get information about PD controller power */
-
 #[derive(Debug, PartialEq)]
 pub enum UsbChargingType {
     None = 0,
@@ -251,30 +251,11 @@ pub enum UsbPowerRoles {
     SinkNotCharging = 3,
 }
 
-#[repr(C, packed)]
-struct _UsbChargeMeasures {
-    voltage_max: u16,
-    voltage_now: u16,
-    current_max: u16,
-    current_lim: u16,
-}
-
 pub struct UsbChargeMeasures {
     pub voltage_max: u16,
     pub voltage_now: u16,
     pub current_max: u16,
     pub current_lim: u16,
-}
-
-// Private struct just for parsing binary
-#[repr(C, packed)]
-struct _EcResponseUsbPdPowerInfo {
-    role: u8,          // UsbPowerRoles
-    charging_type: u8, // UsbChargingType
-    dualrole: u8,      // I think this is a boolean?
-    reserved1: u8,
-    meas: _UsbChargeMeasures,
-    max_power: u32,
 }
 
 pub struct UsbPdPowerInfo {
@@ -285,21 +266,15 @@ pub struct UsbPdPowerInfo {
     pub max_power: u32,
 }
 
-fn check_ac(port: u8) -> Option<UsbPdPowerInfo> {
+fn check_ac(port: u8) -> EcResult<UsbPdPowerInfo> {
     let ec = CrosEc::new();
     // port=0 or port=1 to check right
     // port=2 or port=3 to check left
     // If dest returns 0x2 that means it's powered
 
-    let data = ec.send_command(EC_CMD_USB_PD_POWER_INFO, 0, &[port])?;
-    // TODO: Rust complains that when accessing this struct, we're reading
-    // from unaligned pointers. How can I fix this? Maybe create another struct to shadow it,
-    // which isn't packed. And copy the data to there.
-    let info: _EcResponseUsbPdPowerInfo = unsafe { std::ptr::read(data.as_ptr() as *const _) };
+    let info = EcRequestUsbPdPowerInfo { port }.send_command(&ec)?;
 
-    // TODO: Checksum
-
-    Some(UsbPdPowerInfo {
+    Ok(UsbPdPowerInfo {
         role: match info.role {
             0 => UsbPowerRoles::Disconnected,
             1 => UsbPowerRoles::Source,
@@ -337,7 +312,7 @@ fn check_ac(port: u8) -> Option<UsbPdPowerInfo> {
     })
 }
 
-pub fn get_pd_info() -> Vec<Option<UsbPdPowerInfo>> {
+pub fn get_pd_info() -> Vec<EcResult<UsbPdPowerInfo>> {
     // 4 ports on our current laptops
     let mut info = vec![];
     for port in 0..4 {
@@ -361,21 +336,14 @@ pub fn get_and_print_pd_info() {
                 _ => "??",
             }
         );
-
-        if let Some(info) = &info {
-            println!("  Role:          {:?}", info.role);
-        } else {
-            println!("  Role:          Unknown");
-        }
-
-        if let Some(info) = &info {
-            println!("  Charging Type: {:?}", info.charging_type);
-        } else {
-            println!("  Charging Type: Unknown");
-        }
+        print_err_ref(info);
 
         // TODO: I haven't checked the encoding/endianness of these numbers. They're likely incorrectly decoded
-        if let Some(info) = &info {
+        if let Ok(info) = info {
+            println!("  Role:          {:?}", info.role);
+
+            println!("  Charging Type: {:?}", info.charging_type);
+
             println!("  Voltage Max:   {}, Now: {}", { info.meas.voltage_max }, {
                 info.meas.voltage_now
             });
@@ -385,6 +353,9 @@ pub fn get_and_print_pd_info() {
             println!("  Dual Role:     {:?}", { info.dualrole });
             println!("  Max Power:     {:?}", { info.max_power });
         } else {
+            println!("  Role:          Unknown");
+            println!("  Charging Type: Unknown");
+
             println!("  Voltage Max:   Unknown, Now: Unknown");
             println!("  Current Max:   Unknown, Lim: Unknown");
             println!("  Dual Role:     Unknown");
@@ -394,19 +365,12 @@ pub fn get_and_print_pd_info() {
 }
 
 // TODO: Improve return type to be more obvious
-pub fn is_charging() -> Option<(bool, bool)> {
+pub fn is_charging() -> EcResult<(bool, bool)> {
     let port0 = check_ac(0)?.role == UsbPowerRoles::Sink;
     let port1 = check_ac(1)?.role == UsbPowerRoles::Sink;
     let port2 = check_ac(2)?.role == UsbPowerRoles::Sink;
     let port3 = check_ac(3)?.role == UsbPowerRoles::Sink;
-    Some((port0 || port1, port2 || port3))
-}
-
-const EC_CMD_READ_PD_VERSION: u16 = 0x3E11; /* Get information about PD controller power */
-#[repr(C, packed)]
-struct _EcResponseReadPdVersion {
-    controller01: [u8; 8],
-    controller23: [u8; 8],
+    Ok((port0 || port1, port2 || port3))
 }
 
 fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
@@ -426,21 +390,12 @@ fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
     }
 }
 
-// NOTE: Only works on ADL!
-// TODO: Handle cases when command doesn't exist.
-pub fn read_pd_version() -> Option<PdVersions> {
+// NOTE: Only works on ADL at the moment!
+pub fn read_pd_version() -> EcResult<PdVersions> {
     let ec = CrosEc::new();
-    // port=0 or port=1 to check right
-    // port=2 or port=3 to check left
-    // If dest returns 0x2 that means it's powered
+    let info = EcRequestReadPdVersion {}.send_command(&ec)?;
 
-    let data = ec.send_command(EC_CMD_READ_PD_VERSION, 0, &[])?;
-    // TODO: Rust complains that when accessing this struct, we're reading
-    // from unaligned pointers. How can I fix this? Maybe create another struct to shadow it,
-    // which isn't packed. And copy the data to there.
-    let info: _EcResponseReadPdVersion = unsafe { std::ptr::read(data.as_ptr() as *const _) };
-
-    Some(PdVersions {
+    Ok(PdVersions {
         controller01: parse_pd_ver(&info.controller01),
         controller23: parse_pd_ver(&info.controller23),
     })

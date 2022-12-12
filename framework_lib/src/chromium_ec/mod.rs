@@ -3,6 +3,8 @@ use crate::util;
 
 use num_derive::FromPrimitive;
 
+pub mod command;
+pub mod commands;
 #[cfg(feature = "cros_ec_driver")]
 mod cros_ec;
 mod portio;
@@ -12,31 +14,30 @@ mod windows;
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
+use command::EcRequest;
+use commands::*;
+
+use self::command::EcCommands;
+
 /// Total size of EC memory mapped region
 const EC_MEMMAP_SIZE: u16 = 255;
 
-const EC_CMD_GET_BUILD_INFO: u16 = 0x04;
-
 // Framework Specific commands
-
-/// Configure the behavior of the flash notify
-const EC_CMD_FLASH_NOTIFIED: u16 = 0x3E01;
-const EC_CMD_PRIVACY_SWITCHES_CHECK_MODE: u16 = 0x3E14; /* Get information about current state of privacy switches */
-
-#[repr(C, packed)]
-struct EcResponsePrivacySwitches {
-    microphone: u8,
-    camera: u8,
-}
-
-/// Command to read data from EC memory map
-#[cfg(feature = "cros_ec_driver")]
-const EC_CMD_READ_MEMMAP: u16 = 0x0007;
 
 const EC_MEMMAP_ID: u16 = 0x20; /* 0x20 == 'E', 0x21 == 'C' */
 
+pub type EcResult<T> = Result<T, EcError>;
+
+#[derive(Debug, PartialEq)]
+pub enum EcError {
+    Response(EcResponseStatus),
+    UnknownResponseCode(u32),
+    // Failed to communicate with the EC
+    DeviceError(String),
+}
+
 /// Response codes returned by commands
-#[derive(Debug, PartialEq, FromPrimitive)]
+#[derive(Debug, PartialEq, FromPrimitive, Clone, Copy)]
 pub enum EcResponseStatus {
     Success = 0,
     InvalidCommand = 1,
@@ -66,14 +67,9 @@ pub enum EcResponseStatus {
     Busy = 16,
 }
 
-#[repr(C, packed)]
-struct FlashNotifiedParams {
-    flags: u8,
-}
-
 pub trait CrosEcDriver {
     fn read_memory(&self, offset: u16, length: u16) -> Option<Vec<u8>>;
-    fn send_command(&self, command: u16, command_version: u8, data: &[u8]) -> Option<Vec<u8>>;
+    fn send_command(&self, command: u16, command_version: u8, data: &[u8]) -> EcResult<Vec<u8>>;
 }
 
 pub struct CrosEc {
@@ -134,34 +130,24 @@ impl CrosEc {
         }
     }
 
-    /*
-     * Get build information
-     *
-     * Response is null-terminated string.
-     */
-    pub fn version_info(&self) -> Option<String> {
-        let data = self.send_command(EC_CMD_GET_BUILD_INFO, 0, &[])?;
-        Some(
-            std::str::from_utf8(&data)
-                .ok()?
-                .trim_end_matches(char::from(0))
-                .to_string(),
-        )
+    /// Get EC firmware build information
+    pub fn version_info(&self) -> EcResult<String> {
+        // Response is null-terminated string.
+        let data = self.send_command(EcCommands::GetBuildInfo as u16, 0, &[])?;
+        Ok(std::str::from_utf8(&data)
+            .map_err(|utf8_err| {
+                EcError::DeviceError(format!("Failed to decode version: {:?}", utf8_err))
+            })?
+            .trim_end_matches(char::from(0))
+            .to_string())
     }
 
     pub fn flash_version(&self) -> Option<(String, String, EcCurrentImage)> {
         // Unlock SPI
         // TODO: Lock flash again again
-        let params = FlashNotifiedParams { flags: 0 };
-        let params: &[u8] = unsafe { util::any_as_u8_slice(&params) };
-        let _data = self.send_command(EC_CMD_FLASH_NOTIFIED, 0, params);
+        let _data = EcRequestFlashNotify { flags: 0 }.send_command(self).ok()?;
 
-        let data = self.send_command(EC_CMD_GET_VERSION, 0, &[])?;
-        let v: EcResponseGetVersion = unsafe {
-            // TODO: Why does transmute not work?
-            //std::mem::transmute(bytes.as_ptr())
-            std::ptr::read(data.as_ptr() as *const _)
-        };
+        let v = EcRequestGetVersion {}.send_command(self).ok()?;
 
         let curr = match v.current_image {
             1 => EcCurrentImage::RO,
@@ -182,45 +168,22 @@ impl CrosEc {
         ))
     }
 
-    pub fn privacy_info(&self) -> Option<(bool, bool)> {
-        let data = self.send_command(EC_CMD_PRIVACY_SWITCHES_CHECK_MODE, 0, &[])?;
-        // TODO: Rust complains that when accessing this struct, we're reading
-        // from unaligned pointers. How can I fix this? Maybe create another struct to shadow it,
-        // which isn't packed. And copy the data to there.
-        let status: EcResponsePrivacySwitches =
-            unsafe { std::ptr::read(data.as_ptr() as *const _) };
+    pub fn get_privacy_info(&self) -> EcResult<(bool, bool)> {
+        let status = EcRequestPrivacySwitches {}.send_command(self)?;
 
-        println!(
-            "Microphone privacy switch: {}",
-            if status.microphone == 1 {
-                "Open"
-            } else {
-                "Closed"
-            }
-        );
-        println!(
-            "Camera privacy switch:     {}",
-            if status.camera == 1 { "Open" } else { "Closed" }
-        );
-
-        Some((status.microphone == 1, status.camera == 1))
+        Ok((status.microphone == 1, status.camera == 1))
     }
 
-    pub fn get_intrusion_status(&self) -> Option<IntrusionStatus> {
-        let data = self.send_command(EC_CMD_CHASSIS_OPEN_CHECK, 0, &[])?;
-        let status: EcResponseChassisOpenCheck =
-            unsafe { std::ptr::read(data.as_ptr() as *const _) };
+    pub fn get_intrusion_status(&self) -> EcResult<IntrusionStatus> {
+        let status = EcRequestChassisOpenCheck {}.send_command(self)?;
 
-        let data = self.send_command(EC_CMD_CHASSIS_INTRUSION, 0, &[0x0, 0x0])?;
-        // TODO: Add this into send_command, so that if the size doesn't match the expected, we can return None
-        if data.len() != std::mem::size_of::<EcResponseChassisIntrusionControl>() {
-            // TODO: Figure out why this happens on TGL
-            return None;
+        let intrusion = EcRequestChassisIntrusionControl {
+            clear_magic: 0,
+            clear_chassis_status: 0,
         }
-        let intrusion: EcResponseChassisIntrusionControl =
-            unsafe { std::ptr::read(data.as_ptr() as *const _) };
+        .send_command(self)?;
 
-        Some(IntrusionStatus {
+        Ok(IntrusionStatus {
             currently_open: status.status == 1,
             coin_cell_ever_removed: intrusion.coin_batt_ever_remove == 1,
             ever_opened: intrusion.chassis_ever_opened == 1,
@@ -230,25 +193,20 @@ impl CrosEc {
     }
 
     pub fn set_keyboard_backlight(&self, percent: u8) {
-        let params = EcParamsPwmSetKeyboardBacklight { percent };
-        let params: &[u8] = unsafe { util::any_as_u8_slice(&params) };
-        let _data = self.send_command(EC_CMD_PWM_SET_KEYBOARD_BACKLIGHT, 0, params);
-        //assert_eq!(_data, Some(vec![]))
+        let res = EcRequestPwmSetKeyboardBacklight { percent }.send_command(self);
+        debug_assert!(res.is_ok());
     }
 
-    pub fn get_keyboard_backlight(&self) -> Option<u8> {
-        let data = self.send_command(EC_CMD_PWM_GET_KEYBOARD_BACKLIGHT, 0, &[])?;
-        if data.len() != std::mem::size_of::<EcResponsePwmGetKeyboardBacklight>() {
-            return None;
-        }
-        let kblight: EcResponsePwmGetKeyboardBacklight =
-            unsafe { std::ptr::read(data.as_ptr() as *const _) };
+    pub fn get_keyboard_backlight(&self) -> EcResult<u8> {
+        let kblight = EcRequestPwmGetKeyboardBacklight {}.send_command(self)?;
 
+        // The enabled field is deprecated and must always be 1
         debug_assert_eq!(kblight.enabled, 1);
         if !kblight.enabled == 0 {
             println!("Should always be enabled, even if OFF");
         }
-        Some(kblight.percent)
+
+        Ok(kblight.percent)
     }
 }
 
@@ -273,18 +231,17 @@ impl CrosEcDriver for CrosEc {
             return None;
         }
 
-        // TODO: Choose implementation based on support and/or configuration
-        match self.driver {
+        // TODO: Change this function to return EcResult instead and print the error only in UI code
+        print_err(match self.driver {
             CrosEcDriverType::Portio => portio::read_memory(offset, length),
             #[cfg(feature = "win_driver")]
             CrosEcDriverType::Windows => windows::read_memory(offset, length),
             #[cfg(feature = "cros_ec_driver")]
             CrosEcDriverType::CrosEc => cros_ec::read_memory(offset, length),
-            _ => None,
-        }
+            _ => Err(EcError::DeviceError("No EC driver available".to_string())),
+        })
     }
-
-    fn send_command(&self, command: u16, command_version: u8, data: &[u8]) -> Option<Vec<u8>> {
+    fn send_command(&self, command: u16, command_version: u8, data: &[u8]) -> EcResult<Vec<u8>> {
         if util::is_debug() {
             println!(
                 "send_command(command={:?}, ver={:?}, data_len={:?})",
@@ -295,7 +252,7 @@ impl CrosEcDriver for CrosEc {
         }
 
         if !smbios::is_framework() {
-            return None;
+            return Err(EcError::DeviceError("Not a Framework Laptop".to_string()));
         }
 
         match self.driver {
@@ -304,13 +261,34 @@ impl CrosEcDriver for CrosEc {
             CrosEcDriverType::Windows => windows::send_command(command, command_version, data),
             #[cfg(feature = "cros_ec_driver")]
             CrosEcDriverType::CrosEc => cros_ec::send_command(command, command_version, data),
-            _ => None,
+            _ => Err(EcError::DeviceError("No EC driver available".to_string())),
         }
     }
 }
 
-/// Command ID to get the EC FW version
-const EC_CMD_GET_VERSION: u16 = 0x02;
+/// Print the error
+pub fn print_err_ref<T>(something: &EcResult<T>) {
+    match something {
+        Ok(_) => {}
+        // TODO: Some errors we can handle and retry, like Busy, Timeout, InProgress, ...
+        Err(EcError::Response(status)) => {
+            println!("Error code returned by EC: {:?}", status);
+        }
+        Err(EcError::UnknownResponseCode(code)) => {
+            println!("Invalid response code from EC command: {}", code);
+        }
+        Err(EcError::DeviceError(str)) => {
+            println!("Failed to communicate with EC. Reason: {}", str);
+        }
+    }
+}
+
+/// Print the error and turn Result into Option
+/// TODO: This is here because of refactoring, might want to remove this function
+pub fn print_err<T>(something: EcResult<T>) -> Option<T> {
+    print_err_ref(&something);
+    something.ok()
+}
 
 /// Which of the two EC images is currently in-use
 #[derive(PartialEq)]
@@ -320,37 +298,7 @@ pub enum EcCurrentImage {
     RW = 2,
 }
 
-#[repr(C, packed)]
-struct EcResponseGetVersion {
-    /// Null-terminated version of the RO firmware
-    version_string_ro: [u8; 32],
-    /// Null-terminated version of the RW firmware
-    version_string_rw: [u8; 32],
-    /// Used to be the RW-B string
-    reserved: [u8; 32],
-    /// Which EC image is currently in-use. See enum EcCurrentImage
-    current_image: u32,
-}
-
 ///Framework Specific commands
-
-/// Command to get information about the current chassis open/close status
-const EC_CMD_CHASSIS_OPEN_CHECK: u16 = 0x3E0F;
-
-#[repr(C, packed)]
-struct EcResponseChassisOpenCheck {
-    status: u8,
-}
-
-const EC_CMD_CHASSIS_INTRUSION: u16 = 0x3E09;
-
-#[repr(C, packed)]
-struct EcResponseChassisIntrusionControl {
-    chassis_ever_opened: u8,
-    coin_batt_ever_remove: u8,
-    total_open_count: u8,
-    vtr_open_count: u8,
-}
 
 pub struct IntrusionStatus {
     /// Whether the chassis is currently open
@@ -366,21 +314,4 @@ pub struct IntrusionStatus {
     /// We can tell because opening the chassis, even when off, leaves a sticky bit that the EC can read when it powers back on.
     /// That means we only know if it was opened at least once, while off, not how many times.
     pub vtr_open_count: u8,
-}
-
-/// Set keyboard backlight
-const EC_CMD_PWM_SET_KEYBOARD_BACKLIGHT: u16 = 0x0023;
-
-#[repr(C, packed)]
-struct EcParamsPwmSetKeyboardBacklight {
-    percent: u8,
-}
-
-/// Get keyboard backlight
-const EC_CMD_PWM_GET_KEYBOARD_BACKLIGHT: u16 = 0x0022;
-
-#[repr(C, packed)]
-struct EcResponsePwmGetKeyboardBacklight {
-    percent: u8,
-    enabled: u8,
 }
