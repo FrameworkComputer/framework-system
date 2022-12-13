@@ -41,15 +41,8 @@ use core::prelude::rust_2021::derive;
 
 use crate::ccgx::{AppVersion, BaseVersion};
 
-const FW1_METADATA_ROW: u32 = 0x1FE;
-const FW2_METADATA_ROW_CCG5: u32 = 0x1FF;
-const FW2_METADATA_ROW_CCG6: u32 = 0x1FD;
-const LAST_BOOTLOADER_ROW: usize = 0x05;
-const FW_SIZE_OFFSET: usize = 0x09;
-const METADATA_OFFSET: usize = 0xC0;
-const METADATA_MAGIC_OFFSET: usize = 0x16;
-const METADATA_MAGIC_1: u8 = 0x59;
-const METADATA_MAGIC_2: u8 = 0x43;
+use super::*;
+
 const SILICON_ID_OFFSET: usize = 0xE8;
 const SILICON_FAMILY_BYTE: usize = 0x02;
 
@@ -64,14 +57,8 @@ const APP_VERSION_OFFSET: usize = 0xE4;
 /// TODO: Find out what the difference is, since they're different in size.
 #[derive(Debug, PartialEq)]
 pub struct PdFirmwareFile {
-    pub first: PdFirmware,
-    pub second: PdFirmware,
-}
-
-#[derive(Debug)]
-pub enum CcgX {
-    Ccg5,
-    Ccg6,
+    pub backup_fw: PdFirmware,
+    pub main_fw: PdFirmware,
 }
 
 /// Information about a single PD firmware
@@ -109,23 +96,7 @@ fn read_metadata(
     metadata_offset: u32,
 ) -> Option<(u32, u32)> {
     let buffer = read_256_bytes(file_buffer, metadata_offset, flash_row_size)?;
-    let metadata = &buffer[METADATA_OFFSET..];
-
-    if (metadata[METADATA_MAGIC_OFFSET] == METADATA_MAGIC_1)
-        && (metadata[METADATA_MAGIC_OFFSET + 1] == METADATA_MAGIC_2)
-    {
-        let fw_row_start = (metadata[LAST_BOOTLOADER_ROW] as u32)
-            + ((metadata[LAST_BOOTLOADER_ROW + 1] as u32) << 8)
-            + 1;
-        let fw_size = (metadata[FW_SIZE_OFFSET] as u32)
-            + ((metadata[FW_SIZE_OFFSET + 1] as u32) << 8)
-            + ((metadata[FW_SIZE_OFFSET + 2] as u32) << 16)
-            + ((metadata[FW_SIZE_OFFSET + 3] as u32) << 24);
-        Some((fw_row_start, fw_size))
-    } else {
-        // println!("Metadata is invalid");
-        None
-    }
+    parse_metadata(&buffer)
 }
 
 /// Read 256 bytes starting from a particular row
@@ -169,15 +140,15 @@ fn read_version(
 }
 
 /// Parse all PD information, given a binary file (buffer)
-pub fn read_versions(file_buffer: &[u8], ccgx: CcgX) -> Option<PdFirmwareFile> {
+pub fn read_versions(file_buffer: &[u8], ccgx: SiliconId) -> Option<PdFirmwareFile> {
     let (flash_row_size, fw2_metadata_row) = match ccgx {
-        CcgX::Ccg5 => (0x100, FW2_METADATA_ROW_CCG5),
-        CcgX::Ccg6 => (0x80, FW2_METADATA_ROW_CCG6),
+        SiliconId::Ccg5 => (0x100, FW2_METADATA_ROW_CCG5),
+        SiliconId::Ccg6 => (0x80, FW2_METADATA_ROW_CCG6),
     };
-    let first = read_version(file_buffer, flash_row_size, FW1_METADATA_ROW)?;
-    let second = read_version(file_buffer, flash_row_size, fw2_metadata_row)?;
+    let backup_fw = read_version(file_buffer, flash_row_size, FW1_METADATA_ROW)?;
+    let main_fw = read_version(file_buffer, flash_row_size, fw2_metadata_row)?;
 
-    Some(PdFirmwareFile { first, second })
+    Some(PdFirmwareFile { backup_fw, main_fw })
 }
 
 /// Pretty print information about PD firmware
@@ -207,8 +178,8 @@ mod tests {
         pd_bin_path.push("test_bins/tgl-pd-3.8.0.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg5_ver = read_versions(&data, CcgX::Ccg5);
-        let ccg6_ver = read_versions(&data, CcgX::Ccg6);
+        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
         assert!(ccg5_ver.is_some());
         assert!(ccg6_ver.is_none());
 
@@ -216,7 +187,7 @@ mod tests {
             ccg5_ver,
             Some({
                 PdFirmwareFile {
-                    first: PdFirmware {
+                    backup_fw: PdFirmware {
                         silicon_id: 0x2100,
                         base_version: BaseVersion {
                             major: 3,
@@ -234,7 +205,7 @@ mod tests {
                         size: 88832,
                         row_size: 256,
                     },
-                    second: PdFirmware {
+                    main_fw: PdFirmware {
                         silicon_id: 0x2100,
                         base_version: BaseVersion {
                             major: 3,
@@ -263,8 +234,8 @@ mod tests {
         pd_bin_path.push("test_bins/adl-pd-0.1.33.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg5_ver = read_versions(&data, CcgX::Ccg5);
-        let ccg6_ver = read_versions(&data, CcgX::Ccg6);
+        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_some());
 
@@ -272,7 +243,7 @@ mod tests {
             ccg6_ver,
             Some({
                 PdFirmwareFile {
-                    first: PdFirmware {
+                    backup_fw: PdFirmware {
                         silicon_id: 0x3000,
                         base_version: BaseVersion {
                             major: 3,
@@ -290,7 +261,7 @@ mod tests {
                         size: 12160,
                         row_size: 128,
                     },
-                    second: PdFirmware {
+                    main_fw: PdFirmware {
                         silicon_id: 0x3000,
                         base_version: BaseVersion {
                             major: 3,

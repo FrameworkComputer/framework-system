@@ -12,9 +12,8 @@ pub mod uefi;
 use std::fs;
 
 use crate::capsule;
-use crate::ccgx;
-use crate::ccgx::binary::CcgX::*;
 use crate::ccgx::device::{PdController, PdPort};
+use crate::ccgx::{self, SiliconId::*};
 use crate::chromium_ec;
 use crate::chromium_ec::print_err;
 #[cfg(feature = "linux")]
@@ -131,8 +130,9 @@ fn print_versions(ec: &CrosEc) {
         println!("  Right:          {}", pd_versions.controller23.app);
     } else if let Ok(pd_versions) = ccgx::get_pd_controller_versions() {
         // If EC doesn't have host command, get it directly from the PD controllers
-        println!("  Left:           {}", pd_versions.controller01.app);
-        println!("  Right:          {}", pd_versions.controller23.app);
+        // TODO: Maybe print all FW versions
+        println!("  Left:           {}", pd_versions.controller01.main_fw.app);
+        println!("  Right:          {}", pd_versions.controller23.main_fw.app);
     } else {
         println!("  Unknown")
     }
@@ -460,20 +460,20 @@ fn analyze_ccgx_pd_fw(data: &[u8]) {
         succeeded = true;
         println!("Detected CCG5 firmware");
         println!("FW 1");
-        ccgx::binary::print_fw(&versions.first);
+        ccgx::binary::print_fw(&versions.backup_fw);
 
         println!("FW 2");
-        ccgx::binary::print_fw(&versions.second);
+        ccgx::binary::print_fw(&versions.main_fw);
     }
 
     if let Some(versions) = ccgx::binary::read_versions(data, Ccg6) {
         succeeded = true;
         println!("Detected CCG6 firmware");
-        println!("FW 1");
-        ccgx::binary::print_fw(&versions.first);
+        println!("FW 1 (Backup)");
+        ccgx::binary::print_fw(&versions.backup_fw);
 
-        println!("FW 2");
-        ccgx::binary::print_fw(&versions.second);
+        println!("FW 2 (Main)");
+        ccgx::binary::print_fw(&versions.main_fw);
     }
 
     if !succeeded {

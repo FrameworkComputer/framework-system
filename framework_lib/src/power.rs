@@ -3,7 +3,7 @@
 use core::convert::TryInto;
 use core::prelude::v1::derive;
 
-use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, PdVersions};
+use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, MainPdVersions};
 use crate::chromium_ec::command::EcRequest;
 use crate::chromium_ec::commands::{EcRequestReadPdVersion, EcRequestUsbPdPowerInfo};
 use crate::chromium_ec::{print_err_ref, CrosEc, CrosEcDriver, EcResult};
@@ -393,11 +393,11 @@ fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
 }
 
 // NOTE: Only works on ADL at the moment!
-pub fn read_pd_version() -> EcResult<PdVersions> {
+pub fn read_pd_version() -> EcResult<MainPdVersions> {
     let ec = CrosEc::new();
     let info = EcRequestReadPdVersion {}.send_command(&ec)?;
 
-    Ok(PdVersions {
+    Ok(MainPdVersions {
         controller01: parse_pd_ver(&info.controller01),
         controller23: parse_pd_ver(&info.controller23),
     })
