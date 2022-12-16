@@ -29,6 +29,13 @@ use crate::chromium_ec::{CrosEc, CrosEcDriverType};
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Debug, PartialEq)]
+pub enum ConsoleArg {
+    Recent,
+    Follow,
+}
+
 /// Shadows `clap_std::ClapCli` with extras for UEFI
 ///
 /// The UEFI commandline currently doesn't use clap, so we need to shadow the struct.
@@ -49,6 +56,7 @@ pub struct Cli {
     pub test: bool,
     pub intrusion: bool,
     pub kblight: Option<Option<u8>>,
+    pub console: Option<ConsoleArg>,
     pub help: bool,
     pub info: bool,
     // UEFI only
@@ -234,6 +242,17 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("{}%", percentage);
         } else {
             println!("Unable to tell");
+        }
+    } else if let Some(console_arg) = &args.console {
+        match console_arg {
+            ConsoleArg::Follow => {
+                // Ignore result because we only finish when it crashes
+                let _res = ec.console_read();
+            }
+            ConsoleArg::Recent => match ec.console_read_one() {
+                Ok(output) => println!("{}", output),
+                Err(err) => println!("Failed to read console: {:?}", err),
+            },
         }
     } else if args.test {
         println!("Self-Test");

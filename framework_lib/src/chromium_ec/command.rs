@@ -16,6 +16,8 @@ pub enum EcCommands {
     PwmGetKeyboardBacklight = 0x0022,
     PwmSetKeyboardBacklight = 0x0023,
     I2cPassthrough = 0x9e,
+    ConsoleSnapshot = 0x97,
+    ConsoleRead = 0x98,
     /// Get information about PD controller power
     UsbPdPowerInfo = 0x103,
 

@@ -46,6 +46,31 @@ impl EcRequest<EcResponsePwmGetKeyboardBacklight> for EcRequestPwmGetKeyboardBac
     }
 }
 
+pub struct EcRequestConsoleSnapshot {}
+impl EcRequest<()> for EcRequestConsoleSnapshot {
+    fn command_id() -> EcCommands {
+        EcCommands::ConsoleSnapshot
+    }
+}
+
+pub enum ConsoleReadSubCommand {
+    ConsoleReadNext = 0,
+    ConsoleReadRecent = 1,
+}
+
+pub struct EcRequestConsoleRead {
+    pub subcmd: u8,
+}
+
+impl EcRequest<()> for EcRequestConsoleRead {
+    fn command_id() -> EcCommands {
+        EcCommands::ConsoleRead
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+
 #[repr(C, packed)]
 pub struct EcRequestUsbPdPowerInfo {
     pub port: u8,

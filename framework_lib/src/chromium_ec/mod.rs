@@ -253,6 +253,41 @@ impl CrosEc {
 
         Ok(kblight.percent)
     }
+
+    /// Requests recent console output from EC and constantly asks for more
+    /// Prints the output and returns it when an error is encountered
+    pub fn console_read(&self) -> EcResult<String> {
+        let mut console = String::new();
+        let mut cmd = EcRequestConsoleRead {
+            subcmd: ConsoleReadSubCommand::ConsoleReadRecent as u8,
+        };
+
+        EcRequestConsoleSnapshot {}.send_command(self)?;
+        loop {
+            match cmd.send_command_vec(self) {
+                Ok(data) => {
+                    let string = std::str::from_utf8(&data).unwrap();
+                    print!("{}", string);
+                    console.push_str(string);
+                }
+                Err(err) => {
+                    println!("Err: {:?}", err);
+                    return Ok(console);
+                    //return Err(err)
+                }
+            };
+            cmd.subcmd = ConsoleReadSubCommand::ConsoleReadNext as u8;
+        }
+    }
+
+    pub fn console_read_one(&self) -> EcResult<String> {
+        EcRequestConsoleSnapshot {}.send_command(self)?;
+        let data = EcRequestConsoleRead {
+            subcmd: ConsoleReadSubCommand::ConsoleReadRecent as u8,
+        }
+        .send_command_vec(self)?;
+        Ok(std::str::from_utf8(&data).unwrap().to_string())
+    }
 }
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
