@@ -4,7 +4,7 @@
 //! We have implemented both in the `framework_tool` and `framework_uefi` crates.
 
 #[cfg(not(feature = "uefi"))]
-pub mod clap;
+pub mod clap_std;
 #[cfg(feature = "uefi")]
 pub mod uefi;
 
@@ -61,7 +61,7 @@ pub fn parse(args: &[String]) -> Cli {
     #[cfg(feature = "uefi")]
     return uefi::parse(args);
     #[cfg(not(feature = "uefi"))]
-    return clap::parse(args);
+    return clap_std::parse(args);
 }
 
 fn print_single_pd_details(pd: &PdController) {
