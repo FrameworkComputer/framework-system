@@ -90,19 +90,19 @@ struct EcI2cPassthruResponse {
 }
 
 impl EcI2cPassthruResponse {
-    fn is_successful(&self) -> bool {
+    fn is_successful(&self) -> EcResult<()> {
         if self.i2c_status & 1 > 0 {
-            // Transfer not acknowledged
-            return false;
+            return Err(EcError::DeviceError(
+                "I2C Transfer not acknowledged".to_string(),
+            ));
         }
         if self.i2c_status & (1 << 1) > 0 {
-            // Transfer timeout
-            return false;
+            return Err(EcError::DeviceError("I2C Transfer timeout".to_string()));
         }
         // I'm not aware of any other errors, but there might be.
         // But I don't think multiple errors can be indicated at the same time
         assert_eq!(self.i2c_status, 0);
-        true
+        Ok(())
     }
 }
 
@@ -185,10 +185,11 @@ impl PdController {
             let chunk_len = std::cmp::min(MAX_I2C_CHUNK, remaining.into());
             let offset = addr + data.len() as u16;
             let i2c_response = self.i2c_read(offset, chunk_len as u16)?;
-            if !i2c_response.is_successful() {
-                return Err(EcError::DeviceError(
-                    "I2C read was not successful".to_string(),
-                ));
+            if let Err(EcError::DeviceError(err)) = i2c_response.is_successful() {
+                return Err(EcError::DeviceError(format!(
+                    "I2C read was not successful: {:?}",
+                    err
+                )));
             }
             data.extend(i2c_response.data);
         }
