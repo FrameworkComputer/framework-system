@@ -158,7 +158,8 @@ impl PdController {
         };
         let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
         let res_data = &data[size_of::<_EcI2cPassthruResponse>()..];
-        debug_assert_eq!(res.messages as usize, messages.len());
+        // TODO: Seems to be either one, non-deterministically
+        debug_assert!(res.messages as usize == messages.len() || res.messages == 0);
         Ok(EcI2cPassthruResponse {
             i2c_status: res.i2c_status,
             data: res_data.to_vec(),
