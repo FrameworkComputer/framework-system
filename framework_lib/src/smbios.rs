@@ -71,12 +71,14 @@ pub fn get_platform() -> Option<Platform> {
     }
     for undefined_struct in smbios.unwrap().iter() {
         if let DefinedStruct::SystemInformation(data) = undefined_struct.defined_struct() {
+            if let Some(product_name) = dmidecode_string_val(&data.product_name()) {
+                if product_name == "Laptop (12th Gen Intel Core)" {
+                    return Some(Platform::IntelGen12);
+                }
+            }
             if let Some(family) = dmidecode_string_val(&data.family()) {
-                match family.as_ref() {
-                    // Our serial number of the mainboard
-                    "FRANBMCP" => return Some(Platform::IntelGen11),
-                    "FRANMACP" => return Some(Platform::IntelGen12),
-                    _ => {}
+                if family == "FRANBMCP" {
+                    return Some(Platform::IntelGen11);
                 }
             }
         }
