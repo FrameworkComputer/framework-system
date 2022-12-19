@@ -26,6 +26,15 @@ struct _ImageVersionData {
 pub struct ImageVersionData {
     /// Full version string, example: hx30_v0.0.1-7a61a89
     pub version: String,
+    pub details: ImageVersionDetails,
+    /// TODO: Find out exactly what this is
+    pub size: u32,
+    /// TODO: Find out exactly what this is
+    pub rollback_version: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ImageVersionDetails {
     /// Just the platform/board name, example: hx30
     pub platform: String,
     /// Major part of the version. X of X.Y.Z
@@ -36,10 +45,6 @@ pub struct ImageVersionData {
     pub patch: u32,
     /// Commit hash the firmware was built from
     pub commit: String,
-    /// TODO: Find out exactly what this is
-    pub size: u32,
-    /// TODO: Find out exactly what this is
-    pub rollback_version: u32,
 }
 
 /// Print pretty information about the EC version
@@ -47,10 +52,13 @@ pub fn print_ec_version(ver: &ImageVersionData) {
     println!("EC");
     println!("  Version:    {:>20}", ver.version);
     println!("  RollbackVer:{:>20}", ver.rollback_version);
-    println!("  Platform:   {:>20}", ver.platform);
-    let version = format!("{}.{}.{}", ver.major, ver.minor, ver.patch);
+    println!("  Platform:   {:>20}", ver.details.platform);
+    let version = format!(
+        "{}.{}.{}",
+        ver.details.major, ver.details.minor, ver.details.patch
+    );
     println!("  Version:    {:>20}", version);
-    println!("  Commit:     {:>20}", ver.commit);
+    println!("  Commit:     {:>20}", ver.details.commit);
     println!("  Size:       {:>20} B", ver.size);
     println!("  Size:       {:>20} KB", ver.size / 1024);
 }
@@ -67,11 +75,13 @@ fn parse_ec_version(data: &_ImageVersionData) -> Option<ImageVersionData> {
         version: version.to_string(),
         size: data.size,
         rollback_version: data.rollback_version,
-        platform: "".to_string(),
-        major: 0,
-        minor: 0,
-        patch: 0,
-        commit: "".to_string(),
+        details: ImageVersionDetails {
+            platform: "".to_string(),
+            major: 0,
+            minor: 0,
+            patch: 0,
+            commit: "".to_string(),
+        },
     })
 }
 
@@ -80,7 +90,32 @@ fn parse_ec_version(data: &_ImageVersionData) -> Option<ImageVersionData> {
     let version = std::str::from_utf8(&data.version)
         .ok()?
         .trim_end_matches(char::from(0));
-    // Example: hx30_v0.0.1-7a61a89
+    Some(ImageVersionData {
+        version: version.to_string(),
+        size: data.size,
+        rollback_version: data.rollback_version,
+        details: parse_ec_version_str(version)?,
+    })
+}
+
+//#[cfg(not(feature = "uefi"))]
+/// Parse the EC version string into its components
+///
+/// # Examples
+///
+/// ```
+/// use framework_lib::ec_binary::*;
+/// let ver = parse_ec_version_str("hx30_v0.0.1-7a61a89");
+/// assert_eq!(ver, Some(ImageVersionDetails {
+///     platform: "hx30".to_string(),
+///     major: 0,
+///     minor: 0,
+///     patch: 1,
+///     commit: "7a61a89".to_string(),
+/// }));
+/// ```
+#[cfg(not(feature = "uefi"))]
+pub fn parse_ec_version_str(version: &str) -> Option<ImageVersionDetails> {
     let re = regex::Regex::new(r"([a-z0-9]+)_v([0-9])\.([0-9])\.([0-9])-([0-9a-f]+)").unwrap();
     let caps = re.captures(version).unwrap();
     let platform = caps.get(1)?.as_str().to_string();
@@ -89,10 +124,7 @@ fn parse_ec_version(data: &_ImageVersionData) -> Option<ImageVersionData> {
     let patch = caps.get(4)?.as_str().parse::<u32>().ok()?;
     let commit = caps.get(5)?.as_str().to_string();
 
-    Some(ImageVersionData {
-        version: version.to_string(),
-        size: data.size,
-        rollback_version: data.rollback_version,
+    Some(ImageVersionDetails {
         platform,
         major,
         minor,
@@ -140,11 +172,13 @@ mod tests {
                 version: "hx30_v0.0.1-7a61a89".to_string(),
                 size: 2868,
                 rollback_version: 0,
-                platform: "hx30".to_string(),
-                major: 0,
-                minor: 0,
-                patch: 1,
-                commit: "7a61a89".to_string(),
+                details: ImageVersionDetails {
+                    platform: "hx30".to_string(),
+                    major: 0,
+                    minor: 0,
+                    patch: 1,
+                    commit: "7a61a89".to_string(),
+                }
             })
         );
     }
@@ -160,11 +194,13 @@ mod tests {
             Some({
                 ImageVersionData {
                     version: "hx30_v0.0.1-7a61a89".to_string(),
-                    platform: "hx30".to_string(),
-                    major: 0,
-                    minor: 0,
-                    patch: 1,
-                    commit: "7a61a89".to_string(),
+                    details: ImageVersionDetails {
+                        platform: "hx30".to_string(),
+                        major: 0,
+                        minor: 0,
+                        patch: 1,
+                        commit: "7a61a89".to_string(),
+                    },
                     size: 2868,
                     rollback_version: 0,
                 }

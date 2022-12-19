@@ -42,9 +42,22 @@ impl fmt::Display for Guid {
 }
 
 /// Decode from GUID string version
-/// Example: a9c91b0c-c0b8-463d-a7da-a5d6ec646333
-/// Result: (a30a8cf3, 847f, 5e59, \[bd,59,f9,ec,14,5c,1a,8c\])
-/// TODO: Could add a test for this
+///
+/// # Examples
+/// ```
+/// use framework_lib::esrt::*;
+///
+/// let valid_guid = Guid(0xA9C91B0C, 0xC0B8, 0x463D, [0xA7, 0xDA, 0xA5, 0xD6, 0xEC, 0x64, 0x63, 0x33]);
+/// // Works with lower-case
+/// let guid = guid_from_str("a9c91b0c-c0b8-463d-a7da-a5d6ec646333");
+/// assert_eq!(guid, Some(valid_guid));
+/// // And upper-case
+/// let guid = guid_from_str("A9C91B0C-C0B8-463D-A7DA-A5D6EC646333");
+/// assert_eq!(guid, Some(valid_guid));
+///
+/// let guid = guid_from_str("invalid-guid");
+/// assert_eq!(guid, None);
+/// ```
 pub fn guid_from_str(string: &str) -> Option<Guid> {
     let sections: Vec<&str> = string.split('-').collect();
     let first = u32::from_str_radix(sections[0], 16).ok()?;
