@@ -1,41 +1,41 @@
-/**
- * PD Flash
- *
- * For TGL devices the microprocessor is Infineon's CCG5
- * For ADL devices the microprocessor is Infineon's CCG6
- *
- * We build the flash binary and then embed it into the beginning of the BIOS flash.
- * Currently the flash binary is 64K but we reserved 256K.
- *
- * Row is 128 (0x80) bytes wide on CCG6 (ADL/RPL). On CCG5 (TGL) it's 0x100
- * Flash is 65536 (0x10000) bytes in size.
- * Flash has 512 (0x200) rows.
- *
- * | Row Start | Row End | Size (Rows) | Name         |
- * | 0x1FD     | 0x1FE   | 0x1         | FW1 Metadata at 0xC0 (192) inside this row |
- * | 0x1FE     | 0x1FF   | 0x1         | FW2 Metadata at 0xC0 (192) inside this row |
- *
- * FW Metadata layout (at the end of the flash 0x1FD and 0x1FE)
- *
- * | Offset | Size |              |                                                 |
- * |--------|------|--------------|-------------------------------------------------|
- * | 0x00   | 0x18 | Total Size   |                                                 |
- * | 0x00   | 0x05 | Unknown      |                                                 |
- * | 0x05   | 0x04 | Last BL Row  | LE u32 to indicate the last row of the bootloader, FW begins afterwards |
- * | 0x09   | 0x04 | FW Num Rows  | LE u32 Size of the firmware in rows             |
- * | 0x0D   | 0x08 | Unknown      |                                                 |
- * | 0x16   | 0x01 | Magic Byte 0 | Must be 0x59                                    |
- * | 0x17   | 0x01 | Magic Byte 1 | Must be 0x43                                    |
- *
- * FW Layout (not at the same location as the metadata! But metadata points there)
- *
- * | Offset | Size |              |                                                 |
- * |--------|------|--------------|-------------------------------------------------|
- * | 0x00   | 0x18 | Total Size   |                                                 |
- * | 0xE4   | 0x05 | Unknown      |                                                 |
- * | 0xE8   | 0x01 | Patch version| X.Y.ZZ ZZ part of the version                   |
- * | 0xE9   | 0x01 | Version      | X.Y.ZZ X and Y part of the version (4 bits each)|
- */
+//! Parse CCGX PD firmware binaries and extract the metadata information
+//!
+//! - For Framework TGL devices the microprocessor is Infineon's CCG5
+//! - For Framework ADL devices the microprocessor is Infineon's CCG6
+//!
+//! We build the flash binary and then embed it into the beginning of the BIOS flash.
+//! Currently the flash binary is 64K but we reserved 256K.
+//!
+//! - Row is 128 (0x80) bytes wide on CCG6 (ADL/RPL). On CCG5 (TGL) it's 0x100
+//! - Flash is 65536 (0x10000) bytes in size.
+//! - Flash has 512 (0x200) rows.
+//!
+//! | Row Start | Row End | Size (Rows) | Name                                       |
+//! |-----------|---------|-------------|--------------------------------------------|
+//! | 0x1FD     | 0x1FE   | 0x1         | FW1 Metadata at 0xC0 (192) inside this row |
+//! | 0x1FE     | 0x1FF   | 0x1         | FW2 Metadata at 0xC0 (192) inside this row |
+//!
+//! FW Metadata layout (at the end of the flash 0x1FD and 0x1FE)
+//!
+//! | Offset | Size |              |                                                 |
+//! |--------|------|--------------|-------------------------------------------------|
+//! | 0x00   | 0x18 | Total Size   |                                                 |
+//! | 0x00   | 0x05 | Unknown      |                                                 |
+//! | 0x05   | 0x04 | Last BL Row  | LE u32 to indicate the last row of the bootloader, FW begins afterwards |
+//! | 0x09   | 0x04 | FW Num Rows  | LE u32 Size of the firmware in rows             |
+//! | 0x0D   | 0x08 | Unknown      |                                                 |
+//! | 0x16   | 0x01 | Magic Byte 0 | Must be 0x59                                    |
+//! | 0x17   | 0x01 | Magic Byte 1 | Must be 0x43                                    |
+//!
+//! FW Layout (not at the same location as the metadata! But metadata points there)
+//!
+//! | Offset | Size |              |                                                 |
+//! |--------|------|--------------|-------------------------------------------------|
+//! | 0x00   | 0x18 | Total Size   |                                                 |
+//! | 0xE4   | 0x05 | Unknown      |                                                 |
+//! | 0xE8   | 0x01 | Patch version| X.Y.ZZ ZZ part of the version                   |
+//! | 0xE9   | 0x01 | Version      | X.Y.ZZ X and Y part of the version (4 bits each)|
+
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 

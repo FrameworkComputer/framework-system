@@ -1,3 +1,13 @@
+//! Interact with the Chrome EC controller firmware.
+//!
+//! It's used on Chromebooks as well as non-Chromebook Framework laptops.
+//!
+//! Currently three drivers are supported:
+//!
+//! - `cros_ec` - It uses the `cros_ec` kernel module in Linux
+//! - `portio` - It uses raw port I/O. This works on UEFI and on Linux if the system isn't in lockdown mode (SecureBoot disabled).
+//! - `windows` - It uses [DHowett's Windows driver](https://github.com/DHowett/FrameworkWindowsUtils)
+
 use crate::smbios;
 use crate::util;
 
@@ -82,7 +92,9 @@ impl Default for CrosEc {
     }
 }
 
-// Depending on the availability we choose the first one as default
+/// Find out which drivers are available
+///
+/// Depending on the availability we choose the first one as default
 fn available_drivers() -> Vec<CrosEcDriverType> {
     vec![
         #[cfg(feature = "win_driver")]
@@ -168,12 +180,14 @@ impl CrosEc {
         ))
     }
 
+    /// Get current status of Framework Laptop's privacy switches (microphone and camera)
     pub fn get_privacy_info(&self) -> EcResult<(bool, bool)> {
         let status = EcRequestPrivacySwitches {}.send_command(self)?;
 
         Ok((status.microphone == 1, status.camera == 1))
     }
 
+    /// Get the intrusion switch status (whether the chassis is open or not)
     pub fn get_intrusion_status(&self) -> EcResult<IntrusionStatus> {
         let status = EcRequestChassisOpenCheck {}.send_command(self)?;
 
@@ -192,11 +206,18 @@ impl CrosEc {
         })
     }
 
+    /// Change the keyboard baclight brightness
+    ///
+    /// # Arguments
+    /// * `percent` - An integer from 0 to 100. 0 being off, 100 being full brightness
     pub fn set_keyboard_backlight(&self, percent: u8) {
+        debug_assert!(percent <= 100);
         let res = EcRequestPwmSetKeyboardBacklight { percent }.send_command(self);
         debug_assert!(res.is_ok());
     }
 
+    /// Check the current brightness of the keyboard backlight
+    ///
     pub fn get_keyboard_backlight(&self) -> EcResult<u8> {
         let kblight = EcRequestPwmGetKeyboardBacklight {}.send_command(self)?;
 
@@ -284,6 +305,7 @@ pub fn print_err_ref<T>(something: &EcResult<T>) {
 }
 
 /// Print the error and turn Result into Option
+///
 /// TODO: This is here because of refactoring, might want to remove this function
 pub fn print_err<T>(something: EcResult<T>) -> Option<T> {
     print_err_ref(&something);
@@ -297,8 +319,6 @@ pub enum EcCurrentImage {
     RO = 1,
     RW = 2,
 }
-
-///Framework Specific commands
 
 pub struct IntrusionStatus {
     /// Whether the chassis is currently open

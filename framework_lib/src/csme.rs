@@ -1,3 +1,8 @@
+//! Get CSME information from the running system
+//!
+//! Currently only works on Linux (from sysfs).
+
+use core::fmt;
 #[cfg(feature = "linux")]
 use std::fs;
 #[cfg(feature = "linux")]
@@ -6,19 +11,30 @@ use std::io;
 use std::path::Path;
 
 pub struct CsmeInfo {
+    /// Whether the CSME is currently enabled or not
     pub enabled: bool,
-    pub ver_platform: u32,
-    pub ver_major: u32,
-    pub ver_minor: u32,
-    pub ver_hotfix: u32,
-    pub ver_buildno: u32,
+    /// Currently running CSME firmware version
+    pub version: CsmeVersion,
+}
+/// CSME Version
+///
+/// Example: 0:16.0.15.1810
+pub struct CsmeVersion {
+    pub platform: u32,
+    pub major: u32,
+    pub minor: u32,
+    pub hotfix: u32,
+    pub buildno: u32,
 }
 
-pub fn format_csme_ver(info: &CsmeInfo) -> String {
-    format!(
-        "{}:{}.{}.{}.{}",
-        info.ver_platform, info.ver_major, info.ver_minor, info.ver_hotfix, info.ver_buildno
-    )
+impl fmt::Display for CsmeVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}:{}.{}.{}.{}",
+            self.platform, self.major, self.minor, self.hotfix, self.buildno
+        )
+    }
 }
 
 #[cfg(feature = "linux")]
@@ -56,11 +72,13 @@ pub fn csme_from_sysfs() -> io::Result<CsmeInfo> {
 
                 csme_info = Some(CsmeInfo {
                     enabled,
-                    ver_platform: first,
-                    ver_major: second,
-                    ver_minor: third,
-                    ver_hotfix: fourth,
-                    ver_buildno: fifth,
+                    version: CsmeVersion {
+                        platform: first,
+                        major: second,
+                        minor: third,
+                        hotfix: fourth,
+                        buildno: fifth,
+                    },
                 });
             }
         }
