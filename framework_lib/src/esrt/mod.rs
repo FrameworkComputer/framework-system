@@ -1,3 +1,15 @@
+//! Get the ESRT UEFI table and extract the version information.
+//!
+//! Currently only implemented on Linux and UEFI.
+//! I haven't found how to get it on Windows.
+//!
+//! ESRT (EFI System Resource Table) holds information about updateable firmware
+//! components in the system. It includes the current version, as well as if
+//! and how they can be updated via a UEFI capsule. Windows and LVFS take advantage
+//! of this information.
+//!
+//! Not all firmware components are reported here.
+
 use core::fmt;
 use core::prelude::v1::derive;
 #[cfg(feature = "uefi")]
@@ -31,7 +43,7 @@ impl fmt::Display for Guid {
 
 /// Decode from GUID string version
 /// Example: a9c91b0c-c0b8-463d-a7da-a5d6ec646333
-/// Result: (a30a8cf3, 847f, 5e59, [bd,59,f9,ec,14,5c,1a,8c])
+/// Result: (a30a8cf3, 847f, 5e59, \[bd,59,f9,ec,14,5c,1a,8c\])
 /// TODO: Could add a test for this
 pub fn guid_from_str(string: &str) -> Option<Guid> {
     let sections: Vec<&str> = string.split('-').collect();

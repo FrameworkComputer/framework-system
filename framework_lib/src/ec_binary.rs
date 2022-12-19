@@ -1,3 +1,5 @@
+//! Parse Chrome EC binaries and get their metadata
+
 const CROS_EC_IMAGE_DATA_COOKIE1: u32 = 0xce778899;
 const CROS_EC_IMAGE_DATA_COOKIE2: u32 = 0xceaabbdd;
 // Absolute offset of the version struct inside the entire EC binary

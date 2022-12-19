@@ -1,3 +1,5 @@
+//! Retrieve SMBIOS tables and extract information from them
+
 #[cfg(not(feature = "uefi"))]
 use std::io::ErrorKind;
 

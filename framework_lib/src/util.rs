@@ -1,3 +1,5 @@
+//! Miscellaneous utility functions to use across modules
+
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
@@ -16,14 +18,18 @@ const DBG: bool = false; // Usually it's too verbose even for debugging
 #[cfg(not(debug_assertions))]
 const DBG: bool = false;
 
+/// Whether debug mode is enabled. Is mostly used for extremly verbose debug prints
 pub fn is_debug() -> bool {
     DBG
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Platform {
+    /// Intel 11th Gen, Codenamed TigerLake
     IntelGen11,
+    /// Intel 11th Gen, Codenamed AlderLake
     IntelGen12,
+    /// Intel 11th Gen, Codenamed RaptorLake
     IntelGen13,
 }
 
@@ -72,11 +78,13 @@ pub unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
     ::std::slice::from_raw_parts((p as *const T) as *const u8, len)
 }
 
+/// Convert an array/slice of any type to a u8 slice (Like a C byte buffer)
 pub unsafe fn any_vec_as_u8_slice<T: Sized>(p: &[T]) -> &[u8] {
     let len = ::std::mem::size_of::<T>() * p.len();
     ::std::slice::from_raw_parts((p.as_ptr() as *const T) as *const u8, len)
 }
 
+/// Print a byte buffer as a series of hex bytes
 pub fn print_buffer(buffer: &[u8]) {
     for byte in buffer {
         print!("{:#X} ", byte);

@@ -1,3 +1,8 @@
+//! Module to build a portable commandline tool
+//!
+//! Can be easily re-used from any OS or UEFI shell.
+//! We have implemented both in the `framework_tool` and `framework_uefi` crates.
+
 #[cfg(not(feature = "uefi"))]
 pub mod clap;
 #[cfg(feature = "uefi")]
@@ -25,7 +30,10 @@ use crate::chromium_ec::{CrosEc, CrosEcDriverType};
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
-// Shadows clap::ClapCli with extras for UEFI
+/// Shadows `clap_std::ClapCli` with extras for UEFI
+///
+/// The UEFI commandline currently doesn't use clap, so we need to shadow the struct.
+/// Also it has extra options.
 #[derive(Debug)]
 pub struct Cli {
     pub versions: bool,
@@ -43,9 +51,10 @@ pub struct Cli {
     pub intrusion: bool,
     pub kblight: Option<Option<u8>>,
     pub help: bool,
+    pub info: bool,
     // UEFI only
     pub allupdate: bool,
-    pub info: bool,
+    // TODO: This is not actually implemented yet
     pub raw_command: Vec<String>,
 }
 
@@ -165,7 +174,7 @@ fn print_versions(ec: &CrosEc) {
         println!("CSME");
         if let Ok(csme) = csme::csme_from_sysfs() {
             println!("  Enabled:        {}", csme.enabled);
-            println!("  Version:        {}", csme::format_csme_ver(&csme));
+            println!("  Version:        {}", csme.version);
         }
     }
 }

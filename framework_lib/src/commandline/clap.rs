@@ -72,6 +72,7 @@ struct ClapCli {
     test: bool,
 }
 
+/// Parse a list of commandline arguments and return the struct
 pub fn parse(args: &[String]) -> Cli {
     let args = ClapCli::parse_from(args);
 

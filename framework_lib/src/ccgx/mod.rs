@@ -1,3 +1,5 @@
+//! Interact with Infineon (formerly Cypress) PD controllers (their firmware binaries) in the CCGx series
+
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 use std::fmt;

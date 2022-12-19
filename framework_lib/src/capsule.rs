@@ -1,3 +1,13 @@
+//! Parse UEFI capsule binaries and extract the metadata
+//!
+//! UEFI capsule are pretty simple, they start with the headers struct,
+//! which includs information about the total size and follows with the data.
+//! The data portion is opaque and can be anything. It is interpreted by the
+//! appropriate driver, in UEFI during boot, that knows how to handle a capsule
+//! with the specified GUID.
+//!
+//! Currently NOT implemented is parsing capsules with mutiple header structs!
+
 use core::prelude::rust_2021::derive;
 #[cfg(all(not(feature = "uefi"), feature = "std"))]
 use std::fs::File;
@@ -27,6 +37,9 @@ pub struct EfiCapsuleHeader {
 }
 
 impl EfiCapsuleHeader {
+    /// Check if the capsule is valid
+    ///
+    /// This is very useful to check if the binary data we're parsing is a capsule at all, or not.
     pub fn is_valid(&self, data: &[u8]) -> bool {
         let size = data.len() as u32;
         let header_size = std::mem::size_of::<EfiCapsuleHeader>() as u32;
@@ -49,16 +62,21 @@ impl EfiCapsuleHeader {
 pub struct DisplayPayload {
     version: u8,
     checksum: u8,
+    /// See `ImageType` enum, currently only value 0 is specified
     image_type: u8,
     reserved: u8,
     mode: u32,
+    /// Offset in X direction (horizontal, from top left, I thinK?) where the image shall be displayed
     offset_x: u32,
+    /// Offset in Y direction (vertical, from top left, I thinK?) where the image shall be displayed
     offset_y: u32,
     //Image[u8, 0];
 }
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 #[repr(C, packed)]
+/// A "display capsule" does not contain firmware, instead it includes an image
+/// that shall be displayed during firmware update.
 pub struct DisplayCapsule {
     capsule_header: EfiCapsuleHeader,
     image_payload: DisplayPayload,
@@ -150,6 +168,7 @@ pub fn print_ux_header(header: &DisplayCapsule) {
     println!("    Calculcated Size: {:>14} KB", image_size / 1024);
 }
 
+/// Extract the image data from the display capsule to a file
 pub fn dump_winux_image(data: &[u8], header: &DisplayCapsule, filename: &str) {
     let header_len = std::mem::size_of::<DisplayCapsule>();
     let image_size = header.capsule_header.capsule_image_size as usize - header_len;

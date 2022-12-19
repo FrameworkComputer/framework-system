@@ -1,3 +1,5 @@
+//! Get information about system power (battery, AC, PD ports)
+
 use core::convert::TryInto;
 use core::prelude::v1::derive;
 

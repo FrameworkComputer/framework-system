@@ -1,3 +1,7 @@
+//! Communicate with CCGX PD controllers
+//!
+//! The current implementation talks to them by tunneling I2C through EC host commands.
+
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
