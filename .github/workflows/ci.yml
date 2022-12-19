@@ -32,7 +32,7 @@ jobs:
         path: target/x86_64-unknown-freebsd/debug/framework_tool
 
   build:
-    name: Build
+    name: Build Linux and UEFI
     runs-on: ubuntu-22.04
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
@@ -78,6 +78,7 @@ jobs:
       run: make -C framework_uefi
 
   build-windows:
+    name: Build Windows
     runs-on: windows-2022
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
