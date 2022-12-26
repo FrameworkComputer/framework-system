@@ -80,6 +80,7 @@ pub fn parse(args: &[String]) -> Cli {
         kblight: None,
         console: None,
         reboot_ec: None,
+        hash: None,
         // This is the only driver that works on UEFI
         driver: Some(CrosEcDriverType::Portio),
         test: false,
@@ -306,6 +307,14 @@ pub fn parse(args: &[String]) -> Cli {
                 Some(args[i + 1].clone())
             } else {
                 println!("--flash_ec requires extra argument to denote input file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--hash" {
+            cli.hash = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--hash requires extra argument to denote input file");
                 None
             };
             found_an_option = true;

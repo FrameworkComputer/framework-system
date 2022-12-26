@@ -47,7 +47,9 @@ use crate::uefi::enable_page_break;
 use crate::util;
 #[cfg(not(feature = "uefi"))]
 use hidapi::HidApi;
-use smbioslib::*;
+use sha2::{Digest, Sha256, Sha384, Sha512};
+//use smbioslib::*;
+use smbioslib::{DefinedStruct, SMBiosInformation};
 
 use crate::chromium_ec::{CrosEc, CrosEcDriverType};
 
@@ -139,6 +141,7 @@ pub struct Cli {
     pub kblight: Option<Option<u8>>,
     pub console: Option<ConsoleArg>,
     pub reboot_ec: Option<RebootEcArg>,
+    pub hash: Option<String>,
     pub help: bool,
     pub info: bool,
     // UEFI only
@@ -714,6 +717,25 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
 
         #[cfg(feature = "uefi")]
         flash_ec(&ec, _ec_bin_path);
+    } else if let Some(hash_file) = &args.hash {
+        println!("Hashing file: {}", hash_file);
+        #[cfg(feature = "uefi")]
+        let data = crate::uefi::fs::shell_read_file(hash_file);
+        #[cfg(not(feature = "uefi"))]
+        let data = match fs::read(hash_file) {
+            Ok(data) => Some(data),
+            // TODO: Perhaps a more user-friendly error
+            Err(e) => {
+                println!("Error {:?}", e);
+                None
+            }
+        };
+        if let Some(data) = data {
+            println!("File");
+            println!("  Size:       {:>20} B", data.len());
+            println!("  Size:       {:>20} KB", data.len() / 1024);
+            hash(&data);
+        }
     }
 
     0
@@ -769,6 +791,29 @@ Options:
     //                    Example: raw-command 0x3E14
     //"#
     //);
+}
+
+/// Useful to hash update files to check integrity
+fn hash(data: &[u8]) {
+    let mut sha256_hasher = Sha256::new();
+    let mut sha384_hasher = Sha384::new();
+    let mut sha512_hasher = Sha512::new();
+
+    sha256_hasher.update(data);
+    sha384_hasher.update(data);
+    sha512_hasher.update(data);
+
+    let sha256 = &sha256_hasher.finalize()[..];
+    let sha384 = &sha384_hasher.finalize()[..];
+    let sha512 = &sha512_hasher.finalize()[..];
+
+    println!("Hashes");
+    print!("  SHA256:  ");
+    util::print_buffer_short(sha256);
+    print!("  SHA384:  ");
+    util::print_buffer_short(sha384);
+    print!("  SHA512:  ");
+    util::print_buffer_short(sha512);
 }
 
 fn selftest(ec: &CrosEc) -> Option<()> {

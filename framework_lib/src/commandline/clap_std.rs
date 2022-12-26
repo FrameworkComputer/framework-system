@@ -119,6 +119,10 @@ struct ClapCli {
     #[arg(long)]
     reboot_ec: Option<RebootEcArg>,
 
+    /// Hash a file of arbitrary data
+    #[arg(long)]
+    hash: Option<std::path::PathBuf>,
+
     /// Select which driver is used. By default portio is used
     #[clap(value_enum)]
     #[arg(long)]
@@ -174,6 +178,7 @@ pub fn parse(args: &[String]) -> Cli {
         kblight: args.kblight,
         console: args.console,
         reboot_ec: args.reboot_ec,
+        hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         test: args.test,
         // TODO: Set help. Not very important because Clap handles this by itself
