@@ -2,6 +2,7 @@
 
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
+use num_derive::FromPrimitive;
 use std::fmt;
 
 use crate::chromium_ec::EcResult;
@@ -10,6 +11,23 @@ use self::device::{PdController, PdPort};
 
 pub mod binary;
 pub mod device;
+
+const FW1_METADATA_ROW: u32 = 0x1FE;
+const FW2_METADATA_ROW_CCG5: u32 = 0x1FF;
+const FW2_METADATA_ROW_CCG6: u32 = 0x1FD;
+const LAST_BOOTLOADER_ROW: usize = 0x05;
+const FW_SIZE_OFFSET: usize = 0x09;
+const METADATA_OFFSET: usize = 0xC0; // TODO: Is this 0x40 on ADL?
+const METADATA_MAGIC_OFFSET: usize = 0x16;
+const METADATA_MAGIC_1: u8 = 0x59;
+const METADATA_MAGIC_2: u8 = 0x43;
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq, FromPrimitive, Clone, Copy)]
+pub enum SiliconId {
+    Ccg5 = 0x2100,
+    Ccg6 = 0x3000,
+}
 
 #[derive(Debug, PartialEq)]
 pub struct BaseVersion {
@@ -83,13 +101,27 @@ impl From<&[u8]> for AppVersion {
     }
 }
 
-// TODO: Consider bootloader and both firmwares
+#[derive(Debug, PartialEq)]
 pub struct ControllerVersion {
     pub base: BaseVersion,
     pub app: AppVersion,
 }
 
+#[derive(Debug, PartialEq)]
+pub struct ControllerFirmwares {
+    pub bootloader: ControllerVersion,
+    pub backup_fw: ControllerVersion,
+    pub main_fw: ControllerVersion,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct PdVersions {
+    pub controller01: ControllerFirmwares,
+    pub controller23: ControllerFirmwares,
+}
+
+/// Same as PdVersions but only the main FW
+pub struct MainPdVersions {
     pub controller01: ControllerVersion,
     pub controller23: ControllerVersion,
 }
@@ -99,4 +131,25 @@ pub fn get_pd_controller_versions() -> EcResult<PdVersions> {
         controller01: PdController::new(PdPort::Left01).get_fw_versions()?,
         controller23: PdController::new(PdPort::Right23).get_fw_versions()?,
     })
+}
+
+//fn parse_metadata(buffer: &[u8; 256]) -> Option<(u32, u32)> {
+fn parse_metadata(buffer: &[u8]) -> Option<(u32, u32)> {
+    let metadata = &buffer[METADATA_OFFSET..];
+
+    if (metadata[METADATA_MAGIC_OFFSET] == METADATA_MAGIC_1)
+        && (metadata[METADATA_MAGIC_OFFSET + 1] == METADATA_MAGIC_2)
+    {
+        let fw_row_start = (metadata[LAST_BOOTLOADER_ROW] as u32)
+            + ((metadata[LAST_BOOTLOADER_ROW + 1] as u32) << 8)
+            + 1;
+        let fw_size = (metadata[FW_SIZE_OFFSET] as u32)
+            + ((metadata[FW_SIZE_OFFSET + 1] as u32) << 8)
+            + ((metadata[FW_SIZE_OFFSET + 2] as u32) << 16)
+            + ((metadata[FW_SIZE_OFFSET + 3] as u32) << 24);
+        Some((fw_row_start, fw_size))
+    } else {
+        // println!("Metadata is invalid");
+        None
+    }
 }

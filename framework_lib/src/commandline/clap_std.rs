@@ -4,7 +4,7 @@
 use clap::Parser;
 
 use crate::chromium_ec::CrosEcDriverType;
-use crate::commandline::Cli;
+use crate::commandline::{Cli, ConsoleArg};
 
 /// Swiss army knife for Framework laptops
 #[derive(Parser)]
@@ -65,6 +65,11 @@ struct ClapCli {
     /// Select which driver is used. By default portio is used
     #[clap(value_enum)]
     #[arg(long)]
+    console: Option<ConsoleArg>,
+
+    /// Get EC console, choose whether recent or to follow the output
+    #[clap(value_enum)]
+    #[arg(long)]
     driver: Option<CrosEcDriverType>,
 
     /// Run self-test to check if interaction with EC is possible
@@ -95,6 +100,7 @@ pub fn parse(args: &[String]) -> Cli {
         dump: args.dump.map(|x| x.into_os_string().into_string().unwrap()),
         intrusion: args.intrusion,
         kblight: args.kblight,
+        console: args.console,
         driver: args.driver,
         test: args.test,
         // TODO: Set help. Not very important because Clap handles this by itself

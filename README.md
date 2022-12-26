@@ -126,6 +126,7 @@ Options:
       --dump <DUMP>          Dump extracted UX capsule bitmap image to a file
       --intrusion            Show status of intrusion switch
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
+      --console <CONSOLE>    Select which driver is used. By default portio is used [possible values: recent, follow]
       --driver <DRIVER>      Select which driver is used. By default portio is used [possible values: portio, cros-ec, windows]
   -t, --test                 Run self-test to check if interaction with EC is possible
   -h, --help                 Print help information

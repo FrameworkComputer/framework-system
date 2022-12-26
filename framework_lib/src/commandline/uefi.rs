@@ -9,6 +9,8 @@ use uefi_std::proto::Protocol;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::Cli;
 
+use super::ConsoleArg;
+
 pub struct ShellParameters(pub &'static mut UefiShellParameters);
 
 impl Protocol<UefiShellParameters> for ShellParameters {
@@ -63,6 +65,7 @@ pub fn parse(args: &[String]) -> Cli {
         dump: None,
         intrusion: false,
         kblight: None,
+        console: None,
         // This is the only driver that works on UEFI
         driver: Some(CrosEcDriverType::Portio),
         test: false,
@@ -97,6 +100,20 @@ pub fn parse(args: &[String]) -> Cli {
                     Some(Some(percent))
                 } else {
                     Some(None)
+                }
+            } else {
+                None
+            }
+        } else if arg == "--console" {
+            cli.console = if args.len() > i + 1 {
+                let console_arg = &args[i + 1];
+                if console_arg == "recent" {
+                    Some(ConsoleArg::Recent)
+                } else if console_arg == "follow" {
+                    Some(ConsoleArg::Follow)
+                } else {
+                    println!("Invalid value for --console: {}", console_arg);
+                    None
                 }
             } else {
                 None

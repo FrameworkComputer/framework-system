@@ -11,6 +11,11 @@ use crate::chromium_ec::{CrosEc, CrosEcDriver, EcError, EcResult};
 use crate::util::{self, Config, Platform};
 use std::mem::size_of;
 
+use super::*;
+
+/// Maximum transfer size for one I2C transaction supported by the chip
+const MAX_I2C_CHUNK: usize = 128;
+
 enum ControlRegisters {
     DeviceMode = 0,
     SiliconId = 2, // Two bytes long, First LSB, then MSB
@@ -85,19 +90,19 @@ struct EcI2cPassthruResponse {
 }
 
 impl EcI2cPassthruResponse {
-    fn is_successful(&self) -> bool {
+    fn is_successful(&self) -> EcResult<()> {
         if self.i2c_status & 1 > 0 {
-            // Transfer not acknowledged
-            return false;
+            return Err(EcError::DeviceError(
+                "I2C Transfer not acknowledged".to_string(),
+            ));
         }
         if self.i2c_status & (1 << 1) > 0 {
-            // Transfer timeout
-            return false;
+            return Err(EcError::DeviceError("I2C Transfer timeout".to_string()));
         }
         // I'm not aware of any other errors, but there might be.
         // But I don't think multiple errors can be indicated at the same time
         assert_eq!(self.i2c_status, 0);
-        true
+        Ok(())
     }
 }
 
@@ -106,9 +111,11 @@ const I2C_READ_FLAG: u16 = 1 << 15;
 
 #[derive(Debug)]
 pub enum FwMode {
-    BootLoader,
-    BackupFw,
-    MainFw,
+    BootLoader = 0,
+    /// Backup CCGX firmware (No 1)
+    BackupFw = 1,
+    /// Main CCGX firmware (No 2)
+    MainFw = 2,
 }
 
 impl PdController {
@@ -126,29 +133,27 @@ impl PdController {
         if util::is_debug() {
             println!("i2c_read(addr: {}, len: {})", addr, len);
         }
+        let addr_bytes = [addr as u8, (addr >> 8) as u8];
         let messages = vec![
             EcParamsI2cPassthruMsg {
                 addr_and_flags: self.port.i2c_address(),
-                transfer_len: 2, // How much we write. Address is u16, so 2 bytes
+                transfer_len: addr_bytes.len() as u16,
             },
             EcParamsI2cPassthruMsg {
                 addr_and_flags: self.port.i2c_address() + I2C_READ_FLAG,
-                transfer_len: len, // How much we read
+                transfer_len: len, // How much to read
             },
         ];
-        let msgs_len = size_of::<EcParamsI2cPassthruMsg>() * 2;
-
+        let msgs_len = size_of::<EcParamsI2cPassthruMsg>() * messages.len();
         let msgs_buffer: &[u8] = unsafe { util::any_vec_as_u8_slice(&messages) };
 
         let params = EcParamsI2cPassthru {
             port: self.port.i2c_port(),
             messages: messages.len() as u8,
-            msg: [],
+            msg: [], // Messages are copied right after this struct
         };
         let params_len = size_of::<EcParamsI2cPassthru>();
         let params_buffer: &[u8] = unsafe { util::any_as_u8_slice(&params) };
-
-        let addr_bytes = [addr as u8, (addr >> 8) as u8];
 
         let mut buffer: Vec<u8> = vec![0; params_len + msgs_len + addr_bytes.len()];
         buffer[0..params_len].copy_from_slice(params_buffer);
@@ -170,29 +175,38 @@ impl PdController {
         })
     }
 
-    fn ccgx_read(&self, addr: u16, len: u16) -> EcResult<Vec<u8>> {
-        // TODO: Read more than that chunk
-        let chunk_len = 128; // Our chip supports this max transfer size
-        assert!(len <= chunk_len);
-        // TODO: It has an error code
-        let i2c_response = self.i2c_read(addr, std::cmp::min(chunk_len, len))?;
-        if !i2c_response.is_successful() {
-            return Err(EcError::DeviceError(
-                "I2C read was not successful".to_string(),
-            ));
+    fn ccgx_read(&self, reg: ControlRegisters, len: u16) -> EcResult<Vec<u8>> {
+        let mut data: Vec<u8> = Vec::with_capacity(len.into());
+
+        let addr = reg as u16;
+
+        while data.len() < len.into() {
+            let remaining = len - data.len() as u16;
+            let chunk_len = std::cmp::min(MAX_I2C_CHUNK, remaining.into());
+            let offset = addr + data.len() as u16;
+            let i2c_response = self.i2c_read(offset, chunk_len as u16)?;
+            if let Err(EcError::DeviceError(err)) = i2c_response.is_successful() {
+                return Err(EcError::DeviceError(format!(
+                    "I2C read was not successful: {:?}",
+                    err
+                )));
+            }
+            data.extend(i2c_response.data);
         }
-        Ok(i2c_response.data)
+
+        Ok(data)
     }
 
     pub fn get_silicon_id(&self) -> EcResult<u16> {
-        let data = self.ccgx_read(ControlRegisters::SiliconId as u16, 2)?;
+        let data = self.ccgx_read(ControlRegisters::SiliconId, 2)?;
         assert!(data.len() >= 2);
         debug_assert_eq!(data.len(), 2);
         Ok(((data[1] as u16) << 8) + (data[0] as u16))
     }
 
+    /// Get device info (fw_mode, flash_row_size)
     pub fn get_device_info(&self) -> EcResult<(FwMode, u16)> {
-        let data = self.ccgx_read(ControlRegisters::DeviceMode as u16, 1)?;
+        let data = self.ccgx_read(ControlRegisters::DeviceMode, 1)?;
         let byte = data[0];
 
         // Currently used firmware
@@ -217,18 +231,21 @@ impl PdController {
 
         Ok((fw_mode, flash_row_size))
     }
-
-    pub fn flash_pd(&self) {
-        println!("Flashing port: {:?}", self.port);
-
-        // Seems TGL silicon ID is 0x2100 and ADL is 0x3000
-        // TODO: Make sure silicon ID is the same in binary and device
-
-        // TODO: Implement the rest
+    pub fn get_fw_versions(&self) -> EcResult<ControllerFirmwares> {
+        Ok(ControllerFirmwares {
+            bootloader: self.get_single_fw_ver(FwMode::BootLoader)?,
+            backup_fw: self.get_single_fw_ver(FwMode::BackupFw)?,
+            main_fw: self.get_single_fw_ver(FwMode::MainFw)?,
+        })
     }
 
-    pub fn get_fw_versions(&self) -> EcResult<ControllerVersion> {
-        let data = self.ccgx_read(ControlRegisters::Firmware1Version as u16, 8)?;
+    fn get_single_fw_ver(&self, mode: FwMode) -> EcResult<ControllerVersion> {
+        let register = match mode {
+            FwMode::BootLoader => ControlRegisters::BootLoaderVersion,
+            FwMode::BackupFw => ControlRegisters::Firmware1Version,
+            FwMode::MainFw => ControlRegisters::Firmware2Version,
+        };
+        let data = self.ccgx_read(register, 8)?;
         Ok(ControllerVersion {
             base: BaseVersion::from(&data[..4]),
             app: AppVersion::from(&data[4..]),
@@ -236,7 +253,7 @@ impl PdController {
     }
 
     pub fn print_fw_info(&self) {
-        let data = self.ccgx_read(ControlRegisters::BootLoaderVersion as u16, 8);
+        let data = self.ccgx_read(ControlRegisters::BootLoaderVersion, 8);
         let data = data.unwrap();
         assert!(data.len() >= 8);
         debug_assert_eq!(data.len(), 8);
@@ -247,7 +264,7 @@ impl PdController {
             base_ver, app_ver
         );
 
-        let data = self.ccgx_read(ControlRegisters::Firmware1Version as u16, 8);
+        let data = self.ccgx_read(ControlRegisters::Firmware1Version, 8);
         let data = data.unwrap();
         assert!(data.len() >= 8);
         debug_assert_eq!(data.len(), 8);
@@ -255,7 +272,7 @@ impl PdController {
         let app_ver = AppVersion::from(&data[4..]);
         println!("  FW1 Version: Base: {},  App: {}", base_ver, app_ver);
 
-        let data = self.ccgx_read(ControlRegisters::Firmware2Version as u16, 8);
+        let data = self.ccgx_read(ControlRegisters::Firmware2Version, 8);
         let data = data.unwrap();
         assert!(data.len() >= 8);
         debug_assert_eq!(data.len(), 8);

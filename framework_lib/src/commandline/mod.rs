@@ -4,7 +4,7 @@
 //! We have implemented both in the `framework_tool` and `framework_uefi` crates.
 
 #[cfg(not(feature = "uefi"))]
-pub mod clap;
+pub mod clap_std;
 #[cfg(feature = "uefi")]
 pub mod uefi;
 
@@ -12,9 +12,8 @@ pub mod uefi;
 use std::fs;
 
 use crate::capsule;
-use crate::ccgx;
-use crate::ccgx::binary::CcgX::*;
 use crate::ccgx::device::{PdController, PdPort};
+use crate::ccgx::{self, SiliconId::*};
 use crate::chromium_ec;
 use crate::chromium_ec::print_err;
 #[cfg(feature = "linux")]
@@ -29,6 +28,13 @@ use crate::chromium_ec::{CrosEc, CrosEcDriverType};
 
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
+
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Debug, PartialEq)]
+pub enum ConsoleArg {
+    Recent,
+    Follow,
+}
 
 /// Shadows `clap_std::ClapCli` with extras for UEFI
 ///
@@ -50,6 +56,7 @@ pub struct Cli {
     pub test: bool,
     pub intrusion: bool,
     pub kblight: Option<Option<u8>>,
+    pub console: Option<ConsoleArg>,
     pub help: bool,
     pub info: bool,
     // UEFI only
@@ -62,7 +69,7 @@ pub fn parse(args: &[String]) -> Cli {
     #[cfg(feature = "uefi")]
     return uefi::parse(args);
     #[cfg(not(feature = "uefi"))]
-    return clap::parse(args);
+    return clap_std::parse(args);
 }
 
 fn print_single_pd_details(pd: &PdController) {
@@ -131,8 +138,9 @@ fn print_versions(ec: &CrosEc) {
         println!("  Right:          {}", pd_versions.controller23.app);
     } else if let Ok(pd_versions) = ccgx::get_pd_controller_versions() {
         // If EC doesn't have host command, get it directly from the PD controllers
-        println!("  Left:           {}", pd_versions.controller01.app);
-        println!("  Right:          {}", pd_versions.controller23.app);
+        // TODO: Maybe print all FW versions
+        println!("  Left:           {}", pd_versions.controller01.main_fw.app);
+        println!("  Right:          {}", pd_versions.controller23.main_fw.app);
     } else {
         println!("  Unknown")
     }
@@ -234,6 +242,17 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("{}%", percentage);
         } else {
             println!("Unable to tell");
+        }
+    } else if let Some(console_arg) = &args.console {
+        match console_arg {
+            ConsoleArg::Follow => {
+                // Ignore result because we only finish when it crashes
+                let _res = ec.console_read();
+            }
+            ConsoleArg::Recent => match ec.console_read_one() {
+                Ok(output) => println!("{}", output),
+                Err(err) => println!("Failed to read console: {:?}", err),
+            },
         }
     } else if args.test {
         println!("Self-Test");
@@ -460,20 +479,20 @@ fn analyze_ccgx_pd_fw(data: &[u8]) {
         succeeded = true;
         println!("Detected CCG5 firmware");
         println!("FW 1");
-        ccgx::binary::print_fw(&versions.first);
+        ccgx::binary::print_fw(&versions.backup_fw);
 
         println!("FW 2");
-        ccgx::binary::print_fw(&versions.second);
+        ccgx::binary::print_fw(&versions.main_fw);
     }
 
     if let Some(versions) = ccgx::binary::read_versions(data, Ccg6) {
         succeeded = true;
         println!("Detected CCG6 firmware");
-        println!("FW 1");
-        ccgx::binary::print_fw(&versions.first);
+        println!("FW 1 (Backup)");
+        ccgx::binary::print_fw(&versions.backup_fw);
 
-        println!("FW 2");
-        ccgx::binary::print_fw(&versions.second);
+        println!("FW 2 (Main)");
+        ccgx::binary::print_fw(&versions.main_fw);
     }
 
     if !succeeded {

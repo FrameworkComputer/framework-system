@@ -32,9 +32,16 @@ use self::command::EcCommands;
 /// Total size of EC memory mapped region
 const EC_MEMMAP_SIZE: u16 = 255;
 
-// Framework Specific commands
+/// Offset in mapped memory where there are two magic bytes
+/// representing 'EC' in ASCII (0x20 == 'E', 0x21 == 'C')
+const EC_MEMMAP_ID: u16 = 0x20;
 
-const EC_MEMMAP_ID: u16 = 0x20; /* 0x20 == 'E', 0x21 == 'C' */
+#[derive(PartialEq)]
+enum MecFlashNotify {
+    //Start = 0x01,
+    Finished = 0x02,
+    FlashPd = 0x11,
+}
 
 pub type EcResult<T> = Result<T, EcError>;
 
@@ -118,6 +125,23 @@ impl CrosEc {
             return None;
         }
         Some(CrosEc { driver })
+    }
+
+    /// Lock bus to PD controller in the beginning of flashing
+    /// TODO: Perhaps I could return a struct that will lock the bus again in its destructor
+    pub fn lock_pd_bus(&self, lock: bool) -> EcResult<()> {
+        let lock = if lock {
+            MecFlashNotify::FlashPd
+        } else {
+            MecFlashNotify::Finished
+        } as u8;
+        match self.send_command(EcCommands::FlashNotified as u16, 0, &[lock]) {
+            Ok(vec) if !vec.is_empty() => Err(EcError::DeviceError(
+                "Didn't expect a response!".to_string(),
+            )),
+            Ok(_) => Ok(()),
+            Err(err) => Err(err),
+        }
     }
 
     pub fn check_mem_magic(&self) -> Option<()> {
@@ -228,6 +252,41 @@ impl CrosEc {
         }
 
         Ok(kblight.percent)
+    }
+
+    /// Requests recent console output from EC and constantly asks for more
+    /// Prints the output and returns it when an error is encountered
+    pub fn console_read(&self) -> EcResult<String> {
+        let mut console = String::new();
+        let mut cmd = EcRequestConsoleRead {
+            subcmd: ConsoleReadSubCommand::ConsoleReadRecent as u8,
+        };
+
+        EcRequestConsoleSnapshot {}.send_command(self)?;
+        loop {
+            match cmd.send_command_vec(self) {
+                Ok(data) => {
+                    let string = std::str::from_utf8(&data).unwrap();
+                    print!("{}", string);
+                    console.push_str(string);
+                }
+                Err(err) => {
+                    println!("Err: {:?}", err);
+                    return Ok(console);
+                    //return Err(err)
+                }
+            };
+            cmd.subcmd = ConsoleReadSubCommand::ConsoleReadNext as u8;
+        }
+    }
+
+    pub fn console_read_one(&self) -> EcResult<String> {
+        EcRequestConsoleSnapshot {}.send_command(self)?;
+        let data = EcRequestConsoleRead {
+            subcmd: ConsoleReadSubCommand::ConsoleReadRecent as u8,
+        }
+        .send_command_vec(self)?;
+        Ok(std::str::from_utf8(&data).unwrap().to_string())
     }
 }
 
