@@ -112,7 +112,10 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
         Some(status) => return Err(EcError::Response(status)),
     }
 
-    let out_buffer = &cmd.buffer[..(returned as usize)];
+    // TODO: Figure out why that's sometimes bigger
+    let end = std::cmp::min(returned, 256);
+
+    let out_buffer = &cmd.buffer[..(end as usize)];
     Ok(out_buffer.to_vec())
 }
 

@@ -1,5 +1,6 @@
 //! Miscellaneous utility functions to use across modules
 
+use num::{Num, NumCast};
 use std::prelude::v1::*;
 
 #[cfg(feature = "uefi")]
@@ -150,4 +151,13 @@ pub fn find_sequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     haystack
         .windows(needle.len())
         .position(|window| window == needle)
+}
+
+/// Assert length of an EC response from the windows driver
+/// It's always 20 more than expected. TODO: Figure out why
+pub fn assert_win_len<N: Num + std::fmt::Debug + Ord + NumCast + Copy>(left: N, right: N) {
+    #[cfg(feature = "win_driver")]
+    assert_eq!(left, right + NumCast::from(20).unwrap());
+    #[cfg(not(feature = "win_driver"))]
+    assert_eq!(left, right);
 }

@@ -12,7 +12,7 @@ use core::prelude::rust_2021::derive;
 use crate::ccgx::{AppVersion, BaseVersion, ControllerVersion};
 use crate::chromium_ec::command::EcCommands;
 use crate::chromium_ec::{CrosEc, CrosEcDriver, EcError, EcResponseStatus, EcResult};
-use crate::util::{self, Config, Platform};
+use crate::util::{self, assert_win_len, Config, Platform};
 use std::mem::size_of;
 
 use super::*;
@@ -245,8 +245,7 @@ impl PdController {
 
     pub fn get_silicon_id(&self) -> EcResult<u16> {
         let data = self.ccgx_read(ControlRegisters::SiliconId, 2)?;
-        assert!(data.len() >= 2);
-        debug_assert_eq!(data.len(), 2);
+        assert_win_len(data.len(), 2);
         Ok(u16::from_le_bytes([data[0], data[1]]))
     }
 
@@ -306,8 +305,7 @@ impl PdController {
             }
         };
 
-        assert!(data.len() >= 8);
-        debug_assert_eq!(data.len(), 8);
+        assert_win_len(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::from(&data[4..]);
         println!(
@@ -317,8 +315,7 @@ impl PdController {
 
         let data = self.ccgx_read(ControlRegisters::Firmware1Version, 8);
         let data = data.unwrap();
-        assert!(data.len() >= 8);
-        debug_assert_eq!(data.len(), 8);
+        assert_win_len(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::from(&data[4..]);
         println!(
@@ -328,8 +325,7 @@ impl PdController {
 
         let data = self.ccgx_read(ControlRegisters::Firmware2Version, 8);
         let data = data.unwrap();
-        assert!(data.len() >= 8);
-        debug_assert_eq!(data.len(), 8);
+        assert_win_len(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::from(&data[4..]);
         println!(
