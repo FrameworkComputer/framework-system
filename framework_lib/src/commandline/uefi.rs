@@ -99,10 +99,14 @@ pub fn parse(args: &[String]) -> Cli {
                 if let Ok(percent) = args[i + 1].parse::<u8>() {
                     Some(Some(percent))
                 } else {
-                    Some(None)
+                    println!(
+                        "Invalid value for --kblight: '{}'. Must be integer < 100.",
+                        args[i + 1]
+                    );
+                    None
                 }
             } else {
-                None
+                Some(None)
             }
         } else if arg == "--console" {
             cli.console = if args.len() > i + 1 {
@@ -116,6 +120,7 @@ pub fn parse(args: &[String]) -> Cli {
                     None
                 }
             } else {
+                println!("Need to provide a value for --console. Either `follow` or `recent`");
                 None
             }
         } else if arg == "-t" || arg == "--test" {

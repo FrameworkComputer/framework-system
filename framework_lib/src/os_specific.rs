@@ -7,8 +7,8 @@ use std::{thread, time};
 pub fn sleep(micros: u64) {
     #[cfg(not(feature = "uefi"))]
     {
-        let ten_millis = time::Duration::from_micros(micros);
-        thread::sleep(ten_millis);
+        let duration = time::Duration::from_micros(micros);
+        thread::sleep(duration);
     }
     #[cfg(feature = "uefi")]
     {
