@@ -80,6 +80,7 @@ struct EcHostRequest {
     pub struct_version: u8,
 
     /// Checksum of entire request (header and data)
+    /// Everything added together adds up to 0 (wrapping around u8 limit)
     pub checksum: u8,
 
     /// Command number
@@ -251,10 +252,10 @@ fn transfer_read(address: u16, size: u16) -> Vec<u8> {
             if util::is_debug() {
                 println!("  Received: {:#X} {:#X}", temp[0], temp[1]);
             }
-            unsafe {
-                buffer[usize::from(pos)..usize::from(pos + 4)]
-                    .copy_from_slice(temp.align_to::<u8>().1);
-            }
+            let aligned = unsafe { temp.align_to::<u8>() };
+            assert!(aligned.0.is_empty());
+            assert!(aligned.2.is_empty());
+            buffer[usize::from(pos)..usize::from(pos + 4)].copy_from_slice(aligned.1);
 
             pos += 4;
             offset += 4;
@@ -344,6 +345,27 @@ fn wait_for_ready() {
     }
 }
 
+fn checksum_fold(numbers: &[u8]) -> u8 {
+    numbers.iter().fold(0u8, |acc, x| acc.wrapping_add(*x))
+}
+
+fn checksum_buffers(buffers: &[&[u8]]) -> u8 {
+    if util::is_debug() {
+        for buffer in buffers {
+            util::print_buffer(buffer);
+        }
+    }
+    let cs = buffers
+        .iter()
+        .map(|x| checksum_fold(*x))
+        .fold(0u8, |acc, x| acc.wrapping_add(x))
+        .wrapping_neg();
+    if util::is_debug() {
+        println!("  is: {:#X}", cs);
+    }
+
+    cs
+}
 fn checksum_buffer(buffer: &[u8]) -> u8 {
     if util::is_debug() {
         print!("Checksum of ");
@@ -485,7 +507,11 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
         return Err(EcError::DeviceError("Packet size too big".to_string()));
     }
     let resp_buffer = if resp_header.data_len > 0 {
-        transfer_read(8, resp_header.data_len)
+        let data = transfer_read(8, resp_header.data_len);
+        let checksum = checksum_buffers(&[&resp_hdr_buffer, &data]);
+        // TODO: probably change to return Err instead
+        debug_assert_eq!(checksum, 0);
+        data
     } else {
         // Some commands don't return a response body
         vec![]
