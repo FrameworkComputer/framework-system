@@ -15,6 +15,7 @@ jobs:
       with:
         ssh-private-key: |
             ${{ secrets.PRIVKEY_SMBIOS_LIB }}
+            ${{ secrets.PRIVKEY_REDOX_UEFI_STD }}
 
     - name: Setup Rust toolchain
       run: rustup show
@@ -43,6 +44,7 @@ jobs:
       with:
         ssh-private-key: |
             ${{ secrets.PRIVKEY_SMBIOS_LIB }}
+            ${{ secrets.PRIVKEY_REDOX_UEFI_STD }}
 
     - name: Setup Rust toolchain
       run: rustup show
@@ -89,6 +91,7 @@ jobs:
       with:
         ssh-private-key: |
             ${{ secrets.PRIVKEY_SMBIOS_LIB }}
+            ${{ secrets.PRIVKEY_REDOX_UEFI_STD }}
 
     - name: Setup Rust toolchain
       run: rustup show
@@ -122,6 +125,7 @@ jobs:
         with:
           ssh-private-key: |
             ${{ secrets.PRIVKEY_SMBIOS_LIB }}
+            ${{ secrets.PRIVKEY_REDOX_UEFI_STD }}
 
       - name: Setup Rust toolchain
         run: rustup show
@@ -141,6 +145,7 @@ jobs:
       with:
         ssh-private-key: |
             ${{ secrets.PRIVKEY_SMBIOS_LIB }}
+            ${{ secrets.PRIVKEY_REDOX_UEFI_STD }}
 
     - name: Setup Rust toolchain
       run: rustup show
@@ -166,6 +171,7 @@ jobs:
       with:
         ssh-private-key: |
             ${{ secrets.PRIVKEY_SMBIOS_LIB }}
+            ${{ secrets.PRIVKEY_REDOX_UEFI_STD }}
 
     - name: Setup Rust toolchain
       run: rustup show

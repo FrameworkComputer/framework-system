@@ -404,24 +404,21 @@ checksum = "8eb516ad341a84372b5b15a5a35cf136ba901a639c8536f521b108253d7fce74"
 
 [[package]]
 name = "redox_uefi"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b317cf652e12b060987e810efe95d61d8bcd157943731c7fa66897934d92d24"
+version = "0.1.9"
+source = "git+ssh://git@github.com/FrameworkComputer/redox_uefi_std.git?branch=check-event#9829cd20c05027085427511e28828a7a51804274"
 
 [[package]]
 name = "redox_uefi_alloc"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f4ea6b35d7f7ed38a82b7af61abccef31bc8f54912d00b2220e35d07423a775"
+version = "0.1.9"
+source = "git+ssh://git@github.com/FrameworkComputer/redox_uefi_std.git?branch=check-event#9829cd20c05027085427511e28828a7a51804274"
 dependencies = [
  "redox_uefi",
 ]
 
 [[package]]
 name = "redox_uefi_std"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01adab1a733baa2f30e4db0ca0ef7747b936ab27690cecffda3027b5262d4600"
+version = "0.1.9"
+source = "git+ssh://git@github.com/FrameworkComputer/redox_uefi_std.git?branch=check-event#9829cd20c05027085427511e28828a7a51804274"
 dependencies = [
  "redox_uefi",
  "redox_uefi_alloc",
