@@ -9,6 +9,8 @@
 //! - `windows` - It uses [DHowett's Windows driver](https://github.com/DHowett/FrameworkWindowsUtils)
 
 use crate::smbios;
+#[cfg(feature = "uefi")]
+use crate::uefi::shell_get_execution_break_flag;
 use crate::util;
 
 use num_derive::FromPrimitive;
@@ -277,6 +279,10 @@ impl CrosEc {
                 }
             };
             cmd.subcmd = ConsoleReadSubCommand::ConsoleReadNext as u8;
+            #[cfg(feature = "uefi")]
+            if shell_get_execution_break_flag() {
+                return Ok(console);
+            }
         }
     }
 

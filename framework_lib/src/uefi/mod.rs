@@ -1,7 +1,23 @@
 use core::slice;
+use std::proto::Protocol;
 use std::uefi::guid::GuidKind;
 
 pub mod fs;
+
+/// Returns true when the execution break was requested, false otherwise
+pub fn shell_get_execution_break_flag() -> bool {
+    let shell = if let Ok(shell) = fs::Shell::locate_protocol() {
+        shell
+    } else {
+        println!("Failed to open Shell Protocol");
+        return false;
+    };
+
+    let uefi = std::system_table();
+    let check_event = uefi.BootServices.CheckEvent;
+    let status = (check_event)(shell.0.ExecutionBreak);
+    status.0 == 0
+}
 
 pub fn smbios_data() -> Option<Vec<u8>> {
     for config_table in std::system_table().config_tables() {

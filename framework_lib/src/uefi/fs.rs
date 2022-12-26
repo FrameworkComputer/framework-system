@@ -3,7 +3,7 @@ use std::uefi::status::Status;
 use std::proto::Protocol;
 use std::uefi::fs::{FILE_MODE_CREATE, FILE_MODE_READ, FILE_MODE_WRITE};
 use std::uefi::guid::{Guid, SHELL_GUID};
-use std::uefi::Handle;
+use std::uefi::{Event, Handle};
 use uefi_std::ffi::wstr;
 
 // TODO: Is actually void pointer. Opaque to the caller, so it doesn't matter
@@ -140,7 +140,7 @@ pub struct UefiShell {
     pub OpenRootByHandle: extern "win64" fn() -> (),
 
     // TODO: Is actually EFI_EVENT, not a function
-    pub ExecutionBreak: extern "win64" fn() -> (),
+    pub ExecutionBreak: Event,
 
     MajorVersion: u32,
     MinorVersion: u32,
