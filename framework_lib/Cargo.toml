@@ -34,10 +34,15 @@ nix = { version = "0.25.0", optional = true }
 num = { version = "0.4", default-features = false }
 num-derive = { version = "0.3", default-features = false }
 num-traits = { version = "0.2", default-features = false }
-redox_uefi_std = { version = "0.1.8", optional = true }
 redox_dmi = { version = "0.1.5", optional = true }
 plain = { version = "0.2.3", optional = true }
 spin = { version = "0.9.4", optional = false }
+
+[dependencies.redox_uefi_std]
+optional = true
+git = "ssh://git@github.com/FrameworkComputer/redox_uefi_std.git"
+branch = "check-event"
+#path = "../../uefi/crates/uefi_std"
 
 [dependencies.smbios-lib]
 git = "ssh://git@github.com/FrameworkComputer/smbios-lib.git"
