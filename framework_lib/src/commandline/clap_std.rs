@@ -62,12 +62,12 @@ struct ClapCli {
     #[arg(long)]
     kblight: Option<Option<u8>>,
 
-    /// Select which driver is used. By default portio is used
+    /// Get EC console, choose whether recent or to follow the output
     #[clap(value_enum)]
     #[arg(long)]
     console: Option<ConsoleArg>,
 
-    /// Get EC console, choose whether recent or to follow the output
+    /// Select which driver is used. By default portio is used
     #[clap(value_enum)]
     #[arg(long)]
     driver: Option<CrosEcDriverType>,

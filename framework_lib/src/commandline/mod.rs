@@ -133,14 +133,29 @@ fn print_versions(ec: &CrosEc) {
 
     println!("PD Controllers");
 
-    if let Ok(pd_versions) = power::read_pd_version() {
-        println!("  Left:           {}", pd_versions.controller01.app);
-        println!("  Right:          {}", pd_versions.controller23.app);
-    } else if let Ok(pd_versions) = ccgx::get_pd_controller_versions() {
-        // If EC doesn't have host command, get it directly from the PD controllers
-        // TODO: Maybe print all FW versions
-        println!("  Left:           {}", pd_versions.controller01.main_fw.app);
-        println!("  Right:          {}", pd_versions.controller23.main_fw.app);
+    if let Ok(pd_versions) = ccgx::get_pd_controller_versions() {
+        println!("  Right (01)");
+        println!(
+            "    Main   App:     {}",
+            pd_versions.controller01.main_fw.app
+        );
+        println!(
+            "    Backup App:     {}",
+            pd_versions.controller01.backup_fw.app
+        );
+        println!("  Left  (23)");
+        println!(
+            "    Main   App:     {}",
+            pd_versions.controller23.main_fw.app
+        );
+        println!(
+            "    Backup App:     {}",
+            pd_versions.controller23.backup_fw.app
+        );
+    } else if let Ok(pd_versions) = power::read_pd_version() {
+        // As fallback try to get it from the EC. But not all EC versions have this command
+        println!("  Right (01):     {}", pd_versions.controller01.app);
+        println!("  Left  (23):     {}", pd_versions.controller23.app);
     } else {
         println!("  Unknown")
     }

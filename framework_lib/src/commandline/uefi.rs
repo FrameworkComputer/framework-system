@@ -79,31 +79,45 @@ pub fn parse(args: &[String]) -> Cli {
         cli.help = true;
     }
 
+    let mut found_an_option = false;
+
     for (i, arg) in args.iter().enumerate() {
         if arg == "-v" || arg == "--versions" {
             cli.versions = true;
+            found_an_option = true;
         } else if arg == "--esrt" {
             cli.esrt = true;
+            found_an_option = true;
         } else if arg == "--power" {
             cli.power = true;
+            found_an_option = true;
         } else if arg == "--pdports" {
             cli.pdports = true;
+            found_an_option = true;
         } else if arg == "--allupdate" {
             cli.allupdate = true;
+            found_an_option = true;
         } else if arg == "--info" {
             cli.info = true;
+            found_an_option = true;
         } else if arg == "--intrusion" {
             cli.intrusion = true;
+            found_an_option = true;
         } else if arg == "--kblight" {
             cli.kblight = if args.len() > i + 1 {
                 if let Ok(percent) = args[i + 1].parse::<u8>() {
                     Some(Some(percent))
                 } else {
-                    Some(None)
+                    println!(
+                        "Invalid value for --kblight: '{}'. Must be integer < 100.",
+                        args[i + 1]
+                    );
+                    None
                 }
             } else {
-                None
-            }
+                Some(None)
+            };
+            found_an_option = true;
         } else if arg == "--console" {
             cli.console = if args.len() > i + 1 {
                 let console_arg = &args[i + 1];
@@ -116,43 +130,64 @@ pub fn parse(args: &[String]) -> Cli {
                     None
                 }
             } else {
+                println!("Need to provide a value for --console. Either `follow` or `recent`");
                 None
-            }
+            };
+            found_an_option = true;
         } else if arg == "-t" || arg == "--test" {
             cli.test = true;
+            found_an_option = true;
         } else if arg == "-h" || arg == "--help" {
             cli.help = true;
+            found_an_option = true;
         } else if arg == "--pd-info" {
             cli.pd_info = true;
+            found_an_option = true;
         } else if arg == "--privacy" {
             cli.privacy = true;
+            found_an_option = true;
         } else if arg == "--pd-bin" {
             cli.pd_bin = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
+                println!("--pd-bin requires extra argument to denote input file");
                 None
-            }
+            };
+            found_an_option = true;
         } else if arg == "--ec-bin" {
             cli.ec_bin = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
+                println!("--ec-bin requires extra argument to denote input file");
                 None
-            }
+            };
+            found_an_option = true;
         } else if arg == "--capsule" {
             cli.capsule = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
+                println!("--capsule requires extra argument to denote input file");
                 None
-            }
+            };
+            found_an_option = true;
         } else if arg == "--dump" {
             cli.dump = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
+                println!("--dump requires extra argument to denote output file");
                 None
-            }
+            };
+            found_an_option = true;
         } else if arg == "--raw-command" {
             cli.raw_command = args[1..].to_vec();
         }
+    }
+
+    if !found_an_option {
+        println!(
+            "Failed to parse any commandline options. Commandline was: {:?}",
+            args
+        );
     }
 
     cli

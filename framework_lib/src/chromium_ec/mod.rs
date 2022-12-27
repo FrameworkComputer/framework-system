@@ -268,6 +268,11 @@ impl CrosEc {
         loop {
             match cmd.send_command_vec(self) {
                 Ok(data) => {
+                    // I think that means the buffer is empty
+                    if data.is_empty() {
+                        return Ok(console);
+                    }
+
                     let string = std::str::from_utf8(&data).unwrap();
                     print!("{}", string);
                     console.push_str(string);
