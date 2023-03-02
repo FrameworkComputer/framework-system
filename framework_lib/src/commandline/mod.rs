@@ -230,7 +230,10 @@ fn print_versions(ec: &CrosEc) {
     if let Some(esrt) = esrt::get_esrt() {
         for entry in &esrt.entries {
             match entry.fw_class {
-                esrt::RETIMER01_GUID | esrt::RETIMER23_GUID => {
+                esrt::RETIMER01_GUID
+                | esrt::RETIMER23_GUID
+                | esrt::GEN13_RETIMER01_GUID
+                | esrt::GEN13_RETIMER23_GUID => {
                     if !found_retimer {
                         found_retimer = true;
                     }
@@ -238,13 +241,13 @@ fn print_versions(ec: &CrosEc) {
                 _ => {}
             }
             match entry.fw_class {
-                esrt::RETIMER01_GUID => {
+                esrt::RETIMER01_GUID | esrt::GEN13_RETIMER01_GUID => {
                     println!(
                         "  Left:           0x{:X} ({})",
                         entry.fw_version, entry.fw_version
                     );
                 }
-                esrt::RETIMER23_GUID => {
+                esrt::RETIMER23_GUID | esrt::GEN13_RETIMER23_GUID => {
                     println!(
                         "  Right:          0x{:X} ({})",
                         entry.fw_version, entry.fw_version
@@ -643,10 +646,16 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
             println!("  Type:         Framework Insyde BIOS");
         }
         esrt::RETIMER01_GUID => {
-            println!("  Type:    Framework Retimer01 (Left)");
+            println!("  Type:    Framework ADL Retimer01 (Left)");
         }
         esrt::RETIMER23_GUID => {
-            println!("  Type:   Framework Retimer23 (Right)");
+            println!("  Type:   Framework ADL Retimer23 (Right)");
+        }
+        esrt::GEN13_RETIMER01_GUID => {
+            println!("  Type:    Framework RPL Retimer01 (Left)");
+        }
+        esrt::GEN13_RETIMER23_GUID => {
+            println!("  Type:   Framework RPL Retimer23 (Right)");
         }
         esrt::WINUX_GUID => {
             println!("  Type:            Windows UX capsule");
