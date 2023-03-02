@@ -381,7 +381,7 @@ fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
             major: (data[3] >> 4) & 0xF,
             minor: (data[3]) & 0xF,
             patch: data[2],
-            build_number: (data[0] as u16) + ((data[1] as u16) << 8),
+            build_number: u16::from_le_bytes([data[0], data[1]]),
         },
         app: AppVersion {
             application: Application::Notebook,
