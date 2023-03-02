@@ -133,7 +133,7 @@ impl PdController {
         if util::is_debug() {
             println!("i2c_read(addr: {}, len: {})", addr, len);
         }
-        let addr_bytes = [addr as u8, (addr >> 8) as u8];
+        let addr_bytes = u16::to_le_bytes(addr);
         let messages = vec![
             EcParamsI2cPassthruMsg {
                 addr_and_flags: self.port.i2c_address(),
@@ -201,7 +201,7 @@ impl PdController {
         let data = self.ccgx_read(ControlRegisters::SiliconId, 2)?;
         assert!(data.len() >= 2);
         debug_assert_eq!(data.len(), 2);
-        Ok(((data[1] as u16) << 8) + (data[0] as u16))
+        Ok(u16::from_le_bytes([data[0], data[1]]))
     }
 
     /// Get device info (fw_mode, flash_row_size)

@@ -126,8 +126,10 @@ fn read_version(
     let app_version = AppVersion::from(&data[APP_VERSION_OFFSET..]);
     let silicon_id = &data[SILICON_ID_OFFSET..];
 
-    let fw_silicon_id = (silicon_id[SILICON_FAMILY_BYTE] as u16)
-        + ((silicon_id[SILICON_FAMILY_BYTE + 1] as u16) << 8);
+    let fw_silicon_id = u16::from_le_bytes([
+        silicon_id[SILICON_FAMILY_BYTE],
+        silicon_id[SILICON_FAMILY_BYTE + 1],
+    ]);
 
     Some(PdFirmware {
         silicon_id: fw_silicon_id,

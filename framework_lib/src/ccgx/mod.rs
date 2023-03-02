@@ -52,7 +52,7 @@ impl fmt::Display for BaseVersion {
 impl From<&[u8]> for BaseVersion {
     fn from(data: &[u8]) -> Self {
         Self {
-            build_number: ((data[1] as u16) << 8) + (data[0] as u16),
+            build_number: u16::from_le_bytes([data[0], data[1]]),
             patch: data[2],
             major: (data[3] & 0xF0) >> 4,
             minor: data[3] & 0x0F,
@@ -140,13 +140,18 @@ fn parse_metadata(buffer: &[u8]) -> Option<(u32, u32)> {
     if (metadata[METADATA_MAGIC_OFFSET] == METADATA_MAGIC_1)
         && (metadata[METADATA_MAGIC_OFFSET + 1] == METADATA_MAGIC_2)
     {
-        let fw_row_start = (metadata[LAST_BOOTLOADER_ROW] as u32)
-            + ((metadata[LAST_BOOTLOADER_ROW + 1] as u32) << 8)
-            + 1;
-        let fw_size = (metadata[FW_SIZE_OFFSET] as u32)
-            + ((metadata[FW_SIZE_OFFSET + 1] as u32) << 8)
-            + ((metadata[FW_SIZE_OFFSET + 2] as u32) << 16)
-            + ((metadata[FW_SIZE_OFFSET + 3] as u32) << 24);
+        let fw_row_start = 1 + u32::from_le_bytes([
+            metadata[LAST_BOOTLOADER_ROW],
+            metadata[LAST_BOOTLOADER_ROW + 1],
+            0,
+            0,
+        ]);
+        let fw_size = u32::from_le_bytes([
+            metadata[FW_SIZE_OFFSET],
+            metadata[FW_SIZE_OFFSET + 1],
+            metadata[FW_SIZE_OFFSET + 2],
+            metadata[FW_SIZE_OFFSET + 3],
+        ]);
         Some((fw_row_start, fw_size))
     } else {
         // println!("Metadata is invalid");
