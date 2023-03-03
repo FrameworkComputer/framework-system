@@ -1,4 +1,4 @@
-//! Communicate with CCGX PD controllers
+//! Communicate with CCGX (CCG5, CCG6) PD controllers
 //!
 //! The current implementation talks to them by tunneling I2C through EC host commands.
 
@@ -50,7 +50,7 @@ impl PdPort {
             (Platform::IntelGen12, PdPort::Right23) => 7,
             (Platform::IntelGen13, PdPort::Left01) => 6,
             (Platform::IntelGen13, PdPort::Right23) => 7,
-            //(_, _) => panic!("Unsupported platform: {:?} {:?}", platform, self),
+            (_, _) => panic!("Unsupported platform: {:?} {:?}", platform, self),
         }
     }
 }

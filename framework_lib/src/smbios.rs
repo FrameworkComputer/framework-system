@@ -74,17 +74,23 @@ pub fn get_platform() -> Option<Platform> {
     for undefined_struct in smbios.unwrap().iter() {
         if let DefinedStruct::SystemInformation(data) = undefined_struct.defined_struct() {
             if let Some(product_name) = dmidecode_string_val(&data.product_name()) {
-                if product_name == "Laptop (13th Gen Intel Core)" {
-                    return Some(Platform::IntelGen13);
-                }
-                if product_name == "Laptop (12th Gen Intel Core)" {
-                    return Some(Platform::IntelGen12);
+                match product_name.as_str() {
+                    "Laptop (12th Gen Intel Core)" => return Some(Platform::IntelGen12),
+                    "Laptop (13th Gen Intel Core)" => return Some(Platform::IntelGen13),
+                    _ => {}
                 }
             }
             if let Some(family) = dmidecode_string_val(&data.family()) {
-                // Is "13in Laptop" on post 11th Gen
-                if family == "FRANBMCP" {
-                    return Some(Platform::IntelGen11);
+                match family.as_str() {
+                    // TGL Mainboard
+                    "FRANBMCP" => return Some(Platform::IntelGen11),
+                    // ADL Mainboard (I don't this ever appears in family)
+                    "FRANMACP" => return Some(Platform::IntelGen12),
+                    // RPL Mainboard (I don't this ever appears in family)
+                    "FRANMCCP" => return Some(Platform::IntelGen13),
+                    // Framework 16 Mainboard
+                    "FRANMZCP" => return Some(Platform::Framework16),
+                    _ => {}
                 }
             }
         }
