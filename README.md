@@ -25,13 +25,16 @@ see the [Support Matrices](support-matrices.md).
     - [x] ESRT table (UEFI and Linux only) (`--esrt`)
     - [x] SMBIOS
   - [x] Get firmware version from binary file
-    - [x] EC (`--ec-bin`)
+    - [x] MCHP EC on Intel Platform (`--ec-bin`)
+    - [ ] NPC EC on Framework 16
     - [x] CCG5 PD (11th Gen TigerLake) (`--pd-bin`)
     - [x] CCG6 PD (12th Gen AlderLake) (`--pd-bin`)
+    - [x] CCG8 PD (Framework 16) (`--pd-bin`)
     - [x] HO2 BIOS Capsule (`--ho2-capsule`)
       - [x] BIOS Version
       - [x] EC Version
       - [x] CCG5/CCG6 PD Version
+    - [x] UEFI Capsule (`--capsule`)
   - [x] Parse metadata from capsule binary
     - [x] Determine type (GUID) of capsule binary
     - [x] Extract bitmap image from winux capsule to file

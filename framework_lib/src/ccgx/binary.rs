@@ -96,9 +96,14 @@ fn read_metadata(
     file_buffer: &[u8],
     flash_row_size: u32,
     metadata_offset: u32,
+    ccgx: SiliconId,
 ) -> Option<(u32, u32)> {
     let buffer = read_256_bytes(file_buffer, metadata_offset, flash_row_size)?;
-    parse_metadata_cyacd(&buffer)
+    match ccgx {
+        SiliconId::Ccg5 | SiliconId::Ccg6 => parse_metadata_cyacd(&buffer),
+        SiliconId::Ccg8 => parse_metadata_cyacd2(&buffer)
+            .map(|(fw_row_start, fw_size)| (fw_row_start / flash_row_size, fw_size)),
+    }
 }
 
 /// Read 256 bytes starting from a particular row
@@ -121,8 +126,10 @@ fn read_version(
     file_buffer: &[u8],
     flash_row_size: u32,
     metadata_offset: u32,
+    ccgx: SiliconId,
 ) -> Option<PdFirmware> {
-    let (fw_row_start, fw_size) = read_metadata(file_buffer, flash_row_size, metadata_offset)?;
+    let (fw_row_start, fw_size) =
+        read_metadata(file_buffer, flash_row_size, metadata_offset, ccgx)?;
     let data = read_256_bytes(file_buffer, fw_row_start, flash_row_size)?;
     let data = &data[FW_VERSION_OFFSET..];
 
@@ -152,9 +159,10 @@ pub fn read_versions(file_buffer: &[u8], ccgx: SiliconId) -> Option<PdFirmwareFi
     let (flash_row_size, f1_metadata_row, fw2_metadata_row) = match ccgx {
         SiliconId::Ccg5 => (0x100, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG5),
         SiliconId::Ccg6 => (0x80, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG6),
+        SiliconId::Ccg8 => (0x100, FW1_METADATA_ROW_CCG8, FW2_METADATA_ROW_CCG8),
     };
-    let backup_fw = read_version(file_buffer, flash_row_size, f1_metadata_row)?;
-    let main_fw = read_version(file_buffer, flash_row_size, fw2_metadata_row)?;
+    let backup_fw = read_version(file_buffer, flash_row_size, f1_metadata_row, ccgx)?;
+    let main_fw = read_version(file_buffer, flash_row_size, fw2_metadata_row, ccgx)?;
 
     Some(PdFirmwareFile { backup_fw, main_fw })
 }
@@ -190,8 +198,10 @@ mod tests {
         let data = fs::read(pd_bin_path).unwrap();
         let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
         let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
+        let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
         assert!(ccg5_ver.is_some());
         assert!(ccg6_ver.is_none());
+        assert!(ccg8_ver.is_none());
 
         assert_eq!(
             ccg5_ver,
@@ -248,8 +258,10 @@ mod tests {
         let data = fs::read(pd_bin_path).unwrap();
         let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
         let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
+        let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_some());
+        assert!(ccg8_ver.is_none());
 
         assert_eq!(
             ccg6_ver,
@@ -292,6 +304,66 @@ mod tests {
                         start_row: 118,
                         size: 49408,
                         row_size: 128,
+                    },
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn can_parse_ccg8_binary() {
+        let mut pd_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        pd_bin_path.push("test_bins/fl16-pd-0.0.03.bin");
+
+        let data = fs::read(pd_bin_path).unwrap();
+        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
+        let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        assert!(ccg5_ver.is_none());
+        assert!(ccg6_ver.is_none());
+        assert!(ccg8_ver.is_some());
+
+        assert_eq!(
+            ccg8_ver,
+            Some({
+                PdFirmwareFile {
+                    backup_fw: PdFirmware {
+                        silicon_id: 0x11C5,
+                        silicon_family: 0x3580,
+                        base_version: BaseVersion {
+                            major: 3,
+                            minor: 6,
+                            patch: 0,
+                            build_number: 160,
+                        },
+                        app_version: AppVersion {
+                            application: Application::Notebook,
+                            major: 0,
+                            minor: 0,
+                            circuit: 3,
+                        },
+                        start_row: 290,
+                        size: 111536,
+                        row_size: 0x100,
+                    },
+                    main_fw: PdFirmware {
+                        silicon_id: 0x11C5,
+                        silicon_family: 0x3580,
+                        base_version: BaseVersion {
+                            major: 3,
+                            minor: 6,
+                            patch: 0,
+                            build_number: 160,
+                        },
+                        app_version: AppVersion {
+                            application: Application::Notebook,
+                            major: 0,
+                            minor: 0,
+                            circuit: 3,
+                        },
+                        start_row: 29,
+                        size: 42312,
+                        row_size: 0x100,
                     },
                 }
             })

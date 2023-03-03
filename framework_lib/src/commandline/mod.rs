@@ -601,6 +601,16 @@ fn smbios_info() {
 fn analyze_ccgx_pd_fw(data: &[u8]) {
     let mut succeeded = false;
 
+    if let Some(versions) = ccgx::binary::read_versions(data, Ccg8) {
+        succeeded = true;
+        println!("Detected CCG8 firmware");
+        println!("FW 1");
+        ccgx::binary::print_fw(&versions.backup_fw);
+
+        println!("FW 2");
+        ccgx::binary::print_fw(&versions.main_fw);
+    }
+
     if let Some(versions) = ccgx::binary::read_versions(data, Ccg5) {
         succeeded = true;
         println!("Detected CCG5 firmware");
