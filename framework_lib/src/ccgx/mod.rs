@@ -15,12 +15,41 @@ pub mod device;
 const FW1_METADATA_ROW: u32 = 0x1FE;
 const FW2_METADATA_ROW_CCG5: u32 = 0x1FF;
 const FW2_METADATA_ROW_CCG6: u32 = 0x1FD;
-const LAST_BOOTLOADER_ROW: usize = 0x05;
-const FW_SIZE_OFFSET: usize = 0x09;
 const METADATA_OFFSET: usize = 0xC0; // TODO: Is this 0x40 on ADL?
-const METADATA_MAGIC_OFFSET: usize = 0x16;
-const METADATA_MAGIC_1: u8 = 0x59;
-const METADATA_MAGIC_2: u8 = 0x43;
+const METADATA_MAGIC: u16 = u16::from_le_bytes([b'Y', b'C']); // CY (Cypress)
+
+#[repr(packed)]
+#[derive(Debug, Copy, Clone)]
+struct CyAcdMetadata {
+    /// Offset 00: Single Byte FW Checksum
+    _fw_checksum: u8,
+    /// Offset 01: FW Entry Address
+    _fw_entry: u32,
+    /// Offset 05: Last Flash row of Bootloader or previous firmware
+    boot_last_row: u16,
+    /// Offset 07: Reserved
+    _reserved1: [u8; 2],
+    /// Offset 09: Size of Firmware
+    fw_size: u32,
+    /// Offset 0D: Reserved
+    _reserved2: [u8; 3],
+    /// Offset 10: Creator specific field
+    _active_boot_app: u8,
+    /// Offset 11: Creator specific field
+    _boot_app_ver_status: u8,
+    /// Offset 12: Creator specific field
+    _boot_app_version: u16,
+    /// Offset 14: Creator specific field
+    _boot_app_id: u16,
+    /// Offset 16: Metadata Valid field. Valid if contains "CY"
+    metadata_valid: u16,
+    /// Offset 18: Creator specific field
+    _fw_version: u32,
+    /// Offset 1C: Boot sequence number field. Boot-loader will load the valid
+    ///            FW copy that has the higher sequence number associated with it
+    /// Not relevant when checking the update binary file
+    _boot_seq: u32,
+}
 
 #[non_exhaustive]
 #[derive(Debug, PartialEq, FromPrimitive, Clone, Copy)]
@@ -59,6 +88,12 @@ impl From<&[u8]> for BaseVersion {
         }
     }
 }
+impl From<u32> for BaseVersion {
+    fn from(data: u32) -> Self {
+        Self::from(u32::to_le_bytes(data).as_slice())
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum Application {
     Notebook,
@@ -89,7 +124,11 @@ impl From<&[u8]> for AppVersion {
         } else if data[0] == 0x64 && data[1] == 0x6d {
             Application::Monitor // ASCII "md"
         } else {
-            debug_assert!(false, "Couldn't parse application");
+            debug_assert!(
+                false,
+                "Couldn't parse application 0x{:X}, 0x{:X}",
+                data[0], data[1]
+            );
             Application::Invalid
         };
         Self {
@@ -98,6 +137,11 @@ impl From<&[u8]> for AppVersion {
             major: (data[3] & 0xF0) >> 4,
             minor: data[3] & 0x0F,
         }
+    }
+}
+impl From<u32> for AppVersion {
+    fn from(data: u32) -> Self {
+        Self::from(u32::to_le_bytes(data).as_slice())
     }
 }
 
@@ -134,27 +178,15 @@ pub fn get_pd_controller_versions() -> EcResult<PdVersions> {
 }
 
 //fn parse_metadata(buffer: &[u8; 256]) -> Option<(u32, u32)> {
-fn parse_metadata(buffer: &[u8]) -> Option<(u32, u32)> {
-    let metadata = &buffer[METADATA_OFFSET..];
-
-    if (metadata[METADATA_MAGIC_OFFSET] == METADATA_MAGIC_1)
-        && (metadata[METADATA_MAGIC_OFFSET + 1] == METADATA_MAGIC_2)
-    {
-        let fw_row_start = 1 + u32::from_le_bytes([
-            metadata[LAST_BOOTLOADER_ROW],
-            metadata[LAST_BOOTLOADER_ROW + 1],
-            0,
-            0,
-        ]);
-        let fw_size = u32::from_le_bytes([
-            metadata[FW_SIZE_OFFSET],
-            metadata[FW_SIZE_OFFSET + 1],
-            metadata[FW_SIZE_OFFSET + 2],
-            metadata[FW_SIZE_OFFSET + 3],
-        ]);
-        Some((fw_row_start, fw_size))
+fn parse_metadata_cyacd(buffer: &[u8]) -> Option<(u32, u32)> {
+    let buffer = &buffer[METADATA_OFFSET..];
+    let metadata_len = std::mem::size_of::<CyAcdMetadata>();
+    let metadata: CyAcdMetadata =
+        unsafe { std::ptr::read(buffer[0..metadata_len].as_ptr() as *const _) };
+    //println!("Metadata: {:?}", metadata);
+    if metadata.metadata_valid == METADATA_MAGIC {
+        Some((1 + metadata.boot_last_row as u32, metadata.fw_size))
     } else {
-        // println!("Metadata is invalid");
         None
     }
 }

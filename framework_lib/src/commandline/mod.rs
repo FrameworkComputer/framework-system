@@ -76,7 +76,7 @@ fn print_single_pd_details(pd: &PdController) {
     if let Ok(si) = pd.get_silicon_id() {
         println!("  Silicon ID:     0x{:X}", si);
     } else {
-        println!("  Failed to read Silicon ID");
+        println!("  Failed to read Silicon ID/Family");
     }
     if let Ok((mode, frs)) = pd.get_device_info() {
         println!("  Mode:           {:?}", mode);
