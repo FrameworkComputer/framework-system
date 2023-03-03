@@ -12,6 +12,9 @@ pub mod uefi;
 use std::fs;
 
 use crate::capsule;
+use crate::capsule_content::{
+    find_bios_version, find_ec_in_bios_cap, find_pd_in_bios_cap, find_retimer_version,
+};
 use crate::ccgx::device::{PdController, PdPort};
 use crate::ccgx::{self, SiliconId::*};
 use crate::chromium_ec;
@@ -52,6 +55,7 @@ pub struct Cli {
     pub ec_bin: Option<String>,
     pub capsule: Option<String>,
     pub dump: Option<String>,
+    pub ho2_capsule: Option<String>,
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
     pub intrusion: bool,
@@ -365,6 +369,34 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 println!("Capsule is invalid.");
             }
         }
+    } else if let Some(capsule_path) = &args.ho2_capsule {
+        #[cfg(feature = "uefi")]
+        let data = crate::uefi::fs::shell_read_file(capsule_path);
+        #[cfg(not(feature = "uefi"))]
+        let data = match fs::read(capsule_path) {
+            Ok(data) => Some(data),
+            // TODO: Perhaps a more user-friendly error
+            Err(e) => {
+                println!("Error {:?}", e);
+                None
+            }
+        };
+
+        if let Some(data) = data {
+            println!("File");
+            println!("  Size:       {:>20} B", data.len());
+            println!("  Size:       {:>20} KB", data.len() / 1024);
+            if let Some(cap) = find_bios_version(&data) {
+                println!("  BIOS Platform:{:>18}", cap.platform);
+                println!("  BIOS Version: {:>18}", cap.version);
+            }
+            if let Some(ec_bin) = find_ec_in_bios_cap(&data) {
+                analyze_ec_fw(ec_bin);
+            }
+            if let Some(pd_bin) = find_pd_in_bios_cap(&data) {
+                analyze_ccgx_pd_fw(pd_bin);
+            }
+        }
     }
 
     0
@@ -546,5 +578,15 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
             println!("  Type:                      Unknown");
         }
     }
+
+    match esrt::match_guid_kind(&header.capsule_guid) {
+        esrt::FrameworkGuidKind::Retimer01 | esrt::FrameworkGuidKind::Retimer23 => {
+            if let Some(ver) = find_retimer_version(data) {
+                println!("  Version:      {:>18?}", ver);
+            }
+        }
+        _ => {}
+    }
+
     Some(header)
 }

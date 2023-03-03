@@ -54,6 +54,10 @@ struct ClapCli {
     #[arg(long)]
     dump: Option<std::path::PathBuf>,
 
+    /// Parse UEFI Capsule information from binary file
+    #[arg(long)]
+    ho2_capsule: Option<std::path::PathBuf>,
+
     /// Show status of intrusion switch
     #[arg(long)]
     intrusion: bool,
@@ -98,6 +102,9 @@ pub fn parse(args: &[String]) -> Cli {
             .capsule
             .map(|x| x.into_os_string().into_string().unwrap()),
         dump: args.dump.map(|x| x.into_os_string().into_string().unwrap()),
+        ho2_capsule: args
+            .ho2_capsule
+            .map(|x| x.into_os_string().into_string().unwrap()),
         intrusion: args.intrusion,
         kblight: args.kblight,
         console: args.console,

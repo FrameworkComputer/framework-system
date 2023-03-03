@@ -47,6 +47,9 @@ struct VersionInfo {
     silicon_family: u16,
 }
 
+pub const CCG5_PD_LEN: usize = 0x2_0000;
+pub const CCG6_PD_LEN: usize = 0x2_0000;
+
 /// Information about all the firmware in a PD binary file
 ///
 /// Each file has two firmwares.

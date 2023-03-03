@@ -4,6 +4,7 @@ const CROS_EC_IMAGE_DATA_COOKIE1: u32 = 0xce778899;
 const CROS_EC_IMAGE_DATA_COOKIE2: u32 = 0xceaabbdd;
 // Absolute offset of the version struct inside the entire EC binary
 const EC_VERSION_OFFSET: usize = 0x1158;
+pub const EC_LEN: usize = 0x8_0000;
 
 #[cfg(not(feature = "uefi"))]
 #[cfg(feature = "std")]

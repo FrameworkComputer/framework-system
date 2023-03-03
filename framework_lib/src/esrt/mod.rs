@@ -109,7 +109,7 @@ pub const WINUX_GUID: Guid = Guid(
 );
 
 #[derive(Debug)]
-enum FrameworkGuidKind {
+pub enum FrameworkGuidKind {
     Bios,
     Retimer01,
     Retimer23,
@@ -117,7 +117,7 @@ enum FrameworkGuidKind {
     Unknown,
 }
 
-fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
+pub fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
     match *guid {
         BIOS_GUID => FrameworkGuidKind::Bios,
         RETIMER01_GUID => FrameworkGuidKind::Retimer01,

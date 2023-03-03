@@ -20,8 +20,12 @@ Features:
     - [x] EC (`--ec-bin`)
     - [x] CCG5 PD (11th Gen TigerLake) (`--pd-bin`)
     - [x] CCG6 PD (12th Gen AlderLake) (`--pd-bin`)
-    - [x] UEFI Capsule (`--capsule`)
+    - [x] HO2 BIOS Capsule (`--ho2-capsule`)
+      - [x] BIOS Version
+      - [x] EC Version
+      - [x] CCG5/CCG6 PD Version
   - [x] Parse metadata from capsule binary
+    - [x] Determine type (GUID) of capsule binary
     - [x] Extract bitmap image from winux capsule to file
   - [x] Get firmware version from system (`--versions`)
     - [x] BIOS

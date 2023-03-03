@@ -63,6 +63,7 @@ pub fn parse(args: &[String]) -> Cli {
         ec_bin: None,
         capsule: None,
         dump: None,
+        ho2_capsule: None,
         intrusion: false,
         kblight: None,
         console: None,
@@ -175,6 +176,14 @@ pub fn parse(args: &[String]) -> Cli {
                 Some(args[i + 1].clone())
             } else {
                 println!("--dump requires extra argument to denote output file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--ho2-capsule" {
+            cli.ho2_capsule = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--ho2-capsule requires extra argument to denote input file");
                 None
             };
             found_an_option = true;
