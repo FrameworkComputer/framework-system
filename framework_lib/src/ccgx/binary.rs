@@ -15,26 +15,16 @@
 //! | 0x1FD     | 0x1FE   | 0x1         | FW1 Metadata at 0xC0 (192) inside this row |
 //! | 0x1FE     | 0x1FF   | 0x1         | FW2 Metadata at 0xC0 (192) inside this row |
 //!
-//! FW Metadata layout (at the end of the flash 0x1FD and 0x1FE)
-//!
-//! | Offset | Size |              |                                                 |
-//! |--------|------|--------------|-------------------------------------------------|
-//! | 0x00   | 0x18 | Total Size   |                                                 |
-//! | 0x00   | 0x05 | Unknown      |                                                 |
-//! | 0x05   | 0x04 | Last BL Row  | LE u32 to indicate the last row of the bootloader, FW begins afterwards |
-//! | 0x09   | 0x04 | FW Num Rows  | LE u32 Size of the firmware in rows             |
-//! | 0x0D   | 0x08 | Unknown      |                                                 |
-//! | 0x16   | 0x01 | Magic Byte 0 | Must be 0x59                                    |
-//! | 0x17   | 0x01 | Magic Byte 1 | Must be 0x43                                    |
-//!
 //! FW Layout (not at the same location as the metadata! But metadata points there)
 //!
-//! | Offset | Size |              |                                                 |
-//! |--------|------|--------------|-------------------------------------------------|
-//! | 0x00   | 0x18 | Total Size   |                                                 |
-//! | 0xE4   | 0x05 | Unknown      |                                                 |
-//! | 0xE8   | 0x01 | Patch version| X.Y.ZZ ZZ part of the version                   |
-//! | 0xE9   | 0x01 | Version      | X.Y.ZZ X and Y part of the version (4 bits each)|
+//! | Offset | Size |                 |                                                     |
+//! |--------|------|-----------------|---------------------------------------------------- |
+//! | 0xC0   | 0x20 | Customer Region | Can be customized by us                             |
+//! | 0xE0   | 0x04 | Base Version    | SDK Version                                         |
+//! | 0xE4   | 0x04 | App Version     | Application Version                                 |
+//! | 0xE8   | 0x02 | Silicon ID      |                                                     |
+//! | 0xEA   | 0x02 | Silicon Family  |                                                     |
+//! | 0xEC   | 0x28 | Reserved        | Stretches into next row, so don't bother reading it |
 
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
@@ -43,13 +33,19 @@ use crate::ccgx::{AppVersion, BaseVersion};
 
 use super::*;
 
-const SILICON_ID_OFFSET: usize = 0xE8;
-const SILICON_FAMILY_BYTE: usize = 0x02;
+/// Offset of the version and silicon information in the firmware image
+/// This is set by the linker script
+/// To find the firmware image in the binary, get the offset from the metadata.
+const FW_VERSION_OFFSET: usize = 0xE0;
 
-/// Base Version, 4 bytes long
-const BASE_VERSION_OFFSET: usize = 0xE0;
-/// App Version, 4 bytes long
-const APP_VERSION_OFFSET: usize = 0xE4;
+#[repr(packed)]
+#[derive(Debug, Copy, Clone)]
+struct VersionInfo {
+    base_version: u32,
+    app_version: u32,
+    silicon_id: u16,
+    silicon_family: u16,
+}
 
 /// Information about all the firmware in a PD binary file
 ///
@@ -66,6 +62,7 @@ pub struct PdFirmwareFile {
 pub struct PdFirmware {
     /// TODO: Find out what this is
     pub silicon_id: u16,
+    pub silicon_family: u16,
     pub base_version: BaseVersion,
     pub app_version: AppVersion,
     /// At which row in the file this firmware is
@@ -96,7 +93,7 @@ fn read_metadata(
     metadata_offset: u32,
 ) -> Option<(u32, u32)> {
     let buffer = read_256_bytes(file_buffer, metadata_offset, flash_row_size)?;
-    parse_metadata(&buffer)
+    parse_metadata_cyacd(&buffer)
 }
 
 /// Read 256 bytes starting from a particular row
@@ -122,17 +119,21 @@ fn read_version(
 ) -> Option<PdFirmware> {
     let (fw_row_start, fw_size) = read_metadata(file_buffer, flash_row_size, metadata_offset)?;
     let data = read_256_bytes(file_buffer, fw_row_start, flash_row_size)?;
-    let base_version = BaseVersion::from(&data[BASE_VERSION_OFFSET..]);
-    let app_version = AppVersion::from(&data[APP_VERSION_OFFSET..]);
-    let silicon_id = &data[SILICON_ID_OFFSET..];
+    let data = &data[FW_VERSION_OFFSET..];
 
-    let fw_silicon_id = u16::from_le_bytes([
-        silicon_id[SILICON_FAMILY_BYTE],
-        silicon_id[SILICON_FAMILY_BYTE + 1],
-    ]);
+    let version_len = std::mem::size_of::<VersionInfo>();
+    let version_info: VersionInfo =
+        unsafe { std::ptr::read(data[0..version_len].as_ptr() as *const _) };
+
+    let base_version = BaseVersion::from(version_info.base_version);
+    let app_version = AppVersion::from(version_info.app_version);
+
+    let fw_silicon_id = version_info.silicon_id;
+    let fw_silicon_family = version_info.silicon_family;
 
     Some(PdFirmware {
         silicon_id: fw_silicon_id,
+        silicon_family: fw_silicon_family,
         base_version,
         app_version,
         start_row: fw_row_start,
@@ -143,11 +144,11 @@ fn read_version(
 
 /// Parse all PD information, given a binary file (buffer)
 pub fn read_versions(file_buffer: &[u8], ccgx: SiliconId) -> Option<PdFirmwareFile> {
-    let (flash_row_size, fw2_metadata_row) = match ccgx {
-        SiliconId::Ccg5 => (0x100, FW2_METADATA_ROW_CCG5),
-        SiliconId::Ccg6 => (0x80, FW2_METADATA_ROW_CCG6),
+    let (flash_row_size, f1_metadata_row, fw2_metadata_row) = match ccgx {
+        SiliconId::Ccg5 => (0x100, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG5),
+        SiliconId::Ccg6 => (0x80, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG6),
     };
-    let backup_fw = read_version(file_buffer, flash_row_size, FW1_METADATA_ROW)?;
+    let backup_fw = read_version(file_buffer, flash_row_size, f1_metadata_row)?;
     let main_fw = read_version(file_buffer, flash_row_size, fw2_metadata_row)?;
 
     Some(PdFirmwareFile { backup_fw, main_fw })
@@ -155,8 +156,10 @@ pub fn read_versions(file_buffer: &[u8], ccgx: SiliconId) -> Option<PdFirmwareFi
 
 /// Pretty print information about PD firmware
 pub fn print_fw(fw: &PdFirmware) {
-    let silicon_ver = format!("{:#06x}", fw.silicon_id);
-    println!("  Silicon ID: {:>20}", silicon_ver);
+    let silicon_id = format!("{:#06x}", fw.silicon_id);
+    let silicon_family = format!("{:#06x}", fw.silicon_family);
+    println!("  Silicon ID: {:>20}", silicon_id);
+    println!("  Silicon Family: {:>16}", silicon_family);
     // TODO: Why does the padding not work? I shouldn't have to manually pad it
     println!("  Version:                  {:>20}", fw.app_version);
     println!("  Base Ver:                 {:>20}", fw.base_version);
@@ -190,7 +193,8 @@ mod tests {
             Some({
                 PdFirmwareFile {
                     backup_fw: PdFirmware {
-                        silicon_id: 0x2100,
+                        silicon_id: 0x11B1,
+                        silicon_family: 0x2100,
                         base_version: BaseVersion {
                             major: 3,
                             minor: 4,
@@ -208,7 +212,8 @@ mod tests {
                         row_size: 256,
                     },
                     main_fw: PdFirmware {
-                        silicon_id: 0x2100,
+                        silicon_id: 0x11B1,
+                        silicon_family: 0x2100,
                         base_version: BaseVersion {
                             major: 3,
                             minor: 4,
@@ -246,7 +251,8 @@ mod tests {
             Some({
                 PdFirmwareFile {
                     backup_fw: PdFirmware {
-                        silicon_id: 0x3000,
+                        silicon_id: 0x11C0,
+                        silicon_family: 0x3000,
                         base_version: BaseVersion {
                             major: 3,
                             minor: 4,
@@ -264,7 +270,8 @@ mod tests {
                         row_size: 128,
                     },
                     main_fw: PdFirmware {
-                        silicon_id: 0x3000,
+                        silicon_id: 0x11C0,
+                        silicon_family: 0x3000,
                         base_version: BaseVersion {
                             major: 3,
                             minor: 4,
