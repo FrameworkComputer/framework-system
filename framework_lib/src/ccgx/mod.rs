@@ -11,6 +11,8 @@ use self::device::{PdController, PdPort};
 
 pub mod binary;
 pub mod device;
+#[cfg(not(feature = "uefi"))]
+pub mod hid;
 
 const FW1_METADATA_ROW: u32 = 0x1FE;
 const FW2_METADATA_ROW_CCG5: u32 = 0x1FF;

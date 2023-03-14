@@ -58,6 +58,7 @@ pub fn parse(args: &[String]) -> Cli {
         power: false,
         pdports: false,
         pd_info: false,
+        dp_hdmi_info: false,
         privacy: false,
         pd_bin: None,
         ec_bin: None,

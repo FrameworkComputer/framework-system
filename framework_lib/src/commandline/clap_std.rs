@@ -34,6 +34,10 @@ struct ClapCli {
     #[arg(long)]
     pd_info: bool,
 
+    /// Show details about connected DP or HDMI Expansion Cards
+    #[arg(long)]
+    dp_hdmi_info: bool,
+
     /// Show privacy switch statuses (camera and microphone)
     #[arg(long)]
     privacy: bool,
@@ -91,6 +95,7 @@ pub fn parse(args: &[String]) -> Cli {
         power: args.power,
         pdports: args.pdports,
         pd_info: args.pd_info,
+        dp_hdmi_info: args.dp_hdmi_info,
         privacy: args.privacy,
         pd_bin: args
             .pd_bin
