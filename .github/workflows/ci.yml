@@ -173,6 +173,11 @@ jobs:
             ${{ secrets.PRIVKEY_SMBIOS_LIB }}
             ${{ secrets.PRIVKEY_REDOX_UEFI_STD }}
 
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libudev-dev
+
     - name: Setup Rust toolchain
       run: rustup show
 

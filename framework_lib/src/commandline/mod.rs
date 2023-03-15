@@ -11,6 +11,8 @@ pub mod uefi;
 #[cfg(not(feature = "uefi"))]
 use std::fs;
 
+#[cfg(not(feature = "uefi"))]
+use crate::audio_card::check_synaptics_fw_version;
 use crate::capsule;
 use crate::capsule_content::{
     find_bios_version, find_ec_in_bios_cap, find_pd_in_bios_cap, find_retimer_version,
@@ -58,6 +60,7 @@ pub struct Cli {
     pub privacy: bool,
     pub pd_info: bool,
     pub dp_hdmi_info: bool,
+    pub audio_card_info: bool,
     pub pd_bin: Option<String>,
     pub ec_bin: Option<String>,
     pub capsule: Option<String>,
@@ -112,7 +115,13 @@ fn print_pd_details() {
     print_single_pd_details(&pd_23);
 }
 
+#[cfg(not(feature = "uefi"))]
 const NOT_SET: &str = "NOT SET";
+
+#[cfg(not(feature = "uefi"))]
+fn print_audio_card_details() {
+    check_synaptics_fw_version();
+}
 
 #[cfg(not(feature = "uefi"))]
 fn print_dp_hdmi_details() {
@@ -327,6 +336,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.dp_hdmi_info {
         #[cfg(not(feature = "uefi"))]
         print_dp_hdmi_details();
+    } else if args.audio_card_info {
+        #[cfg(not(feature = "uefi"))]
+        print_audio_card_details();
     } else if args.privacy {
         if let Some((mic, cam)) = print_err(ec.get_privacy_info()) {
             println!(
