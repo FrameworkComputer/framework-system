@@ -56,8 +56,12 @@ pub fn check_synaptics_fw_version() {
         };
         audio_cards += 1;
 
+        // On Linux it's claimed by a kernel driver, so we need to detach that to make it usable for us.
+        // On Windows this panics with "NotSupported" and it seems not required.
+        #[cfg(target_os = "linux")]
         handle.set_auto_detach_kernel_driver(true).unwrap();
-        handle.claim_interface(interface_number).unwrap(); // 3 is the HID interface
+
+        handle.claim_interface(interface_number).unwrap();
         let timeout = std::time::Duration::from_micros(100_000); // 100ms
 
         let request = HidCapeMessage {
@@ -69,7 +73,7 @@ pub fn check_synaptics_fw_version() {
                 data: [0; CAPE_DATA_LEN],
             },
         };
-        let mut response = request.clone();
+        let mut response = request;
 
         // 0x81 means a valid response is ready
         while response.msg.command_id != 0x8103 {

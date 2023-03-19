@@ -136,7 +136,15 @@ fn print_dp_hdmi_details() {
                     && usage_page == CCG_USAGE_PAGE
                 {
                     let device = dev_info.open_device(&api).unwrap();
-                    println!("{}", dev_info.product_string().unwrap_or(NOT_SET));
+                    match pid {
+                        HDMI_CARD_PID => println!("HDMI Expansion Card"),
+                        DP_CARD_PID => println!("DisplayPort Expansion Card"),
+                        _ => unreachable!(),
+                    }
+
+                    // On Windows this value is "Control Interface", probably hijacked by the kernel driver
+                    //println!("{}", dev_info.product_string().unwrap_or(NOT_SET));
+
                     println!(
                         "  Serial No:       {}",
                         dev_info.serial_number().unwrap_or(NOT_SET)
