@@ -33,6 +33,10 @@ Features:
     - [x] PD
     - [x] ME (Only on Linux)
     - [x] Retimer
+  - [x] Get firmware version of expansion cards (Not on UEFI so far)
+    - [x] HDMI Expansion Card (`--dp-hdmi-info`)
+    - [x] DisplayPort Expansion Card (`--dp-hdmi-info`)
+    - [x] Audio Expansion Card (`--audio-card-info`)
   - [ ] Flash firmware
     - [ ] BIOS
     - [ ] EC
