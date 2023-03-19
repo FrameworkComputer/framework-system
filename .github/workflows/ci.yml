@@ -17,6 +17,11 @@ jobs:
             ${{ secrets.PRIVKEY_SMBIOS_LIB }}
             ${{ secrets.PRIVKEY_REDOX_UEFI_STD }}
 
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libudev-dev
+
     - name: Setup Rust toolchain
       run: rustup show
 
@@ -45,6 +50,11 @@ jobs:
         ssh-private-key: |
             ${{ secrets.PRIVKEY_SMBIOS_LIB }}
             ${{ secrets.PRIVKEY_REDOX_UEFI_STD }}
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libudev-dev
 
     - name: Setup Rust toolchain
       run: rustup show
@@ -127,6 +137,11 @@ jobs:
             ${{ secrets.PRIVKEY_SMBIOS_LIB }}
             ${{ secrets.PRIVKEY_REDOX_UEFI_STD }}
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libudev-dev
+
       - name: Setup Rust toolchain
         run: rustup show
 
@@ -146,6 +161,11 @@ jobs:
         ssh-private-key: |
             ${{ secrets.PRIVKEY_SMBIOS_LIB }}
             ${{ secrets.PRIVKEY_REDOX_UEFI_STD }}
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libudev-dev
 
     - name: Setup Rust toolchain
       run: rustup show
@@ -181,5 +201,5 @@ jobs:
     - name: Setup Rust toolchain
       run: rustup show
 
-    - name: Run cargo clippy
+    - name: Run cargo doc
       run: cargo doc
