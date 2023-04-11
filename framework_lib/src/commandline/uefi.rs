@@ -53,6 +53,7 @@ pub fn get_args(boot_services: &BootServices) -> Vec<String> {
 
 pub fn parse(args: &[String]) -> Cli {
     let mut cli = Cli {
+        paginate: false,
         versions: false,
         esrt: false,
         power: false,
@@ -87,6 +88,9 @@ pub fn parse(args: &[String]) -> Cli {
     for (i, arg) in args.iter().enumerate() {
         if arg == "-v" || arg == "--versions" {
             cli.versions = true;
+            found_an_option = true;
+        } else if arg == "-b" {
+            cli.paginate = true;
             found_an_option = true;
         } else if arg == "--esrt" {
             cli.esrt = true;
@@ -192,6 +196,11 @@ pub fn parse(args: &[String]) -> Cli {
         } else if arg == "--raw-command" {
             cli.raw_command = args[1..].to_vec();
         }
+    }
+
+    if args.len() == 1 && cli.paginate {
+        cli.help = true;
+        found_an_option = true;
     }
 
     if !found_an_option {

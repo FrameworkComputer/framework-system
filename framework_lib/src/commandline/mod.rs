@@ -35,6 +35,8 @@ use crate::ec_binary;
 use crate::esrt;
 use crate::power;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
+#[cfg(feature = "uefi")]
+use crate::uefi::enable_page_break;
 #[cfg(not(feature = "uefi"))]
 use hidapi::HidApi;
 use smbioslib::*;
@@ -79,6 +81,7 @@ pub struct Cli {
     pub info: bool,
     // UEFI only
     pub allupdate: bool,
+    pub paginate: bool,
     // TODO: This is not actually implemented yet
     pub raw_command: Vec<String>,
 }
@@ -283,6 +286,12 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else {
         CrosEc::new()
     };
+
+    #[cfg(feature = "uefi")]
+    if args.paginate {
+        enable_page_break();
+    }
+
     if args.help {
         // Only print with uefi feature here because without clap will already
         // have printed the help by itself.
@@ -474,6 +483,7 @@ fn print_help(updater: bool) {
 Usage: framework_tool [OPTIONS]
 
 Options:
+  -b                         Print output one screen at a time
   -v, --versions             List current firmware versions version
       --esrt                 Display the UEFI ESRT table
       --power                Show current power status (battery and AC)
@@ -486,6 +496,7 @@ Options:
       --capsule <CAPSULE>    Parse UEFI Capsule information from binary file
       --intrusion            Show status of intrusion switch
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
+      --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
   -t, --test                 Run self-test to check if interaction with EC is possible
   -h, --help                 Print help information
     "#
