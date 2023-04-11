@@ -1,6 +1,10 @@
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
+use alloc::format;
+use alloc::vec;
+use alloc::vec::Vec;
+
 use crate::util;
 
 use super::{CrosEc, CrosEcDriver, EcError, EcResult};

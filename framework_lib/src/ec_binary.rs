@@ -1,4 +1,7 @@
 //! Parse Chrome EC binaries and get their metadata
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
 
 const CROS_EC_IMAGE_DATA_COOKIE1: u32 = 0xce778899;
 const CROS_EC_IMAGE_DATA_COOKIE2: u32 = 0xceaabbdd;

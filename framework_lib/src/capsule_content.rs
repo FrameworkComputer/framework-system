@@ -4,6 +4,8 @@
 //! specify the structure of a capsule's content.
 //use core::prelude::rust_2021::derive;
 
+use crate::alloc::string::ToString;
+use alloc::string::String;
 use core::convert::TryInto;
 
 use crate::ccgx::binary::{CCG5_PD_LEN, CCG6_PD_LEN};

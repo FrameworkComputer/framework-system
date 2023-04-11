@@ -23,6 +23,11 @@ mod portio;
 #[cfg(feature = "win_driver")]
 mod windows;
 
+use alloc::format;
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec;
+use alloc::vec::Vec;
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
@@ -284,6 +289,8 @@ impl CrosEc {
                 }
             };
             cmd.subcmd = ConsoleReadSubCommand::ConsoleReadNext as u8;
+
+            // Need to explicitly handle CTRL-C termination on UEFI Shell
             #[cfg(feature = "uefi")]
             if shell_get_execution_break_flag() {
                 return Ok(console);

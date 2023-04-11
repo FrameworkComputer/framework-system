@@ -18,5 +18,9 @@ default-members = [
     "framework_tool",
 ]
 
+[patch.crates-io]
+uefi = { git = "https://github.com/FrameworkComputer/uefi-rs", branch = "merged" }
+uefi-services = { git = "https://github.com/FrameworkComputer/uefi-rs", branch = "merged" }
+
 [profile.release]
 lto = true

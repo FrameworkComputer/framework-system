@@ -26,6 +26,8 @@
 //! | 0xEA   | 0x02 | Silicon Family  |                                                     |
 //! | 0xEC   | 0x28 | Reserved        | Stretches into next row, so don't bother reading it |
 
+use alloc::format;
+use alloc::vec::Vec;
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 

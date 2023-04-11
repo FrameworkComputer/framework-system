@@ -3,6 +3,10 @@
 //! Can be easily re-used from any OS or UEFI shell.
 //! We have implemented both in the `framework_tool` and `framework_uefi` crates.
 
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+
 #[cfg(not(feature = "uefi"))]
 pub mod clap_std;
 #[cfg(feature = "uefi")]
@@ -363,7 +367,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     //    raw_command(&args[1..]);
     } else if let Some(pd_bin_path) = &args.pd_bin {
         #[cfg(feature = "uefi")]
-        let data = crate::uefi::fs::shell_read_file(pd_bin_path);
+        let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(pd_bin_path);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(pd_bin_path) {
             Ok(data) => Some(data),
@@ -382,7 +386,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(ec_bin_path) = &args.ec_bin {
         #[cfg(feature = "uefi")]
-        let data = crate::uefi::fs::shell_read_file(ec_bin_path);
+        let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(ec_bin_path);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(ec_bin_path) {
             Ok(data) => Some(data),
@@ -401,7 +405,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(capsule_path) = &args.capsule {
         #[cfg(feature = "uefi")]
-        let data = crate::uefi::fs::shell_read_file(capsule_path);
+        let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(capsule_path);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(capsule_path) {
             Ok(data) => Some(data),
@@ -416,9 +420,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("File");
             println!("  Size:       {:>20} B", data.len());
             println!("  Size:       {:>20} KB", data.len() / 1024);
-            if let Some(_header) = analyze_capsule(&data) {
-                // TODO: For now we can only read files on UEFI, not write them
-                if _header.capsule_guid == esrt::WINUX_GUID {
+            if let Some(header) = analyze_capsule(&data) {
+                if header.capsule_guid == esrt::WINUX_GUID {
                     let ux_header = capsule::parse_ux_header(&data);
                     if let Some(dump_path) = &args.dump {
                         // TODO: Better error handling, rather than just panicking
