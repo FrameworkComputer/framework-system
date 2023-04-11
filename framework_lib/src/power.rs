@@ -146,7 +146,7 @@ pub fn power_info() -> Option<PowerInfo> {
                 last_full_charge_capacity: battery_lfcc,
                 cycle_count,
 
-                charge_percentage: (100 * battery_cap as u32) / battery_lfcc,
+                charge_percentage: (100 * battery_cap) / battery_lfcc,
 
                 // Strings are all 8 bytes (EC_MEMMAP_TEXT_MAX)
                 manufacturer: "TODO".to_string(),

@@ -73,10 +73,12 @@ cargo build -p framework_lib
 
 # Building only the tool
 cargo build -p framework_tool
+ls -l target/debug/framework_tool
 
 # Build the UEFI application
 # Can't be built with cargo! That's why we need to exclude it in the other commands.
 make -C framework_uefi
+ls -l framework_uefi/build/x86_64-unknown-uefi/boot.efi
 ```
 
 Building on Windows or in general with fewer features:

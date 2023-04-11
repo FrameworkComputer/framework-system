@@ -29,7 +29,7 @@ pub enum Platform {
     IntelGen11,
     /// Intel 11th Gen, Codenamed AlderLake
     IntelGen12,
-    /// Intel 11th Gen, Codenamed RaptorLake
+    /// Intel 13th Gen, Codenamed RaptorLake
     IntelGen13,
 }
 

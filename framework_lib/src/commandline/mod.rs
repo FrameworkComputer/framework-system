@@ -461,14 +461,19 @@ fn selftest(ec: &CrosEc) -> Option<()> {
         return None;
     }
 
+    // Try to get PD versions through EC
+    power::read_pd_version().ok()?;
+
     let pd_01 = PdController::new(PdPort::Left01);
     let pd_23 = PdController::new(PdPort::Right23);
     println!("  Getting PD01 info");
     print_err(pd_01.get_silicon_id())?;
     print_err(pd_01.get_device_info())?;
+    print_err(pd_01.get_fw_versions())?;
     println!("  Getting PD23 info");
     print_err(pd_23.get_silicon_id())?;
     print_err(pd_23.get_device_info())?;
+    print_err(pd_23.get_fw_versions())?;
 
     Some(())
 }

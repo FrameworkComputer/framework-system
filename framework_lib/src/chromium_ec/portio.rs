@@ -116,7 +116,7 @@ struct EcHostResponse {
     /// Reserved byte in protocol v3. Must be 0
     pub reserved: u16,
 }
-const _HEADER_LEN: usize = std::mem::size_of::<EcHostResponse>() as usize;
+const _HEADER_LEN: usize = std::mem::size_of::<EcHostResponse>();
 
 const MEC_EC_BYTE_ACCESS: u16 = 0x00;
 const MEC_EC_LONG_ACCESS_AUTOINCREMENT: u16 = 0x03;
@@ -357,7 +357,7 @@ fn checksum_buffers(buffers: &[&[u8]]) -> u8 {
     }
     let cs = buffers
         .iter()
-        .map(|x| checksum_fold(*x))
+        .map(|x| checksum_fold(x))
         .fold(0u8, |acc, x| acc.wrapping_add(x))
         .wrapping_neg();
     if util::is_debug() {

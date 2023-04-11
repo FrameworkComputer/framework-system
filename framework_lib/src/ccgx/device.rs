@@ -48,7 +48,9 @@ impl PdPort {
             (Platform::IntelGen11, _) => 6,
             (Platform::IntelGen12, PdPort::Left01) => 6,
             (Platform::IntelGen12, PdPort::Right23) => 7,
-            (_, _) => panic!("Unsupported platform"),
+            (Platform::IntelGen13, PdPort::Left01) => 6,
+            (Platform::IntelGen13, PdPort::Right23) => 7,
+            //(_, _) => panic!("Unsupported platform: {:?} {:?}", platform, self),
         }
     }
 }
@@ -270,7 +272,10 @@ impl PdController {
         debug_assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::from(&data[4..]);
-        println!("  FW1 Version: Base: {},  App: {}", base_ver, app_ver);
+        println!(
+            "  FW1 (Backup) Version: Base: {},  App: {}",
+            base_ver, app_ver
+        );
 
         let data = self.ccgx_read(ControlRegisters::Firmware2Version, 8);
         let data = data.unwrap();
@@ -278,6 +283,9 @@ impl PdController {
         debug_assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::from(&data[4..]);
-        println!("  FW2 Version: Base: {},  App: {}", base_ver, app_ver);
+        println!(
+            "  FW2 (Main)   Version: Base: {},  App: {}",
+            base_ver, app_ver
+        );
     }
 }

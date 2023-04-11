@@ -73,7 +73,7 @@ impl fmt::Display for BaseVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{}.{}.{}.{}",
+            "{}.{}.{}.{:X}",
             self.major, self.minor, self.patch, self.build_number
         )
     }
@@ -113,7 +113,7 @@ pub struct AppVersion {
 }
 impl fmt::Display for AppVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{}", self.major, self.minor, self.circuit)
+        write!(f, "{}.{}.{:X}", self.major, self.minor, self.circuit)
     }
 }
 
