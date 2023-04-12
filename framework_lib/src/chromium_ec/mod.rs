@@ -19,6 +19,7 @@ pub mod command;
 pub mod commands;
 #[cfg(feature = "cros_ec_driver")]
 mod cros_ec;
+pub mod input_deck;
 mod portio;
 #[cfg(feature = "win_driver")]
 mod windows;
@@ -35,6 +36,7 @@ use command::EcRequest;
 use commands::*;
 
 use self::command::EcCommands;
+use self::input_deck::InputDeckStatus;
 
 /// Total size of EC memory mapped region
 const EC_MEMMAP_SIZE: u16 = 255;
@@ -235,6 +237,12 @@ impl CrosEc {
             total_opened: intrusion.total_open_count,
             vtr_open_count: intrusion.vtr_open_count,
         })
+    }
+
+    pub fn get_input_deck_status(&self) -> EcResult<InputDeckStatus> {
+        let status = EcRequestDeckState {}.send_command(self)?;
+
+        Ok(InputDeckStatus::from(status))
     }
 
     /// Change the keyboard baclight brightness

@@ -36,6 +36,8 @@ pub enum EcCommands {
     ReadPdVersion = 0x3E11,
     /// Get information about current state of privacy switches
     PriavcySwitchesCheckMode = 0x3E14,
+    /// On Framework 16, check the status of the input module deck
+    CheckDeckState = 0x3E16,
 }
 
 pub trait EcRequest<R> {

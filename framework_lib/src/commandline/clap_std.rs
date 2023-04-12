@@ -70,6 +70,10 @@ struct ClapCli {
     #[arg(long)]
     intrusion: bool,
 
+    /// Show status of the input modules (Framework 16 only)
+    #[arg(long)]
+    inputmodules: bool,
+
     /// Set keyboard backlight percentage or get, if no value provided
     #[arg(long)]
     kblight: Option<Option<u8>>,
@@ -116,6 +120,7 @@ pub fn parse(args: &[String]) -> Cli {
             .ho2_capsule
             .map(|x| x.into_os_string().into_string().unwrap()),
         intrusion: args.intrusion,
+        inputmodules: args.inputmodules,
         kblight: args.kblight,
         console: args.console,
         driver: args.driver,
