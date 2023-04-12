@@ -18,6 +18,8 @@ extern crate alloc;
 #[macro_use]
 extern crate lazy_static;
 
+#[cfg(not(feature = "uefi"))]
+pub mod audio_card;
 pub mod capsule;
 pub mod capsule_content;
 pub mod ccgx;

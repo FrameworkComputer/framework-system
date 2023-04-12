@@ -11,11 +11,17 @@ pub mod uefi;
 #[cfg(not(feature = "uefi"))]
 use std::fs;
 
+#[cfg(not(feature = "uefi"))]
+use crate::audio_card::check_synaptics_fw_version;
 use crate::capsule;
 use crate::capsule_content::{
     find_bios_version, find_ec_in_bios_cap, find_pd_in_bios_cap, find_retimer_version,
 };
 use crate::ccgx::device::{PdController, PdPort};
+#[cfg(not(feature = "uefi"))]
+use crate::ccgx::hid::{
+    check_ccg_fw_version, CCG_USAGE_PAGE, DP_CARD_PID, FRAMEWORK_VID, HDMI_CARD_PID,
+};
 use crate::ccgx::{self, SiliconId::*};
 use crate::chromium_ec;
 use crate::chromium_ec::print_err;
@@ -25,6 +31,8 @@ use crate::ec_binary;
 use crate::esrt;
 use crate::power;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
+#[cfg(not(feature = "uefi"))]
+use hidapi::HidApi;
 use smbioslib::*;
 
 use crate::chromium_ec::{CrosEc, CrosEcDriverType};
@@ -51,6 +59,8 @@ pub struct Cli {
     pub pdports: bool,
     pub privacy: bool,
     pub pd_info: bool,
+    pub dp_hdmi_info: bool,
+    pub audio_card_info: bool,
     pub pd_bin: Option<String>,
     pub ec_bin: Option<String>,
     pub capsule: Option<String>,
@@ -103,6 +113,50 @@ fn print_pd_details() {
     print_single_pd_details(&pd_01);
     println!("Right / Ports 23");
     print_single_pd_details(&pd_23);
+}
+
+#[cfg(not(feature = "uefi"))]
+const NOT_SET: &str = "NOT SET";
+
+#[cfg(not(feature = "uefi"))]
+fn print_audio_card_details() {
+    check_synaptics_fw_version();
+}
+
+#[cfg(not(feature = "uefi"))]
+fn print_dp_hdmi_details() {
+    match HidApi::new() {
+        Ok(api) => {
+            for dev_info in api.device_list() {
+                let vid = dev_info.vendor_id();
+                let pid = dev_info.product_id();
+                let usage_page = dev_info.usage_page();
+                if vid == FRAMEWORK_VID
+                    && [HDMI_CARD_PID, DP_CARD_PID].contains(&pid)
+                    && usage_page == CCG_USAGE_PAGE
+                {
+                    let device = dev_info.open_device(&api).unwrap();
+                    match pid {
+                        HDMI_CARD_PID => println!("HDMI Expansion Card"),
+                        DP_CARD_PID => println!("DisplayPort Expansion Card"),
+                        _ => unreachable!(),
+                    }
+
+                    // On Windows this value is "Control Interface", probably hijacked by the kernel driver
+                    //println!("{}", dev_info.product_string().unwrap_or(NOT_SET));
+
+                    println!(
+                        "  Serial No:       {}",
+                        dev_info.serial_number().unwrap_or(NOT_SET)
+                    );
+                    check_ccg_fw_version(&device);
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Error: {e}");
+        }
+    };
 }
 
 fn print_versions(ec: &CrosEc) {
@@ -287,6 +341,12 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         smbios_info();
     } else if args.pd_info {
         print_pd_details();
+    } else if args.dp_hdmi_info {
+        #[cfg(not(feature = "uefi"))]
+        print_dp_hdmi_details();
+    } else if args.audio_card_info {
+        #[cfg(not(feature = "uefi"))]
+        print_audio_card_details();
     } else if args.privacy {
         if let Some((mic, cam)) = print_err(ec.get_privacy_info()) {
             println!(
