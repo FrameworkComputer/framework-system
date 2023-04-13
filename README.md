@@ -6,13 +6,21 @@ The tool works on Linux, Windows and the UEFI shell.
 Download it from the latest [GH Actions](https://github.com/FrameworkComputer/framework-system/actions?query=branch%3Amain) run on the main branch.
 Most features are supported on every "OS". See below for details.
 
-Features:
+## Features
 
-- [x] All-In-One Tool (`framework_tool`)
+To check which features are supported on which OS and platform,
+see the [Support Matrices](support-matrices.md).
+
+###### Operating System Support
+
+- [x] OS Tool (`framework_tool`)
   - [x] Tested on Linux
-  - [ ] Tested on FreeBSD
   - [x] Tested on Windows
-  - [x] Tested on UEFI Shell (`framework_uefi`)
+  - [ ] Tested on FreeBSD
+- [x] UEFI Shell tool (`framework_uefi`)
+
+###### Firmware Information
+
   - [x] Show system information
     - [x] ESRT table (UEFI and Linux only) (`--esrt`)
     - [x] SMBIOS
@@ -37,20 +45,36 @@ Features:
     - [x] HDMI Expansion Card (`--dp-hdmi-info`)
     - [x] DisplayPort Expansion Card (`--dp-hdmi-info`)
     - [x] Audio Expansion Card (`--audio-card-info`)
-  - [ ] Flash firmware
-    - [ ] BIOS
-    - [ ] EC
-    - [ ] PD
-  - [x] Get information about battery/AC (`--power`)
-  - [x] Get information about USB-C PD ports (`--pdorts`)
-  - [x] Get information about CCGX PD Controllers (`--pd-info`)
-  - [x] Show status of intrusion switche (`--intrusion`)
-  - [x] Show status of privacy switches (`--privacy`)
-- [x] Implement communication with EC
-  - [x] Port I/O communication on Linux
-  - [x] Port I/O communication on UEFI
-  - [x] Using `cros_ec` driver in Linux kernel
-  - [x] Using [DHowett's Windows CrosEC driver](https://github.com/DHowett/FrameworkWindowsUtils)
+
+###### Firmware Update
+
+Note: Use fwupd.
+
+- [ ] Flash firmware
+  - [ ] BIOS
+  - [ ] EC
+  - [ ] PD
+  - [ ] Expansion Cards
+
+###### System Status
+
+All of these need EC communication support in order to work.
+
+- [x] Get information about battery/AC (`--power`)
+- [x] Get information about USB-C PD ports (`--pdorts`)
+- [x] Get information about CCGX PD Controllers (`--pd-info`)
+- [x] Show status of intrusion switches (`--intrusion`)
+- [x] Show status of privacy switches (`--privacy`)
+
+###### Communication with Embedded Controller
+
+- [x] Framework Laptop 13 (Intel 11-13th Gen)
+- [ ] Framework Laptop 13 (AMD Ryzen)
+- [ ] Framework Laptop 16
+- [x] Port I/O communication on Linux
+- [x] Port I/O communication on UEFI
+- [x] Using `cros_ec` driver in Linux kernel
+- [x] Using [DHowett's Windows CrosEC driver](https://github.com/DHowett/FrameworkWindowsUtils)
 
 ## Prerequisites
 
