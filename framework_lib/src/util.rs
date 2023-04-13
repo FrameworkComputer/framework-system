@@ -25,12 +25,16 @@ pub fn is_debug() -> bool {
 
 #[derive(Debug, PartialEq)]
 pub enum Platform {
-    /// Intel 11th Gen, Codenamed TigerLake
+    /// Framework 13 - Intel 11th Gen, Codenamed TigerLake
     IntelGen11,
-    /// Intel 11th Gen, Codenamed AlderLake
+    /// Framework 13 - Intel 11th Gen, Codenamed AlderLake
     IntelGen12,
-    /// Intel 13th Gen, Codenamed RaptorLake
+    /// Framework 13 - Intel 13th Gen, Codenamed RaptorLake
     IntelGen13,
+    /// Framework 13 - AMD Ryzen
+    Framework13Amd,
+    /// Framework 16
+    Framework16,
 }
 
 #[derive(Debug)]
