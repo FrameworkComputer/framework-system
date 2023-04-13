@@ -1,5 +1,9 @@
 //! Get information about system power (battery, AC, PD ports)
 
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec;
+use alloc::vec::Vec;
 use core::convert::TryInto;
 use core::prelude::v1::derive;
 

@@ -1,4 +1,8 @@
 use crate::chromium_ec::{EcError, EcResponseStatus, EcResult};
+use alloc::format;
+use alloc::string::ToString;
+use alloc::vec;
+use alloc::vec::Vec;
 use core::convert::TryInto;
 use hwio::{Io, Pio};
 #[cfg(feature = "linux_pio")]

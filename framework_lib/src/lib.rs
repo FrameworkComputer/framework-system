@@ -3,23 +3,20 @@
 #![cfg_attr(feature = "uefi", no_std)]
 #![feature(prelude_import)]
 
-#[cfg(feature = "uefi")]
-#[macro_use]
-extern crate uefi_std as std;
-
-#[cfg(feature = "uefi")]
-#[allow(unused_imports)]
-#[prelude_import]
-use std::prelude::*;
-
-#[cfg(feature = "uefi")]
 extern crate alloc;
+#[cfg(feature = "uefi")]
+extern crate no_std_compat as std; // TODO: I don't this should be necessary
 
 #[macro_use]
 extern crate lazy_static;
 
 #[cfg(not(feature = "uefi"))]
 pub mod audio_card;
+
+#[cfg(feature = "uefi")]
+#[macro_use]
+extern crate uefi_services;
+
 pub mod capsule;
 pub mod capsule_content;
 pub mod ccgx;
@@ -28,6 +25,8 @@ pub mod commandline;
 pub mod csme;
 pub mod ec_binary;
 pub mod esrt;
+#[cfg(not(feature = "uefi"))]
+pub mod guid;
 mod os_specific;
 pub mod power;
 pub mod smbios;

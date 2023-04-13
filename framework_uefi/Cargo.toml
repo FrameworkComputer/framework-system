@@ -7,9 +7,10 @@ edition = "2021"
 name = "uefitool"
 path = "src/main.rs"
 
-[dependencies.redox_uefi_std]
-git = "ssh://git@github.com/FrameworkComputer/redox_uefi_std.git"
-branch = "check-event"
+[dependencies]
+uefi = { version = "0.20", features = ["alloc"] }
+uefi-services = "0.17"
+log = { version = "0.4", default-features = true }
 
 [dependencies.framework_lib]
 path = "../framework_lib"

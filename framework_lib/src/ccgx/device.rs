@@ -2,6 +2,10 @@
 //!
 //! The current implementation talks to them by tunneling I2C through EC host commands.
 
+use alloc::format;
+use alloc::string::ToString;
+use alloc::vec;
+use alloc::vec::Vec;
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 

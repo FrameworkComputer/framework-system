@@ -124,6 +124,8 @@ pub fn parse(args: &[String]) -> Cli {
         help: false,
         // UEFI only for now. Don't need to handle
         allupdate: false,
+        // UEFI only - every command needs to implement a parameter to enable the pager
+        paginate: false,
         info: args.info,
         raw_command: vec![],
     }

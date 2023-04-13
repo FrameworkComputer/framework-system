@@ -10,12 +10,19 @@
 //!
 //! Not all firmware components are reported here.
 
-use core::fmt;
+#[allow(unused_imports)]
+use log::{debug, error, info, trace};
+use std::prelude::v1::*;
+
+#[cfg(not(feature = "uefi"))]
+use crate::guid::Guid;
 use core::prelude::v1::derive;
+#[cfg(not(feature = "uefi"))]
+use guid_macros::guid;
 #[cfg(feature = "uefi")]
 use std::slice;
 #[cfg(feature = "uefi")]
-use std::uefi::guid::GuidKind;
+use uefi::{guid, Guid};
 
 #[cfg(feature = "linux")]
 use std::fs;
@@ -24,30 +31,14 @@ use std::io;
 #[cfg(feature = "linux")]
 use std::path::Path;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-#[repr(C)]
-pub struct Guid(pub u32, pub u16, pub u16, pub [u8; 8]);
-impl fmt::Display for Guid {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "({:>08x}, {:>04x}, {:>04x}, [", self.0, self.1, self.2)?;
-        for (i, b) in self.3.iter().enumerate() {
-            if i > 0 {
-                write!(f, ",")?;
-            }
-            write!(f, "{:>02x}", b)?;
-        }
-        write!(f, "])")?;
-        Ok(())
-    }
-}
-
 /// Decode from GUID string version
 ///
 /// # Examples
 /// ```
 /// use framework_lib::esrt::*;
+/// use framework_lib::guid::*;
 ///
-/// let valid_guid = Guid(0xA9C91B0C, 0xC0B8, 0x463D, [0xA7, 0xDA, 0xA5, 0xD6, 0xEC, 0x64, 0x63, 0x33]);
+/// let valid_guid = Guid::from_values(0xA9C91B0C, 0xC0B8, 0x463D, 0xA7DA, 0xA5D6EC646333);
 /// // Works with lower-case
 /// let guid = guid_from_str("a9c91b0c-c0b8-463d-a7da-a5d6ec646333");
 /// assert_eq!(guid, Some(valid_guid));
@@ -60,53 +51,28 @@ impl fmt::Display for Guid {
 /// ```
 pub fn guid_from_str(string: &str) -> Option<Guid> {
     let sections: Vec<&str> = string.split('-').collect();
-    let first = u32::from_str_radix(sections[0], 16).ok()?;
-    let second = u16::from_str_radix(sections[1], 16).ok()?;
-    let third = u16::from_str_radix(sections[2], 16).ok()?;
+    let time_low = u32::from_str_radix(sections[0], 16).ok()?;
+    let time_mid = u16::from_str_radix(sections[1], 16).ok()?;
+    let time_high_and_version = u16::from_str_radix(sections[2], 16).ok()?;
+    let clock_seq_and_variant = u16::from_str_radix(sections[3], 16).ok()?;
+    let node = u64::from_str_radix(sections[4], 16).ok()?;
 
-    let fourth = {
-        [
-            u8::from_str_radix(&sections[3][0..2], 16).ok()?,
-            u8::from_str_radix(&sections[3][2..4], 16).ok()?,
-            u8::from_str_radix(&sections[4][0..2], 16).ok()?,
-            u8::from_str_radix(&sections[4][2..4], 16).ok()?,
-            u8::from_str_radix(&sections[4][4..6], 16).ok()?,
-            u8::from_str_radix(&sections[4][6..8], 16).ok()?,
-            u8::from_str_radix(&sections[4][8..10], 16).ok()?,
-            u8::from_str_radix(&sections[4][10..12], 16).ok()?,
-        ]
-    };
-
-    Some(Guid(first, second, third, fourth))
+    Some(Guid::from_values(
+        time_low,
+        time_mid,
+        time_high_and_version,
+        clock_seq_and_variant,
+        node,
+    ))
 }
 
-pub const BIOS_GUID: Guid = Guid(
-    0xa30a8cf3,
-    0x847f,
-    0x5e59,
-    [0xbd, 0x59, 0xf9, 0xec, 0x14, 0x5c, 0x1a, 0x8c],
-);
-pub const RETIMER01_GUID: Guid = Guid(
-    0xa9c91b0c,
-    0xc0b8,
-    0x463d,
-    [0xa7, 0xda, 0xa5, 0xd6, 0xec, 0x64, 0x63, 0x33],
-);
-pub const RETIMER23_GUID: Guid = Guid(
-    0xba2e4e6e,
-    0x3b0c,
-    0x4f25,
-    [0x8a, 0x59, 0x4c, 0x55, 0x3f, 0xc8, 0x6e, 0xa2],
-);
+pub const BIOS_GUID: Guid = guid!("a30a8cf3-847f-5e59-bd59-f9ec145c1a8c");
+pub const RETIMER01_GUID: Guid = guid!("a9c91b0c-c0b8-463d-a7da-a5d6ec646333");
+pub const RETIMER23_GUID: Guid = guid!("ba2e4e6e-3b0c-4f25-8a59-4c553fc86ea2");
 // In EDK2
 // Handled by MdeModulePkg/Library/DxeCapsuleLibFmp/DxeCapsuleLib.c
 // Defined by MdePkg/Include/IndustryStandard/WindowsUxCapsule.h
-pub const WINUX_GUID: Guid = Guid(
-    0x3b8c8162,
-    0x188c,
-    0x46a4,
-    [0xae, 0xc9, 0xbe, 0x43, 0xf1, 0xd6, 0x56, 0x97],
-);
+pub const WINUX_GUID: Guid = guid!("3b8c8162-188c-46a4-aec9-be43f1d65697");
 
 #[derive(Debug)]
 pub enum FrameworkGuidKind {
@@ -216,7 +182,7 @@ pub fn print_esrt(esrt: &Esrt) {
 
     for (i, entry) in esrt.entries.iter().enumerate() {
         println!("ESRT Entry {}", i);
-        println!("  GUID:                 {}", entry.fw_class);
+        println!("  GUID:                 {:?}", entry.fw_class);
         println!(
             "  GUID:                 {:?}",
             match_guid_kind(&entry.fw_class)
@@ -329,12 +295,20 @@ pub fn get_esrt() -> Option<Esrt> {
     None
 }
 
+pub const SYSTEM_RESOURCE_TABLE_GUID: Guid = guid!("b122a263-3661-4f68-9929-78f8b0d62180");
+
 #[cfg(feature = "uefi")]
 pub fn get_esrt() -> Option<Esrt> {
-    for table in std::system_table().config_tables() {
-        match table.VendorGuid.kind() {
-            GuidKind::SystemResource => unsafe {
-                let raw_esrt = &*(table.VendorTable as *const _Esrt);
+    let st = unsafe { uefi_services::system_table().as_ref() };
+    let config_tables = st.config_table();
+
+    for table in config_tables {
+        // TODO: Why aren't they the same type?
+        //debug!("Table: {:?}", table);
+        let table_guid: Guid = unsafe { std::mem::transmute(table.guid) };
+        match table_guid {
+            SYSTEM_RESOURCE_TABLE_GUID => unsafe {
+                let raw_esrt = &*(table.address as *const _Esrt);
                 let mut esrt = Esrt {
                     resource_count: raw_esrt.resource_count,
                     resource_count_max: raw_esrt.resource_count_max,

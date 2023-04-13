@@ -8,13 +8,18 @@
 //!
 //! Currently NOT implemented is parsing capsules with mutiple header structs!
 
+use std::prelude::v1::*;
+
 use core::prelude::rust_2021::derive;
 #[cfg(all(not(feature = "uefi"), feature = "std"))]
 use std::fs::File;
 #[cfg(all(not(feature = "uefi"), feature = "std"))]
 use std::io::prelude::*;
 
-use crate::esrt::Guid;
+#[cfg(not(feature = "uefi"))]
+use crate::guid::Guid;
+#[cfg(feature = "uefi")]
+use uefi::Guid;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[repr(C)]
@@ -183,8 +188,8 @@ pub fn dump_winux_image(data: &[u8], header: &DisplayCapsule, filename: &str) {
     #[cfg(feature = "uefi")]
     {
         let ret = crate::uefi::fs::shell_write_file(filename, image);
-        if ret.0 != 0 {
-            println!("Failed to dump winux image.");
+        if let Err(err) = ret {
+            println!("Failed to dump winux image: {:?}", err);
         }
     }
 }

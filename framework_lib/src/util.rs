@@ -1,5 +1,7 @@
 //! Miscellaneous utility functions to use across modules
 
+use std::prelude::v1::*;
+
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 

@@ -3,6 +3,10 @@
 //! Can be easily re-used from any OS or UEFI shell.
 //! We have implemented both in the `framework_tool` and `framework_uefi` crates.
 
+use alloc::string::String;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+
 #[cfg(not(feature = "uefi"))]
 pub mod clap_std;
 #[cfg(feature = "uefi")]
@@ -31,6 +35,8 @@ use crate::ec_binary;
 use crate::esrt;
 use crate::power;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
+#[cfg(feature = "uefi")]
+use crate::uefi::enable_page_break;
 #[cfg(not(feature = "uefi"))]
 use hidapi::HidApi;
 use smbioslib::*;
@@ -75,6 +81,7 @@ pub struct Cli {
     pub info: bool,
     // UEFI only
     pub allupdate: bool,
+    pub paginate: bool,
     // TODO: This is not actually implemented yet
     pub raw_command: Vec<String>,
 }
@@ -279,6 +286,12 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else {
         CrosEc::new()
     };
+
+    #[cfg(feature = "uefi")]
+    if args.paginate {
+        enable_page_break();
+    }
+
     if args.help {
         // Only print with uefi feature here because without clap will already
         // have printed the help by itself.
@@ -363,7 +376,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     //    raw_command(&args[1..]);
     } else if let Some(pd_bin_path) = &args.pd_bin {
         #[cfg(feature = "uefi")]
-        let data = crate::uefi::fs::shell_read_file(pd_bin_path);
+        let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(pd_bin_path);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(pd_bin_path) {
             Ok(data) => Some(data),
@@ -382,7 +395,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(ec_bin_path) = &args.ec_bin {
         #[cfg(feature = "uefi")]
-        let data = crate::uefi::fs::shell_read_file(ec_bin_path);
+        let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(ec_bin_path);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(ec_bin_path) {
             Ok(data) => Some(data),
@@ -401,7 +414,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(capsule_path) = &args.capsule {
         #[cfg(feature = "uefi")]
-        let data = crate::uefi::fs::shell_read_file(capsule_path);
+        let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(capsule_path);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(capsule_path) {
             Ok(data) => Some(data),
@@ -416,9 +429,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("File");
             println!("  Size:       {:>20} B", data.len());
             println!("  Size:       {:>20} KB", data.len() / 1024);
-            if let Some(_header) = analyze_capsule(&data) {
-                // TODO: For now we can only read files on UEFI, not write them
-                if _header.capsule_guid == esrt::WINUX_GUID {
+            if let Some(header) = analyze_capsule(&data) {
+                if header.capsule_guid == esrt::WINUX_GUID {
                     let ux_header = capsule::parse_ux_header(&data);
                     if let Some(dump_path) = &args.dump {
                         // TODO: Better error handling, rather than just panicking
@@ -471,6 +483,7 @@ fn print_help(updater: bool) {
 Usage: framework_tool [OPTIONS]
 
 Options:
+  -b                         Print output one screen at a time
   -v, --versions             List current firmware versions version
       --esrt                 Display the UEFI ESRT table
       --power                Show current power status (battery and AC)
@@ -483,6 +496,7 @@ Options:
       --capsule <CAPSULE>    Parse UEFI Capsule information from binary file
       --intrusion            Show status of intrusion switch
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
+      --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
   -t, --test                 Run self-test to check if interaction with EC is possible
   -h, --help                 Print help information
     "#
