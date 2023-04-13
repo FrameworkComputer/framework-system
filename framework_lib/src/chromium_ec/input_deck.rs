@@ -2,6 +2,8 @@ use super::commands::EcResponseDeckState;
 
 /// The number of slots on the input deck, where modules can be connected to
 pub const INPUT_DECK_SLOTS: usize = 8;
+/// The number of slots on the top row of the input deck
+pub const TOP_ROW_SLOTS: usize = 5;
 
 #[repr(u8)]
 enum InputDeckMux {
@@ -28,7 +30,7 @@ enum InputDeckMux {
 }
 
 #[repr(u8)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum InputModuleType {
     Short,
     Reserved1,
@@ -70,8 +72,33 @@ impl From<u8> for InputModuleType {
         }
     }
 }
+impl InputModuleType {
+    /// How is the module? The A size isn't exactly 6 wide, but it covers 6 connectors
+    ///
+    /// So in total, the input deck is 8 wide.
+    pub fn size(&self) -> usize {
+        match self {
+            Self::Short => 0,
+            Self::Reserved1 => 0,
+            Self::Reserved2 => 0,
+            Self::Reserved3 => 0,
+            Self::Reserved4 => 0,
+            Self::Reserved5 => 0,
+            Self::Reserved6 => 0,
+            Self::Reserved7 => 0,
+            Self::GenericA => 6,
+            Self::GenericB => 2,
+            Self::GenericC => 1,
+            Self::KeyboardB => 2,
+            Self::KeyboardA => 6,
+            Self::Touchpad => 0,
+            Self::Reserved15 => 0,
+            Self::Disconnected => 0,
+        }
+    }
+}
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum InputDeckState {
     Off,
     Disconnected,
@@ -101,6 +128,30 @@ pub struct InputDeckStatus {
     pub state: InputDeckState,
     pub touchpad_present: bool,
     pub top_row: TopRowPositions,
+}
+
+impl InputDeckStatus {
+    pub fn top_row_to_array(&self) -> [InputModuleType; TOP_ROW_SLOTS] {
+        [
+            self.top_row.pos0,
+            self.top_row.pos1,
+            self.top_row.pos2,
+            self.top_row.pos3,
+            self.top_row.pos4,
+        ]
+    }
+    /// Whether the input deck is fully populated
+    pub fn fully_populated(&self) -> bool {
+        if !self.touchpad_present {
+            return false;
+        }
+
+        self.top_row_to_array()
+            .iter()
+            .map(InputModuleType::size)
+            .sum::<usize>()
+            == INPUT_DECK_SLOTS
+    }
 }
 
 impl From<EcResponseDeckState> for InputDeckStatus {
