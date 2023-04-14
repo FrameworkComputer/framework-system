@@ -132,10 +132,20 @@ const _MEC_LPC_DATA_REGISTER1: u16 = 0x0805;
 const MEC_LPC_DATA_REGISTER2: u16 = 0x0806;
 const _MEC_LPC_DATA_REGISTER3: u16 = 0x0807;
 
+fn transfer_write_bytes(buffer: &[u8]) {
+    if util::is_debug() {
+        print!("transfer_write(size={:#}, buffer=)", buffer.len());
+        util::print_buffer(buffer);
+    }
+
+    for (i, byte) in buffer.iter().enumerate() {
+        Pio::<u8>::new(_EC_LPC_ADDR_HOST_ARGS + i as u16).write(*byte);
+    }
+}
+
 // TODO: Create a wrapper
 // TODO: Deduplicate this with transfer_read
-fn transfer_write_bytes(buffer: &[u8]) {
-    // Allocate buffer to hold result
+fn transfer_write_bytes_mec(buffer: &[u8]) {
     let size: u16 = buffer.len().try_into().unwrap();
     let mut pos: u16 = 0;
     let mut offset = 0;
@@ -215,6 +225,27 @@ fn transfer_write_bytes(buffer: &[u8]) {
 }
 
 fn transfer_read(address: u16, size: u16) -> Vec<u8> {
+    if util::is_debug() {
+        println!("transfer_read(address={:#}, size={:#})", address, size);
+    }
+
+    // Allocate buffer to hold result
+    let mut buffer = vec![0_u8; size.into()];
+
+    for i in 0..size {
+        buffer[i as usize] = Pio::<u8>::new(_EC_LPC_ADDR_HOST_ARGS + i).read();
+        println!("  Received: {:#X}", buffer[usize::from(i)]);
+    }
+
+    if util::is_debug() {
+        print!("  Read bytes: ");
+        util::print_buffer(&buffer);
+    }
+
+    buffer
+}
+
+fn transfer_read_mec(address: u16, size: u16) -> Vec<u8> {
     if util::is_debug() {
         println!("transfer_read(address={:#}, size={:#})", address, size);
     }
@@ -327,8 +358,9 @@ fn init() -> bool {
     }
 
     unsafe {
-        ioperm(EC_LPC_ADDR_HOST_DATA as u64, 8, 1);
-        ioperm(MEC_LPC_ADDRESS_REGISTER0 as u64, 10, 1);
+        ioperm(_EC_LPC_ADDR_HOST_ARGS as u64, 8, 1);
+        //ioperm(EC_LPC_ADDR_HOST_DATA as u64, 8, 1);
+        //ioperm(MEC_LPC_ADDRESS_REGISTER0 as u64, 10, 1);
     }
     *init = Initialized::Succeeded;
     true
