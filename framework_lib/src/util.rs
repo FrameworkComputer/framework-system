@@ -25,7 +25,7 @@ pub fn is_debug() -> bool {
     DBG
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Platform {
     /// Framework 13 - Intel 11th Gen, Codenamed TigerLake
     IntelGen11,

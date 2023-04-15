@@ -20,6 +20,7 @@ pub mod commands;
 #[cfg(feature = "cros_ec_driver")]
 mod cros_ec;
 mod portio;
+mod portio_mec;
 #[cfg(feature = "win_driver")]
 mod windows;
 
