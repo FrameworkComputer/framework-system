@@ -75,9 +75,11 @@ pub fn get_smbios() -> Option<SMBiosData> {
 }
 
 pub fn get_platform() -> Option<Platform> {
-    let cached_platform = CACHED_PLATFORM.lock();
-    //#[cfg(not(feature = "uefi"))]
-    let mut cached_platform = cached_platform.unwrap();
+    #[cfg(feature = "uefi")]
+    let mut cached_platform = CACHED_PLATFORM.lock();
+    #[cfg(not(feature = "uefi"))]
+    let mut cached_platform = CACHED_PLATFORM.lock().unwrap();
+
     if let Some(platform) = *cached_platform {
         return platform;
     }

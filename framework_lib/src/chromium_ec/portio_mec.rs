@@ -1,10 +1,13 @@
 use crate::util;
+use alloc::vec;
+use alloc::vec::Vec;
 
 use hwio::{Io, Pio};
 #[cfg(feature = "linux_pio")]
 use libc::ioperm;
 
 // I/O addresses for host command
+#[cfg(feature = "linux_pio")]
 const EC_LPC_ADDR_HOST_DATA: u16 = 0x200;
 
 const MEC_EC_BYTE_ACCESS: u16 = 0x00;
