@@ -50,6 +50,7 @@ use std::path::Path;
 /// assert_eq!(guid, None);
 /// ```
 pub fn guid_from_str(string: &str) -> Option<Guid> {
+    let string = string.strip_suffix('\n').unwrap_or(string);
     let sections: Vec<&str> = string.split('-').collect();
     let time_low = u32::from_str_radix(sections[0], 16).ok()?;
     let time_mid = u16::from_str_radix(sections[1], 16).ok()?;
