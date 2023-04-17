@@ -69,6 +69,9 @@ pub fn guid_from_str(string: &str) -> Option<Guid> {
 pub const BIOS_GUID: Guid = guid!("a30a8cf3-847f-5e59-bd59-f9ec145c1a8c");
 pub const RETIMER01_GUID: Guid = guid!("a9c91b0c-c0b8-463d-a7da-a5d6ec646333");
 pub const RETIMER23_GUID: Guid = guid!("ba2e4e6e-3b0c-4f25-8a59-4c553fc86ea2");
+pub const GEN13_RETIMER01_GUID: Guid = guid!("0c42b824-818f-428f-8687-5efcaf059bea");
+pub const GEN13_RETIMER23_GUID: Guid = guid!("268ccbde-e087-420b-bf82-2212bd3f9bfc");
+
 // In EDK2
 // Handled by MdeModulePkg/Library/DxeCapsuleLibFmp/DxeCapsuleLib.c
 // Defined by MdePkg/Include/IndustryStandard/WindowsUxCapsule.h
@@ -79,6 +82,8 @@ pub enum FrameworkGuidKind {
     Bios,
     Retimer01,
     Retimer23,
+    Gen13Retimer01,
+    Gen13Retimer23,
     WinUx,
     Unknown,
 }
@@ -88,6 +93,8 @@ pub fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
         BIOS_GUID => FrameworkGuidKind::Bios,
         RETIMER01_GUID => FrameworkGuidKind::Retimer01,
         RETIMER23_GUID => FrameworkGuidKind::Retimer23,
+        GEN13_RETIMER01_GUID => FrameworkGuidKind::Gen13Retimer01,
+        GEN13_RETIMER23_GUID => FrameworkGuidKind::Gen13Retimer23,
         WINUX_GUID => FrameworkGuidKind::WinUx,
         _ => FrameworkGuidKind::Unknown,
     }
