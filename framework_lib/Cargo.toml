@@ -12,7 +12,7 @@ linux = ["linux_pio", "unix"]
 windows = ["std", "smbios", "dep:windows", "win_driver"]
 smbios = ["dep:smbios-lib"]
 std = ["dep:regex", "dep:clap", "smbios-lib?/std", "dep:hidapi", "dep:rusb"]
-uefi = ["dep:redox_dmi", "dep:plain", "raw_pio", "smbios", "lazy_static/spin_no_std", "dep:uefi", "dep:uefi-services"]
+uefi = ["dep:plain", "raw_pio", "smbios", "lazy_static/spin_no_std", "dep:uefi", "dep:uefi-services"]
 
 # EC communication via Port I/O on Linux
 linux_pio = ["dep:libc"]
@@ -37,7 +37,6 @@ num-traits = { version = "0.2", default-features = false }
 log = "0.4"
 uefi = { version = "0.20", features = ["alloc"], optional = true }
 uefi-services = { version = "0.17", optional = true }
-redox_dmi = { version = "0.1.5", optional = true }
 plain = { version = "0.2.3", optional = true }
 spin = { version = "0.9.4", optional = false }
 hidapi = { version = "2.1.0", optional = true }

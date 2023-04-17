@@ -150,7 +150,6 @@ dependencies = [
  "num-derive",
  "num-traits",
  "plain",
- "redox_dmi",
  "redox_hwio",
  "regex",
  "rusb",
@@ -530,15 +529,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4424af4bf778aae2051a77b60283332f386554255d722233d09fbfc7e30da2fc"
 dependencies = [
  "proc-macro2",
-]
-
-[[package]]
-name = "redox_dmi"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a99ca13e2ee4afe0fa2a646db6ac800f6d077a789ee759085f7313092535a45f"
-dependencies = [
- "plain",
 ]
 
 [[package]]
