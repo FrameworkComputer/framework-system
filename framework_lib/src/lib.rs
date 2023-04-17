@@ -1,7 +1,6 @@
 //! A library to interact with [Framework Computer](https://frame.work) hardware and building tools to do so.
 
 #![cfg_attr(feature = "uefi", no_std)]
-#![feature(prelude_import)]
 
 extern crate alloc;
 #[cfg(feature = "uefi")]
