@@ -86,6 +86,11 @@ will install the right toolchain and version for this project.
 
 ## Building
 
+MSRV (Minimum Supported Rust Version):
+
+- 1.61 for Linux/Windows
+- 1.68 for UEFI
+
 ```sh
 # Running linter
 cargo clippy
