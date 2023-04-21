@@ -217,7 +217,7 @@ fn print_versions(ec: &CrosEc) {
             "    Backup App:     {}",
             pd_versions.controller23.backup_fw.app
         );
-    } else if let Ok(pd_versions) = power::read_pd_version() {
+    } else if let Ok(pd_versions) = power::read_pd_version(ec) {
         // As fallback try to get it from the EC. But not all EC versions have this command
         println!("  Right (01):     {}", pd_versions.controller01.app);
         println!("  Left  (23):     {}", pd_versions.controller23.app);
@@ -350,9 +350,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             return 1;
         }
     } else if args.power {
-        power::get_and_print_power_info();
+        power::get_and_print_power_info(&ec);
     } else if args.pdports {
-        power::get_and_print_pd_info();
+        power::get_and_print_pd_info(&ec);
     } else if args.info {
         smbios_info();
     } else if args.pd_info {
@@ -531,15 +531,15 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     ec.flash_version()?;
 
     println!("  Getting power info from EC");
-    power::power_info()?;
+    power::power_info(ec)?;
 
     println!("  Getting AC info from EC");
-    if power::get_pd_info().iter().any(|x| x.is_err()) {
+    if power::get_pd_info(ec).iter().any(|x| x.is_err()) {
         return None;
     }
 
     // Try to get PD versions through EC
-    power::read_pd_version().ok()?;
+    power::read_pd_version(ec).ok()?;
 
     let pd_01 = PdController::new(PdPort::Left01);
     let pd_23 = PdController::new(PdPort::Right23);

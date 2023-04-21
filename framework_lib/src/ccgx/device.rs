@@ -130,6 +130,7 @@ impl PdController {
     }
     /// Wrapped with support for dev id
     /// TODO: Should move into chromium_ec module
+    /// TODO: Must not call CrosEc::new() otherwise the driver isn't configurable!
     fn send_ec_command(&self, code: u16, dev_index: u16, data: &[u8]) -> EcResult<Vec<u8>> {
         let command_id = code + passthrough_offset(dev_index);
         CrosEc::new().send_command(command_id, 0, data)
