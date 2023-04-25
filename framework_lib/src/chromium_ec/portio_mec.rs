@@ -2,6 +2,8 @@ use crate::util;
 use alloc::vec;
 use alloc::vec::Vec;
 
+use log::Level;
+
 use hwio::{Io, Pio};
 #[cfg(feature = "linux_pio")]
 use libc::ioperm;
@@ -34,20 +36,20 @@ pub fn transfer_write(buffer: &[u8]) {
     let mut pos: u16 = 0;
     let mut offset = 0;
 
-    if util::is_debug() {
-        print!("transfer_write(size={:#}, buffer=)", size);
+    if log_enabled!(Level::Trace) {
+        debug!("transfer_write(size={:#}, buffer=)", size);
         util::print_buffer(buffer);
     }
 
     // Unaligned start address
     // Read up two three bytes one-by-one
     if offset % 4 > 0 {
-        if util::is_debug() {
-            println!("  Writing single byte to start at {:#X}", offset);
+        if log_enabled!(Level::Trace) {
+            trace!("  Writing single byte to start at {:#X}", offset);
         }
         Pio::<u16>::new(MEC_LPC_ADDRESS_REGISTER0).write((offset & 0xFFFC) | MEC_EC_BYTE_ACCESS);
-        if util::is_debug() {
-            println!(
+        if log_enabled!(Level::Trace) {
+            trace!(
                 "Writing {:#X} to port {:#X}",
                 (offset & 0xFFFC) | MEC_EC_BYTE_ACCESS,
                 MEC_LPC_ADDRESS_REGISTER0
@@ -63,13 +65,13 @@ pub fn transfer_write(buffer: &[u8]) {
 
     // Reading in 4 byte chunks
     if size - pos >= 4 {
-        if util::is_debug() {
-            println!("  Writing 4 bytes to {:#X}", offset);
+        if log_enabled!(Level::Trace) {
+            trace!("  Writing 4 bytes to {:#X}", offset);
         }
         Pio::<u16>::new(MEC_LPC_ADDRESS_REGISTER0)
             .write((offset & 0xFFFC) | MEC_EC_LONG_ACCESS_AUTOINCREMENT);
-        if util::is_debug() {
-            println!(
+        if log_enabled!(Level::Trace) {
+            trace!(
                 "Writing {:#X} to port {:#X}",
                 (offset & 0xFFFC) | MEC_EC_LONG_ACCESS_AUTOINCREMENT,
                 MEC_LPC_ADDRESS_REGISTER0
@@ -84,8 +86,8 @@ pub fn transfer_write(buffer: &[u8]) {
                         .1,
                 )
             }
-            if util::is_debug() {
-                println!("  Sending: {:#X} {:#X}", temp[0], temp[1]);
+            if log_enabled!(Level::Trace) {
+                trace!("  Sending: {:#X} {:#X}", temp[0], temp[1]);
             }
             Pio::<u16>::new(MEC_LPC_DATA_REGISTER0).write(temp[0]);
             Pio::<u16>::new(MEC_LPC_DATA_REGISTER2).write(temp[1]);
@@ -97,8 +99,8 @@ pub fn transfer_write(buffer: &[u8]) {
 
     // Read last remaining bytes individually
     if size - pos > 0 {
-        if util::is_debug() {
-            println!("  Writing single byte to end at {:#X}", offset);
+        if log_enabled!(Level::Trace) {
+            trace!("  Writing single byte to end at {:#X}", offset);
         }
         Pio::<u16>::new(MEC_LPC_ADDRESS_REGISTER0).write((offset & 0xFFFC) | MEC_EC_BYTE_ACCESS);
 
@@ -110,8 +112,8 @@ pub fn transfer_write(buffer: &[u8]) {
 
 /// Transfer read function for MEC (Microchip) based embedded controllers
 pub fn transfer_read(address: u16, size: u16) -> Vec<u8> {
-    if util::is_debug() {
-        println!("transfer_read(address={:#}, size={:#})", address, size);
+    if log_enabled!(Level::Trace) {
+        debug!("transfer_read(address={:#}, size={:#})", address, size);
     }
 
     // Allocate buffer to hold result
@@ -122,15 +124,15 @@ pub fn transfer_read(address: u16, size: u16) -> Vec<u8> {
     // Unaligned start address
     // Read up two three bytes one-by-one
     if offset % 4 > 0 {
-        if util::is_debug() {
-            println!("  Reading single byte from start at {:#X}", offset);
+        if log_enabled!(Level::Trace) {
+            trace!("  Reading single byte from start at {:#X}", offset);
         }
         Pio::<u16>::new(MEC_LPC_ADDRESS_REGISTER0).write((offset & 0xFFFC) | MEC_EC_BYTE_ACCESS);
 
         for byte in (offset % 4)..std::cmp::min(4, size) {
             buffer[usize::from(pos)] = Pio::<u8>::new(MEC_LPC_DATA_REGISTER0 + byte).read();
-            if util::is_debug() {
-                println!("  Received: {:#X}", buffer[usize::from(pos)]);
+            if log_enabled!(Level::Trace) {
+                trace!("  Received: {:#X}", buffer[usize::from(pos)]);
             }
             pos += 1;
         }
@@ -139,8 +141,8 @@ pub fn transfer_read(address: u16, size: u16) -> Vec<u8> {
 
     // Reading in 4 byte chunks
     if size - pos >= 4 {
-        if util::is_debug() {
-            println!("  Reading 4 bytes from {:#X}", offset);
+        if log_enabled!(Level::Trace) {
+            trace!("  Reading 4 bytes from {:#X}", offset);
         }
         Pio::<u16>::new(MEC_LPC_ADDRESS_REGISTER0)
             .write((offset & 0xFFFC) | MEC_EC_LONG_ACCESS_AUTOINCREMENT);
@@ -148,8 +150,8 @@ pub fn transfer_read(address: u16, size: u16) -> Vec<u8> {
         while size - pos >= 4 {
             temp[0] = Pio::<u16>::new(MEC_LPC_DATA_REGISTER0).read();
             temp[1] = Pio::<u16>::new(MEC_LPC_DATA_REGISTER2).read();
-            if util::is_debug() {
-                println!("  Received: {:#X} {:#X}", temp[0], temp[1]);
+            if log_enabled!(Level::Trace) {
+                trace!("  Received: {:#X} {:#X}", temp[0], temp[1]);
             }
             let aligned = unsafe { temp.align_to::<u8>() };
             assert!(aligned.0.is_empty());
@@ -163,21 +165,21 @@ pub fn transfer_read(address: u16, size: u16) -> Vec<u8> {
 
     // Read last remaining bytes individually
     if size - pos > 0 {
-        if util::is_debug() {
-            println!("  Reading single byte from end at {:#X}", offset);
+        if log_enabled!(Level::Trace) {
+            trace!("  Reading single byte from end at {:#X}", offset);
         }
         Pio::<u16>::new(MEC_LPC_ADDRESS_REGISTER0).write((offset & 0xFFFC) | MEC_EC_BYTE_ACCESS);
 
         for byte in 0..(size - pos) {
             buffer[usize::from(pos + byte)] = Pio::<u8>::new(MEC_LPC_DATA_REGISTER0 + byte).read();
-            if util::is_debug() {
-                println!("  Received: {:#X}", buffer[usize::from(pos + byte)]);
+            if log_enabled!(Level::Trace) {
+                trace!("  Received: {:#X}", buffer[usize::from(pos + byte)]);
             }
         }
     }
 
-    if util::is_debug() {
-        print!("  Read bytes: ");
+    if log_enabled!(Level::Trace) {
+        println!("Read bytes: ");
         util::print_buffer(&buffer);
     }
 

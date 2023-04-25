@@ -9,6 +9,9 @@ extern crate no_std_compat as std; // TODO: I don't this should be necessary
 #[macro_use]
 extern crate lazy_static;
 
+#[macro_use]
+extern crate log;
+
 #[cfg(not(feature = "uefi"))]
 pub mod audio_card;
 

@@ -142,11 +142,11 @@ pub fn read_ec_version(data: &[u8]) -> Option<ImageVersionData> {
     let v: _ImageVersionData =
         unsafe { std::ptr::read(data[EC_VERSION_OFFSET..].as_ptr() as *const _) };
     if v.cookie1 != CROS_EC_IMAGE_DATA_COOKIE1 {
-        println!("Failed to find Cookie 1");
+        error!("Failed to find Cookie 1");
         return None;
     }
     if v.cookie2 != CROS_EC_IMAGE_DATA_COOKIE2 {
-        println!("Failed to find Cookie 2");
+        error!("Failed to find Cookie 2");
         return None;
     }
 

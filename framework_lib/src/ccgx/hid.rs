@@ -24,11 +24,19 @@ pub fn check_ccg_fw_version(device: &HidDevice) {
     let signature = &buf[2..4];
     let sig_valid = signature == [b'C', b'Y'];
     if !sig_valid {
-        println!("  Signature Valid: {} ({:X?})", sig_valid, &buf[2..4]);
+        error!("  Signature Valid: {} ({:X?})", sig_valid, &buf[2..4]);
     }
-    println!("  Operating Mode:  0x{:X?}", &buf[4]);
-    println!("  Silicon ID:      {:X?}", &buf[8..12]);
-    println!("  BL Version:      {}", BaseVersion::from(&buf[12..]));
-    println!("  Image 1 Version: {}", BaseVersion::from(&buf[20..]));
-    println!("  Image 2 Version: {}", BaseVersion::from(&buf[28..]));
+    debug!("  Operating Mode:  0x{:X?}", &buf[4]);
+    debug!("  Silicon ID:      {:X?}", &buf[8..12]);
+    debug!("  BL Version:      {}", BaseVersion::from(&buf[12..]));
+    let base_version_1 = BaseVersion::from(&buf[20..]);
+    let base_version_2 = BaseVersion::from(&buf[28..]);
+    println!(
+        "  Image 1 Version: {:03} ({})",
+        base_version_1.build_number, base_version_1
+    );
+    println!(
+        "  Image 2 Version: {:03} ({})",
+        base_version_2.build_number, base_version_2
+    );
 }

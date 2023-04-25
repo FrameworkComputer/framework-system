@@ -74,11 +74,9 @@ pub trait EcRequest<R> {
         };
         let response =
             ec.send_command(Self::command_id() as u16, Self::command_version(), &request)?;
-        if util::is_debug() {
-            println!("send_command<{:?}>", Self::command_id());
-            println!("  Request:  {:?}", request);
-            println!("  Response: {:?}", response);
-        }
+        trace!("send_command<{:X?}>", Self::command_id());
+        trace!("  Request:  {:?}", request);
+        trace!("  Response: {:?}", response);
         Ok(response)
     }
 

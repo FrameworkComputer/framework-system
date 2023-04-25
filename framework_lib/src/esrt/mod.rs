@@ -284,7 +284,7 @@ fn esrt_from_sysfs(dir: &Path) -> io::Result<Esrt> {
 pub fn get_esrt() -> Option<Esrt> {
     let res = esrt_from_sysfs(Path::new("/sys/firmware/efi/esrt/entries")).ok();
     if res.is_none() {
-        println!("Make sure you're root to access ESRT from sysfs on Linux");
+        error!("Make sure you're root to access ESRT from sysfs on Linux");
     }
     res
 }
@@ -292,7 +292,7 @@ pub fn get_esrt() -> Option<Esrt> {
 #[cfg(all(not(feature = "uefi"), feature = "windows"))]
 pub fn get_esrt() -> Option<Esrt> {
     // TODO: Implement
-    println!("Reading ESRT is not implemented on Windows yet.");
+    error!("Reading ESRT is not implemented on Windows yet.");
     None
 }
 

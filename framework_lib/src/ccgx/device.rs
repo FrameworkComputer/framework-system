@@ -137,9 +137,7 @@ impl PdController {
     }
 
     fn i2c_read(&self, addr: u16, len: u16) -> EcResult<EcI2cPassthruResponse> {
-        if util::is_debug() {
-            println!("i2c_read(addr: {}, len: {})", addr, len);
-        }
+        trace!("i2c_read(addr: {}, len: {})", addr, len);
         let addr_bytes = u16::to_le_bytes(addr);
         let messages = vec![
             EcParamsI2cPassthruMsg {

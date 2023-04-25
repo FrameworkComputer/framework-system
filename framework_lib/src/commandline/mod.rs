@@ -150,9 +150,12 @@ fn print_dp_hdmi_details() {
                     }
 
                     // On Windows this value is "Control Interface", probably hijacked by the kernel driver
-                    //println!("{}", dev_info.product_string().unwrap_or(NOT_SET));
+                    debug!(
+                        "  Product String:  {}",
+                        dev_info.product_string().unwrap_or(NOT_SET)
+                    );
 
-                    println!(
+                    debug!(
                         "  Serial No:       {}",
                         dev_info.serial_number().unwrap_or(NOT_SET)
                     );
@@ -373,6 +376,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 "Camera privacy switch:     {}",
                 if cam { "Open" } else { "Closed" }
             );
+        } else {
+            println!("Not all EC versions support this comand.")
         };
     // TODO:
     //} else if arg == "-raw-command" {
@@ -558,7 +563,7 @@ fn selftest(ec: &CrosEc) -> Option<()> {
 fn smbios_info() {
     let smbios = get_smbios();
     if smbios.is_none() {
-        println!("Failed to find SMBIOS");
+        error!("Failed to find SMBIOS");
         return;
     }
     for undefined_struct in smbios.unwrap().iter() {
@@ -566,34 +571,34 @@ fn smbios_info() {
             DefinedStruct::Information(data) => {
                 println!("BIOS Information");
                 if let Some(vendor) = dmidecode_string_val(&data.vendor()) {
-                    println!("\tVendor:       {}", vendor);
+                    println!("  Vendor:       {}", vendor);
                 }
                 if let Some(version) = dmidecode_string_val(&data.version()) {
-                    println!("\tVersion:      {}", version);
+                    println!("  Version:      {}", version);
                 }
                 if let Some(release_date) = dmidecode_string_val(&data.release_date()) {
-                    println!("\tRelease Date: {}", release_date);
+                    println!("  Release Date: {}", release_date);
                 }
             }
             DefinedStruct::SystemInformation(data) => {
                 println!("BIOS Information");
                 if let Some(version) = dmidecode_string_val(&data.version()) {
-                    println!("\tVersion:      {}", version);
+                    println!("  Version:      {}", version);
                 }
                 if let Some(manufacturer) = dmidecode_string_val(&data.manufacturer()) {
-                    println!("\tManufacturer: {}", manufacturer);
+                    println!("  Manufacturer: {}", manufacturer);
                 }
                 if let Some(product_name) = dmidecode_string_val(&data.product_name()) {
-                    println!("\tProduct Name: {}", product_name);
+                    println!("  Product Name: {}", product_name);
                 }
                 if let Some(wake_up_type) = data.wakeup_type() {
-                    println!("\tWake-Up-Type: {:?}", wake_up_type.value);
+                    println!("  Wake-Up-Type: {:?}", wake_up_type.value);
                 }
                 if let Some(sku_number) = dmidecode_string_val(&data.sku_number()) {
-                    println!("\tSKU Number:   {}", sku_number);
+                    println!("  SKU Number:   {}", sku_number);
                 }
                 if let Some(family) = dmidecode_string_val(&data.family()) {
-                    println!("\tFamily:       {}", family);
+                    println!("  Family:       {}", family);
                 }
             }
             _ => {}

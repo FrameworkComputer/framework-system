@@ -99,7 +99,7 @@ fn read_u32(ec: &CrosEc, address: u16) -> u32 {
             "Tried to read 4 bytes but got {}",
             bytes.len()
         );
-        println!("Unexpected length returned: {:?} instead of 4", bytes.len());
+        error!("Unexpected length returned: {:?} instead of 4", bytes.len());
         return 0;
     }
     u32::from_ne_bytes(bytes[0..4].try_into().unwrap())
@@ -117,9 +117,7 @@ pub fn print_memmap_version_info(ec: &CrosEc) {
 // TODO: Use Result
 pub fn power_info(ec: &CrosEc) -> Option<PowerInfo> {
     let battery_flag = ec.read_memory(EC_MEMMAP_BATT_FLAG, 1)?[0];
-    if util::is_debug() {
-        println!("AC/Battery flag: {:#X}", battery_flag);
-    }
+    debug!("AC/Battery flag: {:#X}", battery_flag);
     let battery_lfcc = read_u32(ec, EC_MEMMAP_BATT_LFCC);
     let battery_cap = read_u32(ec, EC_MEMMAP_BATT_CAP);
 
