@@ -7,6 +7,13 @@ use std::io::ErrorKind;
 
 use crate::util::Platform;
 use smbioslib::*;
+#[cfg(feature = "uefi")]
+use spin::Mutex;
+#[cfg(not(feature = "uefi"))]
+use std::sync::Mutex;
+
+/// Current platform. Won't ever change during the program's runtime
+static CACHED_PLATFORM: Mutex<Option<Option<Platform>>> = Mutex::new(None);
 
 // TODO: Should cache SMBIOS and values gotten from it
 // SMBIOS is fixed after boot. Oh, so maybe not cache when we're running in UEFI
@@ -68,12 +75,21 @@ pub fn get_smbios() -> Option<SMBiosData> {
 }
 
 pub fn get_platform() -> Option<Platform> {
+    #[cfg(feature = "uefi")]
+    let mut cached_platform = CACHED_PLATFORM.lock();
+    #[cfg(not(feature = "uefi"))]
+    let mut cached_platform = CACHED_PLATFORM.lock().unwrap();
+
+    if let Some(platform) = *cached_platform {
+        return platform;
+    }
+
     let smbios = get_smbios();
     if smbios.is_none() {
         println!("Failed to find SMBIOS");
-        return None;
     }
-    for undefined_struct in smbios.unwrap().iter() {
+    let mut smbios = smbios.into_iter().flatten();
+    let platform = smbios.find_map(|undefined_struct| {
         if let DefinedStruct::SystemInformation(data) = undefined_struct.defined_struct() {
             if let Some(product_name) = dmidecode_string_val(&data.product_name()) {
                 match product_name.as_str() {
@@ -96,8 +112,14 @@ pub fn get_platform() -> Option<Platform> {
                 }
             }
         }
+        None
+    });
+
+    if platform.is_none() {
+        println!("Failed to find PlatformFamily");
     }
 
-    println!("Failed to find PlatformFamily");
-    None
+    assert!(cached_platform.is_none());
+    *cached_platform = Some(platform);
+    platform
 }
