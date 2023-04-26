@@ -19,7 +19,7 @@ use crate::os_specific;
 use crate::util::{self, Platform};
 
 fn has_mec() -> bool {
-    matches!(
+    !matches!(
         smbios::get_platform().unwrap(),
         Platform::Framework13Amd | Platform::Framework16
     )
