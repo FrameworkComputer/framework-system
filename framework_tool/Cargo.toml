@@ -8,10 +8,6 @@ default = ["linux"]
 linux = ["framework_lib/linux"]
 windows = ["framework_lib/windows"]
 
-[dependencies]
-env_logger = "0.10.0"
-log = { version = "0.4", default-features = true }
-
 [dependencies.framework_lib]
 path = "../framework_lib"
 default-features = false

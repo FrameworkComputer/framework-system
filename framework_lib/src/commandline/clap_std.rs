@@ -10,8 +10,11 @@ use crate::commandline::{Cli, ConsoleArg};
 #[derive(Parser)]
 #[command(arg_required_else_help = true)]
 struct ClapCli {
+    #[command(flatten)]
+    verbosity: clap_verbosity_flag::Verbosity,
+
     /// List current firmware versions version
-    #[arg(short, long)]
+    #[arg(long)]
     versions: bool,
 
     /// Display the UEFI ESRT table
@@ -94,6 +97,7 @@ pub fn parse(args: &[String]) -> Cli {
     let args = ClapCli::parse_from(args);
 
     Cli {
+        verbosity: args.verbosity.log_level_filter(),
         versions: args.versions,
         esrt: args.esrt,
         power: args.power,

@@ -11,7 +11,6 @@ use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, MainP
 use crate::chromium_ec::command::EcRequest;
 use crate::chromium_ec::commands::{EcRequestReadPdVersion, EcRequestUsbPdPowerInfo};
 use crate::chromium_ec::{print_err_ref, CrosEc, CrosEcDriver, EcResult};
-use crate::util;
 
 // The offset address of each type of data in mapped memory.
 // TODO: Move non-power values to other modules

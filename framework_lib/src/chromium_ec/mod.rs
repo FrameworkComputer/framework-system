@@ -11,7 +11,6 @@
 use crate::smbios;
 #[cfg(feature = "uefi")]
 use crate::uefi::shell_get_execution_break_flag;
-use crate::util;
 
 use num_derive::FromPrimitive;
 

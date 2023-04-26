@@ -155,7 +155,9 @@ Swiss army knife for Framework laptops
 Usage: framework_tool [OPTIONS]
 
 Options:
-  -v, --versions             List current firmware versions version
+  -v, --verbose...           More output per occurrence
+  -q, --quiet...             Less output per occurrence
+      --versions             List current firmware versions version
       --esrt                 Display the UEFI ESRT table
       --power                Show current power status (battery and AC)
       --pdports              Show information about USB-C PD prots

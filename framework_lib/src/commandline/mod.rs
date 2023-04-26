@@ -59,6 +59,7 @@ pub enum ConsoleArg {
 /// Also it has extra options.
 #[derive(Debug)]
 pub struct Cli {
+    pub verbosity: log::LevelFilter,
     pub versions: bool,
     pub esrt: bool,
     pub power: bool,
@@ -282,6 +283,24 @@ fn print_esrt() {
 }
 
 pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
+    #[cfg(feature = "uefi")]
+    {
+        log::set_max_level(args.verbosity);
+    }
+    #[cfg(not(feature = "uefi"))]
+    {
+        // TOOD: Should probably have a custom env variable?
+        // let env = Env::default()
+        //     .filter("FRAMEWORK_COMPUTER_LOG")
+        //     .write_style("FRAMEWORK_COMPUTER_LOG_STYLE");
+
+        let level = args.verbosity.as_str();
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(level))
+            .format_target(false)
+            .format_timestamp(None)
+            .init();
+    }
+
     let ec = if let Some(driver) = args.driver {
         if let Some(driver) = CrosEc::with(driver) {
             driver
@@ -492,7 +511,8 @@ Usage: framework_tool [OPTIONS]
 
 Options:
   -b                         Print output one screen at a time
-  -v, --versions             List current firmware versions version
+  -v, --verbose...           More output per occurrence
+  -q, --quiet...             Less output per occurrence
       --esrt                 Display the UEFI ESRT table
       --power                Show current power status (battery and AC)
       --pdports              Show information about USB-C PD prots
