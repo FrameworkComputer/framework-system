@@ -11,7 +11,6 @@
 use crate::smbios;
 #[cfg(feature = "uefi")]
 use crate::uefi::shell_get_execution_break_flag;
-use crate::util;
 
 use num_derive::FromPrimitive;
 
@@ -125,6 +124,7 @@ fn available_drivers() -> Vec<CrosEcDriverType> {
 
 impl CrosEc {
     pub fn new() -> CrosEc {
+        debug!("Chromium EC Driver: {:?}", available_drivers()[0]);
         CrosEc {
             driver: available_drivers()[0],
         }
@@ -134,6 +134,7 @@ impl CrosEc {
         if !available_drivers().contains(&driver) {
             return None;
         }
+        debug!("Chromium EC Driver: {:?}", driver);
         Some(CrosEc { driver })
     }
 
@@ -331,9 +332,7 @@ impl CrosEcDriver for CrosEc {
             return None;
         }
 
-        if util::is_debug() {
-            println!("read_memory(offset={:#}, size={:#})", offset, length);
-        }
+        debug!("read_memory(offset={:#}, size={:#})", offset, length);
         if offset + length > EC_MEMMAP_SIZE {
             return None;
         }
@@ -349,14 +348,12 @@ impl CrosEcDriver for CrosEc {
         })
     }
     fn send_command(&self, command: u16, command_version: u8, data: &[u8]) -> EcResult<Vec<u8>> {
-        if util::is_debug() {
-            println!(
-                "send_command(command={:?}, ver={:?}, data_len={:?})",
-                command,
-                command_version,
-                data.len()
-            );
-        }
+        debug!(
+            "send_command(command=0x{:X}, ver={:?}, data_len={:?})",
+            command,
+            command_version,
+            data.len()
+        );
 
         if !smbios::is_framework() {
             return Err(EcError::DeviceError("Not a Framework Laptop".to_string()));
@@ -379,13 +376,13 @@ pub fn print_err_ref<T>(something: &EcResult<T>) {
         Ok(_) => {}
         // TODO: Some errors we can handle and retry, like Busy, Timeout, InProgress, ...
         Err(EcError::Response(status)) => {
-            println!("Error code returned by EC: {:?}", status);
+            error!("EC Response Code: {:?}", status);
         }
         Err(EcError::UnknownResponseCode(code)) => {
-            println!("Invalid response code from EC command: {}", code);
+            error!("Invalid response code from EC command: {:X}", code);
         }
         Err(EcError::DeviceError(str)) => {
-            println!("Failed to communicate with EC. Reason: {}", str);
+            error!("Failed to communicate with EC. Reason: {:?}", str);
         }
     }
 }

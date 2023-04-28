@@ -155,7 +155,9 @@ Swiss army knife for Framework laptops
 Usage: framework_tool [OPTIONS]
 
 Options:
-  -v, --versions             List current firmware versions version
+  -v, --verbose...           More output per occurrence
+  -q, --quiet...             Less output per occurrence
+      --versions             List current firmware versions version
       --esrt                 Display the UEFI ESRT table
       --power                Show current power status (battery and AC)
       --pdports              Show information about USB-C PD prots
@@ -252,4 +254,32 @@ own EC firmware and flash it.
 ## Tests
 
 - [x] Basic unit tests
-- [ ] Test parsing real binaries
+- [x] Test parsing real binaries
+
+## Debugging
+
+To debug, increase the verbosity from the commandline with `-v`.
+The verbosity levels are:
+
+| Commandline | Level  |
+|-------------|--------|
+| `-q`        | No log |
+| None        | Error  |
+| `-v`        | Warn   |
+| `-vv`       | Info   |
+| `-vvv`      | Debug  |
+| `-vvvv`     | Trace  |
+
+For example it is useful to check which EC driver is used:
+
+```
+> framework_tool --kblight -vvv
+[DEBUG] Chromium EC Driver: CrosEc
+[DEBUG] send_command(command=0x22, ver=0, data_len=0)
+Keyboard backlight: 0%
+
+> framework_tool --driver portio --kblight -vvv
+[DEBUG] Chromium EC Driver: Portio
+[DEBUG] send_command(command=0x22, ver=0, data_len=0)
+Keyboard backlight: 0%
+```

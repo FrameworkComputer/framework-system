@@ -225,7 +225,7 @@ fn parse_metadata_cyacd(buffer: &[u8]) -> Option<(u32, u32)> {
     let metadata_len = std::mem::size_of::<CyAcdMetadata>();
     let metadata: CyAcdMetadata =
         unsafe { std::ptr::read(buffer[0..metadata_len].as_ptr() as *const _) };
-    //println!("Metadata: {:?}", metadata);
+    trace!("Metadata: {:X?}", metadata);
     if metadata.metadata_valid == METADATA_MAGIC {
         Some((1 + metadata.boot_last_row as u32, metadata.fw_size))
     } else {
@@ -238,7 +238,7 @@ fn parse_metadata_cyacd2(buffer: &[u8]) -> Option<(u32, u32)> {
     let metadata_len = std::mem::size_of::<CyAcd2Metadata>();
     let metadata: CyAcd2Metadata =
         unsafe { std::ptr::read(buffer[0..metadata_len].as_ptr() as *const _) };
-    //println!("Metadata: {:?}", metadata);
+    trace!("Metadata: {:X?}", metadata);
     if metadata.metadata_valid == CCG8_METADATA_MAGIC {
         if metadata.metadata_version == 1 {
             Some((metadata.fw_start, metadata.fw_size))

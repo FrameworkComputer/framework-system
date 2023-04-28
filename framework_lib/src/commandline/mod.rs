@@ -59,6 +59,7 @@ pub enum ConsoleArg {
 /// Also it has extra options.
 #[derive(Debug)]
 pub struct Cli {
+    pub verbosity: log::LevelFilter,
     pub versions: bool,
     pub esrt: bool,
     pub power: bool,
@@ -151,9 +152,12 @@ fn print_dp_hdmi_details() {
                     }
 
                     // On Windows this value is "Control Interface", probably hijacked by the kernel driver
-                    //println!("{}", dev_info.product_string().unwrap_or(NOT_SET));
+                    debug!(
+                        "  Product String:  {}",
+                        dev_info.product_string().unwrap_or(NOT_SET)
+                    );
 
-                    println!(
+                    debug!(
                         "  Serial No:       {}",
                         dev_info.serial_number().unwrap_or(NOT_SET)
                     );
@@ -218,7 +222,7 @@ fn print_versions(ec: &CrosEc) {
             "    Backup App:     {}",
             pd_versions.controller23.backup_fw.app
         );
-    } else if let Ok(pd_versions) = power::read_pd_version() {
+    } else if let Ok(pd_versions) = power::read_pd_version(ec) {
         // As fallback try to get it from the EC. But not all EC versions have this command
         println!("  Right (01):     {}", pd_versions.controller01.app);
         println!("  Left  (23):     {}", pd_versions.controller23.app);
@@ -280,6 +284,24 @@ fn print_esrt() {
 }
 
 pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
+    #[cfg(feature = "uefi")]
+    {
+        log::set_max_level(args.verbosity);
+    }
+    #[cfg(not(feature = "uefi"))]
+    {
+        // TOOD: Should probably have a custom env variable?
+        // let env = Env::default()
+        //     .filter("FRAMEWORK_COMPUTER_LOG")
+        //     .write_style("FRAMEWORK_COMPUTER_LOG_STYLE");
+
+        let level = args.verbosity.as_str();
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(level))
+            .format_target(false)
+            .format_timestamp(None)
+            .init();
+    }
+
     let ec = if let Some(driver) = args.driver {
         if let Some(driver) = CrosEc::with(driver) {
             driver
@@ -365,9 +387,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             return 1;
         }
     } else if args.power {
-        power::get_and_print_power_info();
+        power::get_and_print_power_info(&ec);
     } else if args.pdports {
-        power::get_and_print_pd_info();
+        power::get_and_print_pd_info(&ec);
     } else if args.info {
         smbios_info();
     } else if args.pd_info {
@@ -388,6 +410,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 "Camera privacy switch:     {}",
                 if cam { "Open" } else { "Closed" }
             );
+        } else {
+            println!("Not all EC versions support this comand.")
         };
     // TODO:
     //} else if arg == "-raw-command" {
@@ -502,7 +526,8 @@ Usage: framework_tool [OPTIONS]
 
 Options:
   -b                         Print output one screen at a time
-  -v, --versions             List current firmware versions version
+  -v, --verbose...           More output per occurrence
+  -q, --quiet...             Less output per occurrence
       --esrt                 Display the UEFI ESRT table
       --power                Show current power status (battery and AC)
       --pdports              Show information about USB-C PD prots
@@ -547,15 +572,15 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     ec.flash_version()?;
 
     println!("  Getting power info from EC");
-    power::power_info()?;
+    power::power_info(ec)?;
 
     println!("  Getting AC info from EC");
-    if power::get_pd_info().iter().any(|x| x.is_err()) {
+    if power::get_pd_info(ec).iter().any(|x| x.is_err()) {
         return None;
     }
 
     // Try to get PD versions through EC
-    power::read_pd_version().ok()?;
+    power::read_pd_version(ec).ok()?;
 
     let pd_01 = PdController::new(PdPort::Left01);
     let pd_23 = PdController::new(PdPort::Right23);
@@ -574,7 +599,7 @@ fn selftest(ec: &CrosEc) -> Option<()> {
 fn smbios_info() {
     let smbios = get_smbios();
     if smbios.is_none() {
-        println!("Failed to find SMBIOS");
+        error!("Failed to find SMBIOS");
         return;
     }
     for undefined_struct in smbios.unwrap().iter() {
@@ -582,34 +607,34 @@ fn smbios_info() {
             DefinedStruct::Information(data) => {
                 println!("BIOS Information");
                 if let Some(vendor) = dmidecode_string_val(&data.vendor()) {
-                    println!("\tVendor:       {}", vendor);
+                    println!("  Vendor:       {}", vendor);
                 }
                 if let Some(version) = dmidecode_string_val(&data.version()) {
-                    println!("\tVersion:      {}", version);
+                    println!("  Version:      {}", version);
                 }
                 if let Some(release_date) = dmidecode_string_val(&data.release_date()) {
-                    println!("\tRelease Date: {}", release_date);
+                    println!("  Release Date: {}", release_date);
                 }
             }
             DefinedStruct::SystemInformation(data) => {
                 println!("BIOS Information");
                 if let Some(version) = dmidecode_string_val(&data.version()) {
-                    println!("\tVersion:      {}", version);
+                    println!("  Version:      {}", version);
                 }
                 if let Some(manufacturer) = dmidecode_string_val(&data.manufacturer()) {
-                    println!("\tManufacturer: {}", manufacturer);
+                    println!("  Manufacturer: {}", manufacturer);
                 }
                 if let Some(product_name) = dmidecode_string_val(&data.product_name()) {
-                    println!("\tProduct Name: {}", product_name);
+                    println!("  Product Name: {}", product_name);
                 }
                 if let Some(wake_up_type) = data.wakeup_type() {
-                    println!("\tWake-Up-Type: {:?}", wake_up_type.value);
+                    println!("  Wake-Up-Type: {:?}", wake_up_type.value);
                 }
                 if let Some(sku_number) = dmidecode_string_val(&data.sku_number()) {
-                    println!("\tSKU Number:   {}", sku_number);
+                    println!("  SKU Number:   {}", sku_number);
                 }
                 if let Some(family) = dmidecode_string_val(&data.family()) {
-                    println!("\tFamily:       {}", family);
+                    println!("  Family:       {}", family);
                 }
             }
             _ => {}

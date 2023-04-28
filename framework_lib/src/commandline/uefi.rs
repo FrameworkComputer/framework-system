@@ -53,6 +53,7 @@ pub fn get_args(boot_services: &BootServices) -> Vec<String> {
 
 pub fn parse(args: &[String]) -> Cli {
     let mut cli = Cli {
+        verbosity: log::LevelFilter::Error,
         paginate: false,
         versions: false,
         esrt: false,
@@ -87,7 +88,17 @@ pub fn parse(args: &[String]) -> Cli {
     let mut found_an_option = false;
 
     for (i, arg) in args.iter().enumerate() {
-        if arg == "-v" || arg == "--versions" {
+        if arg == "-q" {
+            cli.verbosity = log::LevelFilter::Off;
+        } else if arg == "-v" {
+            cli.verbosity = log::LevelFilter::Warn;
+        } else if arg == "-vv" {
+            cli.verbosity = log::LevelFilter::Info;
+        } else if arg == "-vvv" {
+            cli.verbosity = log::LevelFilter::Debug;
+        } else if arg == "-vvvv" {
+            cli.verbosity = log::LevelFilter::Trace;
+        } else if arg == "--versions" {
             cli.versions = true;
             found_an_option = true;
         } else if arg == "-b" {

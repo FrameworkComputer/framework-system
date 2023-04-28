@@ -152,7 +152,7 @@ pub fn smbios_data() -> Option<Vec<u8>> {
         let table_data = match table.guid {
             SMBIOS3_GUID => unsafe {
                 let smbios = &*(table.address as *const Smbios3);
-                assert!(smbios.anchor == *b"_SM3_");
+                debug!("SMBIOS3 valid: {:?}", smbios.anchor == *b"_SM3_");
                 Some(slice::from_raw_parts(
                     smbios.table_address as *const u8,
                     smbios.table_length as usize,
@@ -160,7 +160,7 @@ pub fn smbios_data() -> Option<Vec<u8>> {
             },
             SMBIOS_GUID => unsafe {
                 let smbios = &*(table.address as *const Smbios);
-                assert!(smbios.checksum_valid());
+                debug!("SMBIOS valid: {:?}", smbios.checksum_valid());
                 Some(slice::from_raw_parts(
                     smbios.table_address as *const u8,
                     smbios.table_length as usize,

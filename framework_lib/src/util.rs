@@ -14,17 +14,6 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::smbios;
 
-// TODO: Allow to dynamically change this. For example with a --verbose flag
-#[cfg(debug_assertions)]
-const DBG: bool = false; // Usually it's too verbose even for debugging
-#[cfg(not(debug_assertions))]
-const DBG: bool = false;
-
-/// Whether debug mode is enabled. Is mostly used for extremly verbose debug prints
-pub fn is_debug() -> bool {
-    DBG
-}
-
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Platform {
     /// Framework 13 - Intel 11th Gen, Codenamed TigerLake

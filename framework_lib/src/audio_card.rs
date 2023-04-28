@@ -51,7 +51,7 @@ pub fn check_synaptics_fw_version() {
         let interface_number = if let Some(num) = find_hid_interface(&handle) {
             num
         } else {
-            println!("Couldn't open Framework Audio Card - No HID Interface");
+            error!("Couldn't open Framework Audio Card - No HID Interface");
             continue;
         };
         audio_cards += 1;
@@ -116,7 +116,7 @@ pub fn check_synaptics_fw_version() {
     }
 
     if audio_cards == 0 {
-        println!("No Framework Audio Cards detected");
+        error!("No Framework Audio Cards detected");
     }
 }
 

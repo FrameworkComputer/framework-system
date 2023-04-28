@@ -8,6 +8,7 @@ use core::convert::TryInto;
 use hwio::{Io, Pio};
 #[cfg(feature = "linux_pio")]
 use libc::ioperm;
+use log::Level;
 #[cfg(feature = "linux_pio")]
 use nix::unistd::Uid;
 use num::FromPrimitive;
@@ -136,7 +137,7 @@ fn transfer_write(buffer: &[u8]) {
         return portio_mec::transfer_write(buffer);
     }
 
-    if util::is_debug() {
+    if log_enabled!(Level::Trace) {
         print!("transfer_write(size={:#}, buffer=)", buffer.len());
         util::print_buffer(buffer);
     }
@@ -152,7 +153,7 @@ fn transfer_read(address: u16, size: u16) -> Vec<u8> {
         return portio_mec::transfer_read(address, size);
     }
 
-    if util::is_debug() {
+    if log_enabled!(Level::Trace) {
         println!("transfer_read(address={:#}, size={:#})", address, size);
     }
 
@@ -164,7 +165,7 @@ fn transfer_read(address: u16, size: u16) -> Vec<u8> {
         println!("  Received: {:#X}", buffer[usize::from(i)]);
     }
 
-    if util::is_debug() {
+    if log_enabled!(Level::Trace) {
         print!("  Read bytes: ");
         util::print_buffer(&buffer);
     }
@@ -241,7 +242,7 @@ fn checksum_fold(numbers: &[u8]) -> u8 {
 }
 
 fn checksum_buffers(buffers: &[&[u8]]) -> u8 {
-    if util::is_debug() {
+    if log_enabled!(Level::Trace) {
         for buffer in buffers {
             util::print_buffer(buffer);
         }
@@ -251,14 +252,14 @@ fn checksum_buffers(buffers: &[&[u8]]) -> u8 {
         .map(|x| checksum_fold(x))
         .fold(0u8, |acc, x| acc.wrapping_add(x))
         .wrapping_neg();
-    if util::is_debug() {
+    if log_enabled!(Level::Trace) {
         println!("  is: {:#X}", cs);
     }
 
     cs
 }
 fn checksum_buffer(buffer: &[u8]) -> u8 {
-    if util::is_debug() {
+    if log_enabled!(Level::Trace) {
         print!("Checksum of ");
         util::print_buffer(buffer);
     }
@@ -266,7 +267,7 @@ fn checksum_buffer(buffer: &[u8]) -> u8 {
         .iter()
         .fold(0u8, |acc, x| acc.wrapping_add(*x))
         .wrapping_neg();
-    if util::is_debug() {
+    if log_enabled!(Level::Trace) {
         println!("  is: {:#X}", cs);
     }
 
@@ -280,7 +281,7 @@ fn pack_request(mut request: EcHostRequest, data: &[u8]) -> Vec<u8> {
     let max_transfer = std::cmp::min(total - offset, data.len());
     let checksum_size = offset + max_transfer;
 
-    if util::is_debug() {
+    if log_enabled!(Level::Trace) {
         println!("Total: {:?}", total);
         println!("Offset: {:?}", offset);
         println!("checksum_size: {:?}", checksum_size);
@@ -347,14 +348,14 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
     let request_buffer = pack_request(request, data);
 
     // Transfer data first, once ready
-    if util::is_debug() {
+    if log_enabled!(Level::Trace) {
         println!("Waiting to be ready");
     }
     wait_for_ready();
-    if util::is_debug() {
+    if log_enabled!(Level::Trace) {
         print!("Ready, transferring request buffer: ");
     }
-    if util::is_debug() {
+    if log_enabled!(Level::Trace) {
         util::print_buffer(&request_buffer);
     }
     transfer_write(&request_buffer);
@@ -391,7 +392,7 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
             { resp_header.reserved }
         )));
     };
-    if util::is_debug() {
+    if log_enabled!(Level::Trace) {
         println!("Data Len is: {:?}", { resp_header.data_len });
     }
     if resp_header.data_len > EC_LPC_HOST_PACKET_SIZE {

@@ -11,7 +11,6 @@ use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, MainP
 use crate::chromium_ec::command::EcRequest;
 use crate::chromium_ec::commands::{EcRequestReadPdVersion, EcRequestUsbPdPowerInfo};
 use crate::chromium_ec::{print_err_ref, CrosEc, CrosEcDriver, EcResult};
-use crate::util;
 
 // The offset address of each type of data in mapped memory.
 // TODO: Move non-power values to other modules
@@ -91,8 +90,7 @@ pub struct PowerInfo {
     pub battery: Option<BatteryInformation>,
 }
 
-fn read_u32(address: u16) -> u32 {
-    let ec = CrosEc::new();
+fn read_u32(ec: &CrosEc, address: u16) -> u32 {
     let bytes = ec.read_memory(address, 4).unwrap();
     if bytes.len() != 4 {
         debug_assert!(
@@ -100,14 +98,13 @@ fn read_u32(address: u16) -> u32 {
             "Tried to read 4 bytes but got {}",
             bytes.len()
         );
-        println!("Unexpected length returned: {:?} instead of 4", bytes.len());
+        error!("Unexpected length returned: {:?} instead of 4", bytes.len());
         return 0;
     }
     u32::from_ne_bytes(bytes[0..4].try_into().unwrap())
 }
 
-pub fn print_memmap_version_info() {
-    let ec = CrosEc::new();
+pub fn print_memmap_version_info(ec: &CrosEc) {
     // TODO: I don't think these are very useful
     let _id_ver = ec.read_memory(EC_MEMMAP_ID_VERSION, 2).unwrap(); /* Version of data in 0x20 - 0x2f */
     let _thermal_ver = ec.read_memory(EC_MEMMAP_THERMAL_VERSION, 2).unwrap(); /* Version of data in 0x00 - 0x1f */
@@ -117,23 +114,20 @@ pub fn print_memmap_version_info() {
 }
 
 // TODO: Use Result
-pub fn power_info() -> Option<PowerInfo> {
-    let ec = CrosEc::new();
+pub fn power_info(ec: &CrosEc) -> Option<PowerInfo> {
     let battery_flag = ec.read_memory(EC_MEMMAP_BATT_FLAG, 1)?[0];
-    if util::is_debug() {
-        println!("AC/Battery flag: {:#X}", battery_flag);
-    }
-    let battery_lfcc = read_u32(EC_MEMMAP_BATT_LFCC);
-    let battery_cap = read_u32(EC_MEMMAP_BATT_CAP);
+    debug!("AC/Battery flag: {:#X}", battery_flag);
+    let battery_lfcc = read_u32(ec, EC_MEMMAP_BATT_LFCC);
+    let battery_cap = read_u32(ec, EC_MEMMAP_BATT_CAP);
 
-    let present_voltage = read_u32(EC_MEMMAP_BATT_VOLT);
-    let present_rate = read_u32(EC_MEMMAP_BATT_RATE);
-    let _remaining_capacity = read_u32(EC_MEMMAP_BATT_CAP); // TODO: Why didn't I use this?
+    let present_voltage = read_u32(ec, EC_MEMMAP_BATT_VOLT);
+    let present_rate = read_u32(ec, EC_MEMMAP_BATT_RATE);
+    let _remaining_capacity = read_u32(ec, EC_MEMMAP_BATT_CAP); // TODO: Why didn't I use this?
     let battery_count = ec.read_memory(EC_MEMMAP_BATT_COUNT, 1).unwrap()[0]; // 8 bit
     let current_battery_index = ec.read_memory(EC_MEMMAP_BATT_INDEX, 1).unwrap()[0]; // 8 bit
-    let design_capacity = read_u32(EC_MEMMAP_BATT_DCAP);
-    let design_voltage = read_u32(EC_MEMMAP_BATT_DVLT);
-    let cycle_count = read_u32(EC_MEMMAP_BATT_CCNT);
+    let design_capacity = read_u32(ec, EC_MEMMAP_BATT_DCAP);
+    let design_voltage = read_u32(ec, EC_MEMMAP_BATT_DVLT);
+    let cycle_count = read_u32(ec, EC_MEMMAP_BATT_CCNT);
 
     Some(PowerInfo {
         ac_present: 0 != (battery_flag & EC_BATT_FLAG_AC_PRESENT),
@@ -169,8 +163,8 @@ pub fn power_info() -> Option<PowerInfo> {
 }
 
 // When no battery is present and we're running on AC
-pub fn is_standalone() -> bool {
-    if let Some(info) = power_info() {
+pub fn is_standalone(ec: &CrosEc) -> bool {
+    if let Some(info) = power_info(ec) {
         debug_assert!(
             info.battery.is_some() || info.ac_present,
             "If there's no battery, we must be running off AC"
@@ -181,8 +175,8 @@ pub fn is_standalone() -> bool {
     }
 }
 
-pub fn get_and_print_power_info() {
-    if let Some(power_info) = power_info() {
+pub fn get_and_print_power_info(ec: &CrosEc) {
+    if let Some(power_info) = power_info(ec) {
         print_battery_information(&power_info);
     }
 }
@@ -272,13 +266,12 @@ pub struct UsbPdPowerInfo {
     pub max_power: u32,
 }
 
-fn check_ac(port: u8) -> EcResult<UsbPdPowerInfo> {
-    let ec = CrosEc::new();
+fn check_ac(ec: &CrosEc, port: u8) -> EcResult<UsbPdPowerInfo> {
     // port=0 or port=1 to check right
     // port=2 or port=3 to check left
     // If dest returns 0x2 that means it's powered
 
-    let info = EcRequestUsbPdPowerInfo { port }.send_command(&ec)?;
+    let info = EcRequestUsbPdPowerInfo { port }.send_command(ec)?;
 
     Ok(UsbPdPowerInfo {
         role: match info.role {
@@ -318,18 +311,18 @@ fn check_ac(port: u8) -> EcResult<UsbPdPowerInfo> {
     })
 }
 
-pub fn get_pd_info() -> Vec<EcResult<UsbPdPowerInfo>> {
+pub fn get_pd_info(ec: &CrosEc) -> Vec<EcResult<UsbPdPowerInfo>> {
     // 4 ports on our current laptops
     let mut info = vec![];
     for port in 0..4 {
-        info.push(check_ac(port));
+        info.push(check_ac(ec, port));
     }
 
     info
 }
 
-pub fn get_and_print_pd_info() {
-    let infos = get_pd_info();
+pub fn get_and_print_pd_info(ec: &CrosEc) {
+    let infos = get_pd_info(ec);
     for (port, info) in infos.iter().enumerate().take(4) {
         println!(
             "USB-C Port {} ({}):",
@@ -371,11 +364,11 @@ pub fn get_and_print_pd_info() {
 }
 
 // TODO: Improve return type to be more obvious
-pub fn is_charging() -> EcResult<(bool, bool)> {
-    let port0 = check_ac(0)?.role == UsbPowerRoles::Sink;
-    let port1 = check_ac(1)?.role == UsbPowerRoles::Sink;
-    let port2 = check_ac(2)?.role == UsbPowerRoles::Sink;
-    let port3 = check_ac(3)?.role == UsbPowerRoles::Sink;
+pub fn is_charging(ec: &CrosEc) -> EcResult<(bool, bool)> {
+    let port0 = check_ac(ec, 0)?.role == UsbPowerRoles::Sink;
+    let port1 = check_ac(ec, 1)?.role == UsbPowerRoles::Sink;
+    let port2 = check_ac(ec, 2)?.role == UsbPowerRoles::Sink;
+    let port3 = check_ac(ec, 3)?.role == UsbPowerRoles::Sink;
     Ok((port0 || port1, port2 || port3))
 }
 
@@ -397,9 +390,8 @@ fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
 }
 
 // NOTE: Only works on ADL at the moment!
-pub fn read_pd_version() -> EcResult<MainPdVersions> {
-    let ec = CrosEc::new();
-    let info = EcRequestReadPdVersion {}.send_command(&ec)?;
+pub fn read_pd_version(ec: &CrosEc) -> EcResult<MainPdVersions> {
+    let info = EcRequestReadPdVersion {}.send_command(ec)?;
 
     Ok(MainPdVersions {
         controller01: parse_pd_ver(&info.controller01),
@@ -407,10 +399,10 @@ pub fn read_pd_version() -> EcResult<MainPdVersions> {
     })
 }
 
-pub fn standalone_mode() -> bool {
+pub fn standalone_mode(ec: &CrosEc) -> bool {
     // TODO: Figure out how to get that information
     // For now just say we're in standalone mode when the battery is disconnected
-    let info = power_info();
+    let info = power_info(ec);
     if let Some(i) = info {
         i.battery.is_none()
     } else {

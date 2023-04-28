@@ -130,15 +130,14 @@ impl PdController {
     }
     /// Wrapped with support for dev id
     /// TODO: Should move into chromium_ec module
+    /// TODO: Must not call CrosEc::new() otherwise the driver isn't configurable!
     fn send_ec_command(&self, code: u16, dev_index: u16, data: &[u8]) -> EcResult<Vec<u8>> {
         let command_id = code + passthrough_offset(dev_index);
         CrosEc::new().send_command(command_id, 0, data)
     }
 
     fn i2c_read(&self, addr: u16, len: u16) -> EcResult<EcI2cPassthruResponse> {
-        if util::is_debug() {
-            println!("i2c_read(addr: {}, len: {})", addr, len);
-        }
+        trace!("i2c_read(addr: {}, len: {})", addr, len);
         let addr_bytes = u16::to_le_bytes(addr);
         let messages = vec![
             EcParamsI2cPassthruMsg {
