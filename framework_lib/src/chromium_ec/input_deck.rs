@@ -23,10 +23,10 @@ enum InputDeckMux {
     TopRow4,
     /// Touchpad in lower section
     Touchpad,
-    /// Not a module position, implementation detail
-    _TopRowNotConnected,
-    /// Not a module position, implementation detail
-    _Hubboard = 7,
+    /// Pin 6 of the MUX isn't connected to anything
+    _Reserved,
+    /// The hubboard that all input modules are connected through
+    HubBoard = 7,
 }
 
 #[repr(u8)]
@@ -39,7 +39,7 @@ pub enum InputModuleType {
     Reserved4,
     Reserved5,
     Reserved6,
-    Reserved7,
+    HubBoard,
     GenericA,
     GenericB,
     GenericC,
@@ -59,7 +59,7 @@ impl From<u8> for InputModuleType {
             4 => Self::Reserved4,
             5 => Self::Reserved5,
             6 => Self::Reserved6,
-            7 => Self::Reserved7,
+            7 => Self::HubBoard,
             8 => Self::GenericA,
             9 => Self::GenericB,
             10 => Self::GenericC,
@@ -73,7 +73,7 @@ impl From<u8> for InputModuleType {
     }
 }
 impl InputModuleType {
-    /// How is the module? The A size isn't exactly 6 wide, but it covers 6 connectors
+    /// How wide is the module? The A size isn't exactly 6 wide, but it covers 6 connectors
     ///
     /// So in total, the input deck is 8 wide.
     pub fn size(&self) -> usize {
@@ -85,7 +85,7 @@ impl InputModuleType {
             Self::Reserved4 => 0,
             Self::Reserved5 => 0,
             Self::Reserved6 => 0,
-            Self::Reserved7 => 0,
+            Self::HubBoard => 0,
             Self::GenericA => 6,
             Self::GenericB => 2,
             Self::GenericC => 1,
@@ -100,13 +100,19 @@ impl InputModuleType {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum InputDeckState {
+    /// Manual workaround during EVT
     Off,
+    /// Input deck not powered on
     Disconnected,
+    /// Input deck debounce, waiting to turn on
     TurningOn,
+    /// Input deck powered on
     On,
+    /// Manual override: Always off
     ForceOff,
+    /// Manual override: Always on
     ForceOn,
-    /// Input deck will follow power sequence, no present check
+    /// Manual override: Input deck will follow power sequence, no present check
     NoDetection,
 }
 impl From<u8> for InputDeckState {
@@ -126,6 +132,7 @@ impl From<u8> for InputDeckState {
 
 pub struct InputDeckStatus {
     pub state: InputDeckState,
+    pub hubboard_present: bool,
     pub touchpad_present: bool,
     pub top_row: TopRowPositions,
 }
@@ -158,6 +165,10 @@ impl From<EcResponseDeckState> for InputDeckStatus {
     fn from(item: EcResponseDeckState) -> Self {
         InputDeckStatus {
             state: InputDeckState::from(item.deck_state),
+            hubboard_present: matches!(
+                InputModuleType::from(item.board_id[InputDeckMux::HubBoard as usize],),
+                InputModuleType::HubBoard
+            ),
             touchpad_present: matches!(
                 InputModuleType::from(item.board_id[InputDeckMux::Touchpad as usize],),
                 InputModuleType::Touchpad
@@ -172,18 +183,6 @@ impl From<EcResponseDeckState> for InputDeckStatus {
         }
     }
 }
-//impl TryFrom<EcResponseDeckState> for InputDeckStatus {
-//    type Error = ();
-//
-//    fn try_from(value: EcResponseDeckState) -> Result<Self, Self::Error> {
-//        if value % 2 == 0 {
-//            Ok(EvenNumber(value))
-//        } else {
-//            Err(())
-//        }
-//    }
-//}
-
 pub struct TopRowPositions {
     /// C1 all the way left
     /// B1 all the way left
@@ -200,14 +199,3 @@ pub struct TopRowPositions {
     /// C1 all the way right
     pub pos4: InputModuleType,
 }
-
-//pub enum TopRowShapes {
-//    ThinThinKeyboard,
-//    ThinKeyboardThin,
-//    KeyboardThinThin,
-//}
-//impl From<TopRowPositions> for TopRowShapes {
-//    fn from(item: EcResponseDeckState) -> Self {
-//        TopRowShapes
-//    }
-//}
