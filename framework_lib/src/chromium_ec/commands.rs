@@ -1,4 +1,4 @@
-use super::command::*;
+use super::{command::*, input_deck::INPUT_DECK_SLOTS};
 
 #[repr(C, packed)]
 pub struct EcRequestGetVersion {}
@@ -178,5 +178,20 @@ pub struct EcResponsePrivacySwitches {
 impl EcRequest<EcResponsePrivacySwitches> for EcRequestPrivacySwitches {
     fn command_id() -> EcCommands {
         EcCommands::PriavcySwitchesCheckMode
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestDeckState {}
+
+#[repr(C, packed)]
+pub struct EcResponseDeckState {
+    pub board_id: [u8; INPUT_DECK_SLOTS],
+    pub deck_state: u8,
+}
+
+impl EcRequest<EcResponseDeckState> for EcRequestDeckState {
+    fn command_id() -> EcCommands {
+        EcCommands::CheckDeckState
     }
 }

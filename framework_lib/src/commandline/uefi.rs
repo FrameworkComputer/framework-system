@@ -68,6 +68,7 @@ pub fn parse(args: &[String]) -> Cli {
         dump: None,
         ho2_capsule: None,
         intrusion: false,
+        inputmodules: false,
         kblight: None,
         console: None,
         // This is the only driver that works on UEFI
@@ -109,6 +110,9 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--intrusion" {
             cli.intrusion = true;
+            found_an_option = true;
+        } else if arg == "--inputmodules" {
+            cli.inputmodules = true;
             found_an_option = true;
         } else if arg == "--kblight" {
             cli.kblight = if args.len() > i + 1 {

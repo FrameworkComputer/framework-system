@@ -75,6 +75,7 @@ pub struct Cli {
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
     pub intrusion: bool,
+    pub inputmodules: bool,
     pub kblight: Option<Option<u8>>,
     pub console: Option<ConsoleArg>,
     pub help: bool,
@@ -322,6 +323,20 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         } else {
             println!("  Unable to tell");
         }
+    } else if args.inputmodules {
+        println!("Input Module Status:");
+        if let Some(status) = print_err(ec.get_input_deck_status()) {
+            println!("Input Deck State: {:?}", status.state);
+            println!("Touchpad present: {:?}", status.touchpad_present);
+            println!("Positions:");
+            println!("  Pos 0: {:?}", status.top_row.pos0);
+            println!("  Pos 1: {:?}", status.top_row.pos1);
+            println!("  Pos 2: {:?}", status.top_row.pos2);
+            println!("  Pos 3: {:?}", status.top_row.pos3);
+            println!("  Pos 4: {:?}", status.top_row.pos4);
+        } else {
+            println!("  Unable to tell");
+        }
     } else if let Some(Some(kblight)) = args.kblight {
         assert!(kblight <= 100);
         ec.set_keyboard_backlight(kblight);
@@ -498,6 +513,7 @@ Options:
       --ec-bin <EC_BIN>      Parse versions from EC firmware binary file
       --capsule <CAPSULE>    Parse UEFI Capsule information from binary file
       --intrusion            Show status of intrusion switch
+      --inputmodules         Show status of the input modules (Framework 16 only)
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
   -t, --test                 Run self-test to check if interaction with EC is possible
