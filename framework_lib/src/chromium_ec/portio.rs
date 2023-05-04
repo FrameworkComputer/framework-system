@@ -161,13 +161,13 @@ fn transfer_read(address: u16, size: u16) -> Vec<u8> {
     let mut buffer = vec![0_u8; size.into()];
 
     for i in 0..size {
-        buffer[i as usize] = Pio::<u8>::new(EC_LPC_ADDR_HOST_ARGS + i).read();
-        println!("  Received: {:#X}", buffer[usize::from(i)]);
+        buffer[i as usize] = Pio::<u8>::new(EC_LPC_ADDR_HOST_ARGS + address + i).read();
+        //println!("  Received at 0x800+{:#X}: {:#X}", address + i, buffer[usize::from(i)]);
     }
 
     if log_enabled!(Level::Trace) {
-        print!("  Read bytes: ");
-        util::print_buffer(&buffer);
+        println!("  Read bytes:");
+        util::print_multiline_buffer(&buffer, (EC_LPC_ADDR_HOST_ARGS + address) as usize)
     }
 
     buffer
@@ -243,8 +243,9 @@ fn checksum_fold(numbers: &[u8]) -> u8 {
 
 fn checksum_buffers(buffers: &[&[u8]]) -> u8 {
     if log_enabled!(Level::Trace) {
+        println!("Checksum of ");
         for buffer in buffers {
-            util::print_buffer(buffer);
+            util::print_multiline_buffer(buffer, 0);
         }
     }
     let cs = buffers
@@ -260,8 +261,8 @@ fn checksum_buffers(buffers: &[&[u8]]) -> u8 {
 }
 fn checksum_buffer(buffer: &[u8]) -> u8 {
     if log_enabled!(Level::Trace) {
-        print!("Checksum of ");
-        util::print_buffer(buffer);
+        println!("Checksum of ");
+        util::print_multiline_buffer(buffer, 0x00)
     }
     let cs = buffer
         .iter()

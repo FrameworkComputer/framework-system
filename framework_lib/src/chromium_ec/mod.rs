@@ -177,6 +177,10 @@ impl CrosEc {
         }
     }
 
+    pub fn dump_mem_region(&self) -> Option<Vec<u8>> {
+        self.read_memory(0x00, 0xFF)
+    }
+
     /// Get EC firmware build information
     pub fn version_info(&self) -> EcResult<String> {
         // Response is null-terminated string.
