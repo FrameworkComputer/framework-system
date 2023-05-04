@@ -56,6 +56,7 @@ pub fn parse(args: &[String]) -> Cli {
         verbosity: log::LevelFilter::Error,
         paginate: false,
         versions: false,
+        version: false,
         esrt: false,
         power: false,
         pdports: false,
@@ -100,6 +101,9 @@ pub fn parse(args: &[String]) -> Cli {
             cli.verbosity = log::LevelFilter::Trace;
         } else if arg == "--versions" {
             cli.versions = true;
+            found_an_option = true;
+        } else if arg == "--version" {
+            cli.version = true;
             found_an_option = true;
         } else if arg == "-b" {
             cli.paginate = true;
