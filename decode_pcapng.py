@@ -102,17 +102,17 @@ images = {
         }
     },
     # HDMI
-    5: {
-        'filename': 'hdmi-flash-5.pcapng',
-        'second_first': True,
+    6: {
+        'filename': 'hdmi-reflash-006.pcapng',
+        'second_first': False,
         'devices': {
             1: {
-                'busid': 1,
-                'device': 30,
+                'busid': 2,
+                'device': 48,
             },
             2: {
-                'busid': 1,
-                'device': 29,
+                'busid': 2,
+                'device': 47,
             }
         }
     },
@@ -121,12 +121,12 @@ images = {
         'second_first': False,
         'devices': {
             1: {
-                'busid': 1,
-                'device': 26,
+                'busid': 2,
+                'device': 63,
             },
             2: {
-                'busid': 1,
-                'device': 27,
+                'busid': 2,
+                'device': 64,
             }
         }
     },
@@ -206,8 +206,7 @@ if __name__ == "__main__":
 
                 block_no += 1
             else:
-                pass
-                #print(block)
+                print(block)
 
     # Check assumptions that the updater relies on
     if len(img1_binary) != len(img2_binary):
@@ -228,6 +227,9 @@ if __name__ == "__main__":
     if img2_addresses[-1] != 0x03FE:
         print("VIOLATED Assumption that metadata row of image 2 is at 0x03FE. Is at 0x{:04X}".format(img2_addresses[-1]))
         sys.exit(1)
+    if img1_binary == img2_binary:
+        print("VIOLATED Assumption that both images are not the same");
+        sys.exit(1)
 
     print("Firmware version: {}".format(FW_VERSION))
 
@@ -236,4 +238,4 @@ if __name__ == "__main__":
         dump1.write(img1_binary)
     with open("dump2.bin", "wb") as dump2:
         print("Image 2 Size:    {} B, {} rows".format(len(img2_binary), int(len(img2_binary)/128)))
-        dump2.write(img1_binary)
+        dump2.write(img2_binary)
