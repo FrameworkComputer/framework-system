@@ -72,7 +72,7 @@ pub struct Cli {
     pub privacy: bool,
     pub pd_info: bool,
     pub dp_hdmi_info: bool,
-    pub dp_update: Option<String>,
+    pub dp_hdmi_update: Option<String>,
     pub audio_card_info: bool,
     pub pd_bin: Option<String>,
     pub ec_bin: Option<String>,
@@ -209,7 +209,7 @@ fn print_tool_version() {
 
 // TODO: Check if HDMI card is same
 #[cfg(not(feature = "uefi"))]
-fn flash_dp_card(pd_bin_path: &str) {
+fn flash_dp_hdmi_card(pd_bin_path: &str) {
     let data = match fs::read(pd_bin_path) {
         Ok(data) => Some(data),
         // TODO: Perhaps a more user-friendly error
@@ -455,9 +455,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.dp_hdmi_info {
         #[cfg(not(feature = "uefi"))]
         print_dp_hdmi_details();
-    } else if let Some(pd_bin_path) = &args.dp_update {
+    } else if let Some(pd_bin_path) = &args.dp_hdmi_update {
         #[cfg(not(feature = "uefi"))]
-        flash_dp_card(pd_bin_path);
+        flash_dp_hdmi_card(pd_bin_path);
         #[cfg(feature = "uefi")]
         let _ = pd_bin_path;
     } else if args.audio_card_info {

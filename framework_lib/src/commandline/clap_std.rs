@@ -45,9 +45,9 @@ struct ClapCli {
     #[arg(long)]
     dp_hdmi_info: bool,
 
-    /// Update the DisplayPort Expansion Card
-    #[arg(long)]
-    dp_update: Option<std::path::PathBuf>,
+    /// Update the DisplayPort or HDMI Expansion Card
+    #[arg(long, value_name = "UPDATE_BIN")]
+    dp_hdmi_update: Option<std::path::PathBuf>,
 
     /// Show details about connected Audio Expansion Cards (Needs root privileges)
     #[arg(long)]
@@ -117,8 +117,8 @@ pub fn parse(args: &[String]) -> Cli {
         pdports: args.pdports,
         pd_info: args.pd_info,
         dp_hdmi_info: args.dp_hdmi_info,
-        dp_update: args
-            .dp_update
+        dp_hdmi_update: args
+            .dp_hdmi_update
             .map(|x| x.into_os_string().into_string().unwrap()),
         audio_card_info: args.audio_card_info,
         privacy: args.privacy,
