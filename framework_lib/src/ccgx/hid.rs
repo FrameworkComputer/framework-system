@@ -260,7 +260,12 @@ pub fn flash_firmware(fw_binary: &[u8]) {
     // After updating the first image, the device restarts and boots into the other one.
     // Then we need to re-enumerate the USB devices because it'll change device id
     let mut api = HidApi::new().unwrap();
-    let device = find_device(&api).unwrap();
+    let device = if let Some(device) = find_device(&api) {
+        device
+    } else {
+        error!("No compatible Expansion Card connected");
+        return;
+    };
     let info = get_fw_info(&device);
     println!("Before Updating");
     print_fw_info(&info);
@@ -383,6 +388,7 @@ fn flash_firmware_image(
     let rows = fw_binary.chunks(ROW_SIZE);
     let last_row = (rows.len() - 1) as u16;
     for (row_no, row) in rows.enumerate() {
+        assert_eq!(row.len(), ROW_SIZE);
         let row_no = row_no as u16;
         if row_no == last_row {
             write_row(device, metadata_row, row);
