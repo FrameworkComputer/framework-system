@@ -75,10 +75,28 @@ enum ReportIdCmd {
     E4 = 0xE4,
 }
 
-fn get_fw_info(device: &HidDevice) -> HidFirmwareInfo {
+fn flashing_mode(device: &HidDevice) {
+    // Probably enter flashing mode?
+    info!("Enter flashing mode");
+    let _ = device
+        .write(&[
+            ReportIdCmd::E1Cmd as u8,
+            CmdId::CmdFlash as u8,
+            CmdParam::Enable as u8,
+            0x00,
+            0xCC,
+            0xCC,
+            0xCC,
+            0xCC,
+        ])
+        .unwrap();
+}
+
+fn magic_unlock(device: &HidDevice) {
     device.set_blocking_mode(true).unwrap();
 
     // Same for both images
+    info!("Magic unlock");
     device
         .send_feature_report(&[
             ReportIdCmd::E4 as u8,
@@ -95,6 +113,7 @@ fn get_fw_info(device: &HidDevice) -> HidFirmwareInfo {
     // Returns Err but seems to work anyway. OH! Probably because it resets the device!!
     // TODO: I have a feeling the last five bytes are ignored. They're the same in all commands.
     //       Seems to work with all of them set to 0x00
+    info!("Bridge Mode");
     let _ = device.write(&[
         ReportIdCmd::E1Cmd as u8,
         CmdId::Cmd0x06 as u8,
@@ -105,16 +124,22 @@ fn get_fw_info(device: &HidDevice) -> HidFirmwareInfo {
         0xCC,
         0xCC,
     ]);
+}
 
+fn get_fw_info(device: &HidDevice) -> HidFirmwareInfo {
     // Get 0x40 bytes from 0xE0
     let mut buf = [0u8; 0x40];
     buf[0] = ReportIdCmd::E0Read as u8;
+    info!("Get Report E0");
     device.get_feature_report(&mut buf).unwrap();
+
+    flashing_mode(device);
 
     decode_fw_info(&buf)
 }
 
 pub fn check_ccg_fw_version(device: &HidDevice) {
+    magic_unlock(device);
     let info = get_fw_info(device);
     print_fw_info(&info);
 }
@@ -144,6 +169,9 @@ fn decode_fw_info(buf: &[u8]) -> HidFirmwareInfo {
 
     // TODO: Return Option?
     assert_eq!(info.report_id, ReportIdCmd::E0Read as u8);
+    if info.signature != [b'C', b'Y'] {
+        println!("{:X?}", info);
+    }
     assert_eq!(info.signature, [b'C', b'Y']);
 
     info
@@ -241,7 +269,10 @@ pub fn find_device(api: &HidApi) -> Option<HidDevice> {
         let vid = dev_info.vendor_id();
         let pid = dev_info.product_id();
         let usage_page = dev_info.usage_page();
-        if vid == FRAMEWORK_VID && [DP_CARD_PID, HDMI_CARD_PID].contains(&pid) && usage_page == CCG_USAGE_PAGE {
+        if vid == FRAMEWORK_VID
+            && [DP_CARD_PID, HDMI_CARD_PID].contains(&pid)
+            && usage_page == CCG_USAGE_PAGE
+        {
             return Some(dev_info.open_device(api).unwrap());
         }
     }
@@ -266,6 +297,8 @@ pub fn flash_firmware(fw_binary: &[u8]) {
         error!("No compatible Expansion Card connected");
         return;
     };
+
+    magic_unlock(&device);
     let info = get_fw_info(&device);
     println!("Before Updating");
     print_fw_info(&info);
@@ -277,10 +310,12 @@ pub fn flash_firmware(fw_binary: &[u8]) {
             println!("  Updating Firmware Image 1");
             flash_firmware_image(&device, fw1_binary, FW1_START, FW1_METADATA, 1);
 
-            println!("  Waiting 4s for device to restart");
-            os_specific::sleep(4_000_000);
+            println!("  Waiting 5s for device to restart");
+            os_specific::sleep(5_000_000);
             api.refresh_devices().unwrap();
             let device = find_device(&api).unwrap();
+            magic_unlock(&device);
+            let _info = get_fw_info(&device);
 
             println!("  Updating Firmware Image 2");
             flash_firmware_image(&device, fw2_binary, FW2_START, FW2_METADATA, 2);
@@ -289,10 +324,12 @@ pub fn flash_firmware(fw_binary: &[u8]) {
             println!("  Updating Firmware Image 2");
             flash_firmware_image(&device, fw2_binary, FW2_START, FW2_METADATA, 2);
 
-            println!("  Waiting 4s for device to restart");
-            os_specific::sleep(4_000_000);
+            println!("  Waiting 5s for device to restart");
+            os_specific::sleep(5_000_000);
             api.refresh_devices().unwrap();
             let device = find_device(&api).unwrap();
+            magic_unlock(&device);
+            let _info = get_fw_info(&device);
 
             println!("  Updating Firmware Image 1");
             flash_firmware_image(&device, fw1_binary, FW1_START, FW1_METADATA, 1);
@@ -301,12 +338,13 @@ pub fn flash_firmware(fw_binary: &[u8]) {
     }
 
     println!("  Firmware Update done.");
-    println!("  Waiting 4s for device to restart");
-    os_specific::sleep(4_000_000);
+    println!("  Waiting 5s for device to restart");
+    os_specific::sleep(5_000_000);
 
     println!("After Updating");
     api.refresh_devices().unwrap();
     let device = find_device(&api).unwrap();
+    magic_unlock(&device);
     let info = get_fw_info(&device);
     print_fw_info(&info);
 }
@@ -322,75 +360,22 @@ fn flash_firmware_image(
     debug!("Chunks: {:?}", fw_binary.len() / ROW_SIZE);
     assert_eq!(fw_binary.len() % ROW_SIZE, 0);
 
-    device.set_blocking_mode(true).unwrap();
-
-    // Same for both images
-    device
-        .send_feature_report(&[
-            ReportIdCmd::E4 as u8,
-            0x42,
-            0x43,
-            0x59,
-            0x00,
-            0x00,
-            0x00,
-            0x0B,
-        ])
-        .unwrap();
-
-    // Returns Err but seems to work anyway. OH! Probably because it resets the device!!
-    // TODO: I have a feeling the last five bytes are ignored. They're the same in all commands.
-    //       Seems to work with all of them set to 0x00
-    let _ = device.write(&[
-        ReportIdCmd::E1Cmd as u8,
-        CmdId::Cmd0x06 as u8,
-        CmdParam::BridgeMode as u8,
-        0x00,
-        0xCC,
-        0xCC,
-        0xCC,
-        0xCC,
-    ]);
-
-    // Probably enter flashing mode?
-    let _ = device
-        .write(&[
-            ReportIdCmd::E1Cmd as u8,
-            CmdId::CmdFlash as u8,
-            CmdParam::Enable as u8,
-            0x00,
-            0xCC,
-            0xCC,
-            0xCC,
-            0xCC,
-        ])
-        .unwrap();
-
-    // TODO: Probably not necessary?
-    let mut buf = [0u8; 0x40];
-    buf[0] = ReportIdCmd::E0Read as u8;
-    device.get_feature_report(&mut buf).unwrap();
-
-    // Why another time enter flashing mode?
-    let _ = device
-        .write(&[
-            ReportIdCmd::E1Cmd as u8,
-            CmdId::CmdFlash as u8,
-            CmdParam::Enable as u8,
-            0x00,
-            0xCC,
-            0xCC,
-            0xCC,
-            0xCC,
-        ])
-        .unwrap();
+    let _info = get_fw_info(device);
 
     let rows = fw_binary.chunks(ROW_SIZE);
     let last_row = (rows.len() - 1) as u16;
     for (row_no, row) in rows.enumerate() {
         assert_eq!(row.len(), ROW_SIZE);
         let row_no = row_no as u16;
+        if row_no == 0 {
+            info!(
+                "Writing first firmware row@{:X?}: {:X?}",
+                start_row + row_no,
+                row
+            );
+        }
         if row_no == last_row {
+            info!("Writing metadata       row@{:X?}: {:X?}", metadata_row, row);
             write_row(device, metadata_row, row);
         } else {
             write_row(device, start_row + row_no, row);
@@ -399,6 +384,7 @@ fn flash_firmware_image(
 
     // Not quite sure what this is. But on the first update it has
     // 0x01 and on the second it has 0x02. So I think this switches the boot order?
+    info!("Bootswitch");
     let _ = device
         .write(&[
             ReportIdCmd::E1Cmd as u8,
@@ -413,6 +399,7 @@ fn flash_firmware_image(
         .unwrap();
 
     // Seems to reset the device, since the USB device number changes
+    info!("Reset");
     let _ = device
         .write(&[
             ReportIdCmd::E1Cmd as u8,
