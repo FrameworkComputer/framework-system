@@ -67,6 +67,7 @@ pub struct Cli {
     pub privacy: bool,
     pub pd_info: bool,
     pub dp_hdmi_info: bool,
+    pub dp_update: Option<String>,
     pub audio_card_info: bool,
     pub pd_bin: Option<String>,
     pub ec_bin: Option<String>,
@@ -145,10 +146,8 @@ fn print_dp_hdmi_details() {
                     && usage_page == CCG_USAGE_PAGE
                 {
                     let device = dev_info.open_device(&api).unwrap();
-                    match pid {
-                        HDMI_CARD_PID => println!("HDMI Expansion Card"),
-                        DP_CARD_PID => println!("DisplayPort Expansion Card"),
-                        _ => unreachable!(),
+                    if let Some(name) = ccgx::hid::device_name(vid, pid) {
+                        println!("{}", name);
                     }
 
                     // On Windows this value is "Control Interface", probably hijacked by the kernel driver
@@ -169,6 +168,26 @@ fn print_dp_hdmi_details() {
             eprintln!("Error: {e}");
         }
     };
+}
+
+// TODO: Check if HDMI card is same
+#[cfg(not(feature = "uefi"))]
+fn flash_dp_card(pd_bin_path: &str) {
+    let data = match fs::read(pd_bin_path) {
+        Ok(data) => Some(data),
+        // TODO: Perhaps a more user-friendly error
+        Err(e) => {
+            println!("Error {:?}", e);
+            None
+        }
+    };
+    if let Some(data) = data {
+        // TODO: Check if exists, otherwise err
+        //ccgx::hid::find_device().unwrap();
+        ccgx::hid::flash_firmware(&data);
+    } else {
+        error!("Failed to open firmware file");
+    }
 }
 
 fn print_versions(ec: &CrosEc) {
@@ -397,6 +416,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.dp_hdmi_info {
         #[cfg(not(feature = "uefi"))]
         print_dp_hdmi_details();
+    } else if let Some(pd_bin_path) = &args.dp_update {
+        #[cfg(not(feature = "uefi"))]
+        flash_dp_card(pd_bin_path);
+        #[cfg(feature = "uefi")]
+        let _ = pd_bin_path;
     } else if args.audio_card_info {
         #[cfg(not(feature = "uefi"))]
         print_audio_card_details();
