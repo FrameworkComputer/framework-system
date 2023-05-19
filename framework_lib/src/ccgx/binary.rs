@@ -40,6 +40,10 @@ use super::*;
 /// To find the firmware image in the binary, get the offset from the metadata.
 const FW_VERSION_OFFSET: usize = 0xE0;
 
+// There are two different sizes of rows on different CCGX chips
+const SMALL_ROW: usize = 0x80;
+const LARGE_ROW: usize = 0x100;
+
 #[repr(packed)]
 #[derive(Debug, Copy, Clone)]
 struct VersionInfo {
@@ -73,9 +77,9 @@ pub struct PdFirmware {
     /// At which row in the file this firmware is
     pub start_row: u32,
     /// How many bytes the firmware is in size
-    pub size: u32,
+    pub size: usize,
     /// How many bytes are in a row
-    pub row_size: u32,
+    pub row_size: usize,
 }
 
 // Hexdump
@@ -94,7 +98,7 @@ pub struct PdFirmware {
 /// Returns row_start, fw_size
 fn read_metadata(
     file_buffer: &[u8],
-    flash_row_size: u32,
+    flash_row_size: usize,
     metadata_offset: u32,
     ccgx: SiliconId,
 ) -> Option<(u32, u32)> {
@@ -102,20 +106,26 @@ fn read_metadata(
     match ccgx {
         SiliconId::Ccg5 | SiliconId::Ccg6 => parse_metadata_cyacd(&buffer),
         SiliconId::Ccg8 => parse_metadata_cyacd2(&buffer)
-            .map(|(fw_row_start, fw_size)| (fw_row_start / flash_row_size, fw_size)),
+            .map(|(fw_row_start, fw_size)| (fw_row_start / (flash_row_size as u32), fw_size)),
     }
 }
 
 /// Read 256 bytes starting from a particular row
-fn read_256_bytes(file_buffer: &[u8], row_no: u32, flash_row_size: u32) -> Option<Vec<u8>> {
-    let file_read_pointer = (row_no * flash_row_size) as usize;
-    if file_read_pointer + 256 > file_buffer.len() {
+fn read_256_bytes(file_buffer: &[u8], row_no: u32, flash_row_size: usize) -> Option<Vec<u8>> {
+    let file_read_pointer = (row_no as usize) * flash_row_size;
+    let file_len = file_buffer.len();
+    // Try to read as much as we can
+    let read_len = if file_read_pointer + LARGE_ROW <= file_len {
+        LARGE_ROW
+    } else if file_read_pointer + SMALL_ROW <= file_len {
+        SMALL_ROW
+    } else {
         // Overrunning the end of the file, this can happen if we read a
         // CCG6 binary with CCG5 parameters, because the CCG5 flash_row_size
         // is bigger.
         return None;
-    }
-    Some(file_buffer[file_read_pointer..file_read_pointer + 256].to_vec())
+    };
+    Some(file_buffer[file_read_pointer..file_read_pointer + read_len].to_vec())
 }
 
 /// Read version information about FW based on a particular metadata offset
@@ -124,13 +134,14 @@ fn read_256_bytes(file_buffer: &[u8], row_no: u32, flash_row_size: u32) -> Optio
 /// so it's required to specify which metadata region to read from.
 fn read_version(
     file_buffer: &[u8],
-    flash_row_size: u32,
+    flash_row_size: usize,
     metadata_offset: u32,
     ccgx: SiliconId,
 ) -> Option<PdFirmware> {
     let (fw_row_start, fw_size) =
         read_metadata(file_buffer, flash_row_size, metadata_offset, ccgx)?;
     let data = read_256_bytes(file_buffer, fw_row_start, flash_row_size)?;
+    trace!("First row of firmware: {:X?}", data);
     let data = &data[FW_VERSION_OFFSET..];
 
     let version_len = std::mem::size_of::<VersionInfo>();
@@ -149,7 +160,7 @@ fn read_version(
         base_version,
         app_version,
         start_row: fw_row_start,
-        size: fw_size,
+        size: fw_size as usize,
         row_size: flash_row_size,
     })
 }
@@ -157,9 +168,9 @@ fn read_version(
 /// Parse all PD information, given a binary file (buffer)
 pub fn read_versions(file_buffer: &[u8], ccgx: SiliconId) -> Option<PdFirmwareFile> {
     let (flash_row_size, f1_metadata_row, fw2_metadata_row) = match ccgx {
-        SiliconId::Ccg5 => (0x100, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG5),
-        SiliconId::Ccg6 => (0x80, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG6),
-        SiliconId::Ccg8 => (0x100, FW1_METADATA_ROW_CCG8, FW2_METADATA_ROW_CCG8),
+        SiliconId::Ccg5 => (LARGE_ROW, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG5),
+        SiliconId::Ccg6 => (SMALL_ROW, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG6),
+        SiliconId::Ccg8 => (LARGE_ROW, FW1_METADATA_ROW_CCG8, FW2_METADATA_ROW_CCG8),
     };
     let backup_fw = read_version(file_buffer, flash_row_size, f1_metadata_row, ccgx)?;
     let main_fw = read_version(file_buffer, flash_row_size, fw2_metadata_row, ccgx)?;
