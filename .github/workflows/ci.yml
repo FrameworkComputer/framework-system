@@ -39,7 +39,7 @@ jobs:
 #       path: target/x86_64-unknown-freebsd/debug/framework_tool
 
   build:
-    name: Build Linux and UEFI
+    name: Build Linux apps
     runs-on: ubuntu-22.04
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
@@ -59,35 +59,14 @@ jobs:
     - name: Setup Rust toolchain
       run: rustup show
 
-    - name: Build library (Linux)
-      run: cargo build -p framework_lib
+    - name: Build tools
+      run: make
 
-    - name: Build Linux tool
-      run: cargo build -p framework_tool
-
-    - name: Check if Linux tool can start
-      run: cargo run -- --help
-
-    - name: Upload Linux App
+    - name: Upload Linux Apps
       uses: actions/upload-artifact@v3
       with:
-        name: framework_tool
-        path: target/debug/framework_tool
-
-    - name: Build UEFI application (no ESP)
-      run: make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
-
-    - name: Upload UEFI App
-      uses: actions/upload-artifact@v3
-      with:
-        name: framework.efi
-        path: framework_uefi/build/x86_64-unknown-uefi/boot.efi
-
-    - name: Install mtools to build ESP (Linux)
-      run: sudo apt-get install -y mtools
-
-    - name: Build ESP (Linux)
-      run: make -C framework_uefi
+        name: dp_hdmi
+        path: out/
 
   build-windows:
     name: Build Windows
@@ -105,20 +84,14 @@ jobs:
     - name: Setup Rust toolchain
       run: rustup show
 
-    - name: Build library (Windows)
-      run: cargo build -p framework_lib --no-default-features --features "windows"
+    - name: Build tools
+      run: make
 
-    - name: Build Windows tool
-      run: cargo build -p framework_tool --no-default-features --features "windows"
-
-    - name: Check if Windows tool can start
-      run: cargo run --no-default-features --features "windows" -- --help
-
-    - name: Upload Windows App
+    - name: Upload Windows Apps
       uses: actions/upload-artifact@v3
       with:
-        name: framework_tool.exe
-        path: target/debug/framework_tool.exe
+        name: dp_hdmi
+        path: out/
 
 
   test:
