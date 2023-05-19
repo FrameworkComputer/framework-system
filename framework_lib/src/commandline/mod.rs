@@ -134,7 +134,7 @@ fn print_audio_card_details() {
 }
 
 #[cfg(not(feature = "uefi"))]
-fn print_dp_hdmi_details() {
+pub fn print_dp_hdmi_details() {
     match HidApi::new() {
         Ok(api) => {
             for dev_info in api.device_list() {
