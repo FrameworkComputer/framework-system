@@ -1,4 +1,5 @@
 linux:
+	rm -rf out
 	mkdir -p out
 
 	cargo build --release
@@ -22,6 +23,7 @@ linux:
 	chmod +x out/*
 
 windows:
+	rm -rf out
 	mkdir -p out
 
 	cargo build --release --no-default-features --features "windows"
