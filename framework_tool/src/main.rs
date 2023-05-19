@@ -2,7 +2,6 @@ use framework_lib::commandline;
 
 fn main() {
     if let Some(binfile) = option_env!("FWK_DP_HDMI_BIN") {
-        println!("{:?}", binfile);
         let bin = match binfile {
             "dp-flash-008" => include_bytes!("../../framework_lib/embed_bins/dp-flash-008.bin"),
             "dp-flash-100" => include_bytes!("../../framework_lib/embed_bins/dp-flash-008.bin"),
