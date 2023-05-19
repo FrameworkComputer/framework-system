@@ -221,7 +221,7 @@ fn flash_dp_hdmi_card(pd_bin_path: &str) {
     if let Some(data) = data {
         // TODO: Check if exists, otherwise err
         //ccgx::hid::find_device().unwrap();
-        ccgx::hid::flash_firmware(&data);
+        ccgx::hid::flash_firmware(&data, &ccgx::hid::ALL_CARD_PIDS);
     } else {
         error!("Failed to open firmware file");
     }
