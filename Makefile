@@ -20,6 +20,8 @@ linux:
 	env FWK_DP_HDMI_BIN=hdmi-flash-105 cargo build --release
 	cp target/release/framework_tool out/hdmi_update_105
 
+	chmod +x out/*
+
 windows:
 	rm -rf out
 	mkdir -p out
