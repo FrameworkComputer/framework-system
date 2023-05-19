@@ -666,39 +666,37 @@ fn smbios_info() {
 }
 
 fn analyze_ccgx_pd_fw(data: &[u8]) {
-    let mut succeeded = false;
+    if let Some(versions) = ccgx::binary::read_versions(data, Ccg3) {
+        println!("Detected CCG3 firmware");
+        println!("FW 1");
+        ccgx::binary::print_fw(&versions.backup_fw);
 
-    if let Some(versions) = ccgx::binary::read_versions(data, Ccg8) {
-        succeeded = true;
+        println!("FW 2");
+        ccgx::binary::print_fw(&versions.main_fw);
+    } else if let Some(versions) = ccgx::binary::read_versions(data, Ccg8) {
         println!("Detected CCG8 firmware");
         println!("FW 1");
         ccgx::binary::print_fw(&versions.backup_fw);
 
         println!("FW 2");
         ccgx::binary::print_fw(&versions.main_fw);
-    }
-
-    if let Some(versions) = ccgx::binary::read_versions(data, Ccg5) {
-        succeeded = true;
+    } else if let Some(versions) = ccgx::binary::read_versions(data, Ccg5) {
         println!("Detected CCG5 firmware");
         println!("FW 1");
         ccgx::binary::print_fw(&versions.backup_fw);
 
         println!("FW 2");
         ccgx::binary::print_fw(&versions.main_fw);
-    }
-
-    if let Some(versions) = ccgx::binary::read_versions(data, Ccg6) {
-        succeeded = true;
+        return;
+    } else if let Some(versions) = ccgx::binary::read_versions(data, Ccg6) {
         println!("Detected CCG6 firmware");
         println!("FW 1 (Backup)");
         ccgx::binary::print_fw(&versions.backup_fw);
 
         println!("FW 2 (Main)");
         ccgx::binary::print_fw(&versions.main_fw);
-    }
-
-    if !succeeded {
+        return;
+    } else {
         println!("Failed to read versions")
     }
 }

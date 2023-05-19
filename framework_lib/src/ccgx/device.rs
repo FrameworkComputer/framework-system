@@ -11,7 +11,7 @@ use core::prelude::rust_2021::derive;
 
 use crate::ccgx::{AppVersion, BaseVersion, ControllerVersion};
 use crate::chromium_ec::command::EcCommands;
-use crate::chromium_ec::{CrosEc, CrosEcDriver, EcError, EcResult};
+use crate::chromium_ec::{CrosEc, CrosEcDriver, EcError, EcResponseStatus, EcResult};
 use crate::util::{self, Config, Platform};
 use std::mem::size_of;
 
@@ -273,7 +273,8 @@ impl PdController {
         let data = self.ccgx_read(register, 8)?;
         Ok(ControllerVersion {
             base: BaseVersion::from(&data[..4]),
-            app: AppVersion::from(&data[4..]),
+            app: AppVersion::try_from(&data[4..])
+                .or(Err(EcError::Response(EcResponseStatus::InvalidResponse)))?,
         })
     }
 
@@ -283,9 +284,9 @@ impl PdController {
         assert!(data.len() >= 8);
         debug_assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
-        let app_ver = AppVersion::from(&data[4..]);
+        let app_ver = AppVersion::try_from(&data[4..]);
         println!(
-            "  Bootloader Version: Base: {},  App: {}",
+            "  Bootloader Version: Base: {},  App: {:?}",
             base_ver, app_ver
         );
 
@@ -294,9 +295,9 @@ impl PdController {
         assert!(data.len() >= 8);
         debug_assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
-        let app_ver = AppVersion::from(&data[4..]);
+        let app_ver = AppVersion::try_from(&data[4..]);
         println!(
-            "  FW1 (Backup) Version: Base: {},  App: {}",
+            "  FW1 (Backup) Version: Base: {},  App: {:?}",
             base_ver, app_ver
         );
 
@@ -305,9 +306,9 @@ impl PdController {
         assert!(data.len() >= 8);
         debug_assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
-        let app_ver = AppVersion::from(&data[4..]);
+        let app_ver = AppVersion::try_from(&data[4..]);
         println!(
-            "  FW2 (Main)   Version: Base: {},  App: {}",
+            "  FW2 (Main)   Version: Base: {},  App: {:?}",
             base_ver, app_ver
         );
     }
