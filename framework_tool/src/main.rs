@@ -27,7 +27,7 @@ fn main() {
 
     // Prevent command prompt from auto closing
     if cfg!(windows) {
-        println!("");
+        println!();
         println!("Press ENTER to exit...");
         let mut line = String::new();
         let _ = std::io::stdin().read_line(&mut line).unwrap();
