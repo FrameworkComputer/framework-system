@@ -9,6 +9,7 @@ pub const CCG_USAGE_PAGE: u16 = 0xFFEE;
 pub const FRAMEWORK_VID: u16 = 0x32AC;
 pub const HDMI_CARD_PID: u16 = 0x0002;
 pub const DP_CARD_PID: u16 = 0x0003;
+pub const ALL_CARD_PIDS: [u16; 2] = [DP_CARD_PID, HDMI_CARD_PID];
 
 const ROW_SIZE: usize = 128;
 const FW1_START: u16 = 0x0030;
@@ -264,13 +265,13 @@ pub fn device_name(vid: u16, pid: u16) -> Option<&'static str> {
     }
 }
 
-pub fn find_device(api: &HidApi) -> Option<HidDevice> {
+pub fn find_device(api: &HidApi, filter_devs: &[u16]) -> Option<HidDevice> {
     for dev_info in api.device_list() {
         let vid = dev_info.vendor_id();
         let pid = dev_info.product_id();
         let usage_page = dev_info.usage_page();
         if vid == FRAMEWORK_VID
-            && [DP_CARD_PID, HDMI_CARD_PID].contains(&pid)
+            && filter_devs.contains(&pid)
             && usage_page == CCG_USAGE_PAGE
         {
             return Some(dev_info.open_device(api).unwrap());
@@ -279,7 +280,7 @@ pub fn find_device(api: &HidApi) -> Option<HidDevice> {
     None
 }
 
-pub fn flash_firmware(fw_binary: &[u8]) {
+pub fn flash_firmware(fw_binary: &[u8], filter_devs: &[u16]) {
     // Make sure the firmware is composed of rows and has two images
     // The assumption is that both images are of the same size
     assert_eq!(fw_binary.len() % 2 * ROW_SIZE, 0);
@@ -291,10 +292,10 @@ pub fn flash_firmware(fw_binary: &[u8]) {
     // After updating the first image, the device restarts and boots into the other one.
     // Then we need to re-enumerate the USB devices because it'll change device id
     let mut api = HidApi::new().unwrap();
-    let device = if let Some(device) = find_device(&api) {
+    let device = if let Some(device) = find_device(&api, filter_devs) {
         device
     } else {
-        error!("No compatible Expansion Card connected");
+        println!("No compatible Expansion Card connected");
         return;
     };
 
@@ -313,7 +314,7 @@ pub fn flash_firmware(fw_binary: &[u8]) {
             println!("  Waiting 5s for device to restart");
             os_specific::sleep(5_000_000);
             api.refresh_devices().unwrap();
-            let device = find_device(&api).unwrap();
+            let device = find_device(&api, filter_devs).unwrap();
             magic_unlock(&device);
             let _info = get_fw_info(&device);
 
@@ -327,7 +328,7 @@ pub fn flash_firmware(fw_binary: &[u8]) {
             println!("  Waiting 5s for device to restart");
             os_specific::sleep(5_000_000);
             api.refresh_devices().unwrap();
-            let device = find_device(&api).unwrap();
+            let device = find_device(&api, filter_devs).unwrap();
             magic_unlock(&device);
             let _info = get_fw_info(&device);
 
@@ -343,7 +344,7 @@ pub fn flash_firmware(fw_binary: &[u8]) {
 
     println!("After Updating");
     api.refresh_devices().unwrap();
-    let device = find_device(&api).unwrap();
+    let device = find_device(&api, filter_devs).unwrap();
     magic_unlock(&device);
     let info = get_fw_info(&device);
     print_fw_info(&info);
