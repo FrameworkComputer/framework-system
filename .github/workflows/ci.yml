@@ -60,12 +60,12 @@ jobs:
       run: rustup show
 
     - name: Build tools
-      run: make
+      run: make linux
 
     - name: Upload Linux Apps
       uses: actions/upload-artifact@v3
       with:
-        name: dp_hdmi
+        name: dp_hdmi_linux
         path: out/
 
   build-windows:
@@ -85,12 +85,12 @@ jobs:
       run: rustup show
 
     - name: Build tools
-      run: make
+      run: make windows
 
     - name: Upload Windows Apps
       uses: actions/upload-artifact@v3
       with:
-        name: dp_hdmi
+        name: dp_hdmi_windows
         path: out/
 
 
