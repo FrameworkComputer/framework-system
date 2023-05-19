@@ -161,17 +161,17 @@ impl fmt::Display for AppVersion {
 
 impl From<&[u8]> for AppVersion {
     fn from(data: &[u8]) -> Self {
-        let application = if data[0] == 0x62 && data[1] == 0x6e {
-            Application::Notebook // ASCII "nb"
-        } else if data[0] == 0x64 && data[1] == 0x6d {
-            Application::Monitor // ASCII "md"
-        } else {
-            debug_assert!(
-                false,
-                "Couldn't parse application 0x{:X}, 0x{:X}",
-                data[0], data[1]
-            );
-            Application::Invalid
+        let application = match &[data[1], data[0]] {
+            b"nb" => Application::Notebook,
+            b"md" => Application::Monitor,
+            _ => {
+                debug_assert!(
+                    false,
+                    "Couldn't parse application 0x{:X}, 0x{:X}",
+                    data[0], data[1]
+                );
+                Application::Invalid
+            }
         };
         Self {
             application,
