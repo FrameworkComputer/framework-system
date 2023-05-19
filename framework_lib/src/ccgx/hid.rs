@@ -270,10 +270,7 @@ pub fn find_device(api: &HidApi, filter_devs: &[u16]) -> Option<HidDevice> {
         let vid = dev_info.vendor_id();
         let pid = dev_info.product_id();
         let usage_page = dev_info.usage_page();
-        if vid == FRAMEWORK_VID
-            && filter_devs.contains(&pid)
-            && usage_page == CCG_USAGE_PAGE
-        {
+        if vid == FRAMEWORK_VID && filter_devs.contains(&pid) && usage_page == CCG_USAGE_PAGE {
             return Some(dev_info.open_device(api).unwrap());
         }
     }
