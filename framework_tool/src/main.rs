@@ -4,8 +4,8 @@ fn main() {
     if let Some(binfile) = option_env!("FWK_DP_HDMI_BIN") {
         let bin = match binfile {
             "dp-flash-008" => include_bytes!("../../framework_lib/embed_bins/dp-flash-008.bin"),
-            "dp-flash-100" => include_bytes!("../../framework_lib/embed_bins/dp-flash-008.bin"),
-            "dp-flash-101" => include_bytes!("../../framework_lib/embed_bins/dp-flash-008.bin"),
+            "dp-flash-100" => include_bytes!("../../framework_lib/embed_bins/dp-flash-100.bin"),
+            "dp-flash-101" => include_bytes!("../../framework_lib/embed_bins/dp-flash-101.bin"),
             "hdmi-flash-006" => include_bytes!("../../framework_lib/embed_bins/hdmi-flash-006.bin"),
             "hdmi-flash-105" => include_bytes!("../../framework_lib/embed_bins/hdmi-flash-105.bin"),
             _ => unreachable!(),
