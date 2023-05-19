@@ -104,6 +104,7 @@ fn read_metadata(
 ) -> Option<(u32, u32)> {
     let buffer = read_256_bytes(file_buffer, metadata_offset, flash_row_size)?;
     match ccgx {
+        SiliconId::Ccg3 => parse_metadata_ccg3(&buffer),
         SiliconId::Ccg5 | SiliconId::Ccg6 => parse_metadata_cyacd(&buffer),
         SiliconId::Ccg8 => parse_metadata_cyacd2(&buffer)
             .map(|(fw_row_start, fw_size)| (fw_row_start / (flash_row_size as u32), fw_size)),
@@ -149,7 +150,7 @@ fn read_version(
         unsafe { std::ptr::read(data[0..version_len].as_ptr() as *const _) };
 
     let base_version = BaseVersion::from(version_info.base_version);
-    let app_version = AppVersion::from(version_info.app_version);
+    let app_version = AppVersion::try_from(version_info.app_version).ok()?;
 
     let fw_silicon_id = version_info.silicon_id;
     let fw_silicon_family = version_info.silicon_family;
@@ -168,6 +169,7 @@ fn read_version(
 /// Parse all PD information, given a binary file (buffer)
 pub fn read_versions(file_buffer: &[u8], ccgx: SiliconId) -> Option<PdFirmwareFile> {
     let (flash_row_size, f1_metadata_row, fw2_metadata_row) = match ccgx {
+        SiliconId::Ccg3 => (SMALL_ROW, 0x03FF, 0x03FE),
         SiliconId::Ccg5 => (LARGE_ROW, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG5),
         SiliconId::Ccg6 => (SMALL_ROW, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG6),
         SiliconId::Ccg8 => (LARGE_ROW, FW1_METADATA_ROW_CCG8, FW2_METADATA_ROW_CCG8),
@@ -202,14 +204,78 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    fn can_parse_ccg3_binary() {
+        let mut pd_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        pd_bin_path.push("test_bins/dp-pd-3.0.17.100.bin");
+
+        let data = fs::read(pd_bin_path).unwrap();
+        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
+        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
+        let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        assert!(ccg3_ver.is_some());
+        assert!(ccg5_ver.is_none());
+        assert!(ccg6_ver.is_none());
+        assert!(ccg8_ver.is_none());
+
+        assert_eq!(
+            ccg3_ver,
+            Some({
+                PdFirmwareFile {
+                    backup_fw: PdFirmware {
+                        silicon_id: 0x11AD,
+                        silicon_family: 0x1D00,
+                        base_version: BaseVersion {
+                            major: 3,
+                            minor: 0,
+                            patch: 17,
+                            build_number: 100,
+                        },
+                        app_version: AppVersion {
+                            application: Application::AA,
+                            major: 0,
+                            minor: 0,
+                            circuit: 2,
+                        },
+                        start_row: 48,
+                        size: 58624,
+                        row_size: 128,
+                    },
+                    main_fw: PdFirmware {
+                        silicon_id: 0x11AD,
+                        silicon_family: 0x1D00,
+                        base_version: BaseVersion {
+                            major: 3,
+                            minor: 0,
+                            patch: 17,
+                            build_number: 100,
+                        },
+                        app_version: AppVersion {
+                            application: Application::AA,
+                            major: 0,
+                            minor: 0,
+                            circuit: 2,
+                        },
+                        start_row: 512,
+                        size: 58624,
+                        row_size: 128,
+                    },
+                }
+            })
+        );
+    }
+
+    #[test]
     fn can_parse_ccg5_binary() {
         let mut pd_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         pd_bin_path.push("test_bins/tgl-pd-3.8.0.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
+        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
         let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
         let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
         let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_some());
         assert!(ccg6_ver.is_none());
         assert!(ccg8_ver.is_none());
@@ -267,9 +333,11 @@ mod tests {
         pd_bin_path.push("test_bins/adl-pd-0.1.33.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
+        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
         let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
         let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
         let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_some());
         assert!(ccg8_ver.is_none());
@@ -327,9 +395,11 @@ mod tests {
         pd_bin_path.push("test_bins/fl16-pd-0.0.03.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
+        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
         let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
         let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
         let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());
         assert!(ccg8_ver.is_some());
