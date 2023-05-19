@@ -24,7 +24,7 @@ linux:
 windows:
 	mkdir -p out
 
-	cargo build --release
+	cargo build --release --no-default-features --features "windows"
 	cp -f target/release/framework_tool.exe out/dp_hdmi_version.exe
 
 	env FWK_DP_HDMI_BIN=dp-flash-008 cargo build --release --no-default-features --features "windows"
