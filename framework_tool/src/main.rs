@@ -24,4 +24,12 @@ fn main() {
     } else {
         commandline::print_dp_hdmi_details();
     }
+
+    // Prevent command prompt from auto closing
+    if cfg!(windows) {
+        println!("");
+        println!("Press ENTER to exit...");
+        let mut line = String::new();
+        let _ = std::io::stdin().read_line(&mut line).unwrap();
+    }
 }
