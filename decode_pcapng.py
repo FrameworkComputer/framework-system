@@ -60,6 +60,7 @@ def usb_urb(s):
 # To find them, look at the pcap in wireguard and check the source/destination
 images = {
     101: {
+        'type': 'DP',
         'filename': 'reflash101.pcapng',
         'second_first': False,
         'devices': {
@@ -74,6 +75,7 @@ images = {
         }
     },
     8: {
+        'type': 'DP',
         'filename': 'flash-100-to-8.pcapng',
         'second_first': False,
         'devices': {
@@ -88,6 +90,7 @@ images = {
         }
     },
     100: {
+        'type': 'DP',
         'filename': 'reflash100.pcapng',
         'second_first': False,
         'devices': {
@@ -103,36 +106,40 @@ images = {
     },
     # HDMI
     6: {
-        'filename': 'hdmi-reflash-006.pcapng',
+        'type': 'HDMI',
+        # Yeah.. wrong filename
+        'filename': 'hdmi-flash-5.pcapng',
         'second_first': False,
         'devices': {
             1: {
-                'busid': 2,
-                'device': 48,
+                'busid': 1,
+                'device': 29,
             },
             2: {
-                'busid': 2,
-                'device': 47,
+                'busid': 1,
+                'device': 30,
             }
         }
     },
     105: {
+        'type': 'HDMI',
         'filename': 'hdmi-flash-105.pcapng',
         'second_first': False,
         'devices': {
             1: {
-                'busid': 2,
-                'device': 63,
+                'busid': 1,
+                'device': 26,
             },
             2: {
-                'busid': 2,
-                'device': 64,
+                'busid': 1,
+                'device': 27,
             }
         }
     },
 }
 
 ROW_SIZE = 128
+MAX_ROWS = 1024
 FW_VERSION = None
 
 DEBUG = False
@@ -149,14 +156,47 @@ def print_image_info(binary, index):
     print("  FW at: 0x{:04X} Metadata at 0x{:04X}".format(binary[0][0], binary[-1][0]))
 
 
-def write_bin(path, binary, ):
+def write_bin(path, binary1, binary2):
     with open(path, "wb") as f:
-        for (addr, row) in binary:
+        # Write fist padding
+        # Verified
+        print("Padding  1: {:04X} to {:04X}".format(0, binary1[0][0]))
+        for row in range(0, binary1[0][0]):
+            f.write(b'\0' * ROW_SIZE)
+
+        # Verified
+        print("FW IMG   1: {:04X} to {:04X}".format(binary1[0][0], binary1[-2][0]))
+        for (addr, row) in binary1[0:-1]:
             f.write(row)
+
+        print("Padding  2: {:04X} to {:04X}".format(binary1[-2][0], binary2[0][0]-1))
+        for row in range(binary1[-2][0], binary2[0][0]-1):
+            f.write(b'\0' * ROW_SIZE)
+
+        print("FW IMG   2: {:04X} to {:04X}".format(binary2[0][0], binary2[-2][0]))
+        for (addr, row) in binary2[0:-1]:
+            f.write(row)
+
+        print("Padding  3: {:04X} to {:04X}".format(binary2[-2][0], binary2[-1][0]-1))
+        for row in range(binary2[-2][0], binary2[-1][0]-1):
+            f.write(b'\0' * ROW_SIZE)
+
+        # Notice that these are in reverse order!
+        # FW2 metadata is before FW1 metadata
+        print("Metadata 2: {:04X} to {:04X}".format(binary2[-1][0], binary2[-1][0]))
+        f.write(binary2[-1][1])
+        print("Metadata 1: {:04X} to {:04X}".format(binary1[-1][0], binary1[-1][0]))
+        f.write(binary1[-1][1])
+
+        # Pad from end of FW1 metadata
+        print("Padding  4: {:04X} to {:04X}".format(binary1[-1][0], MAX_ROWS-1))
+        for row in range(binary1[-1][0], MAX_ROWS-1):
+            f.write(b'\0' * ROW_SIZE)
 
 
 def check_assumptions(img1_binary, img2_binary):
     # TODO: Check that addresses are in order
+    # TODO: Metadata right after each other
 
     # Check assumptions that the updater relies on
     if len(img1_binary) != len(img2_binary):
@@ -257,8 +297,7 @@ def main():
 
     print_image_info(img1_binary, 1)
     print_image_info(img2_binary, 2)
-    write_bin("dump1.bin", img1_binary)
-    write_bin("dump2.bin", img2_binary)
+    write_bin("{}-{}.bin".format(info['type'], FW_VERSION), img1_binary, img2_binary)
 
 if __name__ == "__main__":
     main()
