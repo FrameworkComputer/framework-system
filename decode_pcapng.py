@@ -132,22 +132,60 @@ images = {
     },
 }
 
+ROW_SIZE = 128
 FW_VERSION = None
 
 DEBUG = False
 VERBOSE = True
 
+
 def format_hex(buf):
     return ''.join('{:02x} '.format(x) for x in buf)
 
-if __name__ == "__main__":
-    img1_binary = b''
-    img1_addresses = []
-    img2_binary = b''
-    img2_addresses = []
-    FW_VERSION = int(sys.argv[1])
-    info = images[FW_VERSION]
-    with open('/home/zoid/framework/dp-card-fw-update/{}'.format(info['filename']), "rb") as f:
+def print_image_info(binary, index):
+    rows = len(binary)
+    size = rows * len(binary[0][1])
+    print("Image {} Size:    {} B, {} rows".format(index, size, rows))
+    print("  FW at: 0x{:04X} Metadata at 0x{:04X}".format(binary[0][0], binary[-1][0]))
+
+
+def write_bin(path, binary, ):
+    with open(path, "wb") as f:
+        for (addr, row) in binary:
+            f.write(row)
+
+
+def check_assumptions(img1_binary, img2_binary):
+    # TODO: Check that addresses are in order
+
+    # Check assumptions that the updater relies on
+    if len(img1_binary) != len(img2_binary):
+        print("VIOLATED Assumption that both images are of the same size!")
+        sys.exit(1)
+    if len(img1_binary[0][1]) != ROW_SIZE:
+        print("VIOLATED Assumption that the row size is {} bytes! Is: {}", ROW_SIZE, img1_binary[0][1])
+        sys.exit(1)
+    if img1_binary[0][0] != 0x0030:
+        print("VIOLATED Assumption that start row of image 1 is at 0x0030. Is at 0x{:04X}".format(img1_binary[0][0]))
+        sys.exit(1)
+    if img1_binary[-1][0] != 0x03FF:
+        print("VIOLATED Assumption that metadata row of image 1 is at 0x03FF. Is at 0x{:04X}".format(img1_binary[-1][0]))
+        sys.exit(1)
+    if img2_binary[0][0] != 0x0200:
+        print("VIOLATED Assumption that start row of image 2 is at 0x0200. Is at 0x{:04X}".format(img2_binary[0]))
+        sys.exit(1)
+    if img2_binary[-1][0] != 0x03FE:
+        print("VIOLATED Assumption that metadata row of image 2 is at 0x03FE. Is at 0x{:04X}".format(img2_binary[-1][0]))
+        sys.exit(1)
+    if img1_binary == img2_binary:
+        print("VIOLATED Assumption that both images are not the same");
+        sys.exit(1)
+
+
+def decode_pcapng(path, info):
+    img1_binary = [] # [(addr, row)]
+    img2_binary = [] # [(addr, row)]
+    with open(path, "rb") as f:
         scanner = FileScanner(f)
         block_no = 1
         for i, block in enumerate(scanner):
@@ -191,51 +229,36 @@ if __name__ == "__main__":
 
                 if img1:
                     if info['second_first']:
-                        img2_addresses.append(addr)
-                        img2_binary += payload
+                        img2_binary.append((addr, payload))
                     else:
-                        img1_addresses.append(addr)
-                        img1_binary += payload
+                        img1_binary.append((addr, payload))
                 elif img2:
                     if info['second_first']:
-                        img1_addresses.append(addr)
-                        img1_binary += payload
+                        img1_binary.append((addr, payload))
                     else:
-                        img2_addresses.append(addr)
-                        img2_binary += payload
+                        img2_binary.append((addr, payload))
 
                 block_no += 1
             else:
                 print(block)
+    return (img1_binary, img2_binary)
 
-    # Check assumptions that the updater relies on
-    if len(img1_binary) != len(img2_binary):
-        print("VIOLATED Assumption that both images are of the same size!")
-        sys.exit(1)
-    if len(img1_binary) % 128 != 0:
-        print("VIOLATED Assumption that the row size is 128 bytes!")
-        sys.exit(1)
-    if img1_addresses[0] != 0x0030:
-        print("VIOLATED Assumption that start row of image 1 is at 0x0030. Is at 0x{:04X}".format(img1_addresses[0]))
-        sys.exit(1)
-    if img1_addresses[-1] != 0x03FF:
-        print("VIOLATED Assumption that metadata row of image 1 is at 0x03FF. Is at 0x{:04X}".format(img1_addresses[-1]))
-        sys.exit(1)
-    if img2_addresses[0] != 0x0200:
-        print("VIOLATED Assumption that start row of image 2 is at 0x0200. Is at 0x{:04X}".format(img2_addresses[0]))
-        sys.exit(1)
-    if img2_addresses[-1] != 0x03FE:
-        print("VIOLATED Assumption that metadata row of image 2 is at 0x03FE. Is at 0x{:04X}".format(img2_addresses[-1]))
-        sys.exit(1)
-    if img1_binary == img2_binary:
-        print("VIOLATED Assumption that both images are not the same");
-        sys.exit(1)
+
+def main():
+    FW_VERSION = int(sys.argv[1])
+    info = images[FW_VERSION]
+    path = '/home/zoid/framework/dp-card-fw-update/{}'.format(info['filename'])
+
+    (img1_binary, img2_binary) = decode_pcapng(path, info)
+
+    check_assumptions(img1_binary, img2_binary)
 
     print("Firmware version: {}".format(FW_VERSION))
 
-    with open("dump1.bin", "wb") as dump1:
-        print("Image 1 Size:    {} B, {} rows".format(len(img1_binary), int(len(img1_binary)/128)))
-        dump1.write(img1_binary)
-    with open("dump2.bin", "wb") as dump2:
-        print("Image 2 Size:    {} B, {} rows".format(len(img2_binary), int(len(img2_binary)/128)))
-        dump2.write(img2_binary)
+    print_image_info(img1_binary, 1)
+    print_image_info(img2_binary, 2)
+    write_bin("dump1.bin", img1_binary)
+    write_bin("dump2.bin", img2_binary)
+
+if __name__ == "__main__":
+    main()
