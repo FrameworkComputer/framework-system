@@ -1,4 +1,4 @@
-use hidapi::{HidApi, HidDevice};
+use hidapi::{DeviceInfo, HidApi, HidDevice};
 
 use crate::ccgx::device::{decode_flash_row_size, FwMode};
 use crate::ccgx::BaseVersion;
@@ -10,6 +10,10 @@ pub const FRAMEWORK_VID: u16 = 0x32AC;
 pub const HDMI_CARD_PID: u16 = 0x0002;
 pub const DP_CARD_PID: u16 = 0x0003;
 pub const ALL_CARD_PIDS: [u16; 2] = [DP_CARD_PID, HDMI_CARD_PID];
+
+/// It takes as little as 3 but up to 6s for the HDMI/DP cards to restart and
+/// enumerate in the OS
+pub const RESTART_TIMEOUT: u64 = 6_000_000;
 
 const ROW_SIZE: usize = 128;
 const FW1_START: u16 = 0x0030;
@@ -257,6 +261,7 @@ fn print_fw_info(info: &HidFirmwareInfo) {
     );
 }
 
+/// Turn CCG3 Expansion Card VID/PID into their name
 pub fn device_name(vid: u16, pid: u16) -> Option<&'static str> {
     match (vid, pid) {
         (FRAMEWORK_VID, HDMI_CARD_PID) => Some("HDMI Expansion Card"),
@@ -265,16 +270,24 @@ pub fn device_name(vid: u16, pid: u16) -> Option<&'static str> {
     }
 }
 
-pub fn find_device(api: &HidApi, filter_devs: &[u16]) -> Option<HidDevice> {
-    for dev_info in api.device_list() {
-        let vid = dev_info.vendor_id();
-        let pid = dev_info.product_id();
-        let usage_page = dev_info.usage_page();
-        if vid == FRAMEWORK_VID && filter_devs.contains(&pid) && usage_page == CCG_USAGE_PAGE {
-            return Some(dev_info.open_device(api).unwrap());
-        }
-    }
-    None
+/// Find HDMI/DP Expansion cards, optionally filter by product ID or serial number
+pub fn find_devices(api: &HidApi, filter_devs: &[u16], sn: Option<&str>) -> Vec<DeviceInfo> {
+    api.device_list()
+        .filter_map(|dev_info| {
+            let vid = dev_info.vendor_id();
+            let pid = dev_info.product_id();
+            let usage_page = dev_info.usage_page();
+            if vid == FRAMEWORK_VID
+                && filter_devs.contains(&pid)
+                && usage_page == CCG_USAGE_PAGE
+                && (sn.is_none() || sn == dev_info.serial_number())
+            {
+                Some(dev_info.clone())
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 pub fn flash_firmware(fw_binary: &[u8], filter_devs: &[u16]) {
@@ -289,62 +302,79 @@ pub fn flash_firmware(fw_binary: &[u8], filter_devs: &[u16]) {
     // After updating the first image, the device restarts and boots into the other one.
     // Then we need to re-enumerate the USB devices because it'll change device id
     let mut api = HidApi::new().unwrap();
-    let device = if let Some(device) = find_device(&api, filter_devs) {
-        device
-    } else {
+    let devices = find_devices(&api, filter_devs, None);
+    if devices.is_empty() {
         println!("No compatible Expansion Card connected");
         return;
     };
+    for dev_info in devices {
+        // Unfortunately the HID API doesn't allow us to introspect the USB
+        // topology because it abstracts USB, Bluetooth and other HID devices.
+        // The libusb API does allow that but it's lower level and requires
+        // root privileges on Linux.
+        // So we can't figure out which port the card is connected to.
+        // Would be nice to show that instead of the serial number.
+        // We want to show that so the user knows that multiple *different*
+        // cards are being updated.
+        let sn = dev_info.serial_number().unwrap();
+        let dev_name = device_name(dev_info.vendor_id(), dev_info.product_id()).unwrap();
+        println!();
+        println!("Updating {} with SN: {:?}", dev_name, sn);
 
-    magic_unlock(&device);
-    let info = get_fw_info(&device);
-    println!("Before Updating");
-    print_fw_info(&info);
+        let device = dev_info.open_device(&api).unwrap();
+        magic_unlock(&device);
+        let info = get_fw_info(&device);
+        println!("Before Updating");
+        print_fw_info(&info);
 
-    println!("Updating...");
-    match info.operating_mode {
-        // I think in bootloader mode we can update either one first. Never tested
-        0 | 2 => {
-            println!("  Updating Firmware Image 1");
-            flash_firmware_image(&device, fw1_binary, FW1_START, FW1_METADATA, 1);
+        println!("Updating...");
+        match info.operating_mode {
+            // I think in bootloader mode we can update either one first. Never tested
+            0 | 2 => {
+                println!("  Updating Firmware Image 1");
+                flash_firmware_image(&device, fw1_binary, FW1_START, FW1_METADATA, 1);
 
-            println!("  Waiting 5s for device to restart");
-            os_specific::sleep(5_000_000);
-            api.refresh_devices().unwrap();
-            let device = find_device(&api, filter_devs).unwrap();
-            magic_unlock(&device);
-            let _info = get_fw_info(&device);
+                println!("  Waiting 6s for device to restart");
+                os_specific::sleep(RESTART_TIMEOUT);
+                api.refresh_devices().unwrap();
+                let dev_info = &find_devices(&api, filter_devs, Some(sn))[0];
+                let device = dev_info.open_device(&api).unwrap();
+                magic_unlock(&device);
+                let _info = get_fw_info(&device);
 
-            println!("  Updating Firmware Image 2");
-            flash_firmware_image(&device, fw2_binary, FW2_START, FW2_METADATA, 2);
+                println!("  Updating Firmware Image 2");
+                flash_firmware_image(&device, fw2_binary, FW2_START, FW2_METADATA, 2);
+            }
+            1 => {
+                println!("  Updating Firmware Image 2");
+                flash_firmware_image(&device, fw2_binary, FW2_START, FW2_METADATA, 2);
+
+                println!("  Waiting 6s for device to restart");
+                os_specific::sleep(RESTART_TIMEOUT);
+                api.refresh_devices().unwrap();
+                let dev_info = &find_devices(&api, filter_devs, Some(sn))[0];
+                let device = dev_info.open_device(&api).unwrap();
+                magic_unlock(&device);
+                let _info = get_fw_info(&device);
+
+                println!("  Updating Firmware Image 1");
+                flash_firmware_image(&device, fw1_binary, FW1_START, FW1_METADATA, 1);
+            }
+            _ => unreachable!(),
         }
-        1 => {
-            println!("  Updating Firmware Image 2");
-            flash_firmware_image(&device, fw2_binary, FW2_START, FW2_METADATA, 2);
 
-            println!("  Waiting 5s for device to restart");
-            os_specific::sleep(5_000_000);
-            api.refresh_devices().unwrap();
-            let device = find_device(&api, filter_devs).unwrap();
-            magic_unlock(&device);
-            let _info = get_fw_info(&device);
+        println!("  Firmware Update done.");
+        println!("  Waiting 6s for device to restart");
+        os_specific::sleep(RESTART_TIMEOUT);
 
-            println!("  Updating Firmware Image 1");
-            flash_firmware_image(&device, fw1_binary, FW1_START, FW1_METADATA, 1);
-        }
-        _ => unreachable!(),
+        println!("After Updating");
+        api.refresh_devices().unwrap();
+        let dev_info = &find_devices(&api, filter_devs, Some(sn))[0];
+        let device = dev_info.open_device(&api).unwrap();
+        magic_unlock(&device);
+        let info = get_fw_info(&device);
+        print_fw_info(&info);
     }
-
-    println!("  Firmware Update done.");
-    println!("  Waiting 5s for device to restart");
-    os_specific::sleep(5_000_000);
-
-    println!("After Updating");
-    api.refresh_devices().unwrap();
-    let device = find_device(&api, filter_devs).unwrap();
-    magic_unlock(&device);
-    let info = get_fw_info(&device);
-    print_fw_info(&info);
 }
 
 fn flash_firmware_image(

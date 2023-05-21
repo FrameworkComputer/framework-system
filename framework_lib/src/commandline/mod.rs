@@ -23,9 +23,7 @@ use crate::capsule_content::{
 };
 use crate::ccgx::device::{PdController, PdPort};
 #[cfg(not(feature = "uefi"))]
-use crate::ccgx::hid::{
-    check_ccg_fw_version, CCG_USAGE_PAGE, DP_CARD_PID, FRAMEWORK_VID, HDMI_CARD_PID,
-};
+use crate::ccgx::hid::{check_ccg_fw_version, find_devices, DP_CARD_PID, HDMI_CARD_PID};
 use crate::ccgx::{self, SiliconId::*};
 use crate::chromium_ec;
 use crate::chromium_ec::print_err;
@@ -137,31 +135,26 @@ fn print_audio_card_details() {
 pub fn print_dp_hdmi_details() {
     match HidApi::new() {
         Ok(api) => {
-            for dev_info in api.device_list() {
+            for dev_info in find_devices(&api, &[HDMI_CARD_PID, DP_CARD_PID], None) {
                 let vid = dev_info.vendor_id();
                 let pid = dev_info.product_id();
-                let usage_page = dev_info.usage_page();
-                if vid == FRAMEWORK_VID
-                    && [HDMI_CARD_PID, DP_CARD_PID].contains(&pid)
-                    && usage_page == CCG_USAGE_PAGE
-                {
-                    let device = dev_info.open_device(&api).unwrap();
-                    if let Some(name) = ccgx::hid::device_name(vid, pid) {
-                        println!("{}", name);
-                    }
 
-                    // On Windows this value is "Control Interface", probably hijacked by the kernel driver
-                    debug!(
-                        "  Product String:  {}",
-                        dev_info.product_string().unwrap_or(NOT_SET)
-                    );
-
-                    debug!(
-                        "  Serial No:       {}",
-                        dev_info.serial_number().unwrap_or(NOT_SET)
-                    );
-                    check_ccg_fw_version(&device);
+                let device = dev_info.open_device(&api).unwrap();
+                if let Some(name) = ccgx::hid::device_name(vid, pid) {
+                    println!("{}", name);
                 }
+
+                // On Windows this value is "Control Interface", probably hijacked by the kernel driver
+                debug!(
+                    "  Product String:  {}",
+                    dev_info.product_string().unwrap_or(NOT_SET)
+                );
+
+                println!(
+                    "  Serial Number:        {}",
+                    dev_info.serial_number().unwrap_or(NOT_SET)
+                );
+                check_ccg_fw_version(&device);
             }
         }
         Err(e) => {
