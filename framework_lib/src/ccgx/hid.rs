@@ -1,8 +1,10 @@
 use hidapi::{DeviceInfo, HidApi, HidDevice};
 
+use crate::ccgx;
 use crate::ccgx::device::{decode_flash_row_size, FwMode};
-use crate::ccgx::BaseVersion;
+use crate::ccgx::{BaseVersion, SiliconId};
 use crate::os_specific;
+use crate::util;
 
 pub const CCG_USAGE_PAGE: u16 = 0xFFEE;
 
@@ -16,10 +18,10 @@ pub const ALL_CARD_PIDS: [u16; 2] = [DP_CARD_PID, HDMI_CARD_PID];
 pub const RESTART_TIMEOUT: u64 = 6_000_000;
 
 const ROW_SIZE: usize = 128;
-const FW1_START: u16 = 0x0030;
-const FW2_START: u16 = 0x0200;
-const FW1_METADATA: u16 = 0x03FF;
-const FW2_METADATA: u16 = 0x03FE;
+const FW1_START: usize = 0x0030;
+const FW2_START: usize = 0x0200;
+const FW1_METADATA: usize = 0x03FF;
+const FW2_METADATA: usize = 0x03FE;
 
 #[repr(packed)]
 #[derive(Debug, Copy, Clone)]
@@ -290,19 +292,38 @@ pub fn find_devices(api: &HidApi, filter_devs: &[u16], sn: Option<&str>) -> Vec<
         .collect()
 }
 
-pub fn flash_firmware(fw_binary: &[u8], filter_devs: &[u16]) {
-    // Make sure the firmware is composed of rows and has two images
-    // The assumption is that both images are of the same size
-    assert_eq!(fw_binary.len() % 2 * ROW_SIZE, 0);
-    let fw_size = fw_binary.len() / 2;
-    let fw1_binary = &fw_binary[..fw_size];
-    let fw2_binary = &fw_binary[fw_size..];
+pub fn flash_firmware(fw_binary: &[u8]) {
+    let versions = if let Some(versions) = ccgx::binary::read_versions(fw_binary, SiliconId::Ccg3) {
+        versions
+    } else {
+        println!("Incompatible firmware. Need CCG3 firmware.");
+        return;
+    };
+
+    // Not sure if there's a better way to check whether the firmware is for DP or HDMI card
+    let dp_string = b"F\0r\0a\0m\0e\0w\0o\0r\0k\x006\x03D\0i\0s\0p\0l\0a\0y\0P\0o\0r\0t\0 \0E\0x\0p\0a\0n\0s\0i\0o\0n\0 \0C\0a\0r\0d\0";
+    let hdmi_string = b"F\0r\0a\0m\0e\0w\0o\0r\0k\0(\x03H\0D\0M\0I\0 \0E\0x\0p\0a\0n\0s\0i\0o\0n\0 \0C\0a\0r\0d\0";
+    let filter_devs = if util::find_sequence(fw_binary, hdmi_string).is_some() {
+        [HDMI_CARD_PID]
+    } else if util::find_sequence(fw_binary, dp_string).is_some() {
+        [DP_CARD_PID]
+    } else {
+        println!("Incompatible firmware. Need DP/HDMI Expansion Card Firmware.");
+        return;
+    };
+
+    let fw1_rows = versions.backup_fw.size / versions.backup_fw.row_size;
+    let fw2_rows = versions.main_fw.size / versions.main_fw.row_size;
+
+    println!("File Firmware:");
+    println!("  {}", device_name(FRAMEWORK_VID, filter_devs[0]).unwrap());
+    println!("  {}", versions.main_fw.base_version);
 
     // First update the one that's not currently running.
     // After updating the first image, the device restarts and boots into the other one.
     // Then we need to re-enumerate the USB devices because it'll change device id
     let mut api = HidApi::new().unwrap();
-    let devices = find_devices(&api, filter_devs, None);
+    let devices = find_devices(&api, &filter_devs, None);
     if devices.is_empty() {
         println!("No compatible Expansion Card connected");
         return;
@@ -332,33 +353,33 @@ pub fn flash_firmware(fw_binary: &[u8], filter_devs: &[u16]) {
             // I think in bootloader mode we can update either one first. Never tested
             0 | 2 => {
                 println!("  Updating Firmware Image 1");
-                flash_firmware_image(&device, fw1_binary, FW1_START, FW1_METADATA, 1);
+                flash_firmware_image(&device, fw_binary, FW1_START, FW1_METADATA, fw1_rows, 1);
 
                 println!("  Waiting 6s for device to restart");
                 os_specific::sleep(RESTART_TIMEOUT);
                 api.refresh_devices().unwrap();
-                let dev_info = &find_devices(&api, filter_devs, Some(sn))[0];
+                let dev_info = &find_devices(&api, &filter_devs, Some(sn))[0];
                 let device = dev_info.open_device(&api).unwrap();
                 magic_unlock(&device);
                 let _info = get_fw_info(&device);
 
                 println!("  Updating Firmware Image 2");
-                flash_firmware_image(&device, fw2_binary, FW2_START, FW2_METADATA, 2);
+                flash_firmware_image(&device, fw_binary, FW2_START, FW2_METADATA, fw2_rows, 2);
             }
             1 => {
                 println!("  Updating Firmware Image 2");
-                flash_firmware_image(&device, fw2_binary, FW2_START, FW2_METADATA, 2);
+                flash_firmware_image(&device, fw_binary, FW2_START, FW2_METADATA, fw2_rows, 2);
 
                 println!("  Waiting 6s for device to restart");
                 os_specific::sleep(RESTART_TIMEOUT);
                 api.refresh_devices().unwrap();
-                let dev_info = &find_devices(&api, filter_devs, Some(sn))[0];
+                let dev_info = &find_devices(&api, &filter_devs, Some(sn))[0];
                 let device = dev_info.open_device(&api).unwrap();
                 magic_unlock(&device);
                 let _info = get_fw_info(&device);
 
                 println!("  Updating Firmware Image 1");
-                flash_firmware_image(&device, fw1_binary, FW1_START, FW1_METADATA, 1);
+                flash_firmware_image(&device, fw_binary, FW1_START, FW1_METADATA, fw1_rows, 1);
             }
             _ => unreachable!(),
         }
@@ -369,7 +390,7 @@ pub fn flash_firmware(fw_binary: &[u8], filter_devs: &[u16]) {
 
         println!("After Updating");
         api.refresh_devices().unwrap();
-        let dev_info = &find_devices(&api, filter_devs, Some(sn))[0];
+        let dev_info = &find_devices(&api, &filter_devs, Some(sn))[0];
         let device = dev_info.open_device(&api).unwrap();
         magic_unlock(&device);
         let info = get_fw_info(&device);
@@ -380,21 +401,21 @@ pub fn flash_firmware(fw_binary: &[u8], filter_devs: &[u16]) {
 fn flash_firmware_image(
     device: &HidDevice,
     fw_binary: &[u8],
-    start_row: u16,
-    metadata_row: u16,
+    start_row: usize,
+    metadata_row: usize,
+    rows: usize,
     no: u8,
 ) {
+    let fw_slice = &fw_binary[start_row * ROW_SIZE..(start_row + rows) * ROW_SIZE];
+    let metadata_slice = &fw_binary[metadata_row * ROW_SIZE..(metadata_row + 1) * ROW_SIZE];
     // Should be roughly 460 plus/minus 2
-    debug!("Chunks: {:?}", fw_binary.len() / ROW_SIZE);
-    assert_eq!(fw_binary.len() % ROW_SIZE, 0);
+    debug!("Chunks: {:?}", (fw_slice.len() / ROW_SIZE) + 1);
 
     let _info = get_fw_info(device);
 
-    let rows = fw_binary.chunks(ROW_SIZE);
-    let last_row = (rows.len() - 1) as u16;
+    let rows = fw_slice.chunks(ROW_SIZE);
     for (row_no, row) in rows.enumerate() {
         assert_eq!(row.len(), ROW_SIZE);
-        let row_no = row_no as u16;
         if row_no == 0 {
             info!(
                 "Writing first firmware row@{:X?}: {:X?}",
@@ -402,13 +423,13 @@ fn flash_firmware_image(
                 row
             );
         }
-        if row_no == last_row {
-            info!("Writing metadata       row@{:X?}: {:X?}", metadata_row, row);
-            write_row(device, metadata_row, row);
-        } else {
-            write_row(device, start_row + row_no, row);
-        }
+        write_row(device, (start_row + row_no) as u16, row);
     }
+    info!(
+        "Writing metadata       row@{:X?}: {:X?}",
+        metadata_row, metadata_slice
+    );
+    write_row(device, metadata_row as u16, metadata_slice);
 
     // Not quite sure what this is. But on the first update it has
     // 0x01 and on the second it has 0x02. So I think this switches the boot order?

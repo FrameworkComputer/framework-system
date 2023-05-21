@@ -144,3 +144,10 @@ pub fn print_multiline_buffer(buffer: &[u8], offset: usize) {
         print_ascii_buffer(chunk, true);
     }
 }
+
+/// Find a sequence of bytes in a long slice of bytes
+pub fn find_sequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
+}
