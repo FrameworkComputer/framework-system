@@ -143,7 +143,7 @@ MAX_ROWS = 1024
 FW_VERSION = None
 
 DEBUG = False
-VERBOSE = True
+VERBOSE = False
 
 
 def format_hex(buf):
@@ -155,7 +155,55 @@ def print_image_info(binary, index):
     print("Image {} Size:    {} B, {} rows".format(index, size, rows))
     print("  FW at: 0x{:04X} Metadata at 0x{:04X}".format(binary[0][0], binary[-1][0]))
 
+def twos_comp(val, bits):
+    """compute the 2's complement of int value val"""
+    if (val & (1 << (bits - 1))) != 0: # if sign bit is set e.g., 8bit: 128-255
+        val = val - (1 << bits)        # compute negative value
+    return val                         # return positive value as isdef twos_comp(val, bits):
+    """compute the 2's complement of int value val"""
+    if (val & (1 << (bits - 1))) != 0: # if sign bit is set e.g., 8bit: 128-255
+        val = val - (1 << bits)        # compute negative value
+    return val                         # return positive value as isi
 
+def checksum_calc(s):
+    sum = 0
+    for c in s:
+        sum = (sum + c) & 0xFF
+    sum = -(sum % 256)
+    return (sum & 0xFF)
+
+def write_cyacd_row(f, row_no, data):
+    # No idea what array ID is but it seems fine to keep it 0. Official builds also have that
+    array_id = 0
+    data_len = len(data)
+
+    # Sum all bytes and calc two's complement
+    cs_bytes = bytes([array_id, row_no&0xFF, (row_no&0xFF00)>>8, data_len&0xFF, (data_len&0xFF00)>>8])
+    checksum = checksum_calc(cs_bytes+data)
+
+    if data_len != 0x80:
+        print("Len is {} instead of 0x80", data_len)
+        sys.exit(1)
+    data_hex = ''.join("{:02X}".format(x) for x in data)
+
+    f.write(":{:02X}{:04X}{:04X}{}{:02X}\n".format(array_id, row_no, data_len, data_hex, checksum))
+
+# Write the binary as cyacd file. Can only hold one firmware image per file
+def write_cyacd(path, binary1):
+    with open(path, "w") as f:
+        # CYACD Header
+        # Si ID  ########
+        # Si Rev         ##
+        # Checksum Type    ##
+        f.write("1D0011AD0000\n")
+
+        for (addr, row) in binary1[0:-1]:
+            write_cyacd_row(f, addr, row)
+
+        write_cyacd_row(f, binary1[-1][0], binary1[-1][1])
+
+
+# Write the binary in the same layout with padding as on flash
 def write_bin(path, binary1, binary2):
     with open(path, "wb") as f:
         # Write fist padding
@@ -297,7 +345,11 @@ def main():
 
     print_image_info(img1_binary, 1)
     print_image_info(img2_binary, 2)
-    write_bin("{}-{}.bin".format(info['type'], FW_VERSION), img1_binary, img2_binary)
+
+    # Write cyacd file, instead of binary because that's what FWUPD expects
+    #write_bin("{}-{}.bin".format(info['type'], FW_VERSION), img1_binary, img2_binary)
+    write_cyacd("{}-{}-1.cyacd".format(info['type'], FW_VERSION), img1_binary)
+    write_cyacd("{}-{}-2.cyacd".format(info['type'], FW_VERSION), img2_binary)
 
 if __name__ == "__main__":
     main()
