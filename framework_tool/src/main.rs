@@ -19,6 +19,18 @@ fn main() {
                 include_bytes!("../../framework_lib/embed_bins/hdmi-flash-006.bin").as_slice(),
                 framework_lib::ccgx::hid::HDMI_CARD_PID,
             ),
+            "hdmi-flash-102" => (
+                include_bytes!("../../framework_lib/embed_bins/hdmi-flash-102.bin").as_slice(),
+                framework_lib::ccgx::hid::HDMI_CARD_PID,
+            ),
+            "hdmi-flash-103" => (
+                include_bytes!("../../framework_lib/embed_bins/hdmi-flash-103.bin").as_slice(),
+                framework_lib::ccgx::hid::HDMI_CARD_PID,
+            ),
+            "hdmi-flash-104" => (
+                include_bytes!("../../framework_lib/embed_bins/hdmi-flash-104.bin").as_slice(),
+                framework_lib::ccgx::hid::HDMI_CARD_PID,
+            ),
             "hdmi-flash-105" => (
                 include_bytes!("../../framework_lib/embed_bins/hdmi-flash-105.bin").as_slice(),
                 framework_lib::ccgx::hid::HDMI_CARD_PID,
