@@ -59,23 +59,25 @@ def usb_urb(s):
 
 # To find them, look at the pcap in wireguard and check the source/destination
 images = {
-    101: {
+    'dp-6': {
         'type': 'DP',
-        'filename': 'reflash101.pcapng',
+        'version': '006',
+        'filename': 'dp-flash-006.pcapng',
         'second_first': False,
         'devices': {
             1: {
-                'busid': 2,
-                'device': 12,
+                'busid': 1,
+                'device': 7,
             },
             2: {
-                'busid': 2,
-                'device': 13,
+                'busid': 1,
+                'device': 8,
             }
         }
     },
-    8: {
+    '8': {
         'type': 'DP',
+        'version': '008',
         'filename': 'flash-100-to-8.pcapng',
         'second_first': False,
         'devices': {
@@ -89,8 +91,9 @@ images = {
             }
         }
     },
-    100: {
+    '100': {
         'type': 'DP',
+        'version': '100',
         'filename': 'reflash100.pcapng',
         'second_first': False,
         'devices': {
@@ -104,11 +107,43 @@ images = {
             }
         }
     },
+    '101': {
+        'type': 'DP',
+        'version': '101',
+        'filename': 'reflash101.pcapng',
+        'second_first': False,
+        'devices': {
+            1: {
+                'busid': 2,
+                'device': 12,
+            },
+            2: {
+                'busid': 2,
+                'device': 13,
+            }
+        }
+    },
     # HDMI
-    6: {
+    '5': {
         'type': 'HDMI',
-        # Yeah.. wrong filename
-        'filename': 'hdmi-flash-5.pcapng',
+        'version': '005',
+        'filename': 'hdmi-flash-005.pcapng',
+        'second_first': True,
+        'devices': {
+            1: {
+                'busid': 1,
+                'device': 4,
+            },
+            2: {
+                'busid': 1,
+                'device': 5,
+            }
+        }
+    },
+    'hdmi-6': {
+        'type': 'HDMI',
+        'version': '005',
+        'filename': 'hdmi-reflash-006.pcapng',
         'second_first': False,
         'devices': {
             1: {
@@ -123,6 +158,7 @@ images = {
     },
     102: {
         'type': 'HDMI',
+        'version': '102',
         'filename': 'hdmi-flash-102.pcapng',
         'second_first': True,
         'devices': {
@@ -138,6 +174,7 @@ images = {
     },
     103: {
         'type': 'HDMI',
+        'version': '103',
         'filename': 'hdmi-flash-103.pcapng',
         'second_first': True,
         'devices': {
@@ -153,6 +190,7 @@ images = {
     },
     104: {
         'type': 'HDMI',
+        'version': '104',
         'filename': 'hdmi-flash-104.pcapng',
         'second_first': True,
         'devices': {
@@ -166,8 +204,9 @@ images = {
             }
         }
     },
-    105: {
+    '105': {
         'type': 'HDMI',
+        'version': '105',
         'filename': 'hdmi-flash-105.pcapng',
         'second_first': False,
         'devices': {
@@ -185,7 +224,6 @@ images = {
 
 ROW_SIZE = 128
 MAX_ROWS = 1024
-FW_VERSION = None
 
 DEBUG = False
 VERBOSE = False
@@ -378,8 +416,8 @@ def decode_pcapng(path, info):
 
 
 def main():
-    FW_VERSION = int(sys.argv[1])
-    info = images[FW_VERSION]
+    info = images[sys.argv[1]]
+    FW_VERSION = info['version']
     path = '/home/zoid/framework/dp-card-fw-update/{}'.format(info['filename'])
 
     (img1_binary, img2_binary) = decode_pcapng(path, info)
