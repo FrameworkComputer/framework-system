@@ -15,6 +15,15 @@ fn main() {
             "hdmi-flash-006" => {
                 include_bytes!("../../framework_lib/embed_bins/hdmi-flash-006.bin").as_slice()
             }
+            "hdmi-flash-102" => {
+                include_bytes!("../../framework_lib/embed_bins/hdmi-flash-102.bin").as_slice()
+            }
+            "hdmi-flash-103" => {
+                include_bytes!("../../framework_lib/embed_bins/hdmi-flash-103.bin").as_slice()
+            }
+            "hdmi-flash-104" => {
+                include_bytes!("../../framework_lib/embed_bins/hdmi-flash-104.bin").as_slice()
+            }
             "hdmi-flash-105" => {
                 include_bytes!("../../framework_lib/embed_bins/hdmi-flash-105.bin").as_slice()
             }
