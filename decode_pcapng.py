@@ -121,6 +121,51 @@ images = {
             }
         }
     },
+    102: {
+        'type': 'HDMI',
+        'filename': 'hdmi-flash-102.pcapng',
+        'second_first': True,
+        'devices': {
+            1: {
+                'busid': 2,
+                'device': 8,
+            },
+            2: {
+                'busid': 2,
+                'device': 9,
+            }
+        }
+    },
+    103: {
+        'type': 'HDMI',
+        'filename': 'hdmi-flash-103.pcapng',
+        'second_first': True,
+        'devices': {
+            1: {
+                'busid': 2,
+                'device': 6,
+            },
+            2: {
+                'busid': 2,
+                'device': 7,
+            }
+        }
+    },
+    104: {
+        'type': 'HDMI',
+        'filename': 'hdmi-flash-104.pcapng',
+        'second_first': True,
+        'devices': {
+            1: {
+                'busid': 2,
+                'device': 4,
+            },
+            2: {
+                'busid': 2,
+                'device': 5,
+            }
+        }
+    },
     105: {
         'type': 'HDMI',
         'filename': 'hdmi-flash-105.pcapng',
