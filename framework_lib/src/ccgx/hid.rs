@@ -13,9 +13,11 @@ pub const HDMI_CARD_PID: u16 = 0x0002;
 pub const DP_CARD_PID: u16 = 0x0003;
 pub const ALL_CARD_PIDS: [u16; 2] = [DP_CARD_PID, HDMI_CARD_PID];
 
-/// It takes as little as 3 but up to 6s for the HDMI/DP cards to restart and
-/// enumerate in the OS
-pub const RESTART_TIMEOUT: u64 = 6_000_000;
+/// It takes as little as 3s but sometimes more than 5s for the HDMI/DP cards
+/// to restart and enumerate in the OS
+/// Check every 0.5s for up to 10s
+pub const RESTART_TIMEOUT: u64 = 10_000_000;
+pub const RESTART_PERIOD: u64 = 500_000;
 
 const ROW_SIZE: usize = 128;
 const FW1_START: usize = 0x0030;
@@ -96,7 +98,7 @@ fn flashing_mode(device: &HidDevice) {
             0xCC,
             0xCC,
         ])
-        .unwrap();
+        .expect("Failed to enter flashing mode");
 }
 
 fn magic_unlock(device: &HidDevice) {
@@ -115,7 +117,7 @@ fn magic_unlock(device: &HidDevice) {
             0x00,
             0x0B,
         ])
-        .unwrap();
+        .expect("Failed to unlock device");
 
     // Returns Err but seems to work anyway. OH! Probably because it resets the device!!
     // TODO: I have a feeling the last five bytes are ignored. They're the same in all commands.
@@ -138,7 +140,9 @@ fn get_fw_info(device: &HidDevice) -> HidFirmwareInfo {
     let mut buf = [0u8; 0x40];
     buf[0] = ReportIdCmd::E0Read as u8;
     info!("Get Report E0");
-    device.get_feature_report(&mut buf).unwrap();
+    device
+        .get_feature_report(&mut buf)
+        .expect("Failed to get device FW info");
 
     flashing_mode(device);
 
@@ -337,7 +341,9 @@ pub fn flash_firmware(fw_binary: &[u8]) {
         // Would be nice to show that instead of the serial number.
         // We want to show that so the user knows that multiple *different*
         // cards are being updated.
-        let sn = dev_info.serial_number().unwrap();
+        let sn = dev_info
+            .serial_number()
+            .expect("Device has no serial number");
         let dev_name = device_name(dev_info.vendor_id(), dev_info.product_id()).unwrap();
         println!();
         println!("Updating {} with SN: {:?}", dev_name, sn);
@@ -355,13 +361,8 @@ pub fn flash_firmware(fw_binary: &[u8]) {
                 println!("  Updating Firmware Image 1");
                 flash_firmware_image(&device, fw_binary, FW1_START, FW1_METADATA, fw1_rows, 1);
 
-                println!("  Waiting 6s for device to restart");
-                os_specific::sleep(RESTART_TIMEOUT);
-                api.refresh_devices().unwrap();
-                let dev_info = &find_devices(&api, &filter_devs, Some(sn))[0];
-                let device = dev_info.open_device(&api).unwrap();
-                magic_unlock(&device);
-                let _info = get_fw_info(&device);
+                let (device, _) =
+                    wait_to_reappear(&mut api, &filter_devs, sn).expect("Device did not reappear");
 
                 println!("  Updating Firmware Image 2");
                 flash_firmware_image(&device, fw_binary, FW2_START, FW2_METADATA, fw2_rows, 2);
@@ -370,13 +371,8 @@ pub fn flash_firmware(fw_binary: &[u8]) {
                 println!("  Updating Firmware Image 2");
                 flash_firmware_image(&device, fw_binary, FW2_START, FW2_METADATA, fw2_rows, 2);
 
-                println!("  Waiting 6s for device to restart");
-                os_specific::sleep(RESTART_TIMEOUT);
-                api.refresh_devices().unwrap();
-                let dev_info = &find_devices(&api, &filter_devs, Some(sn))[0];
-                let device = dev_info.open_device(&api).unwrap();
-                magic_unlock(&device);
-                let _info = get_fw_info(&device);
+                let (device, _) =
+                    wait_to_reappear(&mut api, &filter_devs, sn).expect("Device did not reappear");
 
                 println!("  Updating Firmware Image 1");
                 flash_firmware_image(&device, fw_binary, FW1_START, FW1_METADATA, fw1_rows, 1);
@@ -385,15 +381,10 @@ pub fn flash_firmware(fw_binary: &[u8]) {
         }
 
         println!("  Firmware Update done.");
-        println!("  Waiting 6s for device to restart");
-        os_specific::sleep(RESTART_TIMEOUT);
+        let (_, info) =
+            wait_to_reappear(&mut api, &filter_devs, sn).expect("Device did not reappear");
 
         println!("After Updating");
-        api.refresh_devices().unwrap();
-        let dev_info = &find_devices(&api, &filter_devs, Some(sn))[0];
-        let device = dev_info.open_device(&api).unwrap();
-        magic_unlock(&device);
-        let info = get_fw_info(&device);
         print_fw_info(&info);
     }
 }
@@ -465,7 +456,7 @@ fn flash_firmware_image(
 
 fn write_row(device: &HidDevice, row_no: u16, row: &[u8]) {
     let row_no_bytes = row_no.to_le_bytes();
-    debug!("Writing row {:04X}. Data: {:X?}", row_no, row);
+    trace!("Writing row {:04X}. Data: {:X?}", row_no, row);
 
     // First image start 0x1800 (row 0x30)
     // row from 0x0030 to 0x01fb
@@ -486,6 +477,34 @@ fn write_row(device: &HidDevice, row_no: u16, row: &[u8]) {
     buffer[3] = row_no_bytes[1];
     buffer[4..].copy_from_slice(row);
     device.write(&buffer).unwrap();
+}
+
+/// Wait for the specific card to reappear
+/// Waiting a maximum timeout, if it hasn't appeared by then, return None
+fn wait_to_reappear(
+    api: &mut HidApi,
+    filter_devs: &[u16],
+    sn: &str,
+) -> Option<(HidDevice, HidFirmwareInfo)> {
+    println!("  Waiting for Expansion Card to restart");
+    let retries = RESTART_TIMEOUT / RESTART_PERIOD;
+
+    for i in (0..retries).rev() {
+        os_specific::sleep(RESTART_PERIOD);
+        api.refresh_devices().unwrap();
+        let new_devices = find_devices(api, filter_devs, Some(sn));
+        if new_devices.is_empty() {
+            debug!("No devices found, retrying #{}/{}", retries - i, retries);
+            continue;
+        }
+        let dev_info = &new_devices[0];
+        if let Ok(device) = dev_info.open_device(api) {
+            magic_unlock(&device);
+            let info = get_fw_info(&device);
+            return Some((device, info));
+        }
+    }
+    None
 }
 
 // HID Report on device before updating Firmware 2
