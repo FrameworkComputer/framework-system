@@ -38,6 +38,7 @@ use crate::smbios;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
 #[cfg(feature = "uefi")]
 use crate::uefi::enable_page_break;
+use crate::util;
 #[cfg(not(feature = "uefi"))]
 use hidapi::HidApi;
 use smbioslib::*;
@@ -569,8 +570,12 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     );
     println!("  SMBIOS is_framework: {}", smbios::is_framework());
 
-    println!("Dump EC memory region");
-    ec.dump_mem_region();
+    println!("  Dump EC memory region");
+    if let Some(mem) = ec.dump_mem_region() {
+        util::print_multiline_buffer(&mem, 0);
+    } else {
+        println!("    Failed to read EC memory region")
+    }
 
     println!("  Checking EC memory mapped magic bytes");
     ec.check_mem_magic()?;
