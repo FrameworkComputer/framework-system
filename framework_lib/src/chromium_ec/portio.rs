@@ -70,6 +70,9 @@ const _EC_LPC_ADDR_HOST_PARAM: u16 = 0x804; /* For version 2 params; size is
 const _EC_LPC_ADDR_HOST_PACKET: u16 = 0x800; /* Offset of version 3 packet */
 const EC_LPC_HOST_PACKET_SIZE: u16 = 0x100; /* Max size of version 3 packet */
 
+const MEC_MEMMAP_OFFSET: u16 = 0x100;
+const NPC_MEMMAP_OFFSET: u16 = 0xE00;
+
 // The actual block is 0x800-0x8ff, but some BIOSes think it's 0x880-0x8ff
 // and they tell the kernel that so we have to think of it as two parts.
 const _EC_HOST_CMD_REGION0: u16 = 0x800;
@@ -148,26 +151,28 @@ fn transfer_write(buffer: &[u8]) {
 }
 
 /// Generic transfer read function
-fn transfer_read(address: u16, size: u16) -> Vec<u8> {
+fn transfer_read(port: u16, address: u16, size: u16) -> Vec<u8> {
     if has_mec() {
         return portio_mec::transfer_read(address, size);
     }
 
     if log_enabled!(Level::Trace) {
-        println!("transfer_read(address={:#}, size={:#})", address, size);
+        println!(
+            "transfer_read(port={:#X}, address={:#X}, size={:#X})",
+            port, address, size
+        );
     }
 
     // Allocate buffer to hold result
     let mut buffer = vec![0_u8; size.into()];
 
     for i in 0..size {
-        buffer[i as usize] = Pio::<u8>::new(EC_LPC_ADDR_HOST_ARGS + address + i).read();
-        //println!("  Received at 0x800+{:#X}: {:#X}", address + i, buffer[usize::from(i)]);
+        buffer[i as usize] = Pio::<u8>::new(port + address + i).read();
     }
 
     if log_enabled!(Level::Trace) {
         println!("  Read bytes:");
-        util::print_multiline_buffer(&buffer, (EC_LPC_ADDR_HOST_ARGS + address) as usize)
+        util::print_multiline_buffer(&buffer, (port + address) as usize)
     }
 
     buffer
@@ -215,6 +220,7 @@ fn init() -> bool {
             portio_mec::mec_init();
         } else {
             // TODO: Is the range big enough?
+            // TODO: NOPE! segfaults. I assume the kernel kills me
             ioperm(EC_LPC_ADDR_HOST_ARGS as u64, 8, 1);
         }
     }
@@ -372,7 +378,11 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
     }
 
     // Read response
-    let resp_hdr_buffer = transfer_read(0, std::mem::size_of::<EcHostResponse>() as u16);
+    let resp_hdr_buffer = transfer_read(
+        EC_LPC_ADDR_HOST_ARGS,
+        0,
+        std::mem::size_of::<EcHostResponse>() as u16,
+    );
     let resp_header = unpack_response_header(&resp_hdr_buffer);
     // TODO: I think we're already covered by checking res above
     // But this seems also to be the EC reponse code, so make sure it's 0 (Success)
@@ -400,7 +410,7 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
         return Err(EcError::DeviceError("Packet size too big".to_string()));
     }
     let resp_buffer = if resp_header.data_len > 0 {
-        let data = transfer_read(8, resp_header.data_len);
+        let data = transfer_read(EC_LPC_ADDR_HOST_ARGS, 8, resp_header.data_len);
         let checksum = checksum_buffers(&[&resp_hdr_buffer, &data]);
         // TODO: probably change to return Err instead
         debug_assert_eq!(checksum, 0);
@@ -420,5 +430,9 @@ pub fn read_memory(offset: u16, length: u16) -> EcResult<Vec<u8>> {
         return Err(EcError::DeviceError("Failed to initialize".to_string()));
     }
 
-    Ok(transfer_read(0x100 + offset, length))
+    if has_mec() {
+        Ok(transfer_read(0, MEC_MEMMAP_OFFSET + offset, length))
+    } else {
+        Ok(transfer_read(NPC_MEMMAP_OFFSET, offset, length))
+    }
 }

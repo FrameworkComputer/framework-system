@@ -336,7 +336,7 @@ impl CrosEcDriver for CrosEc {
             return None;
         }
 
-        debug!("read_memory(offset={:#}, size={:#})", offset, length);
+        debug!("read_memory(offset={:#X}, size={:#X})", offset, length);
         if offset + length > EC_MEMMAP_SIZE {
             return None;
         }

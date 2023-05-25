@@ -37,7 +37,7 @@ pub fn transfer_write(buffer: &[u8]) {
     let mut offset = 0;
 
     if log_enabled!(Level::Trace) {
-        println!("transfer_write(size={:#}, buffer=)", size);
+        println!("transfer_write_mec(size={:#X}, buffer=)", size);
         util::print_multiline_buffer(buffer, 0);
     }
 
@@ -112,7 +112,11 @@ pub fn transfer_write(buffer: &[u8]) {
 
 /// Transfer read function for MEC (Microchip) based embedded controllers
 pub fn transfer_read(address: u16, size: u16) -> Vec<u8> {
-    trace!("transfer_read_mec(address={:#}, size={:#})", address, size);
+    trace!(
+        "transfer_read_mec(address={:#X}, size={:#X})",
+        address,
+        size
+    );
 
     // Allocate buffer to hold result
     let mut buffer = vec![0_u8; size.into()];
