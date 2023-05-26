@@ -219,9 +219,13 @@ fn init() -> bool {
         if has_mec() {
             portio_mec::mec_init();
         } else {
-            // TODO: Is the range big enough?
-            // TODO: NOPE! segfaults. I assume the kernel kills me
-            ioperm(EC_LPC_ADDR_HOST_ARGS as u64, 8, 1);
+            // 8 for request/response header, 0xFF for response
+            ioperm(EC_LPC_ADDR_HOST_ARGS as u64, 8 + 0xFF, 1);
+
+            ioperm(EC_LPC_ADDR_HOST_CMD as u64, 1, 1);
+            ioperm(EC_LPC_ADDR_HOST_DATA as u64, 1, 1);
+
+            ioperm(NPC_MEMMAP_OFFSET as u64, super::EC_MEMMAP_SIZE as u64, 1);
         }
     }
     *init = Initialized::Succeeded;
