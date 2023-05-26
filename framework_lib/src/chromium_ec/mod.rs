@@ -8,6 +8,7 @@
 //! - `portio` - It uses raw port I/O. This works on UEFI and on Linux if the system isn't in lockdown mode (SecureBoot disabled).
 //! - `windows` - It uses [DHowett's Windows driver](https://github.com/DHowett/FrameworkWindowsUtils)
 
+use crate::os_specific;
 use crate::smbios;
 #[cfg(feature = "uefi")]
 use crate::uefi::shell_get_execution_break_flag;
@@ -287,14 +288,21 @@ impl CrosEc {
         loop {
             match cmd.send_command_vec(self) {
                 Ok(data) => {
-                    // I think that means the buffer is empty
+                    // EC Buffer is empty. We can wait a bit and see if there's more
+                    // Can't run it too quickly, otherwise the commands might fail
                     if data.is_empty() {
-                        return Ok(console);
+                        trace!("Empty EC response");
+                        println!("---");
+                        os_specific::sleep(1_000_000); // 1s
                     }
 
-                    let string = std::str::from_utf8(&data).unwrap();
-                    print!("{}", string);
-                    console.push_str(string);
+                    let utf8 = std::str::from_utf8(&data).unwrap();
+                    let ascii = utf8
+                        .replace(|c: char| !c.is_ascii(), "")
+                        .replace(|c: char| c == '\0', "");
+
+                    print!("{}", ascii);
+                    console.push_str(ascii.as_str());
                 }
                 Err(err) => {
                     println!("Err: {:?}", err);
@@ -318,7 +326,11 @@ impl CrosEc {
             subcmd: ConsoleReadSubCommand::ConsoleReadRecent as u8,
         }
         .send_command_vec(self)?;
-        Ok(std::str::from_utf8(&data).unwrap().to_string())
+        let utf8 = std::str::from_utf8(&data).unwrap();
+        let ascii = utf8
+            .replace(|c: char| !c.is_ascii(), "")
+            .replace(|c: char| c == '\0', "");
+        Ok(ascii)
     }
 }
 
