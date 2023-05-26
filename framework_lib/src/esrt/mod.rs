@@ -72,10 +72,14 @@ pub const RETIMER01_GUID: Guid = guid!("a9c91b0c-c0b8-463d-a7da-a5d6ec646333");
 pub const RETIMER23_GUID: Guid = guid!("ba2e4e6e-3b0c-4f25-8a59-4c553fc86ea2");
 pub const GEN13_RETIMER01_GUID: Guid = guid!("0c42b824-818f-428f-8687-5efcaf059bea");
 pub const GEN13_RETIMER23_GUID: Guid = guid!("268ccbde-e087-420b-bf82-2212bd3f9bfc");
+// TODO AMD13 BIOS
+pub const FL16_BIOS_GUID: Guid = guid!("4496aebc-2421-5dfb-9e75-03ec44245994");
+pub const AMD13_BIOS_GUID: Guid = guid!("11111111-1111-1111-1111-111111111111");
 
 // In EDK2
 // Handled by MdeModulePkg/Library/DxeCapsuleLibFmp/DxeCapsuleLib.c
 // Defined by MdePkg/Include/IndustryStandard/WindowsUxCapsule.h
+/// gWindowsUxCapsuleGuid from MdePkg/MdePkg.dec
 pub const WINUX_GUID: Guid = guid!("3b8c8162-188c-46a4-aec9-be43f1d65697");
 
 #[derive(Debug)]
@@ -85,6 +89,8 @@ pub enum FrameworkGuidKind {
     Retimer23,
     Gen13Retimer01,
     Gen13Retimer23,
+    Fl16Bios,
+    Amd13Bios,
     WinUx,
     Unknown,
 }
@@ -96,6 +102,8 @@ pub fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
         RETIMER23_GUID => FrameworkGuidKind::Retimer23,
         GEN13_RETIMER01_GUID => FrameworkGuidKind::Gen13Retimer01,
         GEN13_RETIMER23_GUID => FrameworkGuidKind::Gen13Retimer23,
+        FL16_BIOS_GUID => FrameworkGuidKind::Fl16Bios,
+        AMD13_BIOS_GUID => FrameworkGuidKind::Amd13Bios,
         WINUX_GUID => FrameworkGuidKind::WinUx,
         _ => FrameworkGuidKind::Unknown,
     }
@@ -190,7 +198,7 @@ pub fn print_esrt(esrt: &Esrt) {
 
     for (i, entry) in esrt.entries.iter().enumerate() {
         println!("ESRT Entry {}", i);
-        println!("  GUID:                 {:?}", entry.fw_class);
+        println!("  GUID:                 {}", entry.fw_class);
         println!(
             "  GUID:                 {:?}",
             match_guid_kind(&entry.fw_class)
@@ -303,6 +311,7 @@ pub fn get_esrt() -> Option<Esrt> {
     None
 }
 
+/// gEfiSystemResourceTableGuid from MdePkg/MdePkg.dec
 pub const SYSTEM_RESOURCE_TABLE_GUID: Guid = guid!("b122a263-3661-4f68-9929-78f8b0d62180");
 
 #[cfg(feature = "uefi")]

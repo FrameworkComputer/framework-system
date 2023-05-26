@@ -39,7 +39,7 @@ use self::command::EcCommands;
 use self::input_deck::InputDeckStatus;
 
 /// Total size of EC memory mapped region
-const EC_MEMMAP_SIZE: u16 = 255;
+const EC_MEMMAP_SIZE: u16 = 0xFF;
 
 /// Offset in mapped memory where there are two magic bytes
 /// representing 'EC' in ASCII (0x20 == 'E', 0x21 == 'C')
@@ -175,6 +175,10 @@ impl CrosEc {
                 None
             }
         }
+    }
+
+    pub fn dump_mem_region(&self) -> Option<Vec<u8>> {
+        self.read_memory(0x00, EC_MEMMAP_SIZE)
     }
 
     /// Get EC firmware build information
@@ -332,7 +336,7 @@ impl CrosEcDriver for CrosEc {
             return None;
         }
 
-        debug!("read_memory(offset={:#}, size={:#})", offset, length);
+        debug!("read_memory(offset={:#X}, size={:#X})", offset, length);
         if offset + length > EC_MEMMAP_SIZE {
             return None;
         }

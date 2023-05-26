@@ -37,8 +37,8 @@ pub fn transfer_write(buffer: &[u8]) {
     let mut offset = 0;
 
     if log_enabled!(Level::Trace) {
-        debug!("transfer_write(size={:#}, buffer=)", size);
-        util::print_buffer(buffer);
+        println!("transfer_write_mec(size={:#X}, buffer=)", size);
+        util::print_multiline_buffer(buffer, 0);
     }
 
     // Unaligned start address
@@ -112,9 +112,11 @@ pub fn transfer_write(buffer: &[u8]) {
 
 /// Transfer read function for MEC (Microchip) based embedded controllers
 pub fn transfer_read(address: u16, size: u16) -> Vec<u8> {
-    if log_enabled!(Level::Trace) {
-        debug!("transfer_read(address={:#}, size={:#})", address, size);
-    }
+    trace!(
+        "transfer_read_mec(address={:#X}, size={:#X})",
+        address,
+        size
+    );
 
     // Allocate buffer to hold result
     let mut buffer = vec![0_u8; size.into()];
@@ -150,9 +152,7 @@ pub fn transfer_read(address: u16, size: u16) -> Vec<u8> {
         while size - pos >= 4 {
             temp[0] = Pio::<u16>::new(MEC_LPC_DATA_REGISTER0).read();
             temp[1] = Pio::<u16>::new(MEC_LPC_DATA_REGISTER2).read();
-            if log_enabled!(Level::Trace) {
-                trace!("  Received: {:#X} {:#X}", temp[0], temp[1]);
-            }
+            trace!("  Received: {:#X} {:#X}", temp[0], temp[1]);
             let aligned = unsafe { temp.align_to::<u8>() };
             assert!(aligned.0.is_empty());
             assert!(aligned.2.is_empty());
@@ -180,7 +180,7 @@ pub fn transfer_read(address: u16, size: u16) -> Vec<u8> {
 
     if log_enabled!(Level::Trace) {
         println!("Read bytes: ");
-        util::print_buffer(&buffer);
+        util::print_multiline_buffer(&buffer, (address) as usize)
     }
 
     buffer
