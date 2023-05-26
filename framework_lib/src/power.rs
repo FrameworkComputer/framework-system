@@ -1,16 +1,19 @@
 //! Get information about system power (battery, AC, PD ports)
 
 use alloc::string::String;
-use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::convert::TryInto;
 use core::prelude::v1::derive;
+use log::Level;
 
 use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, MainPdVersions};
 use crate::chromium_ec::command::EcRequest;
 use crate::chromium_ec::commands::{EcRequestReadPdVersion, EcRequestUsbPdPowerInfo};
 use crate::chromium_ec::{print_err_ref, CrosEc, CrosEcDriver, EcResult};
+
+/// Maximum length of strings in memmap
+const EC_MEMMAP_TEXT_MAX: u16 = 8;
 
 // The offset address of each type of data in mapped memory.
 // TODO: Move non-power values to other modules
@@ -41,10 +44,10 @@ const EC_MEMMAP_BATT_DVLT: u16 = 0x54; // Battery Design Voltage
 const EC_MEMMAP_BATT_LFCC: u16 = 0x58; // Battery Last Full Charge Capacity
 const EC_MEMMAP_BATT_CCNT: u16 = 0x5c; // Battery Cycle Count
                                        // Strings are all 8 bytes (EC_MEMMAP_TEXT_MAX)
-const _EC_MEMMAP_BATT_MFGR: u16 = 0x60; // Battery Manufacturer String
-const _EC_MEMMAP_BATT_MODEL: u16 = 0x68; // Battery Model Number String
-const _EC_MEMMAP_BATT_SERIAL: u16 = 0x70; // Battery Serial Number String
-const _EC_MEMMAP_BATT_TYPE: u16 = 0x78; // Battery Type String
+const EC_MEMMAP_BATT_MFGR: u16 = 0x60; // Battery Manufacturer String
+const EC_MEMMAP_BATT_MODEL: u16 = 0x68; // Battery Model Number String
+const EC_MEMMAP_BATT_SERIAL: u16 = 0x70; // Battery Serial Number String
+const EC_MEMMAP_BATT_TYPE: u16 = 0x78; // Battery Type String
 const _EC_MEMMAP_ALS: u16 = 0x80; // ALS readings in lux (2 X 16 bits)
                                   // Unused 0x84 - 0x8f
 const _EC_MEMMAP_ACC_STATUS: u16 = 0x90; // Accelerometer status (8 bits )
@@ -71,6 +74,7 @@ pub struct BatteryInformation {
     pub current_battery_index: u8,
     pub design_capacity: u32,
     pub design_voltage: u32,
+    /// LFCC in mAH
     pub last_full_charge_capacity: u32,
     pub cycle_count: u32,
     pub charge_percentage: u32, // Calculated based on Remaining Capacity / LFCC
@@ -88,6 +92,11 @@ pub struct BatteryInformation {
 pub struct PowerInfo {
     pub ac_present: bool,
     pub battery: Option<BatteryInformation>,
+}
+
+fn read_string(ec: &CrosEc, address: u16) -> String {
+    let bytes = ec.read_memory(address, EC_MEMMAP_TEXT_MAX).unwrap();
+    String::from_utf8_lossy(bytes.as_slice()).replace(|c: char| c == '\0', "")
 }
 
 fn read_u32(ec: &CrosEc, address: u16) -> u32 {
@@ -129,6 +138,11 @@ pub fn power_info(ec: &CrosEc) -> Option<PowerInfo> {
     let design_voltage = read_u32(ec, EC_MEMMAP_BATT_DVLT);
     let cycle_count = read_u32(ec, EC_MEMMAP_BATT_CCNT);
 
+    let manufacturer = read_string(ec, EC_MEMMAP_BATT_MFGR);
+    let model_number = read_string(ec, EC_MEMMAP_BATT_MODEL);
+    let serial_number = read_string(ec, EC_MEMMAP_BATT_SERIAL);
+    let battery_type = read_string(ec, EC_MEMMAP_BATT_TYPE);
+
     Some(PowerInfo {
         ac_present: 0 != (battery_flag & EC_BATT_FLAG_AC_PRESENT),
         battery: if 0 != (battery_flag & EC_BATT_FLAG_BATT_PRESENT) {
@@ -146,11 +160,10 @@ pub fn power_info(ec: &CrosEc) -> Option<PowerInfo> {
 
                 charge_percentage: (100 * battery_cap) / battery_lfcc,
 
-                // Strings are all 8 bytes (EC_MEMMAP_TEXT_MAX)
-                manufacturer: "TODO".to_string(),
-                model_number: "TODO".to_string(),
-                serial_number: "TODO".to_string(),
-                battery_type: "TODO".to_string(),
+                manufacturer,
+                model_number,
+                serial_number,
+                battery_type,
                 // TODO: Can both be true/falses at the same time?
                 discharging: 0 != (battery_flag & EC_BATT_FLAG_DISCHARGING),
                 charging: 0 != (battery_flag & EC_BATT_FLAG_CHARGING),
@@ -193,11 +206,44 @@ fn print_battery_information(power_info: &PowerInfo) {
     if let Some(battery) = &power_info.battery {
         println!("connected");
         println!(
-            "  Battery LFCC:     {:#?} mAh",
+            "  Battery LFCC:     {:#?} mAh (Last Full Charge Capacity)",
             battery.last_full_charge_capacity
         );
-        println!("  Battery CAP:      {:#?} mAh", battery.remaining_capacity);
+        println!("  Battery Capacity: {} mAh", battery.remaining_capacity);
+        let wah = battery.remaining_capacity * battery.present_voltage / 1000;
+        println!("                    {}.{:2} Wh", wah / 1000, wah % 1000);
         println!("  Charge level:     {:?}%", battery.charge_percentage);
+
+        if log_enabled!(Level::Info) {
+            println!("  Manufacturer:     {}", battery.manufacturer);
+            println!("  Model Number:     {}", battery.model_number);
+            println!("  Serial Number:    {}", battery.serial_number);
+            println!("  Battery Type:     {}", battery.battery_type);
+
+            println!(
+                "  Present Voltage:  {}.{} V",
+                battery.present_voltage / 1000,
+                battery.present_voltage % 1000
+            );
+            println!("  Present Rate:     {} mA", battery.present_rate);
+            // We only have a single battery in all our systems
+            // println!("  Battery Count:    {}", battery.battery_count);
+            // println!("  Current Battery#: {}", battery.current_battery_index);
+
+            println!("  Design Capacity:  {} mAh", battery.design_capacity);
+            let design_wah = battery.design_capacity * battery.design_voltage / 1000;
+            println!(
+                "                    {}.{} Wh",
+                design_wah / 1000,
+                design_wah % 1000
+            );
+            println!(
+                "  Design Voltage:   {}.{} V",
+                battery.design_voltage / 1000,
+                battery.design_voltage % 1000
+            );
+            println!("  Cycle Count:      {}", battery.cycle_count);
+        }
 
         if battery.discharging {
             println!("  Battery discharging");
@@ -343,14 +389,29 @@ pub fn get_and_print_pd_info(ec: &CrosEc) {
 
             println!("  Charging Type: {:?}", info.charging_type);
 
-            println!("  Voltage Max:   {}, Now: {}", { info.meas.voltage_max }, {
-                info.meas.voltage_now
-            });
-            println!("  Current Max:   {}, Lim: {}", { info.meas.current_max }, {
-                info.meas.current_lim
-            });
-            println!("  Dual Role:     {:?}", { info.dualrole });
-            println!("  Max Power:     {:?}", { info.max_power });
+            let volt_max = { info.meas.voltage_max };
+            let volt_now = { info.meas.voltage_now };
+            println!(
+                "  Voltage Now:   {}.{} V, Max: {}.{} V",
+                volt_now / 1000,
+                volt_now % 1000,
+                volt_max / 1000,
+                volt_max % 1000,
+            );
+
+            let cur_lim = { info.meas.current_lim };
+            let cur_max = { info.meas.current_max };
+            println!("  Current Lim:   {} mA, Max: {} mA", cur_lim, cur_max);
+            println!(
+                "  Dual Role:     {}",
+                if info.dualrole { "DRP" } else { "Charger" }
+            );
+            let max_power_mw = { info.max_power } / 1000;
+            println!(
+                "  Max Power:     {}.{} W",
+                max_power_mw / 1000,
+                max_power_mw % 1000
+            );
         } else {
             println!("  Role:          Unknown");
             println!("  Charging Type: Unknown");

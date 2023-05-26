@@ -21,7 +21,7 @@ struct ClapCli {
     #[arg(long)]
     esrt: bool,
 
-    /// Show current power status (battery and AC)
+    /// Show current power status of battery and AC (Add -vv for more details)
     #[arg(long)]
     power: bool,
 
