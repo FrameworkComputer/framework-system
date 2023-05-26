@@ -389,14 +389,29 @@ pub fn get_and_print_pd_info(ec: &CrosEc) {
 
             println!("  Charging Type: {:?}", info.charging_type);
 
-            println!("  Voltage Max:   {}, Now: {}", { info.meas.voltage_max }, {
-                info.meas.voltage_now
-            });
-            println!("  Current Max:   {}, Lim: {}", { info.meas.current_max }, {
-                info.meas.current_lim
-            });
-            println!("  Dual Role:     {:?}", { info.dualrole });
-            println!("  Max Power:     {:?}", { info.max_power });
+            let volt_max = { info.meas.voltage_max };
+            let volt_now = { info.meas.voltage_now };
+            println!(
+                "  Voltage Now:   {}.{} V, Max: {}.{} V",
+                volt_now / 1000,
+                volt_now % 1000,
+                volt_max / 1000,
+                volt_max % 1000,
+            );
+
+            let cur_lim = { info.meas.current_lim };
+            let cur_max = { info.meas.current_max };
+            println!("  Current Lim:   {} mA, Max: {} mA", cur_lim, cur_max);
+            println!(
+                "  Dual Role:     {}",
+                if info.dualrole { "DRP" } else { "Charger" }
+            );
+            let max_power_mw = { info.max_power } / 1000;
+            println!(
+                "  Max Power:     {}.{} W",
+                max_power_mw / 1000,
+                max_power_mw % 1000
+            );
         } else {
             println!("  Role:          Unknown");
             println!("  Charging Type: Unknown");
