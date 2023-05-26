@@ -13,9 +13,13 @@ struct ClapCli {
     #[command(flatten)]
     verbosity: clap_verbosity_flag::Verbosity,
 
-    /// List current firmware versions version
+    /// List current firmware versions
     #[arg(long)]
     versions: bool,
+
+    /// Show tool version information (Add -vv for more details)
+    #[arg(long)]
+    version: bool,
 
     /// Display the UEFI ESRT table
     #[arg(long)]
@@ -103,6 +107,7 @@ pub fn parse(args: &[String]) -> Cli {
     Cli {
         verbosity: args.verbosity.log_level_filter(),
         versions: args.versions,
+        version: args.version,
         esrt: args.esrt,
         power: args.power,
         pdports: args.pdports,

@@ -1,4 +1,8 @@
 [workspace]
+# Make sure new resolver is used to avoid unifying dependency features between
+# runtime and build dependencies.
+# See: https://github.com/rust-lang/cargo/issues/2589
+resolver = "2"
 
 members = [
     # Linux and Windows tool to inspect and customize the system

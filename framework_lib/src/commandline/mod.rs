@@ -6,6 +6,7 @@
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
+use log::Level;
 
 #[cfg(not(feature = "uefi"))]
 pub mod clap_std;
@@ -17,6 +18,7 @@ use std::fs;
 
 #[cfg(not(feature = "uefi"))]
 use crate::audio_card::check_synaptics_fw_version;
+use crate::built_info;
 use crate::capsule;
 use crate::capsule_content::{
     find_bios_version, find_ec_in_bios_cap, find_pd_in_bios_cap, find_retimer_version,
@@ -61,6 +63,7 @@ pub enum ConsoleArg {
 pub struct Cli {
     pub verbosity: log::LevelFilter,
     pub versions: bool,
+    pub version: bool,
     pub esrt: bool,
     pub power: bool,
     pub pdports: bool,
@@ -169,6 +172,38 @@ fn print_dp_hdmi_details() {
             eprintln!("Error: {e}");
         }
     };
+}
+
+fn print_tool_version() {
+    let q = "?".to_string();
+    println!("Tool Version Information");
+    println!("  Version:     {}", built_info::PKG_VERSION);
+    println!("  Built At:    {}", built_info::BUILT_TIME_UTC);
+    println!(
+        "  Git Commit:  {}",
+        built_info::GIT_COMMIT_HASH.unwrap_or(&q)
+    );
+    println!(
+        "  Git Dirty:   {}",
+        built_info::GIT_DIRTY
+            .map(|x| x.to_string())
+            .unwrap_or(q.clone())
+    );
+
+    if log_enabled!(Level::Info) {
+        println!(
+            "  Built on CI: {:?}",
+            built_info::CI_PLATFORM.unwrap_or("None")
+        );
+        println!(
+            "  Git ref:     {:?}",
+            built_info::GIT_HEAD_REF.unwrap_or(&q)
+        );
+        println!("  rustc Ver:   {}", built_info::RUSTC_VERSION);
+        println!("  Features     {:?}", built_info::FEATURES);
+        println!("  DEBUG:       {}", built_info::DEBUG);
+        println!("  Target OS:   {}", built_info::CFG_OS);
+    }
 }
 
 fn print_versions(ec: &CrosEc) {
@@ -326,6 +361,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         return 2;
     } else if args.versions {
         print_versions(&ec);
+    } else if args.version {
+        print_tool_version();
     } else if args.esrt {
         print_esrt();
     } else if args.intrusion {
@@ -528,6 +565,8 @@ Options:
   -b                         Print output one screen at a time
   -v, --verbose...           More output per occurrence
   -q, --quiet...             Less output per occurrence
+      --versions             List current firmware versions
+      --version              Show tool version information (Add -vv for more detailed information)
       --esrt                 Display the UEFI ESRT table
       --power                Show current power status (battery and AC)
       --pdports              Show information about USB-C PD prots
