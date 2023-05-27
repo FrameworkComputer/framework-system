@@ -1,11 +1,47 @@
 #!/usr/bin/env python3
 
-from pcapng import FileScanner, blocks
-import struct
+import argparse
 from collections import namedtuple
+import struct
 import sys
 
+from pcapng import FileScanner, blocks
+
+FORMATS = [
+    # Both binaries stitched right after another
+    'binary',
+    # Flashimage, like it's on the flash, with padded regions
+    'flashimage',
+    # Two CYACD files, like the CCG3 SDK outputs and FWUPD expects
+    'cyacd'
+]
+
+# CCG3 row size
+ROW_SIZE = 128
+# CCG3 has a maximum of 1024 rows
+MAX_ROWS = 1024
+
+DEBUG = False
+VERBOSE = False
+
+# Run the updater on Windows and capture the USB packets with Wireshark and USBPcap
+# Then you can use this script to extract the binary from it
+#
+# Sample files
+# -t dp -V 006 -b 1.7 dp-flash-006.pcapng
+# -t dp -V 008 -b 1.8 flash-100-to-8.pcapng
+# -t dp -V 100 -b 1.6 reflash100.pcapng
+# -t dp -V 101 -b 2.12 reflash101.pcapng
+# -t hdmi -V 005 -b 1.4 --second-first hdmi-flash-005.pcapng
+# -t hdmi -V 006 -b 1.29 hdmi-reflash-006.pcapng
+# -t hdmi -V 102 -b 2.8 --second-first hdmi-flash-102.pcapng
+# -t hdmi -V 103 -b 2.6 --second-first hdmi-flash-103.pcapng
+# -t hdmi -V 104 -b 2.4 --second-first hdmi-flash-104.pcapng
+# -t hdmi -V 105 -b 1.26 hdmi-flash-105.pcapng
+
 # From https://github.com/JohnDMcMaster/usbrply/blob/master/usbrply/win_pcap.py#L171
+# transfer_type=2 is URB_CONTROL
+# irp_info: 0 means from host, 1 means from device
 usb_urb_win_nt = namedtuple(
     'usb_urb_win',
     (
@@ -53,180 +89,6 @@ usb_urb_win_fmt = (
 usb_urb_sz = struct.calcsize(usb_urb_win_fmt)
 def usb_urb(s):
     return usb_urb_win_nt(*struct.unpack(usb_urb_win_fmt, bytes(s)))
-
-# transfer_type=2 is URB_CONTROL
-# irp_info: 0 means from host, 1 means from device
-
-# To find them, look at the pcap in wireguard and check the source/destination
-images = {
-    'dp-6': {
-        'type': 'DP',
-        'version': '006',
-        'filename': 'dp-flash-006.pcapng',
-        'second_first': False,
-        'devices': {
-            1: {
-                'busid': 1,
-                'device': 7,
-            },
-            2: {
-                'busid': 1,
-                'device': 8,
-            }
-        }
-    },
-    '8': {
-        'type': 'DP',
-        'version': '008',
-        'filename': 'flash-100-to-8.pcapng',
-        'second_first': False,
-        'devices': {
-            1: {
-                'busid': 1,
-                'device': 8,
-            },
-            2: {
-                'busid': 1,
-                'device': 9,
-            }
-        }
-    },
-    '100': {
-        'type': 'DP',
-        'version': '100',
-        'filename': 'reflash100.pcapng',
-        'second_first': False,
-        'devices': {
-            1: {
-                'busid': 1,
-                'device': 6,
-            },
-            2: {
-                'busid': 1,
-                'device': 7,
-            }
-        }
-    },
-    '101': {
-        'type': 'DP',
-        'version': '101',
-        'filename': 'reflash101.pcapng',
-        'second_first': False,
-        'devices': {
-            1: {
-                'busid': 2,
-                'device': 12,
-            },
-            2: {
-                'busid': 2,
-                'device': 13,
-            }
-        }
-    },
-    # HDMI
-    '5': {
-        'type': 'HDMI',
-        'version': '005',
-        'filename': 'hdmi-flash-005.pcapng',
-        'second_first': True,
-        'devices': {
-            1: {
-                'busid': 1,
-                'device': 4,
-            },
-            2: {
-                'busid': 1,
-                'device': 5,
-            }
-        }
-    },
-    'hdmi-6': {
-        'type': 'HDMI',
-        'version': '005',
-        'filename': 'hdmi-reflash-006.pcapng',
-        'second_first': False,
-        'devices': {
-            1: {
-                'busid': 1,
-                'device': 29,
-            },
-            2: {
-                'busid': 1,
-                'device': 30,
-            }
-        }
-    },
-    102: {
-        'type': 'HDMI',
-        'version': '102',
-        'filename': 'hdmi-flash-102.pcapng',
-        'second_first': True,
-        'devices': {
-            1: {
-                'busid': 2,
-                'device': 8,
-            },
-            2: {
-                'busid': 2,
-                'device': 9,
-            }
-        }
-    },
-    103: {
-        'type': 'HDMI',
-        'version': '103',
-        'filename': 'hdmi-flash-103.pcapng',
-        'second_first': True,
-        'devices': {
-            1: {
-                'busid': 2,
-                'device': 6,
-            },
-            2: {
-                'busid': 2,
-                'device': 7,
-            }
-        }
-    },
-    104: {
-        'type': 'HDMI',
-        'version': '104',
-        'filename': 'hdmi-flash-104.pcapng',
-        'second_first': True,
-        'devices': {
-            1: {
-                'busid': 2,
-                'device': 4,
-            },
-            2: {
-                'busid': 2,
-                'device': 5,
-            }
-        }
-    },
-    '105': {
-        'type': 'HDMI',
-        'version': '105',
-        'filename': 'hdmi-flash-105.pcapng',
-        'second_first': False,
-        'devices': {
-            1: {
-                'busid': 1,
-                'device': 26,
-            },
-            2: {
-                'busid': 1,
-                'device': 27,
-            }
-        }
-    },
-}
-
-ROW_SIZE = 128
-MAX_ROWS = 1024
-
-DEBUG = False
-VERBOSE = False
 
 
 def format_hex(buf):
@@ -285,9 +147,17 @@ def write_cyacd(path, binary1):
 
         write_cyacd_row(f, binary1[-1][0], binary1[-1][1])
 
+# Just concatenate both firmware binaries
+def write_bin(path, binary1, binary2):
+    with open(path, "wb") as f:
+        for (_, row) in binary1:
+            f.write(row)
+
+        for (_, row) in binary2:
+            f.write(row)
 
 # Write the binary in the same layout with padding as on flash
-def write_bin(path, binary1, binary2):
+def write_flashimage(path, binary1, binary2):
     with open(path, "wb") as f:
         # Write fist padding
         # Verified
@@ -353,7 +223,7 @@ def check_assumptions(img1_binary, img2_binary):
         sys.exit(1)
 
 
-def decode_pcapng(path, info):
+def decode_pcapng(path, bus_id, dev, second_first):
     img1_binary = [] # [(addr, row)]
     img2_binary = [] # [(addr, row)]
     with open(path, "rb") as f:
@@ -369,11 +239,13 @@ def decode_pcapng(path, info):
                 urb = usb_urb(packet[0:usb_urb_sz])
 
                 # Filter device
-                if urb.bus_id == info['devices'][1]['busid'] and urb.device == info['devices'][1]['device']:
+                if urb.bus_id == bus_id and urb.device == dev:
                     img1 = True
-                elif urb.bus_id == info['devices'][2]['busid'] and urb.device == info['devices'][2]['device']:
+                elif urb.bus_id == bus_id and urb.device == dev+1:
                     img2 = True
                 else:
+                    #print(f"Other device bus_id: {urb.bus_id}, dev: {urb.device}")
+                    #print(f"bus_id: {bus_id}, dev_id: {dev}")
                     continue
 
                 # Only consider outgoing packets
@@ -399,40 +271,57 @@ def decode_pcapng(path, info):
                     print("{:4d} 0x{:08X} {}".format(block_no, addr, format_hex(payload)))
 
                 if img1:
-                    if info['second_first']:
+                    if second_first:
                         img2_binary.append((addr, payload))
                     else:
                         img1_binary.append((addr, payload))
                 elif img2:
-                    if info['second_first']:
+                    if second_first:
                         img1_binary.append((addr, payload))
                     else:
                         img2_binary.append((addr, payload))
 
                 block_no += 1
             else:
-                print(block)
+                pass
+                #print(block)
     return (img1_binary, img2_binary)
 
 
-def main():
-    info = images[sys.argv[1]]
-    FW_VERSION = info['version']
-    path = '/home/zoid/framework/dp-card-fw-update/{}'.format(info['filename'])
-
-    (img1_binary, img2_binary) = decode_pcapng(path, info)
+def main(args):
+    [bus_id, dev] = args.bus_dev.split('.')
+    (img1_binary, img2_binary) = decode_pcapng(args.pcap, int(bus_id), int(dev), args.second_first)
 
     check_assumptions(img1_binary, img2_binary)
 
-    print("Firmware version: {}".format(FW_VERSION))
+    print("Firmware version: {}".format(args.version))
 
     print_image_info(img1_binary, 1)
     print_image_info(img2_binary, 2)
 
-    # Write cyacd file, instead of binary because that's what FWUPD expects
-    #write_bin("{}-{}.bin".format(info['type'], FW_VERSION), img1_binary, img2_binary)
-    write_cyacd("{}-{}-1.cyacd".format(info['type'], FW_VERSION), img1_binary)
-    write_cyacd("{}-{}-2.cyacd".format(info['type'], FW_VERSION), img2_binary)
+    if args.format == 'binary':
+        write_bin("{}-{}.bin".format(args.type, args.version), img1_binary, img2_binary)
+    elif args.format == 'flashimage':
+        write_flashimage("{}-{}.bin".format(args.type, args.version), img1_binary, img2_binary)
+    elif args.format == 'cyacd':
+        write_cyacd("{}-{}-1.cyacd".format(args.type, args.version), img1_binary)
+        write_cyacd("{}-{}-2.cyacd".format(args.type, args.version), img2_binary)
+    else:
+        print(f"Invalid Format {args.format}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='Extract firmware from PCAPNG capture')
+    parser.add_argument('-t', '--type', help='Which type of card', required=True, choices=['dp', 'hdmi'])
+    parser.add_argument('-V', '--version', help='Which firmware version', required=True)
+    parser.add_argument('-f', '--format', help='Which output format', required=True, choices=FORMATS)
+    parser.add_argument('-v', '--verbose', help='Verbose', action='store_true')
+    parser.add_argument('-b', '--bus-dev', help='Bus ID and Device of first time. Example: 1.23')
+    parser.add_argument('--second-first', help='If the second image was update first', default=False, action='store_true')
+    parser.add_argument('pcap', help='Path to the pcap file')
+    args = parser.parse_args()
+
+    if args.verbose:
+        VERBOSE = True
+
+    main(args)
