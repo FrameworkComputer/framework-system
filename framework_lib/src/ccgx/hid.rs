@@ -1,4 +1,4 @@
-use hidapi::{DeviceInfo, HidApi, HidDevice};
+use hidapi::{DeviceInfo, HidApi, HidDevice, HidError};
 
 use crate::ccgx;
 use crate::ccgx::device::{decode_flash_row_size, FwMode};
@@ -155,25 +155,6 @@ pub fn check_ccg_fw_version(device: &HidDevice) {
     print_fw_info(&info);
 }
 
-//  0 ..  2  = HID header
-//  2 ..  4  = signature (CY)
-//  4        = Operating Mode
-//  5        = Bootloader (security, no-flashing, priority, row_size)
-//  6        = Boot mode reason, jump-bootloader, reserved, fw1 invalid, fw2 invalid
-//  7        = ??
-//  8 .. 12  = Silicon ID
-// 12 .. 16  = bootloader Version
-// 15 .. 20  = ??
-// 20 .. 24  = Image 1 Version
-// 24 .. 26  = Image 1 ??
-// 26 .. 28  = Image 1 ??
-// 28 .. 32  = Image 2 Version
-// 32 .. 34  = Image 2 ??
-// 34 .. 36  = Image 2 ??
-// 36 .. 40  = Image 1 Start Address
-// 40 .. 44  = Image 2 Start Address
-// 44 .. 52  = ?? [c9 d7 3e 02 23 19 0b 00]
-
 fn decode_fw_info(buf: &[u8]) -> HidFirmwareInfo {
     let info_len = std::mem::size_of::<HidFirmwareInfo>();
     let info: HidFirmwareInfo = unsafe { std::ptr::read(buf[..info_len].as_ptr() as *const _) };
@@ -191,77 +172,84 @@ fn decode_fw_info(buf: &[u8]) -> HidFirmwareInfo {
 fn print_fw_info(info: &HidFirmwareInfo) {
     assert_eq!(info.report_id, ReportIdCmd::E0Read as u8);
 
-    debug!("  Signature:            {:X?}", info.signature);
+    info!("  Signature:            {:X?}", info.signature);
     // Something's totally off if the signature is invalid
-    assert_eq!(info.signature, [b'C', b'Y']);
+    if info.signature != [b'C', b'Y'] {
+        println!("Firmware Signature is invalid.");
+        return;
+    }
 
-    debug!(
-        "  Operating Mode:       {:?} ({})",
-        FwMode::try_from(info.operating_mode).unwrap(),
-        info.operating_mode
-    );
-    debug!("  Bootloader Info");
-    debug!(
+    info!("  Bootloader Info");
+    info!(
         "    Security Support:   {:?}",
         info.bootloader_info & 0b001 != 0
     );
-    debug!(
+    info!(
         "    Flashing Support:   {:?}",
         info.bootloader_info & 0b010 == 0
     );
-    debug!(
-        "    App Priority:       {:?}",
-        info.bootloader_info & 0b100 != 0
-    );
-    debug!(
-        "    Flash Row Size:     {:?}",
+    // App Priority means you can configure whether the main or backup firmware
+    // has priority. This can either be configured in the flash image or by
+    // sending a command. But the CCG3 SDK lets you disable support for this at
+    // compile-time. If disabled, both images have the same priority.
+    let app_priority_support = info.bootloader_info & 0b100 != 0;
+    info!("    App Priority:       {:?}", app_priority_support);
+    info!(
+        "    Flash Row Size:     {:?} B",
         decode_flash_row_size(info.bootloader_info)
     );
-    debug!("  Boot Mode Reason");
-    debug!(
+    info!("  Boot Mode Reason");
+    info!(
         "    Jump to Bootloader: {:?}",
         info.bootmode_reason & 0b000001 != 0
     );
     let image_1_valid = info.bootmode_reason & 0b000100 == 0;
     let image_2_valid = info.bootmode_reason & 0b001000 == 0;
-    debug!("    FW 1 valid:         {:?}", image_1_valid);
-    debug!("    FW 2 valid:         {:?}", image_2_valid);
-    debug!(
-        "    App Priority:       {:?}",
-        info.bootmode_reason & 0b110000
-    );
-    debug!("    UID:                {:X?}", info.device_uid);
-    debug!("  Silicon ID:      {:X?}", info.silicon_id);
+    info!("    FW 1 valid:         {:?}", image_1_valid);
+    info!("    FW 2 valid:         {:?}", image_2_valid);
+    if app_priority_support {
+        info!(
+            "    App Priority:       {:?}",
+            info.bootmode_reason & 0b110000
+        );
+    }
+    info!("    UID:                {:X?}", info.device_uid);
+    info!("  Silicon ID:      {:X?}", info.silicon_id);
     let bl_ver = BaseVersion::from(info.bl_version.as_slice());
     let base_version_1 = BaseVersion::from(info.image_1_ver.as_slice());
     let base_version_2 = BaseVersion::from(info.image_2_ver.as_slice());
-    debug!(
-        "  BL Version:      {} Build {}",
-        bl_ver, bl_ver.build_number
-    );
-    debug!(
+    info!("  BL Version:      {} ", bl_ver,);
+    info!(
         "  Image 1 start:   0x{:08X}",
         u32::from_le_bytes(info.image_1_row)
     );
-    debug!(
+    info!(
         "  Image 2 start:   0x{:08X}",
         u32::from_le_bytes(info.image_2_row)
     );
 
+    let operating_mode = FwMode::try_from(info.operating_mode).unwrap();
+    let (active_ver, active_valid, inactive_ver, inactive_valid) = match operating_mode {
+        FwMode::MainFw | FwMode::BootLoader => {
+            (base_version_2, image_2_valid, base_version_1, image_1_valid)
+        }
+        FwMode::BackupFw => (base_version_1, image_1_valid, base_version_2, image_2_valid),
+    };
+
     println!(
-        "  FW Image 1 Version:   {:03} ({}){}",
-        base_version_1.build_number,
-        base_version_1,
-        if image_1_valid { "" } else { " - INVALID!" }
+        "  Active Firmware:      {:03} ({}){}",
+        active_ver.build_number,
+        active_ver,
+        if active_valid { "" } else { " - INVALID!" }
     );
     println!(
-        "  FW Image 2 Version:   {:03} ({}){}",
-        base_version_2.build_number,
-        base_version_2,
-        if image_2_valid { "" } else { " - INVALID!" }
+        "  Inactive Firmware:    {:03} ({}){}",
+        inactive_ver.build_number,
+        inactive_ver,
+        if inactive_valid { "" } else { " - INVALID!" }
     );
     println!(
-        "  Currently running:    {:?} ({})",
+        "  Operating Mode:       {:?} (#{})",
         FwMode::try_from(info.operating_mode).unwrap(),
         info.operating_mode
     );
@@ -361,21 +349,25 @@ pub fn flash_firmware(fw_binary: &[u8]) {
                 println!("  Updating Firmware Image 1");
                 flash_firmware_image(&device, fw_binary, FW1_START, FW1_METADATA, fw1_rows, 1);
 
-                let (device, _) =
-                    wait_to_reappear(&mut api, &filter_devs, sn).expect("Device did not reappear");
+                // We don't actually need to update both firmware images.
+                // It'll stay on the one we updated. So it's totally fine to
+                // keep the other one on the older version.
+                //let (device, _) =
+                //    wait_to_reappear(&mut api, &filter_devs, sn).expect("Device did not reappear");
 
-                println!("  Updating Firmware Image 2");
-                flash_firmware_image(&device, fw_binary, FW2_START, FW2_METADATA, fw2_rows, 2);
+                //println!("  Updating Firmware Image 2");
+                //flash_firmware_image(&device, fw_binary, FW2_START, FW2_METADATA, fw2_rows, 2);
             }
             1 => {
                 println!("  Updating Firmware Image 2");
                 flash_firmware_image(&device, fw_binary, FW2_START, FW2_METADATA, fw2_rows, 2);
 
-                let (device, _) =
-                    wait_to_reappear(&mut api, &filter_devs, sn).expect("Device did not reappear");
+                // See above
+                //let (device, _) =
+                //    wait_to_reappear(&mut api, &filter_devs, sn).expect("Device did not reappear");
 
-                println!("  Updating Firmware Image 1");
-                flash_firmware_image(&device, fw_binary, FW1_START, FW1_METADATA, fw1_rows, 1);
+                //println!("  Updating Firmware Image 1");
+                //flash_firmware_image(&device, fw_binary, FW1_START, FW1_METADATA, fw1_rows, 1);
             }
             _ => unreachable!(),
         }
@@ -414,13 +406,21 @@ fn flash_firmware_image(
                 row
             );
         }
-        write_row(device, (start_row + row_no) as u16, row);
+        write_row(device, (start_row + row_no) as u16, row).unwrap_or_else(|err| {
+            panic!(
+                "Failed to write firmware row #{} (@{:X}): {:?}",
+                row_no,
+                start_row + row_no,
+                err
+            )
+        });
     }
     info!(
         "Writing metadata       row@{:X?}: {:X?}",
         metadata_row, metadata_slice
     );
-    write_row(device, metadata_row as u16, metadata_slice);
+    write_row(device, metadata_row as u16, metadata_slice)
+        .expect("Failed to write firmware metadata");
 
     // Not quite sure what this is. But on the first update it has
     // 0x01 and on the second it has 0x02. So I think this switches the boot order?
@@ -454,7 +454,7 @@ fn flash_firmware_image(
         .unwrap();
 }
 
-fn write_row(device: &HidDevice, row_no: u16, row: &[u8]) {
+fn write_row(device: &HidDevice, row_no: u16, row: &[u8]) -> Result<usize, HidError> {
     let row_no_bytes = row_no.to_le_bytes();
     trace!("Writing row {:04X}. Data: {:X?}", row_no, row);
 
@@ -476,7 +476,7 @@ fn write_row(device: &HidDevice, row_no: u16, row: &[u8]) {
     buffer[2] = row_no_bytes[0];
     buffer[3] = row_no_bytes[1];
     buffer[4..].copy_from_slice(row);
-    device.write(&buffer).unwrap();
+    device.write(&buffer)
 }
 
 /// Wait for the specific card to reappear
