@@ -50,6 +50,8 @@ enum CmdId {
     CmdJump = 0x01,
     /// Seems to enter flashing mode
     CmdFlash = 0x02,
+    /// Not quite sure what it does
+    Cmd0x04 = 0x04,
     /// Some sort of mode switch
     Cmd0x06 = 0x06,
 }
@@ -87,17 +89,7 @@ enum ReportIdCmd {
 fn flashing_mode(device: &HidDevice) {
     // Probably enter flashing mode?
     info!("Enter flashing mode");
-    let _ = device
-        .write(&[
-            ReportIdCmd::E1Cmd as u8,
-            CmdId::CmdFlash as u8,
-            CmdParam::Enable as u8,
-            0x00,
-            0xCC,
-            0xCC,
-            0xCC,
-            0xCC,
-        ])
+    let _ = send_command(device, CmdId::CmdFlash, CmdParam::Enable as u8)
         .expect("Failed to enter flashing mode");
 }
 
@@ -123,16 +115,7 @@ fn magic_unlock(device: &HidDevice) {
     // TODO: I have a feeling the last five bytes are ignored. They're the same in all commands.
     //       Seems to work with all of them set to 0x00
     info!("Bridge Mode");
-    let _ = device.write(&[
-        ReportIdCmd::E1Cmd as u8,
-        CmdId::Cmd0x06 as u8,
-        CmdParam::BridgeMode as u8,
-        0x00,
-        0xCC,
-        0xCC,
-        0xCC,
-        0xCC,
-    ]);
+    let _ = send_command(device, CmdId::Cmd0x06, CmdParam::BridgeMode as u8);
 }
 
 fn get_fw_info(device: &HidDevice) -> HidFirmwareInfo {
@@ -425,33 +408,24 @@ fn flash_firmware_image(
     // Not quite sure what this is. But on the first update it has
     // 0x01 and on the second it has 0x02. So I think this switches the boot order?
     info!("Bootswitch");
-    let _ = device
-        .write(&[
-            ReportIdCmd::E1Cmd as u8,
-            0x04,
-            no,
-            0x00,
-            0xCC,
-            0xCC,
-            0xCC,
-            0xCC,
-        ])
-        .unwrap();
+    let _ = send_command(device, CmdId::Cmd0x04, no).unwrap();
 
     // Seems to reset the device, since the USB device number changes
     info!("Reset");
-    let _ = device
-        .write(&[
-            ReportIdCmd::E1Cmd as u8,
-            CmdId::CmdJump as u8,
-            CmdParam::Reset as u8,
-            0x00,
-            0xCC,
-            0xCC,
-            0xCC,
-            0xCC,
-        ])
-        .unwrap();
+    let _ = send_command(device, CmdId::CmdJump, CmdParam::Reset as u8).unwrap();
+}
+
+fn send_command(device: &HidDevice, cmd_id: CmdId, cmd_param: u8) -> Result<usize, HidError> {
+    device.write(&[
+        ReportIdCmd::E1Cmd as u8,
+        cmd_id as u8,
+        cmd_param,
+        0x00,
+        0xCC,
+        0xCC,
+        0xCC,
+        0xCC,
+    ])
 }
 
 fn write_row(device: &HidDevice, row_no: u16, row: &[u8]) -> Result<usize, HidError> {
