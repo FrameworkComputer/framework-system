@@ -21,6 +21,7 @@ const FW2_METADATA_ROW_CCG6: u32 = 0x1FD;
 const FW2_METADATA_ROW_CCG8: u32 = 0x3FF;
 const METADATA_OFFSET: usize = 0xC0; // TODO: Is this 0x40 on ADL?
 const CCG8_METADATA_OFFSET: usize = 0x80;
+const CCG3_METADATA_OFFSET: usize = 0x40;
 const METADATA_MAGIC: u16 = u16::from_le_bytes([b'Y', b'C']); // CY (Cypress)
 const CCG8_METADATA_MAGIC: u16 = u16::from_le_bytes([b'F', b'I']); // IF (Infineon)
 
@@ -95,6 +96,7 @@ struct CyAcd2Metadata {
 #[non_exhaustive]
 #[derive(Debug, PartialEq, FromPrimitive, Clone, Copy)]
 pub enum SiliconId {
+    Ccg3 = 0x1D00,
     Ccg5 = 0x2100,
     Ccg6 = 0x3000,
     Ccg8 = 0x3580,
@@ -115,7 +117,7 @@ impl fmt::Display for BaseVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{}.{}.{}.{:X}",
+            "{}.{}.{}.{}",
             self.major, self.minor, self.patch, self.build_number
         )
     }
@@ -140,6 +142,7 @@ impl From<u32> for BaseVersion {
 pub enum Application {
     Notebook,
     Monitor,
+    AA,
     Invalid,
 }
 
@@ -155,35 +158,42 @@ pub struct AppVersion {
 }
 impl fmt::Display for AppVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{:X}", self.major, self.minor, self.circuit)
+        write!(
+            f,
+            "{}.{}.{} ({:?})",
+            self.major, self.minor, self.circuit, self.application
+        )
     }
 }
 
-impl From<&[u8]> for AppVersion {
-    fn from(data: &[u8]) -> Self {
-        let application = if data[0] == 0x62 && data[1] == 0x6e {
-            Application::Notebook // ASCII "nb"
-        } else if data[0] == 0x64 && data[1] == 0x6d {
-            Application::Monitor // ASCII "md"
-        } else {
-            debug_assert!(
-                false,
-                "Couldn't parse application 0x{:X}, 0x{:X}",
-                data[0], data[1]
-            );
-            Application::Invalid
+impl TryFrom<&[u8]> for AppVersion {
+    type Error = ();
+
+    fn try_from(data: &[u8]) -> Result<Self, Self::Error> {
+        let application = match &[data[1], data[0]] {
+            b"nb" => Application::Notebook,
+            b"md" => Application::Monitor,
+            b"aa" => Application::AA,
+            _ => {
+                debug!(
+                    "Couldn't parse application 0x{:X}, 0x{:X}",
+                    data[0], data[1]
+                );
+                return Err(());
+            }
         };
-        Self {
+        Ok(Self {
             application,
             circuit: data[2],
             major: (data[3] & 0xF0) >> 4,
             minor: data[3] & 0x0F,
-        }
+        })
     }
 }
-impl From<u32> for AppVersion {
-    fn from(data: u32) -> Self {
-        Self::from(u32::to_le_bytes(data).as_slice())
+impl TryFrom<u32> for AppVersion {
+    type Error = ();
+    fn try_from(data: u32) -> Result<Self, Self::Error> {
+        Self::try_from(u32::to_le_bytes(data).as_slice())
     }
 }
 
@@ -217,6 +227,19 @@ pub fn get_pd_controller_versions() -> EcResult<PdVersions> {
         controller01: PdController::new(PdPort::Left01).get_fw_versions()?,
         controller23: PdController::new(PdPort::Right23).get_fw_versions()?,
     })
+}
+
+fn parse_metadata_ccg3(buffer: &[u8]) -> Option<(u32, u32)> {
+    let buffer = &buffer[CCG3_METADATA_OFFSET..];
+    let metadata_len = std::mem::size_of::<CyAcdMetadata>();
+    let metadata: CyAcdMetadata =
+        unsafe { std::ptr::read(buffer[0..metadata_len].as_ptr() as *const _) };
+    trace!("Metadata: {:X?}", metadata);
+    if metadata.metadata_valid == METADATA_MAGIC {
+        Some((1 + metadata.boot_last_row as u32, metadata.fw_size))
+    } else {
+        None
+    }
 }
 
 //fn parse_metadata(buffer: &[u8; 256]) -> Option<(u32, u32)> {

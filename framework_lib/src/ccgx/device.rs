@@ -11,7 +11,7 @@ use core::prelude::rust_2021::derive;
 
 use crate::ccgx::{AppVersion, BaseVersion, ControllerVersion};
 use crate::chromium_ec::command::EcCommands;
-use crate::chromium_ec::{CrosEc, CrosEcDriver, EcError, EcResult};
+use crate::chromium_ec::{CrosEc, CrosEcDriver, EcError, EcResponseStatus, EcResult};
 use crate::util::{self, Config, Platform};
 use std::mem::size_of;
 
@@ -115,13 +115,36 @@ impl EcI2cPassthruResponse {
 /// Indicate that it's a read, not a write
 const I2C_READ_FLAG: u16 = 1 << 15;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum FwMode {
     BootLoader = 0,
     /// Backup CCGX firmware (No 1)
     BackupFw = 1,
     /// Main CCGX firmware (No 2)
     MainFw = 2,
+}
+
+impl TryFrom<u8> for FwMode {
+    type Error = u8;
+
+    fn try_from(byte: u8) -> Result<Self, Self::Error> {
+        match byte {
+            0 => Ok(Self::BootLoader),
+            1 => Ok(Self::BackupFw),
+            2 => Ok(Self::MainFw),
+            _ => Err(byte),
+        }
+    }
+}
+
+pub fn decode_flash_row_size(mode_byte: u8) -> u16 {
+    match (mode_byte & 0b0011_0000) >> 4 {
+        0 => 128, // 0x80
+        1 => 256, // 0x100
+        2 => panic!("Reserved"),
+        3 => 64, // 0x40
+        x => panic!("Unexpected value: {}", x),
+    }
 }
 
 impl PdController {
@@ -215,20 +238,17 @@ impl PdController {
         let byte = data[0];
 
         // Currently used firmware
-        let fw_mode = match byte & 0b0000_0011 {
-            0 => FwMode::BootLoader,
-            1 => FwMode::BackupFw,
-            2 => FwMode::MainFw,
-            x => return Err(EcError::DeviceError(format!("FW Mode invalid: {}", x))),
+        let fw_mode = match FwMode::try_from(byte & 0b0000_0011) {
+            Ok(mode) => mode,
+            Err(err_byte) => {
+                return Err(EcError::DeviceError(format!(
+                    "FW Mode invalid: {}",
+                    err_byte
+                )))
+            }
         };
 
-        let flash_row_size = match (byte & 0b0011_0000) >> 4 {
-            0 => 128, // 0x80
-            1 => 256, // 0x100
-            2 => panic!("Reserved"),
-            3 => 64, // 0x40
-            x => panic!("Unexpected value: {}", x),
-        };
+        let flash_row_size = decode_flash_row_size(byte);
 
         // All our devices support HPI v2 and we expect to use that to interact with them
         let hpi_v2 = (byte & (1 << 7)) > 0;
@@ -253,7 +273,8 @@ impl PdController {
         let data = self.ccgx_read(register, 8)?;
         Ok(ControllerVersion {
             base: BaseVersion::from(&data[..4]),
-            app: AppVersion::from(&data[4..]),
+            app: AppVersion::try_from(&data[4..])
+                .or(Err(EcError::Response(EcResponseStatus::InvalidResponse)))?,
         })
     }
 
@@ -263,9 +284,9 @@ impl PdController {
         assert!(data.len() >= 8);
         debug_assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
-        let app_ver = AppVersion::from(&data[4..]);
+        let app_ver = AppVersion::try_from(&data[4..]);
         println!(
-            "  Bootloader Version: Base: {},  App: {}",
+            "  Bootloader Version: Base: {},  App: {:?}",
             base_ver, app_ver
         );
 
@@ -274,9 +295,9 @@ impl PdController {
         assert!(data.len() >= 8);
         debug_assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
-        let app_ver = AppVersion::from(&data[4..]);
+        let app_ver = AppVersion::try_from(&data[4..]);
         println!(
-            "  FW1 (Backup) Version: Base: {},  App: {}",
+            "  FW1 (Backup) Version: Base: {},  App: {:?}",
             base_ver, app_ver
         );
 
@@ -285,9 +306,9 @@ impl PdController {
         assert!(data.len() >= 8);
         debug_assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
-        let app_ver = AppVersion::from(&data[4..]);
+        let app_ver = AppVersion::try_from(&data[4..]);
         println!(
-            "  FW2 (Main)   Version: Base: {},  App: {}",
+            "  FW2 (Main)   Version: Base: {},  App: {:?}",
             base_ver, app_ver
         );
     }

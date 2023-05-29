@@ -25,9 +25,7 @@ use crate::capsule_content::{
 };
 use crate::ccgx::device::{PdController, PdPort};
 #[cfg(not(feature = "uefi"))]
-use crate::ccgx::hid::{
-    check_ccg_fw_version, CCG_USAGE_PAGE, DP_CARD_PID, FRAMEWORK_VID, HDMI_CARD_PID,
-};
+use crate::ccgx::hid::{check_ccg_fw_version, find_devices, DP_CARD_PID, HDMI_CARD_PID};
 use crate::ccgx::{self, SiliconId::*};
 use crate::chromium_ec;
 use crate::chromium_ec::print_err;
@@ -72,6 +70,7 @@ pub struct Cli {
     pub privacy: bool,
     pub pd_info: bool,
     pub dp_hdmi_info: bool,
+    pub dp_hdmi_update: Option<String>,
     pub audio_card_info: bool,
     pub pd_bin: Option<String>,
     pub ec_bin: Option<String>,
@@ -141,33 +140,26 @@ fn print_audio_card_details() {
 fn print_dp_hdmi_details() {
     match HidApi::new() {
         Ok(api) => {
-            for dev_info in api.device_list() {
+            for dev_info in find_devices(&api, &[HDMI_CARD_PID, DP_CARD_PID], None) {
                 let vid = dev_info.vendor_id();
                 let pid = dev_info.product_id();
-                let usage_page = dev_info.usage_page();
-                if vid == FRAMEWORK_VID
-                    && [HDMI_CARD_PID, DP_CARD_PID].contains(&pid)
-                    && usage_page == CCG_USAGE_PAGE
-                {
-                    let device = dev_info.open_device(&api).unwrap();
-                    match pid {
-                        HDMI_CARD_PID => println!("HDMI Expansion Card"),
-                        DP_CARD_PID => println!("DisplayPort Expansion Card"),
-                        _ => unreachable!(),
-                    }
 
-                    // On Windows this value is "Control Interface", probably hijacked by the kernel driver
-                    debug!(
-                        "  Product String:  {}",
-                        dev_info.product_string().unwrap_or(NOT_SET)
-                    );
-
-                    debug!(
-                        "  Serial No:       {}",
-                        dev_info.serial_number().unwrap_or(NOT_SET)
-                    );
-                    check_ccg_fw_version(&device);
+                let device = dev_info.open_device(&api).unwrap();
+                if let Some(name) = ccgx::hid::device_name(vid, pid) {
+                    println!("{}", name);
                 }
+
+                // On Windows this value is "Control Interface", probably hijacked by the kernel driver
+                debug!(
+                    "  Product String:  {}",
+                    dev_info.product_string().unwrap_or(NOT_SET)
+                );
+
+                println!(
+                    "  Serial Number:        {}",
+                    dev_info.serial_number().unwrap_or(NOT_SET)
+                );
+                check_ccg_fw_version(&device);
             }
         }
         Err(e) => {
@@ -205,6 +197,26 @@ fn print_tool_version() {
         println!("  Features     {:?}", built_info::FEATURES);
         println!("  DEBUG:       {}", built_info::DEBUG);
         println!("  Target OS:   {}", built_info::CFG_OS);
+    }
+}
+
+// TODO: Check if HDMI card is same
+#[cfg(not(feature = "uefi"))]
+fn flash_dp_hdmi_card(pd_bin_path: &str) {
+    let data = match fs::read(pd_bin_path) {
+        Ok(data) => Some(data),
+        // TODO: Perhaps a more user-friendly error
+        Err(e) => {
+            println!("Error {:?}", e);
+            None
+        }
+    };
+    if let Some(data) = data {
+        // TODO: Check if exists, otherwise err
+        //ccgx::hid::find_device().unwrap();
+        ccgx::hid::flash_firmware(&data);
+    } else {
+        error!("Failed to open firmware file");
     }
 }
 
@@ -436,6 +448,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.dp_hdmi_info {
         #[cfg(not(feature = "uefi"))]
         print_dp_hdmi_details();
+    } else if let Some(pd_bin_path) = &args.dp_hdmi_update {
+        #[cfg(not(feature = "uefi"))]
+        flash_dp_hdmi_card(pd_bin_path);
+        #[cfg(feature = "uefi")]
+        let _ = pd_bin_path;
     } else if args.audio_card_info {
         #[cfg(not(feature = "uefi"))]
         print_audio_card_details();
@@ -697,39 +714,37 @@ fn smbios_info() {
 }
 
 fn analyze_ccgx_pd_fw(data: &[u8]) {
-    let mut succeeded = false;
+    if let Some(versions) = ccgx::binary::read_versions(data, Ccg3) {
+        println!("Detected CCG3 firmware");
+        println!("FW 1");
+        ccgx::binary::print_fw(&versions.backup_fw);
 
-    if let Some(versions) = ccgx::binary::read_versions(data, Ccg8) {
-        succeeded = true;
+        println!("FW 2");
+        ccgx::binary::print_fw(&versions.main_fw);
+    } else if let Some(versions) = ccgx::binary::read_versions(data, Ccg8) {
         println!("Detected CCG8 firmware");
         println!("FW 1");
         ccgx::binary::print_fw(&versions.backup_fw);
 
         println!("FW 2");
         ccgx::binary::print_fw(&versions.main_fw);
-    }
-
-    if let Some(versions) = ccgx::binary::read_versions(data, Ccg5) {
-        succeeded = true;
+    } else if let Some(versions) = ccgx::binary::read_versions(data, Ccg5) {
         println!("Detected CCG5 firmware");
         println!("FW 1");
         ccgx::binary::print_fw(&versions.backup_fw);
 
         println!("FW 2");
         ccgx::binary::print_fw(&versions.main_fw);
-    }
-
-    if let Some(versions) = ccgx::binary::read_versions(data, Ccg6) {
-        succeeded = true;
+        return;
+    } else if let Some(versions) = ccgx::binary::read_versions(data, Ccg6) {
         println!("Detected CCG6 firmware");
         println!("FW 1 (Backup)");
         ccgx::binary::print_fw(&versions.backup_fw);
 
         println!("FW 2 (Main)");
         ccgx::binary::print_fw(&versions.main_fw);
-    }
-
-    if !succeeded {
+        return;
+    } else {
         println!("Failed to read versions")
     }
 }

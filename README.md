@@ -44,10 +44,14 @@ see the [Support Matrices](support-matrices.md).
     - [x] PD
     - [x] ME (Only on Linux)
     - [x] Retimer
-  - [x] Get firmware version of expansion cards (Not on UEFI so far)
+  - [x] Get Expansion Card Firmware (Not on UEFI so far)
     - [x] HDMI Expansion Card (`--dp-hdmi-info`)
     - [x] DisplayPort Expansion Card (`--dp-hdmi-info`)
     - [x] Audio Expansion Card (`--audio-card-info`)
+  - [x] Update Expansion Card Firmware (Not on UEFI so far)
+    - [x] HDMI Expansion Card (`--dp-hdmi-update`)
+    - [x] DisplayPort Expansion Card (`--dp-hdmi-update`)
+    - [ ] Audio Expansion Card
 
 ###### Firmware Update
 
@@ -155,25 +159,30 @@ Swiss army knife for Framework laptops
 Usage: framework_tool [OPTIONS]
 
 Options:
-  -v, --verbose...           More output per occurrence
-  -q, --quiet...             Less output per occurrence
-      --versions             List current firmware versions version
-      --esrt                 Display the UEFI ESRT table
-      --power                Show current power status (battery and AC)
-      --pdports              Show information about USB-C PD prots
-      --info                 Show info from SMBIOS (Only on UEFI)
-      --pd-info              Show details about the PD controllers
-      --privacy              Show privacy switch statuses (camera and microphone)
-      --pd-bin <PD_BIN>      Parse versions from PD firmware binary file
-      --ec-bin <EC_BIN>      Parse versions from EC firmware binary file
-      --capsule <CAPSULE>    Parse UEFI Capsule information from binary file
-      --dump <DUMP>          Dump extracted UX capsule bitmap image to a file
-      --intrusion            Show status of intrusion switch
-      --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
-      --console <CONSOLE>    Select which driver is used. By default portio is used [possible values: recent, follow]
-      --driver <DRIVER>      Select which driver is used. By default portio is used [possible values: portio, cros-ec, windows]
-  -t, --test                 Run self-test to check if interaction with EC is possible
-  -h, --help                 Print help information
+  -v, --verbose...                  More output per occurrence
+  -q, --quiet...                    Less output per occurrence
+      --versions                    List current firmware versions version
+      --esrt                        Display the UEFI ESRT table
+      --power                       Show current power status (battery and AC)
+      --pdports                     Show information about USB-C PD prots
+      --info                        Show info from SMBIOS (Only on UEFI)
+      --pd-info                     Show details about the PD controllers
+      --dp-hdmi-info                Show details about connected DP or HDMI Expansion Cards
+      --dp-hdmi-update <UPDATE_BIN> Update the DisplayPort or HDMI Expansion Card
+      --audio-card-info             Show details about connected Audio Expansion Cards (Needs root privileges)
+      --privacy                     Show privacy switch statuses (camera and microphone)
+      --pd-bin <PD_BIN>             Parse versions from PD firmware binary file
+      --ec-bin <EC_BIN>             Parse versions from EC firmware binary file
+      --capsule <CAPSULE>           Parse UEFI Capsule information from binary file
+      --dump <DUMP>                 Dump extracted UX capsule bitmap image to a file
+      --ho2-capsule <HO2_CAPSULE>   Parse UEFI Capsule information from binary file
+      --intrusion                   Show status of intrusion switch
+      --inputmodules                Show status of the input modules (Framework 16 only)
+      --kblight [<KBLIGHT>]         Set keyboard backlight percentage or get, if no value provided
+      --console <CONSOLE>           Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
+      --driver <DRIVER>             Select which driver is used. By default portio is used [possible values: portio, cros-ec, windows]
+  -t, --test                        Run self-test to check if interaction with EC is possible
+  -h, --help                        Print help information
 ```
 
 Many actions require root. First build with cargo and then run the binary with sudo:

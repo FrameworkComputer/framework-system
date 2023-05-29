@@ -62,7 +62,7 @@ pub fn check_synaptics_fw_version() {
         handle.set_auto_detach_kernel_driver(true).unwrap();
 
         handle.claim_interface(interface_number).unwrap();
-        let timeout = std::time::Duration::from_micros(100_000); // 100ms
+        let timeout = std::time::Duration::from_millis(100);
 
         let request = HidCapeMessage {
             _report_id: CAPE_REPORT_ID,
