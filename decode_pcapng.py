@@ -33,7 +33,7 @@ VERBOSE = False
 # -t dp -V 100 -b 1.6 reflash100.pcapng
 # -t dp -V 101 -b 2.12 reflash101.pcapng
 # -t hdmi -V 005 -b 1.4 --second-first hdmi-flash-005.pcapng
-# -t hdmi -V 006 -b 1.29 hdmi-reflash-006.pcapng
+# -t hdmi -V 006 -b 1.29 hdmi-flash-6.pcapng
 # -t hdmi -V 102 -b 2.8 --second-first hdmi-flash-102.pcapng
 # -t hdmi -V 103 -b 2.6 --second-first hdmi-flash-103.pcapng
 # -t hdmi -V 104 -b 2.4 --second-first hdmi-flash-104.pcapng
