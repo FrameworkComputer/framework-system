@@ -4,7 +4,7 @@
 use clap::Parser;
 
 use crate::chromium_ec::CrosEcDriverType;
-use crate::commandline::{Cli, ConsoleArg};
+use crate::commandline::{Cli, ConsoleArg, InputDeckModeArg};
 
 /// Swiss army knife for Framework laptops
 #[derive(Parser)]
@@ -81,6 +81,10 @@ struct ClapCli {
     #[arg(long)]
     inputmodules: bool,
 
+    /// Show status of the input modules (Framework 16 only)
+    #[arg(long)]
+    input_deck_mode: Option<InputDeckModeArg>,
+
     /// Set keyboard backlight percentage or get, if no value provided
     #[arg(long)]
     kblight: Option<Option<u8>>,
@@ -130,6 +134,7 @@ pub fn parse(args: &[String]) -> Cli {
             .map(|x| x.into_os_string().into_string().unwrap()),
         intrusion: args.intrusion,
         inputmodules: args.inputmodules,
+        input_deck_mode: args.input_deck_mode,
         kblight: args.kblight,
         console: args.console,
         driver: args.driver,

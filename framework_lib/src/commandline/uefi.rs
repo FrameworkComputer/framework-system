@@ -12,7 +12,7 @@ use uefi::Identify;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::Cli;
 
-use super::ConsoleArg;
+use super::{ConsoleArg, InputDeckModeArg};
 
 /// Get commandline arguments from UEFI environment
 pub fn get_args(boot_services: &BootServices) -> Vec<String> {
@@ -71,6 +71,7 @@ pub fn parse(args: &[String]) -> Cli {
         ho2_capsule: None,
         intrusion: false,
         inputmodules: false,
+        input_deck_mode: None,
         kblight: None,
         console: None,
         // This is the only driver that works on UEFI
@@ -129,6 +130,27 @@ pub fn parse(args: &[String]) -> Cli {
         } else if arg == "--inputmodules" {
             cli.inputmodules = true;
             found_an_option = true;
+        } else if arg == "--input-deck-mode" {
+            cli.input_deck_mode = if args.len() > i + 1 {
+                let input_deck_mode = &args[i + 1];
+                if input_deck_mode == "auto" {
+                    Some(InputDeckModeArg::Auto)
+                } else if input_deck_mode == "off" {
+                    Some(InputDeckModeArg::Off)
+                } else if input_deck_mode == "on" {
+                    Some(InputDeckModeArg::On)
+                } else {
+                    println!("Invalid value for --input-deck-mode: {}", input_deck_mode);
+                    None
+                }
+            } else {
+                println!(
+                    "Need to provide a value for --input-deck-mode. Either `auto`, `off`, or `on`"
+                );
+                None
+            };
+            found_an_option = true;
+        } else if arg == "-t" || arg == "--test" {
         } else if arg == "--kblight" {
             cli.kblight = if args.len() > i + 1 {
                 if let Ok(percent) = args[i + 1].parse::<u8>() {
