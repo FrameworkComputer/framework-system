@@ -181,8 +181,18 @@ impl EcRequest<EcResponsePrivacySwitches> for EcRequestPrivacySwitches {
     }
 }
 
+#[repr(u8)]
+pub enum DeckStateMode {
+    ReadOnly = 0x00,
+    Required = 0x01,
+    ForceOn = 0x02,
+    ForceOff = 0x04,
+}
+
 #[repr(C, packed)]
-pub struct EcRequestDeckState {}
+pub struct EcRequestDeckState {
+    pub mode: DeckStateMode,
+}
 
 #[repr(C, packed)]
 pub struct EcResponseDeckState {

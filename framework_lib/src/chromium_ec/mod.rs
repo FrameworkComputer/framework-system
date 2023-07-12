@@ -247,7 +247,16 @@ impl CrosEc {
     }
 
     pub fn get_input_deck_status(&self) -> EcResult<InputDeckStatus> {
-        let status = EcRequestDeckState {}.send_command(self)?;
+        let status = EcRequestDeckState {
+            mode: DeckStateMode::ReadOnly,
+        }
+        .send_command(self)?;
+
+        Ok(InputDeckStatus::from(status))
+    }
+
+    pub fn set_input_deck_mode(&self, mode: DeckStateMode) -> EcResult<InputDeckStatus> {
+        let status = EcRequestDeckState { mode }.send_command(self)?;
 
         Ok(InputDeckStatus::from(status))
     }

@@ -28,6 +28,7 @@ use crate::ccgx::device::{PdController, PdPort};
 use crate::ccgx::hid::{check_ccg_fw_version, find_devices, DP_CARD_PID, HDMI_CARD_PID};
 use crate::ccgx::{self, SiliconId::*};
 use crate::chromium_ec;
+use crate::chromium_ec::commands::DeckStateMode;
 use crate::chromium_ec::print_err;
 #[cfg(feature = "linux")]
 use crate::csme;
@@ -53,6 +54,23 @@ use core::prelude::rust_2021::derive;
 pub enum ConsoleArg {
     Recent,
     Follow,
+}
+
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum InputDeckModeArg {
+    Auto,
+    Off,
+    On,
+}
+impl From<InputDeckModeArg> for DeckStateMode {
+    fn from(w: InputDeckModeArg) -> DeckStateMode {
+        match w {
+            InputDeckModeArg::Auto => DeckStateMode::Required,
+            InputDeckModeArg::Off => DeckStateMode::ForceOff,
+            InputDeckModeArg::On => DeckStateMode::ForceOn,
+        }
+    }
 }
 
 /// Shadows `clap_std::ClapCli` with extras for UEFI
@@ -81,6 +99,7 @@ pub struct Cli {
     pub test: bool,
     pub intrusion: bool,
     pub inputmodules: bool,
+    pub input_deck_mode: Option<InputDeckModeArg>,
     pub kblight: Option<Option<u8>>,
     pub console: Option<ConsoleArg>,
     pub help: bool,
@@ -410,6 +429,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         } else {
             println!("  Unable to tell");
         }
+    } else if let Some(mode) = &args.input_deck_mode {
+        println!("Set mode to: {:?}", mode);
+        ec.set_input_deck_mode((*mode).into()).unwrap();
     } else if let Some(Some(kblight)) = args.kblight {
         assert!(kblight <= 100);
         ec.set_keyboard_backlight(kblight);
