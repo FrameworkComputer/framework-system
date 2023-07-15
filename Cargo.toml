@@ -8,6 +8,8 @@ members = [
     "tms",
     # Linux and Windows tool to inspect and customize the system
     "framework_tool",
+    # Linux and Windows daemon to watch for system changes and handle them
+    "frameworkd",
     # UEFI tool to inspect and customize the system
     "framework_uefi",
     # Catchall library that we'll probably want to split up further
@@ -21,6 +23,7 @@ members = [
 default-members = [
     "framework_lib",
     "framework_tool",
+    "frameworkd",
 ]
 
 [patch.crates-io]

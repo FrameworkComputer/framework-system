@@ -1,0 +1,13 @@
+[package]
+name = "frameworkd"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["linux"]
+linux = ["framework_lib/linux"]
+windows = ["framework_lib/windows"]
+
+[dependencies.framework_lib]
+path = "../framework_lib"
+default-features = false

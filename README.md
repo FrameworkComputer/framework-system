@@ -120,6 +120,10 @@ cargo build -p framework_lib
 cargo build -p framework_tool
 ls -l target/debug/framework_tool
 
+# Building only the daemon
+cargo build -p frameworkd
+ls -l target/debug/frameworkd
+
 # Build the UEFI application
 # Can't be built with cargo! That's why we need to exclude it in the other commands.
 make -C framework_uefi
