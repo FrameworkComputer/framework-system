@@ -8,6 +8,10 @@ default = ["linux"]
 linux = ["framework_lib/linux"]
 windows = ["framework_lib/windows"]
 
+[dependencies]
+winit = "0.25"
+trayicon = "0.2"
+
 [dependencies.framework_lib]
 path = "../framework_lib"
 default-features = false
