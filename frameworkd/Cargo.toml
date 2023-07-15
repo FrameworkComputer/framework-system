@@ -9,8 +9,9 @@ linux = ["framework_lib/linux"]
 windows = ["framework_lib/windows"]
 
 [dependencies]
-winit = "0.25"
 trayicon = "0.2"
+winapi = { version = "0.3.9", features = ["winuser", "windef", "minwindef", "shellapi", "libloaderapi", "commctrl", "basetsd"] }
+#crossbeam-channel = "0.5"
 
 [dependencies.framework_lib]
 path = "../framework_lib"
