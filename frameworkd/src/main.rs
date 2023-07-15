@@ -6,6 +6,8 @@ use brightness::blocking::Brightness;
 use trayicon::*;
 use winapi::um::winuser;
 
+const LOGO_32_ICO: &[u8] = include_bytes!("../res/logo_cropped_transparent_32x32.ico");
+
 fn main() {
     #[derive(Copy, Clone, Eq, PartialEq, Debug)]
     enum Events {
@@ -24,7 +26,7 @@ fn main() {
     }
 
     let (s, r) = std::sync::mpsc::channel::<Events>();
-    let icon = include_bytes!("icon1.ico");
+    let icon = LOGO_32_ICO;
     let icon2 = include_bytes!("icon2.ico");
 
     let second_icon = Icon::from_buffer(icon2, None, None).unwrap();
