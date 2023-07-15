@@ -1,45 +1,27 @@
-////use framework_lib::commandline;
-//
-///// Get commandline arguments
-//fn get_args() -> Vec<String> {
-//    std::env::args().collect()
-//}
-//
-//fn main() {
-//    //let args = commandline::parse(&get_args());
-//    println!("Hello World: {:?}", get_args())
-//    //commandline::run_with_args(&args, false);
-//}
-//
+#![windows_subsystem = "windows"]
 
-use winit::{
-    event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
-};
-
-use trayicon::{Icon, MenuBuilder, MenuItem, TrayIconBuilder};
-
-#[derive(Clone, Eq, PartialEq, Debug)]
-enum Events {
-    ClickTrayIcon,
-    DoubleClickTrayIcon,
-    Exit,
-    Item1,
-    Item2,
-    Item3,
-    Item4,
-    DisabledItem1,
-    CheckItem1,
-    SubItem1,
-    SubItem2,
-    SubItem3,
-}
+use core::mem::MaybeUninit;
+use trayicon::*;
+use winapi::um::winuser;
 
 fn main() {
-    let event_loop = EventLoop::<Events>::with_user_event();
-    let your_app_window = WindowBuilder::new().build(&event_loop).unwrap();
-    let proxy = event_loop.create_proxy();
+    #[derive(Copy, Clone, Eq, PartialEq, Debug)]
+    enum Events {
+        ClickTrayIcon,
+        DoubleClickTrayIcon,
+        Exit,
+        Item1,
+        Item2,
+        Item3,
+        Item4,
+        DisabledItem1,
+        CheckItem1,
+        SubItem1,
+        SubItem2,
+        SubItem3,
+    }
+
+    let (s, r) = std::sync::mpsc::channel::<Events>();
     let icon = include_bytes!("icon1.ico");
     let icon2 = include_bytes!("icon2.ico");
 
@@ -48,7 +30,7 @@ fn main() {
 
     // Needlessly complicated tray icon with all the whistles and bells
     let mut tray_icon = TrayIconBuilder::new()
-        .sender_winit(proxy)
+        .sender(s)
         .icon_from_buffer(icon)
         .tooltip("Cool Tray 👀 Icon")
         .on_click(Events::ClickTrayIcon)
@@ -60,6 +42,7 @@ fn main() {
                 .item("Item 2 Change Icon Green", Events::Item2)
                 .item("Item 1 Change Icon Red", Events::Item1)
                 .separator()
+                .checkable("This is checkable", true, Events::CheckItem1)
                 .submenu(
                     "Sub Menu",
                     MenuBuilder::new()
@@ -80,60 +63,64 @@ fn main() {
         .build()
         .unwrap();
 
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
+    std::thread::spawn(move || {
+        r.iter().for_each(|m| match m {
+            Events::DoubleClickTrayIcon => {
+                println!("Double click");
+            }
+            Events::ClickTrayIcon => {
+                println!("Single click");
+            }
+            Events::Exit => {
+                std::process::exit(0);
+            }
+            Events::Item1 => {
+                tray_icon.set_icon(&second_icon).unwrap();
+            }
+            Events::Item2 => {
+                tray_icon.set_icon(&first_icon).unwrap();
+            }
+            Events::Item3 => {
+                tray_icon
+                    .set_menu(
+                        &MenuBuilder::new()
+                            .item("New menu item", Events::Item1)
+                            .item("Exit", Events::Exit),
+                    )
+                    .unwrap();
+            }
+            Events::CheckItem1 => {
+                // You can mutate single checked, disabled value followingly.
+                //
+                // However, I think better way is to use reactively
+                // `set_menu` by building the menu based on application
+                // state.
+                if let Some(old_value) = tray_icon.get_menu_item_checkable(Events::CheckItem1) {
+                    // Set checkable example
+                    let _ = tray_icon.set_menu_item_checkable(Events::CheckItem1, !old_value);
 
-        // Move the tray_icon to the main loop (even if you don't use it)
-        //
-        // Tray icon uses normal message pump from winit, for orderly closure
-        // and removal of the tray icon when you exit it must be moved inside.
-        let _ = tray_icon;
-
-        match event {
-            // Main window events
-            Event::WindowEvent {
-                event: WindowEvent::CloseRequested,
-                window_id,
-            } if window_id == your_app_window.id() => *control_flow = ControlFlow::Exit,
-
-            // User events
-            Event::UserEvent(e) => match e {
-                Events::Exit => *control_flow = ControlFlow::Exit,
-                Events::CheckItem1 => {
-                    // You can mutate single checked, disabled value followingly.
-                    //
-                    // However, I think better way is to use reactively
-                    // `set_menu` by building the menu based on application
-                    // state.
-                    if let Some(old_value) = tray_icon.get_menu_item_checkable(Events::CheckItem1) {
-                        // Set checkable example
-                        let _ = tray_icon.set_menu_item_checkable(Events::CheckItem1, !old_value);
-
-                        // Set disabled example
-                        let _ = tray_icon.set_menu_item_disabled(Events::DisabledItem1, !old_value);
-                    }
+                    // Set disabled example
+                    let _ = tray_icon.set_menu_item_disabled(Events::DisabledItem1, !old_value);
                 }
-                Events::Item1 => {
-                    tray_icon.set_icon(&second_icon).unwrap();
-                }
-                Events::Item2 => {
-                    tray_icon.set_icon(&first_icon).unwrap();
-                }
-                Events::Item3 => {
-                    tray_icon
-                        .set_menu(
-                            &MenuBuilder::new()
-                                .item("Another item", Events::Item1)
-                                .item("Exit", Events::Exit),
-                        )
-                        .unwrap();
-                }
-                Events::Item4 => {
-                    tray_icon.set_tooltip("Menu changed!").unwrap();
-                }
-                e => println!("Got event {:?}", e),
-            },
-            _ => (),
-        }
+            }
+            e => {
+                println!("{:?}", e);
+            }
+        })
     });
+
+    // Your applications message loop. Because all applications require an
+    // application loop, you are best served using an `winit` crate.
+    loop {
+        unsafe {
+            let mut msg = MaybeUninit::uninit();
+            let bret = winuser::GetMessageA(msg.as_mut_ptr(), 0 as _, 0, 0);
+            if bret > 0 {
+                winuser::TranslateMessage(msg.as_ptr());
+                winuser::DispatchMessageA(msg.as_ptr());
+            } else {
+                break;
+            }
+        }
+    }
 }
