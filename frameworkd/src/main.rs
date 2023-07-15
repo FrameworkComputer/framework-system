@@ -3,12 +3,26 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use core::mem::MaybeUninit;
+use std::process::Command;
 
 use brightness::blocking::Brightness;
 use trayicon::*;
 use winapi::um::winuser;
 
 const LOGO_32_ICO: &[u8] = include_bytes!("../res/logo_cropped_transparent_32x32.ico");
+
+enum Tool {
+    QmkGui,
+    LedmatrixControl,
+}
+
+fn launch_tool(t: Tool) {
+    let path = match t {
+        Tool::QmkGui => r"C:\Program Files\Framework Computer\qmk_gui.exe",
+        Tool::LedmatrixControl => r"C:\Program Files\Framework Computer\ledmatrix_control.exe",
+    };
+    Command::new(path).spawn().unwrap();
+}
 
 fn main() {
     #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -25,6 +39,8 @@ fn main() {
         SubItem1,
         SubItem2,
         SubItem3,
+        LaunchQmkGui,
+        LaunchLedmatrixControl,
     }
 
     let (s, r) = std::sync::mpsc::channel::<Events>();
@@ -45,6 +61,13 @@ fn main() {
         .on_double_click(Events::DoubleClickTrayIcon)
         .menu(
             MenuBuilder::new()
+                .submenu(
+                    "Launch Inputmodule Apps",
+                    MenuBuilder::new()
+                        .item("Keyboard (QMK GUI)", Events::LaunchQmkGui)
+                        .item("LED Matrix", Events::LaunchLedmatrixControl),
+                )
+                .separator()
                 .item("Item 4 Set Tooltip", Events::Item4)
                 .item("Item 3 Replace Menu 👍", Events::Item3)
                 .item("Item 2 Change Icon Green", Events::Item2)
@@ -73,6 +96,8 @@ fn main() {
 
     std::thread::spawn(move || {
         r.iter().for_each(|m| match m {
+            Events::LaunchQmkGui => launch_tool(Tool::QmkGui),
+            Events::LaunchLedmatrixControl => launch_tool(Tool::LedmatrixControl),
             Events::DoubleClickTrayIcon => {
                 println!("Double click");
                 let devs = brightness::blocking::brightness_devices();
