@@ -1,6 +1,8 @@
 #![windows_subsystem = "windows"]
 
 use core::mem::MaybeUninit;
+
+use brightness::blocking::Brightness;
 use trayicon::*;
 use winapi::um::winuser;
 
@@ -69,9 +71,21 @@ fn main() {
         r.iter().for_each(|m| match m {
             Events::DoubleClickTrayIcon => {
                 println!("Double click");
+                let devs = brightness::blocking::brightness_devices();
+                for dev in devs {
+                    let dev = dev.unwrap();
+                    dev.set(50).unwrap();
+                }
             }
             Events::ClickTrayIcon => {
                 println!("Single click");
+                let devs = brightness::blocking::brightness_devices();
+                for dev in devs {
+                    // TODO: Skip unsupported monitors
+                    let dev = dev.unwrap();
+                    println!("{:?}", dev.device_name());
+                    println!("  {:?}", dev.get());
+                }
             }
             Events::Exit => {
                 std::process::exit(0);
