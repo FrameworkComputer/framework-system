@@ -3,5 +3,9 @@ name = "frameworkd"
 version = "0.1.0"
 edition = "2021"
 
+[dependencies]
+winit = "0.25"
+trayicon = "0.2"
+
 [dependencies.framework_lib]
 path = "../framework_lib"
