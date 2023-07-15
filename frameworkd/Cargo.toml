@@ -12,6 +12,7 @@ windows = ["framework_lib/windows"]
 trayicon = "0.2"
 winapi = { version = "0.3.9", features = ["winuser", "windef", "minwindef", "shellapi", "libloaderapi", "commctrl", "basetsd"] }
 #crossbeam-channel = "0.5"
+brightness = "0.5.0"
 
 [dependencies.framework_lib]
 path = "../framework_lib"
