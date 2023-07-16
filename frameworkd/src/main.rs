@@ -8,8 +8,15 @@ use std::thread;
 use std::time::Duration;
 
 use brightness::blocking::Brightness;
+use qmk_hid::via;
 use trayicon::*;
 use winapi::um::winuser;
+
+#[repr(u16)]
+enum FrameworkPid {
+    Macropad = 0x0012,
+    IsoKeyboard = 0x0018,
+}
 
 const LOGO_32_ICO: &[u8] = include_bytes!("../res/logo_cropped_transparent_32x32.ico");
 
@@ -49,6 +56,64 @@ fn launch_tool(t: Tool) {
     Command::new(path).spawn().unwrap();
 }
 
+fn sync_keyboards() {}
+
+fn sync_keyboard_screen() {
+    println!("Sync");
+    match qmk_hid::new_hidapi() {
+        Ok(api) => {
+            let found = qmk_hid::find_devices(&api, true, false, Some("32ac"), None);
+
+            let dev_infos = found.raw_usages;
+
+            let dev_info = if dev_infos.is_empty() {
+                println!("No device found");
+                return;
+            } else if dev_infos.len() == 1 {
+                //println!("Found one device");
+                dev_infos.get(0).unwrap()
+            } else {
+                println!("More than 1 device found. Select a specific device with --vid and --pid");
+                dev_infos.get(0).unwrap()
+            };
+            //println!("Open");
+            let device = dev_info.open_device(&api).unwrap();
+            //println!("Opened");
+
+            //println!("Get RGB");
+            let rgb_brightness =
+                via::get_rgb_u8(&device, via::ViaRgbMatrixValue::Brightness as u8).unwrap();
+            //println!("Get white");
+            let white_brightness =
+                via::get_backlight(&device, via::ViaBacklightValue::Brightness as u8).unwrap();
+            // println!("RGB: {}/255 White: {}/255", rgb_brightness, brightness);
+
+            // TODO: In firmware it should sync both brightnesses
+            let pid = dev_info.product_id();
+            let brightness = if pid == FrameworkPid::IsoKeyboard as u16 {
+                white_brightness
+            // } else if pid == FrameworkPid::Macropad as u16 {
+            //     white_brightness
+            } else if pid == FrameworkPid::Macropad as u16 {
+                rgb_brightness
+            } else {
+                white_brightness
+            };
+
+            let percent = (brightness as u32) * 100 / 255;
+            println!("Brightness: {}/255, {}%", brightness, percent);
+
+            let devs = brightness::blocking::brightness_devices();
+            for dev in devs {
+                let dev = dev.unwrap();
+                dev.set(percent).unwrap();
+            }
+        }
+        Err(e) => {
+            eprintln!("Error: {e}");
+        }
+    };
+}
 
 fn add_menu(menu: MenuBuilder<Events>, icon: &'static [u8], nm: Events) -> MenuBuilder<Events> {
     let nm_str = match nm {
@@ -157,6 +222,9 @@ fn main() {
             // Events::About => {},
             Events::LaunchQmkGui => launch_tool(Tool::QmkGui),
             Events::LaunchLedmatrixControl => launch_tool(Tool::LedmatrixControl),
+            Events::SyncKeyboards => sync_keyboards(),
+            Events::SyncKeyboardScreen => sync_keyboard_screen(),
+
             Events::DoubleClickTrayIcon => {
                 println!("Double click");
                 let devs = brightness::blocking::brightness_devices();
@@ -174,6 +242,7 @@ fn main() {
                     println!("{:?}", dev.device_name());
                     println!("  {:?}", dev.get());
                 }
+                sync_keyboard_screen();
             }
             Events::Exit => {
                 std::process::exit(0);
