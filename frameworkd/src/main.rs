@@ -102,7 +102,8 @@ fn launch_tool(t: Tool) {
     Command::new(path).spawn().unwrap();
 }
 
-fn sync_keyboards(prev_brightness: &mut HashMap<std::ffi::CString, (u8, u8)>) {
+// Returns percentage if brightness changed
+fn sync_keyboards(prev_brightness: &mut HashMap<std::ffi::CString, (u8, u8)>) -> Option<u32> {
     match qmk_hid::new_hidapi() {
         Ok(api) => {
             let found = qmk_hid::find_devices(&api, false, false, Some("32ac"), None);
@@ -111,7 +112,7 @@ fn sync_keyboards(prev_brightness: &mut HashMap<std::ffi::CString, (u8, u8)>) {
 
             if dev_infos.len() <= 1 {
                 // No need to sync
-                return;
+                return None;
             }
 
             for dev_info in &dev_infos {
@@ -192,7 +193,7 @@ fn sync_keyboards(prev_brightness: &mut HashMap<std::ffi::CString, (u8, u8)>) {
                                 .insert(other_info.path().into(), (actual_white, actual_rgb));
                         }
                     }
-                    break;
+                    return Some((new_brightness as u32) * 100 / 255);
                 }
             }
             //println!();
@@ -200,7 +201,8 @@ fn sync_keyboards(prev_brightness: &mut HashMap<std::ffi::CString, (u8, u8)>) {
         Err(e) => {
             eprintln!("Error: {e}");
         }
-    };
+    }
+    None
 }
 
 fn sync_keyboard_screen() {
@@ -370,7 +372,13 @@ fn main() {
         }
 
         //sync_keyboard_screen();
-        sync_keyboards(&mut prev_brightness);
+        if let Some(percentage) = sync_keyboards(&mut prev_brightness) {
+            let devs = brightness::blocking::brightness_devices();
+            for dev in devs {
+                let dev = dev.unwrap();
+                dev.set(percentage).unwrap();
+            }
+        }
 
         thread::sleep(Duration::from_secs(1));
     });
