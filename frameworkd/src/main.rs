@@ -3,6 +3,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use core::mem::MaybeUninit;
+use std::collections::HashMap;
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
@@ -101,13 +102,112 @@ fn launch_tool(t: Tool) {
     Command::new(path).spawn().unwrap();
 }
 
-fn sync_keyboards() {}
+fn sync_keyboards(prev_brightness: &mut HashMap<std::ffi::CString, (u8, u8)>) {
+    match qmk_hid::new_hidapi() {
+        Ok(api) => {
+            let found = qmk_hid::find_devices(&api, false, false, Some("32ac"), None);
+
+            let dev_infos = found.raw_usages;
+
+            if dev_infos.len() <= 1 {
+                // No need to sync
+                return;
+            }
+
+            for dev_info in &dev_infos {
+                let device = dev_info.open_device(&api).unwrap();
+                let white_brightness =
+                    via::get_backlight(&device, via::ViaBacklightValue::Brightness as u8).unwrap();
+                let rgb_brightness =
+                    via::get_rgb_u8(&device, via::ViaRgbMatrixValue::Brightness as u8).unwrap();
+                //println!("{:?}", dev_info.product_string());
+                //println!("  RGB: {}/255 White: {}/255", rgb_brightness, white_brightness);
+
+                let mut br_changed = false;
+                let mut rgb_br_changed = false;
+
+                let path = dev_info.path();
+                if let Some((prev_white, prev_rgb)) = prev_brightness.get(path) {
+                    if white_brightness != *prev_white {
+                        // println!("White changed from {} to {}", prev_white, white_brightness);
+                        br_changed = true
+                    }
+                    if rgb_brightness != *prev_rgb {
+                        // println!("RGB changed from {} to {}", prev_rgb, rgb_brightness);
+                        rgb_br_changed = true
+                    }
+                }
+                prev_brightness.insert(path.into(), (white_brightness, rgb_brightness));
+
+                if br_changed || rgb_br_changed {
+                    // Update other keyboards
+                    let new_brightness = if br_changed {
+                        white_brightness
+                    } else {
+                        rgb_brightness
+                    };
+                    // println!("Updating based on {:?}", dev_info.product_string());
+                    // println!("  Updating other keyboards to {}", new_brightness);
+                    for other_info in &dev_infos {
+                        if path == other_info.path() {
+                            continue;
+                        }
+                        // println!("  Updating {:?}", other_info.product_string());
+                        {
+                            let other_device = other_info.open_device(&api).unwrap();
+                            via::set_backlight(
+                                &other_device,
+                                via::ViaBacklightValue::Brightness as u8,
+                                new_brightness,
+                            )
+                            .unwrap();
+                            via::set_rgb_u8(
+                                &other_device,
+                                via::ViaRgbMatrixValue::Brightness as u8,
+                                new_brightness,
+                            )
+                            .unwrap();
+                        }
+
+                        // Avoid triggering an update in the other direction
+                        // Need to read the value since the keyboard might only have 3 brightness levels,
+                        // if that's the case, the value we set and the value the keyboard sets itself to are not the same.
+                        // Seems we have to sleep a bit and also connect to the device again to make the change visible.
+                        // TODO: Figure out why QMK changes the value also on the RGB which should have all 255 levels
+                        thread::sleep(Duration::from_millis(100));
+                        {
+                            let other_device = other_info.open_device(&api).unwrap();
+                            let actual_white = via::get_backlight(
+                                &other_device,
+                                via::ViaBacklightValue::Brightness as u8,
+                            )
+                            .unwrap();
+                            let actual_rgb = via::get_rgb_u8(
+                                &other_device,
+                                via::ViaRgbMatrixValue::Brightness as u8,
+                            )
+                            .unwrap();
+                            // println!("  Actually set to white: {}, rgb: {}", actual_white, actual_rgb);
+                            prev_brightness
+                                .insert(other_info.path().into(), (actual_white, actual_rgb));
+                        }
+                    }
+                    break;
+                }
+            }
+            //println!();
+        }
+        Err(e) => {
+            eprintln!("Error: {e}");
+        }
+    };
+}
 
 fn sync_keyboard_screen() {
     println!("Sync");
     match qmk_hid::new_hidapi() {
         Ok(api) => {
-            let found = qmk_hid::find_devices(&api, true, false, Some("32ac"), None);
+            let found = qmk_hid::find_devices(&api, false, false, Some("32ac"), None);
 
             let dev_infos = found.raw_usages;
 
@@ -259,6 +359,8 @@ fn main() {
         .build()
         .unwrap();
 
+    let mut prev_brightness = HashMap::new();
+
     std::thread::spawn(move || loop {
         // TODO: Check if it changed and if not, don't send events
         if numlock_enabled() {
@@ -266,6 +368,9 @@ fn main() {
         } else {
             periodic_s.send(Events::NumLockOff).unwrap();
         }
+
+        //sync_keyboard_screen();
+        sync_keyboards(&mut prev_brightness);
 
         thread::sleep(Duration::from_secs(1));
     });
@@ -282,7 +387,7 @@ fn main() {
             Events::LaunchCommunity => launch_website(FWK_COMMUNITY),
             Events::LaunchKb => launch_website(FWK_KB),
             Events::LaunchGuides => launch_website(FWK_GUIDES),
-            Events::SyncKeyboards => sync_keyboards(),
+            //Events::SyncKeyboards => sync_keyboards(),
             Events::SyncKeyboardScreen => sync_keyboard_screen(),
 
             Events::DoubleClickTrayIcon => {
