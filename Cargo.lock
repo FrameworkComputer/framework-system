@@ -713,6 +713,7 @@ version = "0.1.0"
 dependencies = [
  "brightness",
  "framework_lib",
+ "qmk_hid",
  "trayicon",
  "winapi",
 ]
@@ -918,9 +919,9 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
 name = "hidapi"
-version = "2.6.3"
+version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03b876ecf37e86b359573c16c8366bc3eba52b689884a0fc42ba3f67203d2a8b"
+checksum = "9e58251020fe88fe0dae5ebcc1be92b4995214af84725b375d08354d0311c23c"
 dependencies = [
  "cc",
  "cfg-if",
@@ -1567,6 +1568,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "qmk_hid"
+version = "0.1.12"
+source = "git+https://github.com/FrameworkComputer/qmk_hid#8129c40a8ffabff06d866c821c1a0e5e16958062"
+dependencies = [
+ "clap",
+ "hidapi",
+ "static_vcruntime",
 ]
 
 [[package]]
