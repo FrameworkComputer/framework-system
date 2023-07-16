@@ -814,6 +814,7 @@ version = "0.1.0"
 dependencies = [
  "brightness",
  "framework_lib",
+ "qmk_hid",
  "trayicon",
  "winapi",
 ]
@@ -1554,6 +1555,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.6",
+]
+
+[[package]]
+name = "qmk_hid"
+version = "0.1.12"
+source = "git+https://github.com/FrameworkComputer/qmk_hid#8129c40a8ffabff06d866c821c1a0e5e16958062"
+dependencies = [
+ "clap",
+ "hidapi",
+ "static_vcruntime",
 ]
 
 [[package]]
