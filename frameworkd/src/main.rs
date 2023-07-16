@@ -19,6 +19,11 @@ enum FrameworkPid {
 }
 
 const LOGO_32_ICO: &[u8] = include_bytes!("../res/logo_cropped_transparent_32x32.ico");
+const VIA_URL: &str = "https://usevia.app";
+const FWK_MARKETPLACE: &str = "https://frame.work/marketplace";
+const FWK_COMMUNITY: &str = "https://community.frame.work";
+const FWK_KB: &str = "https://knowledgebase.frame.work/";
+const FWK_GUIDES: &str = "https://guides.frame.work/c/Root";
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 enum Events {
@@ -34,8 +39,13 @@ enum Events {
     SubItem1,
     SubItem2,
     SubItem3,
+    LaunchVia,
     LaunchQmkGui,
     LaunchLedmatrixControl,
+    LaunchMarketplace,
+    LaunchCommunity,
+    LaunchKb,
+    LaunchGuides,
     SyncKeyboards,
     SyncKeyboardScreen,
     NumLockOn,
@@ -46,6 +56,41 @@ enum Events {
 enum Tool {
     QmkGui,
     LedmatrixControl,
+}
+
+fn to_wstring(value: &str) -> Vec<u16> {
+    use std::os::windows::ffi::OsStrExt;
+
+    std::ffi::OsStr::new(value)
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect()
+}
+
+fn launch_website(url: &str) {
+    println!("Launch: {:?}", url);
+    use std::ptr::null_mut;
+    use winapi::um::shellapi::*;
+    use winapi::um::winuser::*;
+    let wurl = to_wstring(url).as_ptr();
+    let action = to_wstring("open").as_ptr();
+    let ret = unsafe {
+        ShellExecuteW(
+            null_mut(),
+            action,
+            wurl,
+            null_mut(),
+            null_mut(),
+            SW_SHOWNORMAL,
+        )
+    };
+    // TODO: Sometimes it fails with 0x1F, which I think is SE_ERR_NOASSOC
+    // Not sure why, maybe just retry?
+    println!(
+        "Launch: done with {:?}, success: {:?}",
+        ret,
+        (ret as u8) > 32
+    );
 }
 
 fn launch_tool(t: Tool) {
@@ -124,6 +169,7 @@ fn add_menu(menu: MenuBuilder<Events>, icon: &'static [u8], nm: Events) -> MenuB
     menu.submenu(
         "Launch Inputmodule Apps",
         MenuBuilder::new()
+            .item("Keyboard (VIA)", Events::LaunchVia)
             .item("Keyboard (QMK GUI)", Events::LaunchQmkGui)
             .item("LED Matrix", Events::LaunchLedmatrixControl),
     )
@@ -161,6 +207,15 @@ fn add_menu(menu: MenuBuilder<Events>, icon: &'static [u8], nm: Events) -> MenuB
     //    id: Events::DisabledItem1,
     //    icon: Result::ok(Icon::from_buffer(icon, None, None)),
     //})
+    .separator()
+    .submenu(
+        "Framework Websites",
+        MenuBuilder::new()
+            .item("Marketplace", Events::LaunchMarketplace)
+            .item("Community", Events::LaunchCommunity)
+            .item("Knowledge Base", Events::LaunchKb)
+            .item("Guides", Events::LaunchGuides),
+    )
     .separator()
     .item("E&xit", Events::Exit)
 }
@@ -217,8 +272,13 @@ fn main() {
             // About Popup
             // FontAwesome Icon
             // Events::About => {},
+            Events::LaunchVia => launch_website(VIA_URL),
             Events::LaunchQmkGui => launch_tool(Tool::QmkGui),
             Events::LaunchLedmatrixControl => launch_tool(Tool::LedmatrixControl),
+            Events::LaunchMarketplace => launch_website(FWK_MARKETPLACE),
+            Events::LaunchCommunity => launch_website(FWK_COMMUNITY),
+            Events::LaunchKb => launch_website(FWK_KB),
+            Events::LaunchGuides => launch_website(FWK_GUIDES),
             Events::SyncKeyboards => sync_keyboards(),
             Events::SyncKeyboardScreen => sync_keyboard_screen(),
 
