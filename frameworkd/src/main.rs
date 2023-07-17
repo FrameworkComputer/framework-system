@@ -1,6 +1,7 @@
 // In debug builds don't disable terminal
 // Otherwise we can't see println and can't exit with CTRL+C
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+//#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![windows_subsystem = "windows"]
 
 use core::mem::MaybeUninit;
 use std::collections::HashMap;
@@ -325,7 +326,27 @@ fn numlock_toggle() {
     }
 }
 
+#[cfg(windows)]
+mod win_bindings {
+    ::windows::include_bindings!();
+    pub use self::windows::win32::shell::SetCurrentProcessExplicitAppUserModelID;
+}
+
 fn main() {
+    unsafe {
+        win_bindings::SetCurrentProcessExplicitAppUserModelID(
+            to_wstring("work.frame.tray").as_ptr(),
+        )
+        .unwrap();
+    }
+    Toast::new("work.frame.tray")
+        .title("Framework Tray Application")
+        .text1("Started")
+        .sound(None)
+        .duration(winrt_notification::Duration::Short)
+        .show()
+        .expect("unable to toast");
+
     let (s, r) = std::sync::mpsc::channel::<Events>();
     let icon = LOGO_32_ICO;
     // let icon2 = include_bytes!("icon2.ico");
@@ -360,7 +381,7 @@ fn main() {
                 "Numlock disabled"
             };
             // TODO: Figure out our own Application User Model ID
-            Toast::new(Toast::POWERSHELL_APP_ID)
+            Toast::new("work.frame.tray")
                 .title("Framework Keyboard")
                 .text1(text)
                 .sound(None)
