@@ -1,5 +1,6 @@
 [package]
 name = "frameworkd"
+authors = [ "Framework Computer Inc" ]
 version = "0.1.0"
 edition = "2021"
 
@@ -10,6 +11,11 @@ winapi = { version = "0.3.9", features = ["winuser", "windef", "minwindef", "she
 brightness = "0.5.0"
 qmk_hid = { git = 'https://github.com/FrameworkComputer/qmk_hid' }
 winrt-notification = "0.5.1"
+windows = "0.3"
+
+[build-dependencies]
+windows = "0.3"
+windres = "0.2"
 
 [dependencies.framework_lib]
 path = "../framework_lib"
