@@ -192,3 +192,13 @@ jobs:
 
     - name: Run cargo doc
       run: cargo doc
+
+  build-installer:
+    name: Build frameworkd Windows installer
+    runs-on: windows-latest
+    steps:
+      - name: Build installer
+        run: cargo wix -p frameworkd --nocapture -d
+
+      - name: Check output
+        run: dir target\wix
