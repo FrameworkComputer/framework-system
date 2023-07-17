@@ -12,6 +12,7 @@ use brightness::blocking::Brightness;
 use qmk_hid::via;
 use trayicon::*;
 use winapi::um::winuser;
+use winrt_notification::Toast;
 
 #[repr(u16)]
 enum FrameworkPid {
@@ -48,6 +49,20 @@ enum Events {
 enum Tool {
     QmkGui,
     LedmatrixControl,
+}
+
+struct PrevValues {
+    brightness: HashMap<std::ffi::CString, (u8, u8)>,
+    numlock: bool,
+}
+
+impl Default for PrevValues {
+    fn default() -> Self {
+        PrevValues {
+            brightness: HashMap::new(),
+            numlock: true,
+        }
+    }
 }
 
 fn to_wstring(value: &str) -> Vec<u16> {
@@ -329,18 +344,31 @@ fn main() {
         .unwrap();
 
     let periodic_s = s;
-    let mut prev_brightness = HashMap::new();
+    let mut prev_values = PrevValues::default();
 
     std::thread::spawn(move || loop {
-        // TODO: Check if it changed and if not, don't send events
-        if numlock_enabled() {
-            periodic_s.send(Events::NumLockOn).unwrap();
-        } else {
-            periodic_s.send(Events::NumLockOff).unwrap();
+        let numlock_state = numlock_enabled();
+        if numlock_state != prev_values.numlock {
+            let text = if numlock_state {
+                periodic_s.send(Events::NumLockOn).unwrap();
+                "Numlock enabled"
+            } else {
+                periodic_s.send(Events::NumLockOff).unwrap();
+                "Numlock disabled"
+            };
+            // TODO: Figure out our own Application User Model ID
+            Toast::new(Toast::POWERSHELL_APP_ID)
+                .title("Framework Keyboard")
+                .text1(text)
+                .sound(None)
+                .duration(winrt_notification::Duration::Short)
+                .show()
+                .expect("unable to toast");
         }
+        prev_values.numlock = numlock_state;
 
         //sync_keyboard_screen();
-        if let Some(percentage) = sync_keyboards(&mut prev_brightness) {
+        if let Some(percentage) = sync_keyboards(&mut prev_values.brightness) {
             let devs = brightness::blocking::brightness_devices();
             for dev in devs {
                 let dev = dev.unwrap();
