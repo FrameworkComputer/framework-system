@@ -52,7 +52,7 @@ no-std-compat = { version = "0.4.1", features = [ "alloc" ] }
 guid_macros = { path = "../guid_macros" }
 
 [dependencies.smbios-lib]
-git = "ssh://git@github.com/FrameworkComputer/smbios-lib.git"
+git = "https://github.com/FrameworkComputer/smbios-lib.git"
 branch = "no-std"
 optional = true
 default-features = false
