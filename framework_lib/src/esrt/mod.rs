@@ -72,9 +72,8 @@ pub const RETIMER01_GUID: Guid = guid!("a9c91b0c-c0b8-463d-a7da-a5d6ec646333");
 pub const RETIMER23_GUID: Guid = guid!("ba2e4e6e-3b0c-4f25-8a59-4c553fc86ea2");
 pub const GEN13_RETIMER01_GUID: Guid = guid!("0c42b824-818f-428f-8687-5efcaf059bea");
 pub const GEN13_RETIMER23_GUID: Guid = guid!("268ccbde-e087-420b-bf82-2212bd3f9bfc");
-// TODO AMD13 BIOS
 pub const FL16_BIOS_GUID: Guid = guid!("4496aebc-2421-5dfb-9e75-03ec44245994");
-pub const AMD13_BIOS_GUID: Guid = guid!("11111111-1111-1111-1111-111111111111");
+pub const AMD13_BIOS_GUID: Guid = guid!("b5f7dcc1-568c-50f8-a4dd-e39d1f93fda1");
 
 // In EDK2
 // Handled by MdeModulePkg/Library/DxeCapsuleLibFmp/DxeCapsuleLib.c
