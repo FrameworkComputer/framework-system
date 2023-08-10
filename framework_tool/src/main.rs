@@ -33,6 +33,9 @@ fn main() {
             "hdmi-flash-105" => {
                 include_bytes!("../../framework_lib/embed_bins/hdmi-flash-105.bin").as_slice()
             }
+            "hdmi-flash-106" => {
+                include_bytes!("../../framework_lib/embed_bins/hdmi-flash-106.bin").as_slice()
+            }
             _ => unreachable!(),
         };
         framework_lib::ccgx::hid::flash_firmware(bin);

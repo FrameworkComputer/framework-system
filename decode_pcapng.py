@@ -38,6 +38,7 @@ VERBOSE = False
 # -t hdmi -V 103 -b 2.6 --second-first hdmi-flash-103.pcapng
 # -t hdmi -V 104 -b 2.4 --second-first hdmi-flash-104.pcapng
 # -t hdmi -V 105 -b 1.26 hdmi-flash-105.pcapng
+# -t hdmi -V 106 -b 3.2 hdmi-flash-106.pcapng
 
 # From https://github.com/JohnDMcMaster/usbrply/blob/master/usbrply/win_pcap.py#L171
 # transfer_type=2 is URB_CONTROL
