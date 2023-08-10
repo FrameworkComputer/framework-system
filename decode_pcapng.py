@@ -202,7 +202,7 @@ def check_assumptions(img1_binary, img2_binary):
 
     # Check assumptions that the updater relies on
     if len(img1_binary) != len(img2_binary):
-        print("VIOLATED Assumption that both images are of the same size!")
+        print("VIOLATED Assumption that both images are of the same size! {} != {}".format(len(img1_binary), len(img2_binary)))
         sys.exit(1)
     if len(img1_binary[0][1]) != ROW_SIZE:
         print("VIOLATED Assumption that the row size is {} bytes! Is: {}", ROW_SIZE, img1_binary[0][1])
@@ -292,6 +292,17 @@ def decode_pcapng(path, bus_id, dev, second_first):
 def main(args):
     [bus_id, dev] = args.bus_dev.split('.')
     (img1_binary, img2_binary) = decode_pcapng(args.pcap, int(bus_id), int(dev), args.second_first)
+
+    # Sometimes the device reenumarates with the same device number
+    # So it looks like the same device. Then we have to split it
+    if len(img1_binary) > 500 and len(img2_binary) == 0:
+        half_len = int(len(img1_binary) / 2)
+        img2_binary = img1_binary[half_len:]
+        img1_binary = img1_binary[:half_len]
+    if len(img2_binary) > 500 and len(img1_binary) == 0:
+        half_len = int(len(img2_binary) / 2)
+        img1_binary = img2_binary[:half_len]
+        img2_binary = img2_binary[half_len:]
 
     check_assumptions(img1_binary, img2_binary)
 
