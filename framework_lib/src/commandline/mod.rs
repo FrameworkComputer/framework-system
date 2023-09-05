@@ -610,7 +610,7 @@ Options:
       --version              Show tool version information (Add -vv for more detailed information)
       --esrt                 Display the UEFI ESRT table
       --power                Show current power status (battery and AC)
-      --pdports              Show information about USB-C PD prots
+      --pdports              Show information about USB-C PD ports
       --info                 Show info from SMBIOS (Only on UEFI)
       --pd-info              Show details about the PD controllers
       --privacy              Show privacy switch statuses (camera and microphone)
