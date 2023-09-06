@@ -29,7 +29,7 @@ struct ClapCli {
     #[arg(long)]
     power: bool,
 
-    /// Show information about USB-C PD prots
+    /// Show information about USB-C PD ports
     #[arg(long)]
     pdports: bool,
 
