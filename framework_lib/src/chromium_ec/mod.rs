@@ -33,7 +33,7 @@ use alloc::vec::Vec;
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
-use command::EcRequest;
+pub use command::EcRequestRaw;
 use commands::*;
 
 use self::command::EcCommands;

@@ -39,9 +39,22 @@ pub enum EcCommands {
     /// On Framework 16, check the status of the input module deck
     CheckDeckState = 0x3E16,
 }
-
 pub trait EcRequest<R> {
     fn command_id() -> EcCommands;
+    // Can optionally override this
+    fn command_version() -> u8 {
+        0
+    }
+}
+
+impl<T: EcRequest<R>, R> EcRequestRaw<R> for T {
+    fn command_id_u16() -> u16 {
+        Self::command_id() as u16
+    }
+}
+
+pub trait EcRequestRaw<R> {
+    fn command_id_u16() -> u16;
     // Can optionally override this
     fn command_version() -> u8 {
         0
@@ -75,8 +88,8 @@ pub trait EcRequest<R> {
             buffer
         };
         let response =
-            ec.send_command(Self::command_id() as u16, Self::command_version(), &request)?;
-        trace!("send_command<{:X?}>", Self::command_id());
+            ec.send_command(Self::command_id_u16(), Self::command_version(), &request)?;
+        trace!("send_command<{:X?}>", Self::command_id_u16()); // TODO: name if possible
         trace!("  Request:  {:?}", request);
         trace!("  Response: {:?}", response);
         Ok(response)

@@ -8,7 +8,7 @@ use core::prelude::v1::derive;
 use log::Level;
 
 use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, MainPdVersions};
-use crate::chromium_ec::command::EcRequest;
+use crate::chromium_ec::command::EcRequestRaw;
 use crate::chromium_ec::commands::{EcRequestReadPdVersion, EcRequestUsbPdPowerInfo};
 use crate::chromium_ec::{print_err_ref, CrosEc, CrosEcDriver, EcResult};
 
