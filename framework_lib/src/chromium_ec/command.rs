@@ -32,12 +32,34 @@ pub enum EcCommands {
     ChassisOpenCheck = 0x3E0F,
     /// Get information about historical chassis open/close (intrusion) information
     ChassisIntrusion = 0x3E09,
+
+    /// Not used by this library
+    AcpiNotify = 0xE10,
+
     /// Get information about PD controller version
     ReadPdVersion = 0x3E11,
+
+    /// Not used by this library
+    StandaloneMode = 0x3E13,
     /// Get information about current state of privacy switches
     PriavcySwitchesCheckMode = 0x3E14,
+    /// Not used by this library
+    ChassisCounter = 0x3E15,
     /// On Framework 16, check the status of the input module deck
     CheckDeckState = 0x3E16,
+    /// Not used by this library
+    GetSimpleVersion = 0x3E17,
+    /// GetActiveChargePdChip
+    GetActiveChargePdChip = 0x3E18,
+
+    /// Set UEFI App mode
+    UefiAppMode = 0x3E19,
+    /// Get UEFI APP Button status
+    UefiAppBtnStatus = 0x3E1A,
+    /// Get expansion bay status
+    ExpansionBayStatus = 0x3E1B,
+    /// Get hardware diagnostics
+    GetHwDiag = 0x3E1C,
 }
 pub trait EcRequest<R> {
     fn command_id() -> EcCommands;

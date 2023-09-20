@@ -212,9 +212,9 @@ pub struct EcRequestUefiAppMode {
     pub enable: u8,
 }
 
-impl EcRequestRaw<()> for EcRequestUefiAppMode {
-    fn command_id_u16() -> u16 {
-        0x3E19
+impl EcRequest<()> for EcRequestUefiAppMode {
+    fn command_id() -> EcCommands {
+        EcCommands::UefiAppMode
     }
 }
 
@@ -226,9 +226,9 @@ pub struct EcResponseUefiAppBtnStatus {
     pub status: u8,
 }
 
-impl EcRequestRaw<EcResponseUefiAppBtnStatus> for EcRequestUefiAppBtnStatus {
-    fn command_id_u16() -> u16 {
-        0x3E1A
+impl EcRequest<EcResponseUefiAppBtnStatus> for EcRequestUefiAppBtnStatus {
+    fn command_id() -> EcCommands {
+        EcCommands::UefiAppBtnStatus
     }
 }
 
@@ -294,9 +294,9 @@ impl EcResponseExpansionBayStatus {
     }
 }
 
-impl EcRequestRaw<EcResponseExpansionBayStatus> for EcRequestExpansionBayStatus {
-    fn command_id_u16() -> u16 {
-        0x3E1B
+impl EcRequest<EcResponseExpansionBayStatus> for EcRequestExpansionBayStatus {
+    fn command_id() -> EcCommands {
+        EcCommands::ExpansionBayStatus
     }
 }
 
@@ -354,8 +354,8 @@ impl EcResponseGetHwDiag {
     }
 }
 
-impl EcRequestRaw<EcResponseGetHwDiag> for EcRequestGetHwDiag {
-    fn command_id_u16() -> u16 {
-        0x3E1C
+impl EcRequest<EcResponseGetHwDiag> for EcRequestGetHwDiag {
+    fn command_id() -> EcCommands {
+        EcCommands::GetHwDiag
     }
 }
