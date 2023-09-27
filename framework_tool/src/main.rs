@@ -1,6 +1,13 @@
 use framework_lib::commandline;
+#[allow(unused_imports)]
+use log::{debug, error, info, trace};
 
 fn main() {
+    let level = log::LevelFilter::Debug.as_str();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(level))
+        .format_target(false)
+        .format_timestamp(None)
+        .init();
     if let Some(binfile) = option_env!("FWK_DP_HDMI_BIN") {
         let bin = match binfile {
             "dp-flash-006" => {

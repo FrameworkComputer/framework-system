@@ -11,3 +11,7 @@ windows = ["framework_lib/windows"]
 [dependencies.framework_lib]
 path = "../framework_lib"
 default-features = false
+
+[dependencies]
+log = "0.4"
+env_logger = "0.10.0"

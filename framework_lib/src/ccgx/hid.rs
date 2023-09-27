@@ -256,8 +256,8 @@ pub fn find_devices(api: &HidApi, filter_devs: &[u16], sn: Option<&str>) -> Vec<
             let usage_page = dev_info.usage_page();
             if vid == FRAMEWORK_VID
                 && filter_devs.contains(&pid)
-                && usage_page == CCG_USAGE_PAGE
-                && (sn.is_none() || sn == dev_info.serial_number())
+                //&& usage_page == CCG_USAGE_PAGE
+                //&& (sn.is_none() || sn == dev_info.serial_number())
             {
                 Some(dev_info.clone())
             } else {
