@@ -286,7 +286,7 @@ impl PdController {
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::try_from(&data[4..]);
         println!(
-            "  Bootloader Version: Base: {},  App: {:?}",
+            "  Bootloader Version: Base: {},  App: {}",
             base_ver, app_ver
         );
 
@@ -297,7 +297,7 @@ impl PdController {
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::try_from(&data[4..]);
         println!(
-            "  FW1 (Backup) Version: Base: {},  App: {:?}",
+            "  FW1 (Backup) Version: Base: {},  App: {}",
             base_ver, app_ver
         );
 
@@ -308,7 +308,7 @@ impl PdController {
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::try_from(&data[4..]);
         println!(
-            "  FW2 (Main)   Version: Base: {},  App: {:?}",
+            "  FW2 (Main)   Version: Base: {},  App: {}",
             base_ver, app_ver
         );
     }
