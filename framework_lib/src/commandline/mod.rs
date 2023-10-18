@@ -303,7 +303,9 @@ fn print_versions(ec: &CrosEc) {
     if let Some(esrt) = esrt::get_esrt() {
         for entry in &esrt.entries {
             match entry.fw_class {
-                esrt::ADL_RETIMER01_GUID
+                esrt::TGL_RETIMER01_GUID
+                | esrt::TGL_RETIMER23_GUID
+                | esrt::ADL_RETIMER01_GUID
                 | esrt::ADL_RETIMER23_GUID
                 | esrt::RPL_RETIMER01_GUID
                 | esrt::RPL_RETIMER23_GUID => {
@@ -314,13 +316,13 @@ fn print_versions(ec: &CrosEc) {
                 _ => {}
             }
             match entry.fw_class {
-                esrt::ADL_RETIMER01_GUID | esrt::RPL_RETIMER01_GUID => {
+                esrt::TGL_RETIMER01_GUID | esrt::ADL_RETIMER01_GUID | esrt::RPL_RETIMER01_GUID => {
                     println!(
                         "  Left:           0x{:X} ({})",
                         entry.fw_version, entry.fw_version
                     );
                 }
-                esrt::ADL_RETIMER23_GUID | esrt::RPL_RETIMER23_GUID => {
+                esrt::TGL_RETIMER23_GUID | esrt::ADL_RETIMER23_GUID | esrt::RPL_RETIMER23_GUID => {
                     println!(
                         "  Right:          0x{:X} ({})",
                         entry.fw_version, entry.fw_version
@@ -784,11 +786,20 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
     capsule::print_capsule_header(&header);
 
     match header.capsule_guid {
+        esrt::TGL_BIOS_GUID => {
+            println!("  Type:         Framework TGL Insyde BIOS");
+        }
         esrt::ADL_BIOS_GUID => {
             println!("  Type:         Framework ADL Insyde BIOS");
         }
         esrt::RPL_BIOS_GUID => {
             println!("  Type:         Framework RPL Insyde BIOS");
+        }
+        esrt::TGL_RETIMER01_GUID => {
+            println!("  Type:    Framework TGL Retimer01 (Left)");
+        }
+        esrt::TGL_RETIMER23_GUID => {
+            println!("  Type:   Framework TGL Retimer23 (Right)");
         }
         esrt::ADL_RETIMER01_GUID => {
             println!("  Type:    Framework ADL Retimer01 (Left)");
@@ -813,7 +824,9 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
     }
 
     match esrt::match_guid_kind(&header.capsule_guid) {
-        esrt::FrameworkGuidKind::AdlRetimer01
+        esrt::FrameworkGuidKind::TglRetimer01
+        | esrt::FrameworkGuidKind::TglRetimer23
+        | esrt::FrameworkGuidKind::AdlRetimer01
         | esrt::FrameworkGuidKind::AdlRetimer23
         | esrt::FrameworkGuidKind::RplRetimer01
         | esrt::FrameworkGuidKind::RplRetimer23 => {

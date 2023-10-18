@@ -93,6 +93,7 @@ pub fn get_platform() -> Option<Platform> {
         if let DefinedStruct::SystemInformation(data) = undefined_struct.defined_struct() {
             if let Some(product_name) = dmidecode_string_val(&data.product_name()) {
                 match product_name.as_str() {
+                    "Laptop" => return Some(Platform::IntelGen11),
                     "Laptop (12th Gen Intel Core)" => return Some(Platform::IntelGen12),
                     "Laptop (13th Gen Intel Core)" => return Some(Platform::IntelGen13),
                     _ => {}
@@ -100,7 +101,7 @@ pub fn get_platform() -> Option<Platform> {
             }
             if let Some(family) = dmidecode_string_val(&data.family()) {
                 match family.as_str() {
-                    // TGL Mainboard
+                    // TGL Mainboard (I don't this ever appears in family)
                     "FRANBMCP" => return Some(Platform::IntelGen11),
                     // ADL Mainboard (I don't this ever appears in family)
                     "FRANMACP" => return Some(Platform::IntelGen12),

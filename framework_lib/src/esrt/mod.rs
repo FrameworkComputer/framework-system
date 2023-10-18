@@ -70,6 +70,8 @@ pub fn guid_from_str(string: &str) -> Option<Guid> {
 pub const TGL_BIOS_GUID: Guid = guid!("b3bdb2e4-c5cb-5c1b-bdc3-e6fc132462ff");
 pub const ADL_BIOS_GUID: Guid = guid!("a30a8cf3-847f-5e59-bd59-f9ec145c1a8c");
 pub const RPL_BIOS_GUID: Guid = guid!("13fd4ed2-cba9-50ba-bb91-aece0acb4cc3");
+pub const TGL_RETIMER01_GUID: Guid = guid!("832af090-2ef9-7c47-8f6d-b405c8c7f156");
+pub const TGL_RETIMER23_GUID: Guid = guid!("20ef4108-6c64-d049-b6de-11ee35980b8f");
 pub const ADL_RETIMER01_GUID: Guid = guid!("a9c91b0c-c0b8-463d-a7da-a5d6ec646333");
 pub const ADL_RETIMER23_GUID: Guid = guid!("ba2e4e6e-3b0c-4f25-8a59-4c553fc86ea2");
 pub const RPL_RETIMER01_GUID: Guid = guid!("0c42b824-818f-428f-8687-5efcaf059bea");
@@ -86,8 +88,11 @@ pub const WINUX_GUID: Guid = guid!("3b8c8162-188c-46a4-aec9-be43f1d65697");
 
 #[derive(Debug)]
 pub enum FrameworkGuidKind {
+    TglBios,
     AdlBios,
     RplBios,
+    TglRetimer01,
+    TglRetimer23,
     AdlRetimer01,
     AdlRetimer23,
     RplRetimer01,
@@ -101,8 +106,11 @@ pub enum FrameworkGuidKind {
 
 pub fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
     match *guid {
+        TGL_BIOS_GUID => FrameworkGuidKind::TglBios,
         ADL_BIOS_GUID => FrameworkGuidKind::AdlBios,
         RPL_BIOS_GUID => FrameworkGuidKind::RplBios,
+        TGL_RETIMER01_GUID => FrameworkGuidKind::TglRetimer01,
+        TGL_RETIMER23_GUID => FrameworkGuidKind::TglRetimer23,
         ADL_RETIMER01_GUID => FrameworkGuidKind::AdlRetimer01,
         ADL_RETIMER23_GUID => FrameworkGuidKind::AdlRetimer23,
         RPL_RETIMER01_GUID => FrameworkGuidKind::RplRetimer01,
