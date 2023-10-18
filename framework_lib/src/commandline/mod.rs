@@ -303,10 +303,12 @@ fn print_versions(ec: &CrosEc) {
     if let Some(esrt) = esrt::get_esrt() {
         for entry in &esrt.entries {
             match entry.fw_class {
-                esrt::RETIMER01_GUID
-                | esrt::RETIMER23_GUID
-                | esrt::GEN13_RETIMER01_GUID
-                | esrt::GEN13_RETIMER23_GUID => {
+                esrt::TGL_RETIMER01_GUID
+                | esrt::TGL_RETIMER23_GUID
+                | esrt::ADL_RETIMER01_GUID
+                | esrt::ADL_RETIMER23_GUID
+                | esrt::RPL_RETIMER01_GUID
+                | esrt::RPL_RETIMER23_GUID => {
                     if !found_retimer {
                         found_retimer = true;
                     }
@@ -314,13 +316,13 @@ fn print_versions(ec: &CrosEc) {
                 _ => {}
             }
             match entry.fw_class {
-                esrt::RETIMER01_GUID | esrt::GEN13_RETIMER01_GUID => {
+                esrt::TGL_RETIMER01_GUID | esrt::ADL_RETIMER01_GUID | esrt::RPL_RETIMER01_GUID => {
                     println!(
                         "  Left:           0x{:X} ({})",
                         entry.fw_version, entry.fw_version
                     );
                 }
-                esrt::RETIMER23_GUID | esrt::GEN13_RETIMER23_GUID => {
+                esrt::TGL_RETIMER23_GUID | esrt::ADL_RETIMER23_GUID | esrt::RPL_RETIMER23_GUID => {
                     println!(
                         "  Right:          0x{:X} ({})",
                         entry.fw_version, entry.fw_version
@@ -329,7 +331,8 @@ fn print_versions(ec: &CrosEc) {
                 _ => {}
             }
         }
-    } else if !found_retimer {
+    }
+    if !found_retimer {
         println!("  Unknown");
     }
 
@@ -710,7 +713,7 @@ fn smbios_info() {
                 }
             }
             DefinedStruct::SystemInformation(data) => {
-                println!("BIOS Information");
+                println!("System Information");
                 if let Some(version) = dmidecode_string_val(&data.version()) {
                     println!("  Version:      {}", version);
                 }
@@ -784,19 +787,31 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
     capsule::print_capsule_header(&header);
 
     match header.capsule_guid {
-        esrt::BIOS_GUID => {
-            println!("  Type:         Framework Insyde BIOS");
+        esrt::TGL_BIOS_GUID => {
+            println!("  Type:         Framework TGL Insyde BIOS");
         }
-        esrt::RETIMER01_GUID => {
+        esrt::ADL_BIOS_GUID => {
+            println!("  Type:         Framework ADL Insyde BIOS");
+        }
+        esrt::RPL_BIOS_GUID => {
+            println!("  Type:         Framework RPL Insyde BIOS");
+        }
+        esrt::TGL_RETIMER01_GUID => {
+            println!("  Type:    Framework TGL Retimer01 (Left)");
+        }
+        esrt::TGL_RETIMER23_GUID => {
+            println!("  Type:   Framework TGL Retimer23 (Right)");
+        }
+        esrt::ADL_RETIMER01_GUID => {
             println!("  Type:    Framework ADL Retimer01 (Left)");
         }
-        esrt::RETIMER23_GUID => {
+        esrt::ADL_RETIMER23_GUID => {
             println!("  Type:   Framework ADL Retimer23 (Right)");
         }
-        esrt::GEN13_RETIMER01_GUID => {
+        esrt::RPL_RETIMER01_GUID => {
             println!("  Type:    Framework RPL Retimer01 (Left)");
         }
-        esrt::GEN13_RETIMER23_GUID => {
+        esrt::RPL_RETIMER23_GUID => {
             println!("  Type:   Framework RPL Retimer23 (Right)");
         }
         esrt::WINUX_GUID => {
@@ -810,7 +825,12 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
     }
 
     match esrt::match_guid_kind(&header.capsule_guid) {
-        esrt::FrameworkGuidKind::Retimer01 | esrt::FrameworkGuidKind::Retimer23 => {
+        esrt::FrameworkGuidKind::TglRetimer01
+        | esrt::FrameworkGuidKind::TglRetimer23
+        | esrt::FrameworkGuidKind::AdlRetimer01
+        | esrt::FrameworkGuidKind::AdlRetimer23
+        | esrt::FrameworkGuidKind::RplRetimer01
+        | esrt::FrameworkGuidKind::RplRetimer23 => {
             if let Some(ver) = find_retimer_version(data) {
                 println!("  Version:      {:>18?}", ver);
             }

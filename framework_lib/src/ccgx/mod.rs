@@ -156,6 +156,7 @@ pub struct AppVersion {
     /// Curcuit part of the version. Z of X.Y.Z
     pub circuit: u8,
 }
+
 impl fmt::Display for AppVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -166,34 +167,25 @@ impl fmt::Display for AppVersion {
     }
 }
 
-impl TryFrom<&[u8]> for AppVersion {
-    type Error = ();
-
-    fn try_from(data: &[u8]) -> Result<Self, Self::Error> {
+impl From<&[u8]> for AppVersion {
+    fn from(data: &[u8]) -> Self {
         let application = match &[data[1], data[0]] {
             b"nb" => Application::Notebook,
             b"md" => Application::Monitor,
             b"aa" => Application::AA,
-            _ => {
-                debug!(
-                    "Couldn't parse application 0x{:X}, 0x{:X}",
-                    data[0], data[1]
-                );
-                return Err(());
-            }
+            _ => Application::Invalid,
         };
-        Ok(Self {
+        Self {
             application,
             circuit: data[2],
             major: (data[3] & 0xF0) >> 4,
             minor: data[3] & 0x0F,
-        })
+        }
     }
 }
-impl TryFrom<u32> for AppVersion {
-    type Error = ();
-    fn try_from(data: u32) -> Result<Self, Self::Error> {
-        Self::try_from(u32::to_le_bytes(data).as_slice())
+impl From<u32> for AppVersion {
+    fn from(data: u32) -> Self {
+        Self::from(u32::to_le_bytes(data).as_slice())
     }
 }
 
