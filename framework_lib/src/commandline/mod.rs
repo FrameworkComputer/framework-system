@@ -331,7 +331,8 @@ fn print_versions(ec: &CrosEc) {
                 _ => {}
             }
         }
-    } else if !found_retimer {
+    }
+    if !found_retimer {
         println!("  Unknown");
     }
 
@@ -712,7 +713,7 @@ fn smbios_info() {
                 }
             }
             DefinedStruct::SystemInformation(data) => {
-                println!("BIOS Information");
+                println!("System Information");
                 if let Some(version) = dmidecode_string_val(&data.version()) {
                     println!("  Version:      {}", version);
                 }
