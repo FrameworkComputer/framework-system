@@ -44,18 +44,22 @@ impl PdPort {
     }
 
     /// I2C port on the EC
-    fn i2c_port(&self) -> u8 {
+    fn i2c_port(&self) -> EcResult<u8> {
         let config = Config::get();
         let platform = &(*config).as_ref().unwrap().platform;
 
-        match (platform, self) {
+        Ok(match (platform, self) {
             (Platform::IntelGen11, _) => 6,
             (Platform::IntelGen12, PdPort::Left01) => 6,
             (Platform::IntelGen12, PdPort::Right23) => 7,
             (Platform::IntelGen13, PdPort::Left01) => 6,
             (Platform::IntelGen13, PdPort::Right23) => 7,
-            (_, _) => panic!("Unsupported platform: {:?} {:?}", platform, self),
-        }
+            // TODO: AMD
+            (_, _) => Err(EcError::DeviceError(format!(
+                "Unsupported platform: {:?} {:?}",
+                platform, self
+            )))?,
+        })
     }
 }
 
@@ -176,7 +180,7 @@ impl PdController {
         let msgs_buffer: &[u8] = unsafe { util::any_vec_as_u8_slice(&messages) };
 
         let params = EcParamsI2cPassthru {
-            port: self.port.i2c_port(),
+            port: self.port.i2c_port()?,
             messages: messages.len() as u8,
             msg: [], // Messages are copied right after this struct
         };
@@ -280,7 +284,14 @@ impl PdController {
 
     pub fn print_fw_info(&self) {
         let data = self.ccgx_read(ControlRegisters::BootLoaderVersion, 8);
-        let data = data.unwrap();
+        let data = match data {
+            Ok(data) => data,
+            Err(err) => {
+                println!("Failed to get PD Info: {:?}", err);
+                return;
+            }
+        };
+
         assert!(data.len() >= 8);
         debug_assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
