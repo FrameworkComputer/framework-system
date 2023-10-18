@@ -67,13 +67,16 @@ pub fn guid_from_str(string: &str) -> Option<Guid> {
     ))
 }
 
-pub const BIOS_GUID: Guid = guid!("a30a8cf3-847f-5e59-bd59-f9ec145c1a8c");
-pub const RETIMER01_GUID: Guid = guid!("a9c91b0c-c0b8-463d-a7da-a5d6ec646333");
-pub const RETIMER23_GUID: Guid = guid!("ba2e4e6e-3b0c-4f25-8a59-4c553fc86ea2");
-pub const GEN13_RETIMER01_GUID: Guid = guid!("0c42b824-818f-428f-8687-5efcaf059bea");
-pub const GEN13_RETIMER23_GUID: Guid = guid!("268ccbde-e087-420b-bf82-2212bd3f9bfc");
+pub const TGL_BIOS_GUID: Guid = guid!("b3bdb2e4-c5cb-5c1b-bdc3-e6fc132462ff");
+pub const ADL_BIOS_GUID: Guid = guid!("a30a8cf3-847f-5e59-bd59-f9ec145c1a8c");
+pub const RPL_BIOS_GUID: Guid = guid!("13fd4ed2-cba9-50ba-bb91-aece0acb4cc3");
+pub const ADL_RETIMER01_GUID: Guid = guid!("a9c91b0c-c0b8-463d-a7da-a5d6ec646333");
+pub const ADL_RETIMER23_GUID: Guid = guid!("ba2e4e6e-3b0c-4f25-8a59-4c553fc86ea2");
+pub const RPL_RETIMER01_GUID: Guid = guid!("0c42b824-818f-428f-8687-5efcaf059bea");
+pub const RPL_RETIMER23_GUID: Guid = guid!("268ccbde-e087-420b-bf82-2212bd3f9bfc");
 pub const FL16_BIOS_GUID: Guid = guid!("4496aebc-2421-5dfb-9e75-03ec44245994");
 pub const AMD13_BIOS_GUID: Guid = guid!("b5f7dcc1-568c-50f8-a4dd-e39d1f93fda1");
+pub const RPL_CSME_GUID: Guid = guid!("865d322c-6ac7-4734-b43e-55db5a557d63");
 
 // In EDK2
 // Handled by MdeModulePkg/Library/DxeCapsuleLibFmp/DxeCapsuleLib.c
@@ -83,11 +86,13 @@ pub const WINUX_GUID: Guid = guid!("3b8c8162-188c-46a4-aec9-be43f1d65697");
 
 #[derive(Debug)]
 pub enum FrameworkGuidKind {
-    Bios,
-    Retimer01,
-    Retimer23,
-    Gen13Retimer01,
-    Gen13Retimer23,
+    AdlBios,
+    RplBios,
+    AdlRetimer01,
+    AdlRetimer23,
+    RplRetimer01,
+    RplRetimer23,
+    RplCsme,
     Fl16Bios,
     Amd13Bios,
     WinUx,
@@ -96,11 +101,13 @@ pub enum FrameworkGuidKind {
 
 pub fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
     match *guid {
-        BIOS_GUID => FrameworkGuidKind::Bios,
-        RETIMER01_GUID => FrameworkGuidKind::Retimer01,
-        RETIMER23_GUID => FrameworkGuidKind::Retimer23,
-        GEN13_RETIMER01_GUID => FrameworkGuidKind::Gen13Retimer01,
-        GEN13_RETIMER23_GUID => FrameworkGuidKind::Gen13Retimer23,
+        ADL_BIOS_GUID => FrameworkGuidKind::AdlBios,
+        RPL_BIOS_GUID => FrameworkGuidKind::RplBios,
+        ADL_RETIMER01_GUID => FrameworkGuidKind::AdlRetimer01,
+        ADL_RETIMER23_GUID => FrameworkGuidKind::AdlRetimer23,
+        RPL_RETIMER01_GUID => FrameworkGuidKind::RplRetimer01,
+        RPL_RETIMER23_GUID => FrameworkGuidKind::RplRetimer23,
+        RPL_CSME_GUID => FrameworkGuidKind::RplCsme,
         FL16_BIOS_GUID => FrameworkGuidKind::Fl16Bios,
         AMD13_BIOS_GUID => FrameworkGuidKind::Amd13Bios,
         WINUX_GUID => FrameworkGuidKind::WinUx,
