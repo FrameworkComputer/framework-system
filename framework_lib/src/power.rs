@@ -195,14 +195,14 @@ pub fn get_and_print_power_info(ec: &CrosEc) {
 }
 
 fn print_battery_information(power_info: &PowerInfo) {
-    print!("  AC is ");
+    print!("  AC is:            ");
     if power_info.ac_present {
-        println!("connected.");
+        println!("connected");
     } else {
         println!("not connected");
     }
 
-    print!("  Battery is: ");
+    print!("  Battery is:       ");
     if let Some(battery) = &power_info.battery {
         println!("connected");
         println!(
