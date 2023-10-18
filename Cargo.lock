@@ -906,7 +906,7 @@ dependencies = [
 [[package]]
 name = "smbios-lib"
 version = "0.9.1"
-source = "git+ssh://git@github.com/FrameworkComputer/smbios-lib.git?branch=no-std#b3e2fff8a6f4b8c2d729467cbbf0c8c41974cd1c"
+source = "git+https://github.com/FrameworkComputer/smbios-lib.git?branch=no-std#b3e2fff8a6f4b8c2d729467cbbf0c8c41974cd1c"
 dependencies = [
  "core-foundation",
  "core-foundation-sys 0.6.2",
