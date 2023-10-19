@@ -66,6 +66,7 @@ const EC_BATT_FLAG_DISCHARGING: u8 = 0x04;
 const EC_BATT_FLAG_CHARGING: u8 = 0x08;
 const EC_BATT_FLAG_LEVEL_CRITICAL: u8 = 0x10;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BatteryInformation {
     pub present_voltage: u32,
     pub present_rate: u32,
@@ -89,6 +90,7 @@ pub struct BatteryInformation {
     pub level_critical: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PowerInfo {
     pub ac_present: bool,
     pub battery: Option<BatteryInformation>,
@@ -227,6 +229,7 @@ fn print_battery_information(power_info: &PowerInfo) {
             );
             println!("  Present Rate:     {} mA", battery.present_rate);
             // We only have a single battery in all our systems
+            // Both values are always 0
             // println!("  Battery Count:    {}", battery.battery_count);
             // println!("  Current Battery#: {}", battery.current_battery_index);
 
