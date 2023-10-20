@@ -32,6 +32,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
+use num_traits::FromPrimitive;
 
 pub use command::EcRequestRaw;
 use commands::*;
@@ -374,8 +375,8 @@ impl CrosEcDriver for CrosEc {
     }
     fn send_command(&self, command: u16, command_version: u8, data: &[u8]) -> EcResult<Vec<u8>> {
         debug!(
-            "send_command(command=0x{:X}, ver={:?}, data_len={:?})",
-            command,
+            "send_command(command={:X?}, ver={:?}, data_len={:?})",
+            <EcCommands as FromPrimitive>::from_u16(command),
             command_version,
             data.len()
         );

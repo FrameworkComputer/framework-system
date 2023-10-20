@@ -4,14 +4,16 @@ use core::prelude::rust_2021::derive;
 use alloc::format;
 use alloc::vec;
 use alloc::vec::Vec;
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 
 use crate::util;
 
 use super::{CrosEc, CrosEcDriver, EcError, EcResult};
 
-// u16
 #[non_exhaustive]
-#[derive(Debug)]
+#[derive(Debug, FromPrimitive)]
+#[repr(u16)]
 pub enum EcCommands {
     GetVersion = 0x02,
     GetBuildInfo = 0x04,
@@ -61,6 +63,7 @@ pub enum EcCommands {
     /// Get hardware diagnostics
     GetHwDiag = 0x3E1C,
 }
+
 pub trait EcRequest<R> {
     fn command_id() -> EcCommands;
     // Can optionally override this
@@ -111,7 +114,10 @@ pub trait EcRequestRaw<R> {
         };
         let response =
             ec.send_command(Self::command_id_u16(), Self::command_version(), &request)?;
-        trace!("send_command<{:X?}>", Self::command_id_u16()); // TODO: name if possible
+        trace!(
+            "send_command<{:X?}>",
+            <EcCommands as FromPrimitive>::from_u16(Self::command_id_u16())
+        );
         trace!("  Request:  {:?}", request);
         trace!("  Response: {:?}", response);
         Ok(response)
