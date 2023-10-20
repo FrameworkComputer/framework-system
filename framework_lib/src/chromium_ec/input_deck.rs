@@ -30,7 +30,7 @@ enum InputDeckMux {
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputModuleType {
     Short,
     Reserved1,
@@ -98,7 +98,7 @@ impl InputModuleType {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputDeckState {
     /// Manual workaround during EVT
     Off,
@@ -130,6 +130,7 @@ impl From<u8> for InputDeckState {
     }
 }
 
+#[derive(Clone, PartialEq, Eq)]
 pub struct InputDeckStatus {
     pub state: InputDeckState,
     pub hubboard_present: bool,
@@ -149,10 +150,22 @@ impl InputDeckStatus {
     }
     /// Whether the input deck is fully populated
     pub fn fully_populated(&self) -> bool {
+        if matches!(self.state, InputDeckState::ForceOn | InputDeckState::On) {
+            return false;
+        }
+
+        if !self.hubboard_present {
+            return false;
+        }
+
         if !self.touchpad_present {
             return false;
         }
 
+        self.top_row_fully_populated()
+    }
+
+    pub fn top_row_fully_populated(&self) -> bool {
         self.top_row_to_array()
             .iter()
             .map(InputModuleType::size)
@@ -183,6 +196,8 @@ impl From<EcResponseDeckState> for InputDeckStatus {
         }
     }
 }
+
+#[derive(Clone, PartialEq, Eq)]
 pub struct TopRowPositions {
     /// C1 all the way left
     /// B1 all the way left

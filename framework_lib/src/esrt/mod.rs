@@ -76,7 +76,7 @@ pub const ADL_RETIMER01_GUID: Guid = guid!("a9c91b0c-c0b8-463d-a7da-a5d6ec646333
 pub const ADL_RETIMER23_GUID: Guid = guid!("ba2e4e6e-3b0c-4f25-8a59-4c553fc86ea2");
 pub const RPL_RETIMER01_GUID: Guid = guid!("0c42b824-818f-428f-8687-5efcaf059bea");
 pub const RPL_RETIMER23_GUID: Guid = guid!("268ccbde-e087-420b-bf82-2212bd3f9bfc");
-pub const FL16_BIOS_GUID: Guid = guid!("4496aebc-2421-5dfb-9e75-03ec44245994");
+pub const FL16_BIOS_GUID: Guid = guid!("6ae76af1-c002-5d64-8e18-658d205acf34");
 pub const AMD13_BIOS_GUID: Guid = guid!("b5f7dcc1-568c-50f8-a4dd-e39d1f93fda1");
 pub const RPL_CSME_GUID: Guid = guid!("865d322c-6ac7-4734-b43e-55db5a557d63");
 

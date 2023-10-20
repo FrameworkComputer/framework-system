@@ -96,10 +96,14 @@ pub fn get_platform() -> Option<Platform> {
                     "Laptop" => return Some(Platform::IntelGen11),
                     "Laptop (12th Gen Intel Core)" => return Some(Platform::IntelGen12),
                     "Laptop (13th Gen Intel Core)" => return Some(Platform::IntelGen13),
+                    "Laptop 13 (AMD Ryzen 7040Series)" => return Some(Platform::Framework13Amd),
+                    "Laptop 13 (AMD Ryzen 7040 Series)" => return Some(Platform::Framework13Amd),
+                    "Laptop 16 (AMD Ryzen 7040 Series)" => return Some(Platform::Framework16),
                     _ => {}
                 }
             }
             if let Some(family) = dmidecode_string_val(&data.family()) {
+                // Actually "Laptop" and "16in Laptop"
                 match family.as_str() {
                     // TGL Mainboard (I don't this ever appears in family)
                     "FRANBMCP" => return Some(Platform::IntelGen11),
@@ -107,6 +111,8 @@ pub fn get_platform() -> Option<Platform> {
                     "FRANMACP" => return Some(Platform::IntelGen12),
                     // RPL Mainboard (I don't this ever appears in family)
                     "FRANMCCP" => return Some(Platform::IntelGen13),
+                    // Framework 13 AMD Mainboard
+                    "FRANMDCP" => return Some(Platform::Framework13Amd),
                     // Framework 16 Mainboard
                     "FRANMZCP" => return Some(Platform::Framework16),
                     _ => {}

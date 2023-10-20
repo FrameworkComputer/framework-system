@@ -205,3 +205,157 @@ impl EcRequest<EcResponseDeckState> for EcRequestDeckState {
         EcCommands::CheckDeckState
     }
 }
+
+// TODO
+#[repr(C, packed)]
+pub struct EcRequestUefiAppMode {
+    pub enable: u8,
+}
+
+impl EcRequest<()> for EcRequestUefiAppMode {
+    fn command_id() -> EcCommands {
+        EcCommands::UefiAppMode
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestUefiAppBtnStatus {}
+
+#[repr(C, packed)]
+pub struct EcResponseUefiAppBtnStatus {
+    pub status: u8,
+}
+
+impl EcRequest<EcResponseUefiAppBtnStatus> for EcRequestUefiAppBtnStatus {
+    fn command_id() -> EcCommands {
+        EcCommands::UefiAppBtnStatus
+    }
+}
+
+#[derive(Debug)]
+pub enum ExpansionByStates {
+    ModuleEnabled = 0x01,
+    ModuleFault = 0x02,
+    HatchSwitchClosed = 0x04,
+}
+#[derive(Debug)]
+pub enum ExpansionBayBoard {
+    DualInterposer,
+    SingleInterposer,
+    Invalid,
+}
+
+// pub to disable unused warnings
+pub const BOARD_VERSION_0: u8 = 0;
+pub const BOARD_VERSION_1: u8 = 1;
+pub const BOARD_VERSION_2: u8 = 2;
+pub const BOARD_VERSION_3: u8 = 3;
+pub const BOARD_VERSION_4: u8 = 4;
+pub const BOARD_VERSION_5: u8 = 5;
+pub const BOARD_VERSION_6: u8 = 6;
+pub const BOARD_VERSION_7: u8 = 7;
+pub const BOARD_VERSION_8: u8 = 8;
+pub const BOARD_VERSION_9: u8 = 9;
+pub const BOARD_VERSION_10: u8 = 10;
+pub const BOARD_VERSION_11: u8 = 11;
+pub const BOARD_VERSION_12: u8 = 12;
+pub const BOARD_VERSION_13: u8 = 13;
+pub const BOARD_VERSION_14: u8 = 14;
+pub const BOARD_VERSION_15: u8 = 15;
+
+#[repr(C, packed)]
+pub struct EcRequestExpansionBayStatus {}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct EcResponseExpansionBayStatus {
+    pub state: u8,
+    pub board_id_0: u8,
+    pub board_id_1: u8,
+}
+
+impl EcResponseExpansionBayStatus {
+    pub fn module_enabled(&self) -> bool {
+        self.state & (ExpansionByStates::ModuleEnabled as u8) != 0
+    }
+    pub fn module_fault(&self) -> bool {
+        self.state & (ExpansionByStates::ModuleFault as u8) != 0
+    }
+    pub fn hatch_switch_closed(&self) -> bool {
+        self.state & (ExpansionByStates::HatchSwitchClosed as u8) != 0
+    }
+    pub fn expansion_bay_board(&self) -> Option<ExpansionBayBoard> {
+        match (self.board_id_1, self.board_id_0) {
+            (BOARD_VERSION_12, BOARD_VERSION_12) => Some(ExpansionBayBoard::DualInterposer),
+            (BOARD_VERSION_11, BOARD_VERSION_15) => Some(ExpansionBayBoard::SingleInterposer),
+            (BOARD_VERSION_15, BOARD_VERSION_15) => None,
+            _ => Some(ExpansionBayBoard::Invalid),
+        }
+    }
+}
+
+impl EcRequest<EcResponseExpansionBayStatus> for EcRequestExpansionBayStatus {
+    fn command_id() -> EcCommands {
+        EcCommands::ExpansionBayStatus
+    }
+}
+
+pub const DIAGNOSTICS_START: usize = 0;
+pub const DIAGNOSTICS_HW_NO_BATTERY: usize = 1;
+pub const DIAGNOSTICS_HW_PGOOD_3V5V: usize = 2;
+pub const DIAGNOSTICS_VCCIN_AUX_VR: usize = 3;
+pub const DIAGNOSTICS_SLP_S4: usize = 4;
+pub const DIAGNOSTICS_HW_PGOOD_VR: usize = 5;
+
+// Lotus: Start
+pub const DIAGNOSTICS_INPUT_MODULE_FAULT: usize = 6;
+pub const DIAGNOSTICS_NO_LEFT_FAN: usize = 7;
+pub const DIAGNOSTICS_NO_RIGHT_FAN: usize = 8;
+pub const DIAGNOSTICS_GPU_MODULE_FAULT: usize = 9;
+// Lotus: End
+// Azalea: Start
+pub const DIAGNOSTICS_TOUCHPAD: usize = 6;
+pub const DIAGNOSTICS_AUDIO_DAUGHTERBOARD: usize = 7;
+pub const DIAGNOSTICS_THERMAL_SENSOR: usize = 8;
+pub const DIAGNOSTICS_NOFAN: usize = 9;
+// Azalea: End
+
+// Different on azalea and lotus
+// pub const DIAGNOSTICS_NO_S0: usize = 10;
+// pub const DIAGNOSTICS_NO_DDR: usize = 11;
+// pub const DIAGNOSTICS_NO_EDP: usize = 12;
+// pub const DIAGNOSTICS_HW_FINISH: usize = 13;
+/*BIOS BITS*/
+// pub const DIAGNOSTICS_BIOS_BIT0: usize = 18;
+// pub const DIAGNOSTICS_BIOS_BIT1: usize = 19;
+// pub const DIAGNOSTICS_BIOS_BIT2: usize = 21;
+// pub const DIAGNOSTICS_BIOS_BIT3: usize = 22;
+// pub const DIAGNOSTICS_BIOS_BIT4: usize = 23;
+// pub const DIAGNOSTICS_BIOS_BIT5: usize = 24;
+// pub const DIAGNOSTICS_BIOS_BIT6: usize = 25;
+// pub const DIAGNOSTICS_BIOS_BIT7: usize = 26;
+
+#[repr(C, packed)]
+pub struct EcRequestGetHwDiag {}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseGetHwDiag {
+    pub hw_diag: u32,
+    pub bios_complete: u8,
+}
+
+impl EcResponseGetHwDiag {
+    pub fn fan_fault(&self) -> (bool, bool) {
+        (
+            self.hw_diag & (1 << DIAGNOSTICS_NO_LEFT_FAN) != 0,
+            self.hw_diag & (1 << DIAGNOSTICS_NO_RIGHT_FAN) != 0,
+        )
+    }
+}
+
+impl EcRequest<EcResponseGetHwDiag> for EcRequestGetHwDiag {
+    fn command_id() -> EcCommands {
+        EcCommands::GetHwDiag
+    }
+}
