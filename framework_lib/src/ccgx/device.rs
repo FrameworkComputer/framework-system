@@ -172,6 +172,12 @@ impl PdController {
 
     fn i2c_read(&self, addr: u16, len: u16) -> EcResult<EcI2cPassthruResponse> {
         trace!("i2c_read(addr: {}, len: {})", addr, len);
+        if usize::from(len) > MAX_I2C_CHUNK {
+            return EcResult::Err(EcError::DeviceError(format!(
+                "i2c_read too long. Must be <128, is: {}",
+                len
+            )));
+        }
         let addr_bytes = u16::to_le_bytes(addr);
         let messages = vec![
             EcParamsI2cPassthruMsg {
