@@ -81,6 +81,10 @@ struct ClapCli {
     #[arg(long)]
     dump_ec_flash: Option<std::path::PathBuf>,
 
+    /// Flash EC with new firmware from file
+    #[arg(long)]
+    flash_ec: Option<std::path::PathBuf>,
+
     /// Show status of intrusion switch
     #[arg(long)]
     intrusion: bool,
@@ -158,6 +162,9 @@ pub fn parse(args: &[String]) -> Cli {
             .map(|x| x.into_os_string().into_string().unwrap()),
         dump_ec_flash: args
             .dump_ec_flash
+            .map(|x| x.into_os_string().into_string().unwrap()),
+        flash_ec: args
+            .flash_ec
             .map(|x| x.into_os_string().into_string().unwrap()),
         intrusion: args.intrusion,
         inputmodules: args.inputmodules,

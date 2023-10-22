@@ -128,6 +128,7 @@ pub struct Cli {
     pub dump: Option<String>,
     pub ho2_capsule: Option<String>,
     pub dump_ec_flash: Option<String>,
+    pub flash_ec: Option<String>,
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
     pub intrusion: bool,
@@ -389,6 +390,32 @@ fn print_esrt() {
         esrt::print_esrt(&esrt);
     } else {
         println!("Could not find and parse ESRT table.");
+    }
+}
+
+#[cfg(feature = "uefi")]
+fn flash_ec(ec: &CrosEc, ec_bin_path: &str) {
+    #[cfg(feature = "uefi")]
+    let data = crate::uefi::fs::shell_read_file(ec_bin_path);
+    #[cfg(not(feature = "uefi"))]
+    let data = match fs::read(ec_bin_path) {
+        Ok(data) => Some(data),
+        // TODO: Perhaps a more user-friendly error
+        Err(e) => {
+            println!("Error {:?}", e);
+            None
+        }
+    };
+
+    if let Some(data) = data {
+        println!("File");
+        println!("  Size:       {:>20} B", data.len());
+        println!("  Size:       {:>20} KB", data.len() / 1024);
+        if let Err(err) = ec.reflash(&data) {
+            println!("Error: {:?}", err);
+        } else {
+            println!("Success!");
+        }
     }
 }
 
@@ -679,6 +706,14 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(dump_path) = &args.dump_ec_flash {
         println!("Dumping to {}", dump_path);
         dump_ec_flash(&ec, dump_path);
+    } else if let Some(_ec_bin_path) = &args.flash_ec {
+        // EC communication from OS is not stable enough yet,
+        // it can't be trusted to reliably flash the EC without risk of damage.
+        #[cfg(not(feature = "uefi"))]
+        println!("Sorry, flashing EC from the OS is not supported yet.");
+
+        #[cfg(feature = "uefi")]
+        flash_ec(&ec, _ec_bin_path);
     }
 
     0
@@ -715,6 +750,7 @@ Options:
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
       --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
       --dump-ec-flash <DUMP_EC_FLASH>  Dump EC flash contents
+      --flash-ec <FLASH_EC>            Flash EC with new firmware from file
   -t, --test                 Run self-test to check if interaction with EC is possible
   -h, --help                 Print help information
     "#

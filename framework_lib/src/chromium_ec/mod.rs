@@ -52,11 +52,11 @@ const EC_MEMMAP_SIZE: u16 = 0xFF;
 /// representing 'EC' in ASCII (0x20 == 'E', 0x21 == 'C')
 const EC_MEMMAP_ID: u16 = 0x20;
 
-const _FLASH_BASE: u32 = 0x0; // 0x80000
-const _FLASH_RO_BASE: u32 = 0x0;
-const _FLASH_RO_SIZE: u32 = 0x3C000;
-const _FLASH_RW_BASE: u32 = 0x40000;
-const _FLASH_RW_SIZE: u32 = 0x39000;
+const FLASH_BASE: u32 = 0x0; // 0x80000
+const FLASH_RO_BASE: u32 = 0x0;
+const FLASH_RO_SIZE: u32 = 0x3C000;
+const FLASH_RW_BASE: u32 = 0x40000;
+const FLASH_RW_SIZE: u32 = 0x39000;
 const FLASH_PROGRAM_OFFSET: u32 = 0x1000;
 
 #[derive(PartialEq)]
@@ -367,6 +367,106 @@ impl CrosEc {
         Ok(kblight.percent)
     }
 
+    /// Overwrite RO and RW regions of EC flash
+    /// | Start | End   | Size  | Region    |
+    /// | 00000 | 3BFFF | 3C000 | RO Region |
+    /// | 3C000 | 3FFFF | 04000 | Preserved |
+    /// | 40000 | 3C000 | 39000 | RO Region |
+    /// | 79000 | 79FFF | 07000 | Preserved |
+    pub fn reflash(&self, data: &[u8]) -> EcResult<()> {
+        let mut _flash_bin: Vec<u8> = Vec::with_capacity(EC_FLASH_SIZE);
+        println!("Unlocking flash");
+        self.flash_notify(MecFlashNotify::AccessSpi)?;
+        self.flash_notify(MecFlashNotify::FirmwareStart)?;
+
+        //println!("Erasing RO region");
+        //self.erase_ec_flash(FLASH_BASE + FLASH_RO_BASE, FLASH_RO_SIZE)?;
+        println!("Erasing RW region");
+        self.erase_ec_flash(FLASH_BASE + FLASH_RW_BASE, FLASH_RW_SIZE)?;
+
+        let ro_data = &data[FLASH_RO_BASE as usize..(FLASH_RO_BASE + FLASH_RO_SIZE) as usize];
+        //println!("Writing RO region");
+        //self.write_ec_flash(FLASH_BASE + FLASH_RO_BASE, ro_data);
+
+        let rw_data = &data[FLASH_RW_BASE as usize..(FLASH_RW_BASE + FLASH_RW_SIZE) as usize];
+        println!("Writing RW region");
+        self.write_ec_flash(FLASH_BASE + FLASH_RW_BASE, rw_data)?;
+
+        println!("Verifying");
+        let flash_ro_data = self.read_ec_flash(FLASH_BASE + FLASH_RO_BASE, FLASH_RO_SIZE)?;
+        if ro_data == flash_ro_data {
+            println!("RO verify success");
+        } else {
+            println!("RO verify fail");
+        }
+        let flash_rw_data = self.read_ec_flash(FLASH_BASE + FLASH_RW_BASE, FLASH_RW_SIZE)?;
+        if rw_data == flash_rw_data {
+            println!("RW verify success");
+        } else {
+            println!("RW verify fail");
+        }
+
+        println!("Locking flash");
+        self.flash_notify(MecFlashNotify::AccessSpiDone)?;
+        self.flash_notify(MecFlashNotify::FirmwareDone)?;
+
+        println!("Flashing EC done. You can reboot the EC now");
+
+        Ok(())
+    }
+
+    /// Write a big section of EC flash. Must be unlocked already
+    fn write_ec_flash(&self, addr: u32, data: &[u8]) -> EcResult<()> {
+        let info = EcRequestFlashInfo {}.send_command(self)?;
+        println!("Flash info: {:?}", info);
+        //let chunk_size = ((0x80 / info.write_ideal_size) * info.write_ideal_size) as usize;
+        let chunk_size = 0x80;
+
+        let chunks = data.len() / chunk_size;
+        for chunk_no in 0..chunks {
+            let offset = chunk_no * chunk_size;
+            // Current chunk might be smaller if it's the last
+            let cur_chunk_size = std::cmp::min(chunk_size, data.len() - chunk_no * chunk_size);
+
+            if chunk_no % 100 == 0 {
+                println!();
+                print!(
+                    "Writing chunk {:>4}/{:>4} ({:>6}/{:>6}): X",
+                    chunk_no,
+                    chunks,
+                    offset,
+                    cur_chunk_size * chunks
+                );
+            } else {
+                print!("X");
+            }
+
+            let chunk = &data[offset..offset + cur_chunk_size];
+            let res = self.write_ec_flash_chunk(addr + offset as u32, chunk);
+            if let Err(err) = res {
+                println!("  Failed to write chunk: {:?}", err);
+                return Err(err);
+            }
+        }
+        println!();
+
+        Ok(())
+    }
+
+    fn write_ec_flash_chunk(&self, offset: u32, data: &[u8]) -> EcResult<()> {
+        assert!(data.len() <= 0x80); // TODO: I think this is EC_LPC_HOST_PACKET_SIZE - size_of::<EcHostResponse>()
+        EcRequestFlashWrite {
+            offset,
+            size: data.len() as u32,
+            data: [],
+        }
+        .send_command_extra(self, data)
+    }
+
+    fn erase_ec_flash(&self, offset: u32, size: u32) -> EcResult<()> {
+        EcRequestFlashErase { offset, size }.send_command(self)
+    }
+
     pub fn flash_notify(&self, flag: MecFlashNotify) -> EcResult<()> {
         let _data = EcRequestFlashNotify { flags: flag as u8 }.send_command(self)?;
         Ok(())
@@ -444,6 +544,18 @@ impl CrosEc {
         self.flash_notify(MecFlashNotify::AccessSpiDone)?;
 
         Ok(flash_bin)
+    }
+
+    pub fn protect_ec_flash(
+        &self,
+        mask: u32,
+        flags: &[FlashProtectFlags],
+    ) -> EcResult<EcResponseFlashProtect> {
+        EcRequestFlashProtect {
+            mask,
+            flags: flags.iter().fold(0, |x, y| x + (*y as u32)),
+        }
+        .send_command(self)
     }
 
     pub fn test_ec_flash_read(&self) -> EcResult<()> {

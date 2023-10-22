@@ -20,10 +20,14 @@ pub enum EcCommands {
     /// Command to read data from EC memory map
     ReadMemMap = 0x07,
     GetCmdVersions = 0x08,
-    /// Read section of EC flash
+    FlashInfo = 0x10,
+    /// Write section of EC flash
     FlashRead = 0x11,
     /// Write section of EC flash
     FlashWrite = 0x12,
+    /// Erase section of EC flash
+    FlashErase = 0x13,
+    FlashProtect = 0x15,
     PwmGetKeyboardBacklight = 0x0022,
     PwmSetKeyboardBacklight = 0x0023,
     I2cPassthrough = 0x9e,

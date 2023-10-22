@@ -3,6 +3,8 @@ use core::fmt;
 use num_derive::FromPrimitive;
 
 use super::{command::*, input_deck::INPUT_DECK_SLOTS};
+#[cfg(feature = "uefi")]
+use core::prelude::rust_2021::derive;
 
 #[repr(C, packed)]
 pub struct EcRequestGetVersion {}
@@ -60,6 +62,26 @@ impl EcRequest<EcResponseGetCmdVersionsV1> for EcRequestGetCmdVersionsV1 {
     }
 }
 
+pub struct EcRequestFlashInfo {}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, Debug)]
+pub struct EcResponseFlashInfo {
+    pub flash_size: u32,
+    pub write_block_size: u32,
+    pub erase_block_size: u32,
+    pub protect_block_size: u32,
+    // New fields in version 1 of the command
+    pub write_ideal_size: u32,
+    pub flags: u32,
+}
+
+impl EcRequest<EcResponseFlashInfo> for EcRequestFlashInfo {
+    fn command_id() -> EcCommands {
+        EcCommands::FlashInfo
+    }
+}
+
 pub struct EcRequestFlashRead {
     pub offset: u32,
     pub size: u32,
@@ -68,6 +90,64 @@ pub struct EcRequestFlashRead {
 impl EcRequest<()> for EcRequestFlashRead {
     fn command_id() -> EcCommands {
         EcCommands::FlashRead
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestFlashWrite {
+    pub offset: u32,
+    pub size: u32,
+    /// Dynamically sized array (data copied after this struct)
+    pub data: [u8; 0],
+}
+impl EcRequest<()> for EcRequestFlashWrite {
+    fn command_id() -> EcCommands {
+        EcCommands::FlashWrite
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestFlashErase {
+    pub offset: u32,
+    pub size: u32,
+}
+
+impl EcRequest<()> for EcRequestFlashErase {
+    fn command_id() -> EcCommands {
+        EcCommands::FlashErase
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum FlashProtectFlags {
+    ProtectRoAtBoot = 1 << 0,
+    ProtectRoNow = 1 << 1,
+    ProtectAllNow = 1 << 2,
+    ProtectGpioAsserted = 1 << 3,
+    /// At least one flash bank is stuck and can't be unlocked
+    ErrorStruck = 1 << 4,
+    ErrorInconsistent = 1 << 5,
+    ProtectAllAtBoot = 1 << 6,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestFlashProtect {
+    pub mask: u32,
+    pub flags: u32,
+}
+
+pub struct EcResponseFlashProtect {
+    /// Current flash protect flags
+    pub flags: u32,
+    /// Flags that are valid on this platform
+    pub valid_flags: u32,
+    /// Flags that can be currently written (depending on protection status)
+    pub writeable_flags: u32,
+}
+
+impl EcRequest<EcResponseFlashProtect> for EcRequestFlashProtect {
+    fn command_id() -> EcCommands {
+        EcCommands::FlashProtect
     }
 }
 
