@@ -60,6 +60,17 @@ impl EcRequest<EcResponseGetCmdVersionsV1> for EcRequestGetCmdVersionsV1 {
     }
 }
 
+pub struct EcRequestFlashRead {
+    pub offset: u32,
+    pub size: u32,
+}
+
+impl EcRequest<()> for EcRequestFlashRead {
+    fn command_id() -> EcCommands {
+        EcCommands::FlashRead
+    }
+}
+
 #[repr(C, packed)]
 pub struct EcRequestPwmSetKeyboardBacklight {
     pub percent: u8,

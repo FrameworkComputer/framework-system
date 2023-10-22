@@ -15,6 +15,8 @@ pub mod uefi;
 
 #[cfg(not(feature = "uefi"))]
 use std::fs;
+#[cfg(all(not(feature = "uefi"), feature = "std"))]
+use std::io::prelude::*;
 
 #[cfg(not(feature = "uefi"))]
 use crate::audio_card::check_synaptics_fw_version;
@@ -125,6 +127,7 @@ pub struct Cli {
     pub capsule: Option<String>,
     pub dump: Option<String>,
     pub ho2_capsule: Option<String>,
+    pub dump_ec_flash: Option<String>,
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
     pub intrusion: bool,
@@ -389,6 +392,23 @@ fn print_esrt() {
     }
 }
 
+fn dump_ec_flash(ec: &CrosEc, dump_path: &str) {
+    let flash_bin = ec.get_entire_ec_flash().unwrap();
+
+    #[cfg(all(not(feature = "uefi"), feature = "std"))]
+    {
+        let mut file = fs::File::create(dump_path).unwrap();
+        file.write_all(&flash_bin).unwrap();
+    }
+    #[cfg(feature = "uefi")]
+    {
+        let ret = crate::uefi::fs::shell_write_file(dump_path, &flash_bin);
+        if ret.is_err() {
+            println!("Failed to dump EC FW image.");
+        }
+    }
+}
+
 pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     #[cfg(feature = "uefi")]
     {
@@ -522,6 +542,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         println!("Self-Test");
         let result = selftest(&ec);
         if result.is_none() {
+            println!("FAILED!!");
             return 1;
         }
     } else if args.power {
@@ -655,6 +676,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 analyze_ccgx_pd_fw(pd_bin);
             }
         }
+    } else if let Some(dump_path) = &args.dump_ec_flash {
+        println!("Dumping to {}", dump_path);
+        dump_ec_flash(&ec, dump_path);
     }
 
     0
@@ -690,6 +714,7 @@ Options:
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
       --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
+      --dump-ec-flash <DUMP_EC_FLASH>  Dump EC flash contents
   -t, --test                 Run self-test to check if interaction with EC is possible
   -h, --help                 Print help information
     "#
@@ -730,8 +755,11 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     println!("  Reading EC Build Version");
     print_err(ec.version_info())?;
 
-    println!("  Reading EC Flash");
+    println!("  Reading EC Flash by EC");
     ec.flash_version()?;
+
+    println!("  Reading EC Flash directly");
+    ec.test_ec_flash_read().ok()?;
 
     println!("  Getting power info from EC");
     power::power_info(ec)?;

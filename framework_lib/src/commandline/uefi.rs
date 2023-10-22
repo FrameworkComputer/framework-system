@@ -67,6 +67,7 @@ pub fn parse(args: &[String]) -> Cli {
         privacy: false,
         pd_bin: None,
         ec_bin: None,
+        dump_ec_flash: None,
         capsule: None,
         dump: None,
         ho2_capsule: None,
@@ -288,6 +289,14 @@ pub fn parse(args: &[String]) -> Cli {
                 Some(args[i + 1].clone())
             } else {
                 println!("--ho2-capsule requires extra argument to denote input file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--dump-ec-flash" {
+            cli.dump_ec_flash = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--dump-ec-flash requires extra argument to denote input file");
                 None
             };
             found_an_option = true;

@@ -77,6 +77,10 @@ struct ClapCli {
     #[arg(long)]
     ho2_capsule: Option<std::path::PathBuf>,
 
+    /// Dump EC flash contents
+    #[arg(long)]
+    dump_ec_flash: Option<std::path::PathBuf>,
+
     /// Show status of intrusion switch
     #[arg(long)]
     intrusion: bool,
@@ -151,6 +155,9 @@ pub fn parse(args: &[String]) -> Cli {
         dump: args.dump.map(|x| x.into_os_string().into_string().unwrap()),
         ho2_capsule: args
             .ho2_capsule
+            .map(|x| x.into_os_string().into_string().unwrap()),
+        dump_ec_flash: args
+            .dump_ec_flash
             .map(|x| x.into_os_string().into_string().unwrap()),
         intrusion: args.intrusion,
         inputmodules: args.inputmodules,

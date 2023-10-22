@@ -14,6 +14,7 @@ use crate::smbios;
 use crate::uefi::shell_get_execution_break_flag;
 use crate::util::assert_win_len;
 
+use log::Level;
 use num_derive::FromPrimitive;
 
 pub mod command;
@@ -41,6 +42,9 @@ use commands::*;
 use self::command::EcCommands;
 use self::input_deck::InputDeckStatus;
 
+// 512K
+pub const EC_FLASH_SIZE: usize = 512 * 1024;
+
 /// Total size of EC memory mapped region
 const EC_MEMMAP_SIZE: u16 = 0xFF;
 
@@ -48,11 +52,20 @@ const EC_MEMMAP_SIZE: u16 = 0xFF;
 /// representing 'EC' in ASCII (0x20 == 'E', 0x21 == 'C')
 const EC_MEMMAP_ID: u16 = 0x20;
 
+const _FLASH_BASE: u32 = 0x0; // 0x80000
+const _FLASH_RO_BASE: u32 = 0x0;
+const _FLASH_RO_SIZE: u32 = 0x3C000;
+const _FLASH_RW_BASE: u32 = 0x40000;
+const _FLASH_RW_SIZE: u32 = 0x39000;
+const FLASH_PROGRAM_OFFSET: u32 = 0x1000;
+
 #[derive(PartialEq)]
-enum MecFlashNotify {
-    //Start = 0x01,
-    Finished = 0x02,
-    FlashPd = 0x11,
+pub enum MecFlashNotify {
+    AccessSpi = 0x00,
+    FirmwareStart = 0x01,
+    FirmwareDone = 0x02,
+    AccessSpiDone = 0x03,
+    FlashPd = 0x16,
 }
 
 pub type EcResult<T> = Result<T, EcError>;
@@ -148,7 +161,7 @@ impl CrosEc {
         let lock = if lock {
             MecFlashNotify::FlashPd
         } else {
-            MecFlashNotify::Finished
+            MecFlashNotify::FirmwareDone
         } as u8;
         match self.send_command(EcCommands::FlashNotified as u16, 0, &[lock]) {
             Ok(vec) if !vec.is_empty() => Err(EcError::DeviceError(
@@ -352,6 +365,121 @@ impl CrosEc {
         }
 
         Ok(kblight.percent)
+    }
+
+    pub fn flash_notify(&self, flag: MecFlashNotify) -> EcResult<()> {
+        let _data = EcRequestFlashNotify { flags: flag as u8 }.send_command(self)?;
+        Ok(())
+    }
+
+    /// Read a section of EC flash
+    /// Maximum size to read is 0x80/128 bytes at a time
+    /// Must `self.flash_notify(MecFlashNotify::AccessSpi)?;` first, otherwise it'll return all 0s
+    pub fn read_ec_flash_chunk(&self, offset: u32, size: u32) -> EcResult<Vec<u8>> {
+        // TODO: Windows asserts
+        //assert!(size <= 0x80); // TODO: I think this is EC_LPC_HOST_PACKET_SIZE - size_of::<EcHostResponse>()
+        let data = EcRequestFlashRead { offset, size }.send_command_vec(self);
+        let data = match data {
+            Ok(data) => data,
+            Err(err) => return Err(err),
+        };
+
+        // TODO: Windows asserts because it returns more data
+        //debug_assert!(data.len() == size as usize); // Make sure we get back what was requested
+        Ok(data[..size as usize].to_vec())
+    }
+
+    pub fn read_ec_flash(&self, offset: u32, size: u32) -> EcResult<Vec<u8>> {
+        let mut flash_bin: Vec<u8> = Vec::with_capacity(EC_FLASH_SIZE);
+
+        // Read in chunks of size 0x80 or just a single small chunk
+        let (chunk_size, chunks) = if size <= 0x80 {
+            (size, 1)
+        } else {
+            (0x80, size / 0x80)
+        };
+        for chunk_no in 0..chunks {
+            #[cfg(feature = "uefi")]
+            if shell_get_execution_break_flag() {
+                return Err(EcError::DeviceError("Execution interrupted".to_string()));
+            }
+
+            let offset = offset + chunk_no * chunk_size;
+            let cur_chunk_size = std::cmp::min(chunk_size, size - chunk_no * chunk_size);
+            if log_enabled!(Level::Warn) {
+                if chunk_no % 10 == 0 {
+                    println!();
+                    print!(
+                        "Reading chunk {:>4}/{:>4} ({:>6}/{:>6}): X",
+                        chunk_no,
+                        chunks,
+                        offset,
+                        cur_chunk_size * chunks
+                    );
+                } else {
+                    print!("X");
+                }
+            }
+
+            let chunk = self.read_ec_flash_chunk(offset, cur_chunk_size);
+            match chunk {
+                Ok(chunk) => {
+                    flash_bin.extend(chunk);
+                }
+                Err(err) => {
+                    error!("  Failed to read chunk: {:?}", err);
+                }
+            }
+            os_specific::sleep(100);
+        }
+
+        Ok(flash_bin)
+    }
+
+    pub fn get_entire_ec_flash(&self) -> EcResult<Vec<u8>> {
+        self.flash_notify(MecFlashNotify::AccessSpi)?;
+
+        let flash_bin = self.read_ec_flash(0, EC_FLASH_SIZE as u32)?;
+
+        self.flash_notify(MecFlashNotify::AccessSpiDone)?;
+
+        Ok(flash_bin)
+    }
+
+    pub fn test_ec_flash_read(&self) -> EcResult<()> {
+        // TODO: Perhaps we could have some more global flag to avoid setting and unsetting that ever time
+        self.flash_notify(MecFlashNotify::AccessSpi)?;
+
+        println!("  EC Test");
+        println!("    Read first row of flash.");
+        // Make sure we can read a full flash row
+        let data = self.read_ec_flash(0, 0x80).unwrap();
+        if data[0..4] != [0x10, 0x00, 0x00, 0xF7] {
+            println!("      INVALID start");
+            return Err(EcError::DeviceError("INVALID start".to_string()));
+        }
+        if !data[4..].iter().all(|x| *x == 0xFF) {
+            println!("      INVALID end");
+            return Err(EcError::DeviceError("INVALID end".to_string()));
+        }
+        debug!("Expected 10 00 00 F7 and rest all FF");
+        debug!("{:02X?}", data);
+
+        println!("    Read first 16 bytes of firmware.");
+        // Make sure we can read at an offset and with arbitrary length
+        let data = self.read_ec_flash(FLASH_PROGRAM_OFFSET, 16).unwrap();
+        if data[0..4] != [0x50, 0x48, 0x43, 0x4D] {
+            println!("      INVALID: {:02X?}", &data[0..3]);
+            return Err(EcError::DeviceError(format!(
+                "INVALID: {:02X?}",
+                &data[0..3]
+            )));
+        }
+        debug!("Expected beginning with 50 48 43 4D ('PHCM' in ASCII)");
+        debug!("{:02X?}", data);
+
+        self.flash_notify(MecFlashNotify::AccessSpiDone)?;
+        Ok(())
     }
 
     /// Requests recent console output from EC and constantly asks for more
