@@ -181,7 +181,7 @@ impl CrosEc {
 
     pub fn dump_mem_region(&self) -> Option<Vec<u8>> {
         // Crashes on Linux cros_ec driver if we read the last byte
-        self.read_memory(0x00, EC_MEMMAP_SIZE-1)
+        self.read_memory(0x00, EC_MEMMAP_SIZE - 1)
     }
 
     /// Get EC firmware build information
