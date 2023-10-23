@@ -77,6 +77,9 @@ pub struct EcResponseFlashInfo {
 }
 
 impl EcRequest<EcResponseFlashInfo> for EcRequestFlashInfo {
+    fn command_version() -> u8 {
+        1
+    }
     fn command_id() -> EcCommands {
         EcCommands::FlashInfo
     }

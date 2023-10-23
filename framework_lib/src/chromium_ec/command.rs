@@ -93,14 +93,14 @@ impl<T: EcRequest<R>, R> EcRequestRaw<R> for T {
     fn command_id_u16() -> u16 {
         Self::command_id() as u16
     }
+    fn command_version() -> u8 {
+        Self::command_version()
+    }
 }
 
 pub trait EcRequestRaw<R> {
     fn command_id_u16() -> u16;
-    // Can optionally override this
-    fn command_version() -> u8 {
-        0
-    }
+    fn command_version() -> u8;
 
     fn format_request(&self) -> &[u8]
     where
@@ -160,7 +160,7 @@ pub trait EcRequestRaw<R> {
         let expected = response.len() != std::mem::size_of::<R>();
         if expected {
             return Err(EcError::DeviceError(format!(
-                "Returned data size {} is not the expted size: {}",
+                "Returned data size ({}) is not the expted size: {}",
                 response.len(),
                 std::mem::size_of::<R>()
             )));
