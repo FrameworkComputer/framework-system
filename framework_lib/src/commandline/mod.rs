@@ -648,6 +648,8 @@ Options:
       --capsule <CAPSULE>    Parse UEFI Capsule information from binary file
       --intrusion            Show status of intrusion switch
       --inputmodules         Show status of the input modules (Framework 16 only)
+      --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')
+      --fp-brightness [<VAL>]Get or set fingerprint LED brightness level [possible values: high, medium, low]
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
   -t, --test                 Run self-test to check if interaction with EC is possible

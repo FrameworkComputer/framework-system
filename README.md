@@ -72,6 +72,13 @@ All of these need EC communication support in order to work.
 - [x] Get information about CCGX PD Controllers (`--pd-info`)
 - [x] Show status of intrusion switches (`--intrusion`)
 - [x] Show status of privacy switches (`--privacy`)
+- [x] Check recent EC console output (`--console recent`)
+
+###### Changing settings
+
+- [x] Get and set keyboard brightness (`--kblight`)
+- [x] Get and set battery charge limit (`--charge-limit`)
+- [x] Get and set fingerprint LED brightness (`--fp-brightness`)
 
 ###### Communication with Embedded Controller
 
