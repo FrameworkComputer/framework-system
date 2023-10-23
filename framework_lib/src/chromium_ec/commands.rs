@@ -1,3 +1,5 @@
+use num_derive::FromPrimitive;
+
 use super::{command::*, input_deck::INPUT_DECK_SLOTS};
 
 #[repr(C, packed)]
@@ -395,5 +397,34 @@ impl EcRequest<EcResponseChargeLimitControl> for EcRequestChargeLimitControl {
 
 /*
  * Configure the behavior of the charge limit control.
+ * TODO: Use this
  */
 pub const EC_CHARGE_LIMIT_RESTORE: u8 = 0x7F;
+
+#[repr(u8)]
+#[derive(Debug, FromPrimitive)]
+pub enum FpLedBrightnessLevel {
+    High = 0,
+    Medium = 1,
+    Low = 2,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestFpLedLevelControl {
+    /// See enum FpLedBrightnessLevel
+    pub set_level: u8,
+    /// Boolean. >1 to get the level
+    pub get_level: u8,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseFpLedLevelControl {
+    pub level: u8,
+}
+
+impl EcRequest<EcResponseFpLedLevelControl> for EcRequestFpLedLevelControl {
+    fn command_id() -> EcCommands {
+        EcCommands::FpLedLevelControl
+    }
+}

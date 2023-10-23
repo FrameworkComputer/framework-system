@@ -12,7 +12,7 @@ use uefi::Identify;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::Cli;
 
-use super::{ConsoleArg, InputDeckModeArg};
+use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg};
 
 /// Get commandline arguments from UEFI environment
 pub fn get_args(boot_services: &BootServices) -> Vec<String> {
@@ -74,6 +74,7 @@ pub fn parse(args: &[String]) -> Cli {
         inputmodules: false,
         input_deck_mode: None,
         charge_limit: None,
+        fp_brightness: None,
         kblight: None,
         console: None,
         // This is the only driver that works on UEFI
@@ -176,6 +177,23 @@ pub fn parse(args: &[String]) -> Cli {
                         "Invalid value for --kblight: '{}'. Must be integer < 100.",
                         args[i + 1]
                     );
+                    None
+                }
+            } else {
+                Some(None)
+            };
+            found_an_option = true;
+        } else if arg == "--fp-brightness" {
+            cli.fp_brightness = if args.len() > i + 1 {
+                let fp_brightness_arg = &args[i + 1];
+                if fp_brightness_arg == "high" {
+                    Some(Some(FpBrightnessArg::High))
+                } else if fp_brightness_arg == "medium" {
+                    Some(Some(FpBrightnessArg::Medium))
+                } else if fp_brightness_arg == "low" {
+                    Some(Some(FpBrightnessArg::Low))
+                } else {
+                    println!("Invalid value for --fp-brightness: {}", fp_brightness_arg);
                     None
                 }
             } else {

@@ -29,6 +29,7 @@ use crate::ccgx::hid::{check_ccg_fw_version, find_devices, DP_CARD_PID, HDMI_CAR
 use crate::ccgx::{self, SiliconId::*};
 use crate::chromium_ec;
 use crate::chromium_ec::commands::DeckStateMode;
+use crate::chromium_ec::commands::FpLedBrightnessLevel;
 use crate::chromium_ec::print_err;
 use crate::chromium_ec::EcError;
 use crate::chromium_ec::EcResult;
@@ -56,6 +57,23 @@ use core::prelude::rust_2021::derive;
 pub enum ConsoleArg {
     Recent,
     Follow,
+}
+
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum FpBrightnessArg {
+    High,
+    Medium,
+    Low,
+}
+impl From<FpBrightnessArg> for FpLedBrightnessLevel {
+    fn from(w: FpBrightnessArg) -> FpLedBrightnessLevel {
+        match w {
+            FpBrightnessArg::High => FpLedBrightnessLevel::High,
+            FpBrightnessArg::Medium => FpLedBrightnessLevel::Medium,
+            FpBrightnessArg::Low => FpLedBrightnessLevel::Low,
+        }
+    }
 }
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
@@ -103,6 +121,7 @@ pub struct Cli {
     pub inputmodules: bool,
     pub input_deck_mode: Option<InputDeckModeArg>,
     pub charge_limit: Option<Option<u8>>,
+    pub fp_brightness: Option<Option<FpBrightnessArg>>,
     pub kblight: Option<Option<u8>>,
     pub console: Option<ConsoleArg>,
     pub help: bool,
@@ -440,6 +459,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         ec.set_input_deck_mode((*mode).into()).unwrap();
     } else if let Some(maybe_limit) = args.charge_limit {
         print_err(handle_charge_limit(&ec, maybe_limit));
+    } else if let Some(maybe_brightness) = &args.fp_brightness {
+        print_err(handle_fp_brightness(&ec, *maybe_brightness));
     } else if let Some(Some(kblight)) = args.kblight {
         assert!(kblight <= 100);
         ec.set_keyboard_backlight(kblight);
@@ -861,6 +882,17 @@ fn handle_charge_limit(ec: &CrosEc, maybe_limit: Option<u8>) -> EcResult<()> {
 
     let (min, max) = ec.get_charge_limit()?;
     println!("Minimum {}%, Maximum {}%", min, max);
+
+    Ok(())
+}
+
+fn handle_fp_brightness(ec: &CrosEc, maybe_brightness: Option<FpBrightnessArg>) -> EcResult<()> {
+    if let Some(brightness) = maybe_brightness {
+        ec.set_fp_led_level(brightness.into())?;
+    }
+
+    let level = ec.get_fp_led_level()?;
+    println!("Fingerprint LED Brightness: {:?}%", level);
 
     Ok(())
 }
