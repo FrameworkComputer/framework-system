@@ -176,11 +176,11 @@ impl CrosEc {
         match self.read_memory(EC_MEMMAP_ID, 2) {
             Some(ec_id) => {
                 if ec_id.len() != 2 {
-                    println!("  Unexpected length returned: {:?}", ec_id.len());
+                    error!("  Unexpected length returned: {:?}", ec_id.len());
                     return None;
                 }
                 if ec_id[0] != b'E' || ec_id[1] != b'C' {
-                    println!("  This machine doesn't look like it has a Framework EC");
+                    error!("  This machine doesn't look like it has a Framework EC");
                     None
                 } else {
                     println!("  Verified that Framework EC is present!");
@@ -188,7 +188,7 @@ impl CrosEc {
                 }
             }
             None => {
-                println!("  Failed to read EC ID from memory map");
+                error!("  Failed to read EC ID from memory map");
                 None
             }
         }
@@ -361,7 +361,7 @@ impl CrosEc {
         // The enabled field is deprecated and must always be 1
         debug_assert_eq!(kblight.enabled, 1);
         if !kblight.enabled == 0 {
-            println!("Should always be enabled, even if OFF");
+            error!("Should always be enabled, even if OFF");
         }
 
         Ok(kblight.percent)
@@ -623,7 +623,7 @@ impl CrosEc {
                     console.push_str(ascii.as_str());
                 }
                 Err(err) => {
-                    println!("Err: {:?}", err);
+                    error!("Err: {:?}", err);
                     return Ok(console);
                     //return Err(err)
                 }
