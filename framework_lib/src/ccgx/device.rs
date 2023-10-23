@@ -37,9 +37,15 @@ pub enum PdPort {
 impl PdPort {
     /// SMBUS/I2C Address
     fn i2c_address(&self) -> u16 {
-        match self {
-            PdPort::Left01 => 0x08,
-            PdPort::Right23 => 0x40,
+        let config = Config::get();
+        let platform = &(*config).as_ref().unwrap().platform;
+
+        match (platform, self) {
+            (Platform::Framework13Amd | Platform::Framework16, PdPort::Left01) => 0x42,
+            (Platform::Framework13Amd | Platform::Framework16, PdPort::Right23) => 0x40,
+            // Intel Platforms
+            (_, PdPort::Left01) => 0x08,
+            (_, PdPort::Right23) => 0x40,
         }
     }
 
@@ -54,11 +60,12 @@ impl PdPort {
             (Platform::IntelGen12, PdPort::Right23) => 7,
             (Platform::IntelGen13, PdPort::Left01) => 6,
             (Platform::IntelGen13, PdPort::Right23) => 7,
-            // TODO: AMD
-            (_, _) => Err(EcError::DeviceError(format!(
-                "Unsupported platform: {:?} {:?}",
-                platform, self
-            )))?,
+            (Platform::Framework13Amd | Platform::Framework16, PdPort::Left01) => 1,
+            (Platform::Framework13Amd | Platform::Framework16, PdPort::Right23) => 2,
+            // (_, _) => Err(EcError::DeviceError(format!(
+            //     "Unsupported platform: {:?} {:?}",
+            //     platform, self
+            // )))?,
         })
     }
 }
@@ -165,6 +172,12 @@ impl PdController {
 
     fn i2c_read(&self, addr: u16, len: u16) -> EcResult<EcI2cPassthruResponse> {
         trace!("i2c_read(addr: {}, len: {})", addr, len);
+        if usize::from(len) > MAX_I2C_CHUNK {
+            return EcResult::Err(EcError::DeviceError(format!(
+                "i2c_read too long. Must be <128, is: {}",
+                len
+            )));
+        }
         let addr_bytes = u16::to_le_bytes(addr);
         let messages = vec![
             EcParamsI2cPassthruMsg {

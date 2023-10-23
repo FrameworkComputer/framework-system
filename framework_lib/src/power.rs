@@ -11,6 +11,7 @@ use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, MainP
 use crate::chromium_ec::command::EcRequestRaw;
 use crate::chromium_ec::commands::{EcRequestReadPdVersion, EcRequestUsbPdPowerInfo};
 use crate::chromium_ec::{print_err_ref, CrosEc, CrosEcDriver, EcResult};
+use crate::smbios::get_platform;
 
 /// Maximum length of strings in memmap
 const EC_MEMMAP_TEXT_MAX: u16 = 8;
@@ -360,10 +361,10 @@ fn check_ac(ec: &CrosEc, port: u8) -> EcResult<UsbPdPowerInfo> {
     })
 }
 
-pub fn get_pd_info(ec: &CrosEc) -> Vec<EcResult<UsbPdPowerInfo>> {
+pub fn get_pd_info(ec: &CrosEc, ports: u8) -> Vec<EcResult<UsbPdPowerInfo>> {
     // 4 ports on our current laptops
     let mut info = vec![];
-    for port in 0..4 {
+    for port in 0..ports {
         info.push(check_ac(ec, port));
     }
 
@@ -371,16 +372,28 @@ pub fn get_pd_info(ec: &CrosEc) -> Vec<EcResult<UsbPdPowerInfo>> {
 }
 
 pub fn get_and_print_pd_info(ec: &CrosEc) {
-    let infos = get_pd_info(ec);
-    for (port, info) in infos.iter().enumerate().take(4) {
+    let fl16 = Some(crate::util::Platform::Framework16) == get_platform();
+    let ports = 4; // All our platforms have 4 PD ports so far
+    let infos = get_pd_info(ec, ports);
+    for (port, info) in infos.iter().enumerate().take(ports.into()) {
         println!(
             "USB-C Port {} ({}):",
             port,
             match port {
                 0 => "Right Back",
                 1 => "Right Front",
-                2 => "Left Front",
-                3 => "Left Back",
+                2 =>
+                    if fl16 {
+                        "Left Middle"
+                    } else {
+                        "Left Front"
+                    },
+                3 =>
+                    if fl16 {
+                        "Left Middle"
+                    } else {
+                        "Right Front"
+                    },
                 _ => "??",
             }
         );

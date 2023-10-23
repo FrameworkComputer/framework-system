@@ -671,7 +671,8 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     power::power_info(ec)?;
 
     println!("  Getting AC info from EC");
-    if power::get_pd_info(ec).iter().any(|x| x.is_err()) {
+    // All our laptops have at least 4 PD ports so far
+    if power::get_pd_info(ec, 4).iter().any(|x| x.is_err()) {
         return None;
     }
 

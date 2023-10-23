@@ -76,8 +76,8 @@ All of these need EC communication support in order to work.
 ###### Communication with Embedded Controller
 
 - [x] Framework Laptop 13 (Intel 11-13th Gen)
-- [ ] Framework Laptop 13 (AMD Ryzen)
-- [ ] Framework Laptop 16
+- [x] Framework Laptop 13 (AMD Ryzen)
+- [x] Framework Laptop 16 (AMD Ryzen)
 - [x] Port I/O communication on Linux
 - [x] Port I/O communication on UEFI
 - [x] Using `cros_ec` driver in Linux kernel

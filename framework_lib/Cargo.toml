@@ -27,7 +27,7 @@ cros_ec_driver = []
 win_driver = []
 
 [build-dependencies]
-built = { version = "0.5", no-default-features = true, features = ["chrono", "git2"] }
+built = { version = "0.5", features = ["chrono", "git2"] }
 
 [dependencies]
 lazy_static = "1.4.0"
