@@ -151,7 +151,6 @@ pub fn parse(args: &[String]) -> Cli {
                 None
             };
             found_an_option = true;
-        } else if arg == "-t" || arg == "--test" {
         } else if arg == "--kblight" {
             cli.kblight = if args.len() > i + 1 {
                 if let Ok(percent) = args[i + 1].parse::<u8>() {
