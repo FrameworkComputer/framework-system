@@ -30,6 +30,8 @@ use crate::ccgx::{self, SiliconId::*};
 use crate::chromium_ec;
 use crate::chromium_ec::commands::DeckStateMode;
 use crate::chromium_ec::print_err;
+use crate::chromium_ec::EcError;
+use crate::chromium_ec::EcResult;
 #[cfg(feature = "linux")]
 use crate::csme;
 use crate::ec_binary;
@@ -100,6 +102,7 @@ pub struct Cli {
     pub intrusion: bool,
     pub inputmodules: bool,
     pub input_deck_mode: Option<InputDeckModeArg>,
+    pub charge_limit: Option<Option<u8>>,
     pub kblight: Option<Option<u8>>,
     pub console: Option<ConsoleArg>,
     pub help: bool,
@@ -435,6 +438,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(mode) = &args.input_deck_mode {
         println!("Set mode to: {:?}", mode);
         ec.set_input_deck_mode((*mode).into()).unwrap();
+    } else if let Some(maybe_limit) = args.charge_limit {
+        print_err(handle_charge_limit(&ec, maybe_limit));
     } else if let Some(Some(kblight)) = args.kblight {
         assert!(kblight <= 100);
         ec.set_keyboard_backlight(kblight);
@@ -840,4 +845,22 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
     }
 
     Some(header)
+}
+
+fn handle_charge_limit(ec: &CrosEc, maybe_limit: Option<u8>) -> EcResult<()> {
+    let (cur_min, _cur_max) = ec.get_charge_limit()?;
+    if let Some(limit) = maybe_limit {
+        // Prevent accidentally setting a very low limit
+        if limit < 25 {
+            return Err(EcError::DeviceError(
+                "Not recommended to set charge limit below 25%".to_string(),
+            ));
+        }
+        ec.set_charge_limit(cur_min, limit)?;
+    }
+
+    let (min, max) = ec.get_charge_limit()?;
+    println!("Minimum {}%, Maximum {}%", min, max);
+
+    Ok(())
 }

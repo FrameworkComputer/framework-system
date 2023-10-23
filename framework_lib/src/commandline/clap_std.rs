@@ -89,6 +89,10 @@ struct ClapCli {
     #[arg(long)]
     input_deck_mode: Option<InputDeckModeArg>,
 
+    /// Get or set max charge limit
+    #[arg(long)]
+    charge_limit: Option<Option<u8>>,
+
     /// Set keyboard backlight percentage or get, if no value provided
     #[arg(long)]
     kblight: Option<Option<u8>>,
@@ -142,6 +146,7 @@ pub fn parse(args: &[String]) -> Cli {
         intrusion: args.intrusion,
         inputmodules: args.inputmodules,
         input_deck_mode: args.input_deck_mode,
+        charge_limit: args.charge_limit,
         kblight: args.kblight,
         console: args.console,
         driver: args.driver,

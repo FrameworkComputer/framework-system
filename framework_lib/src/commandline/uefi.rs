@@ -73,6 +73,7 @@ pub fn parse(args: &[String]) -> Cli {
         intrusion: false,
         inputmodules: false,
         input_deck_mode: None,
+        charge_limit: None,
         kblight: None,
         console: None,
         // This is the only driver that works on UEFI
@@ -149,6 +150,21 @@ pub fn parse(args: &[String]) -> Cli {
                     "Need to provide a value for --input-deck-mode. Either `auto`, `off`, or `on`"
                 );
                 None
+            };
+            found_an_option = true;
+        } else if arg == "--charge-limit" {
+            cli.charge_limit = if args.len() > i + 1 {
+                if let Ok(percent) = args[i + 1].parse::<u8>() {
+                    Some(Some(percent))
+                } else {
+                    println!(
+                        "Invalid value for --charge_limit: '{}'. Must be integer < 100.",
+                        args[i + 1]
+                    );
+                    None
+                }
+            } else {
+                Some(None)
             };
             found_an_option = true;
         } else if arg == "--kblight" {

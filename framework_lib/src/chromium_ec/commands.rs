@@ -359,3 +359,41 @@ impl EcRequest<EcResponseGetHwDiag> for EcRequestGetHwDiag {
         EcCommands::GetHwDiag
     }
 }
+
+#[repr(u8)]
+pub enum ChargeLimitControlModes {
+    /// Disable all settings, handled automatically
+    Disable = 0x01,
+    /// Set maxiumum and minimum percentage
+    Set = 0x02,
+    /// Get current setting
+    /// ATTENTION!!! This is the only mode that will return a response
+    Get = 0x08,
+    /// Allow charge to full this time
+    Override = 0x80,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestChargeLimitControl {
+    pub modes: u8,
+    pub max_percentage: u8,
+    pub min_percentage: u8,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseChargeLimitControl {
+    pub max_percentage: u8,
+    pub min_percentage: u8,
+}
+
+impl EcRequest<EcResponseChargeLimitControl> for EcRequestChargeLimitControl {
+    fn command_id() -> EcCommands {
+        EcCommands::ChargeLimitControl
+    }
+}
+
+/*
+ * Configure the behavior of the charge limit control.
+ */
+pub const EC_CHARGE_LIMIT_RESTORE: u8 = 0x7F;

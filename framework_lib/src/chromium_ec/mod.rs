@@ -229,6 +229,33 @@ impl CrosEc {
         Ok((status.microphone == 1, status.camera == 1))
     }
 
+    pub fn set_charge_limit(&self, min: u8, max: u8) -> EcResult<()> {
+        // Sending bytes manually because the Set command, as opposed to the Get command,
+        // does not return any data
+        let limits = &[ChargeLimitControlModes::Set as u8, max, min];
+        let data = self.send_command(EcCommands::ChargeLimitControl as u16, 0, limits)?;
+        assert_eq!(data.len(), 0);
+
+        Ok(())
+    }
+
+    /// Get charge limit in percent (min, max)
+    pub fn get_charge_limit(&self) -> EcResult<(u8, u8)> {
+        let limits = EcRequestChargeLimitControl {
+            modes: ChargeLimitControlModes::Get as u8,
+            max_percentage: 0xFF,
+            min_percentage: 0xFF,
+        }
+        .send_command(self)?;
+
+        debug!(
+            "Min Raw: {}, Max Raw: {}",
+            limits.min_percentage, limits.max_percentage
+        );
+
+        Ok((limits.min_percentage, limits.max_percentage))
+    }
+
     /// Get the intrusion switch status (whether the chassis is open or not)
     pub fn get_intrusion_status(&self) -> EcResult<IntrusionStatus> {
         let status = EcRequestChassisOpenCheck {}.send_command(self)?;
