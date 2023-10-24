@@ -342,6 +342,8 @@ fn print_versions(ec: &CrosEc) {
         if let Ok(csme) = csme::csme_from_sysfs() {
             println!("  Enabled:        {}", csme.enabled);
             println!("  Version:        {}", csme.version);
+        } else {
+            println!("  Unknown");
         }
     }
 }
