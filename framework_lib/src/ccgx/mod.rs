@@ -5,7 +5,7 @@ use core::prelude::rust_2021::derive;
 use num_derive::FromPrimitive;
 use std::fmt;
 
-use crate::chromium_ec::EcResult;
+use crate::chromium_ec::{CrosEc, EcResult};
 
 use self::device::{PdController, PdPort};
 
@@ -214,10 +214,10 @@ pub struct MainPdVersions {
     pub controller23: ControllerVersion,
 }
 
-pub fn get_pd_controller_versions() -> EcResult<PdVersions> {
+pub fn get_pd_controller_versions(ec: &CrosEc) -> EcResult<PdVersions> {
     Ok(PdVersions {
-        controller01: PdController::new(PdPort::Left01).get_fw_versions()?,
-        controller23: PdController::new(PdPort::Right23).get_fw_versions()?,
+        controller01: PdController::new(PdPort::Left01, ec.clone()).get_fw_versions()?,
+        controller23: PdController::new(PdPort::Right23, ec.clone()).get_fw_versions()?,
     })
 }
 

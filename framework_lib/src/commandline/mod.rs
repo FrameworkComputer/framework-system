@@ -133,13 +133,13 @@ fn print_single_pd_details(pd: &PdController) {
     pd.print_fw_info();
 }
 
-fn print_pd_details() {
+fn print_pd_details(ec: &CrosEc) {
     if !is_framework() {
         println!("Only supported on Framework systems");
         return;
     }
-    let pd_01 = PdController::new(PdPort::Left01);
-    let pd_23 = PdController::new(PdPort::Right23);
+    let pd_01 = PdController::new(PdPort::Left01, ec.clone());
+    let pd_23 = PdController::new(PdPort::Right23, ec.clone());
 
     println!("Left / Ports 01");
     print_single_pd_details(&pd_01);
@@ -271,7 +271,7 @@ fn print_versions(ec: &CrosEc) {
 
     println!("PD Controllers");
 
-    if let Ok(pd_versions) = ccgx::get_pd_controller_versions() {
+    if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
         println!("  Right (01)");
         println!(
             "    Main   App:     {}",
@@ -469,7 +469,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.info {
         smbios_info();
     } else if args.pd_info {
-        print_pd_details();
+        print_pd_details(&ec);
     } else if args.dp_hdmi_info {
         #[cfg(not(feature = "uefi"))]
         print_dp_hdmi_details();
@@ -679,8 +679,8 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     // Try to get PD versions through EC
     power::read_pd_version(ec).ok()?;
 
-    let pd_01 = PdController::new(PdPort::Left01);
-    let pd_23 = PdController::new(PdPort::Right23);
+    let pd_01 = PdController::new(PdPort::Left01, ec.clone());
+    let pd_23 = PdController::new(PdPort::Right23, ec.clone());
     println!("  Getting PD01 info");
     print_err(pd_01.get_silicon_id())?;
     print_err(pd_01.get_device_info())?;
