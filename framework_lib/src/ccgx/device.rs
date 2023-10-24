@@ -72,6 +72,7 @@ impl PdPort {
 
 pub struct PdController {
     port: PdPort,
+    ec: CrosEc,
 }
 
 fn passthrough_offset(dev_index: u16) -> u16 {
@@ -159,15 +160,15 @@ pub fn decode_flash_row_size(mode_byte: u8) -> u16 {
 }
 
 impl PdController {
-    pub fn new(port: PdPort) -> Self {
-        PdController { port }
+    pub fn new(port: PdPort, ec: CrosEc) -> Self {
+        PdController { port, ec }
     }
     /// Wrapped with support for dev id
     /// TODO: Should move into chromium_ec module
     /// TODO: Must not call CrosEc::new() otherwise the driver isn't configurable!
     fn send_ec_command(&self, code: u16, dev_index: u16, data: &[u8]) -> EcResult<Vec<u8>> {
         let command_id = code + passthrough_offset(dev_index);
-        CrosEc::new().send_command(command_id, 0, data)
+        self.ec.send_command(command_id, 0, data)
     }
 
     fn i2c_read(&self, addr: u16, len: u16) -> EcResult<EcI2cPassthruResponse> {
@@ -310,7 +311,7 @@ impl PdController {
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::from(&data[4..]);
         println!(
-            "  Bootloader Version: Base: {},  App: {}",
+            "  Bootloader Version:   Base: {},  App: {}",
             base_ver, app_ver
         );
 

@@ -100,6 +100,7 @@ pub trait CrosEcDriver {
     fn send_command(&self, command: u16, command_version: u8, data: &[u8]) -> EcResult<Vec<u8>>;
 }
 
+#[derive(Clone)]
 pub struct CrosEc {
     driver: CrosEcDriverType,
 }
