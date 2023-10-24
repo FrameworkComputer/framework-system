@@ -311,7 +311,7 @@ impl PdController {
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::from(&data[4..]);
         println!(
-            "  Bootloader Version: Base: {},  App: {}",
+            "  Bootloader Version:   Base: {},  App: {}",
             base_ver, app_ver
         );
 

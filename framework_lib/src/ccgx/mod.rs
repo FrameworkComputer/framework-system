@@ -161,7 +161,7 @@ impl fmt::Display for AppVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{}.{}.{} ({:?})",
+            "{}.{}.{:0>2} ({:?})",
             self.major, self.minor, self.circuit, self.application
         )
     }
