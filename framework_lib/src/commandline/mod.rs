@@ -29,7 +29,10 @@ use crate::ccgx::hid::{check_ccg_fw_version, find_devices, DP_CARD_PID, HDMI_CAR
 use crate::ccgx::{self, SiliconId::*};
 use crate::chromium_ec;
 use crate::chromium_ec::commands::DeckStateMode;
+use crate::chromium_ec::commands::FpLedBrightnessLevel;
 use crate::chromium_ec::print_err;
+use crate::chromium_ec::EcError;
+use crate::chromium_ec::EcResult;
 #[cfg(feature = "linux")]
 use crate::csme;
 use crate::ec_binary;
@@ -54,6 +57,23 @@ use core::prelude::rust_2021::derive;
 pub enum ConsoleArg {
     Recent,
     Follow,
+}
+
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum FpBrightnessArg {
+    High,
+    Medium,
+    Low,
+}
+impl From<FpBrightnessArg> for FpLedBrightnessLevel {
+    fn from(w: FpBrightnessArg) -> FpLedBrightnessLevel {
+        match w {
+            FpBrightnessArg::High => FpLedBrightnessLevel::High,
+            FpBrightnessArg::Medium => FpLedBrightnessLevel::Medium,
+            FpBrightnessArg::Low => FpLedBrightnessLevel::Low,
+        }
+    }
 }
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
@@ -100,6 +120,8 @@ pub struct Cli {
     pub intrusion: bool,
     pub inputmodules: bool,
     pub input_deck_mode: Option<InputDeckModeArg>,
+    pub charge_limit: Option<Option<u8>>,
+    pub fp_brightness: Option<Option<FpBrightnessArg>>,
     pub kblight: Option<Option<u8>>,
     pub console: Option<ConsoleArg>,
     pub help: bool,
@@ -437,6 +459,10 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(mode) = &args.input_deck_mode {
         println!("Set mode to: {:?}", mode);
         ec.set_input_deck_mode((*mode).into()).unwrap();
+    } else if let Some(maybe_limit) = args.charge_limit {
+        print_err(handle_charge_limit(&ec, maybe_limit));
+    } else if let Some(maybe_brightness) = &args.fp_brightness {
+        print_err(handle_fp_brightness(&ec, *maybe_brightness));
     } else if let Some(Some(kblight)) = args.kblight {
         assert!(kblight <= 100);
         ec.set_keyboard_backlight(kblight);
@@ -624,6 +650,8 @@ Options:
       --capsule <CAPSULE>    Parse UEFI Capsule information from binary file
       --intrusion            Show status of intrusion switch
       --inputmodules         Show status of the input modules (Framework 16 only)
+      --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')
+      --fp-brightness [<VAL>]Get or set fingerprint LED brightness level [possible values: high, medium, low]
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
   -t, --test                 Run self-test to check if interaction with EC is possible
@@ -842,4 +870,33 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
     }
 
     Some(header)
+}
+
+fn handle_charge_limit(ec: &CrosEc, maybe_limit: Option<u8>) -> EcResult<()> {
+    let (cur_min, _cur_max) = ec.get_charge_limit()?;
+    if let Some(limit) = maybe_limit {
+        // Prevent accidentally setting a very low limit
+        if limit < 25 {
+            return Err(EcError::DeviceError(
+                "Not recommended to set charge limit below 25%".to_string(),
+            ));
+        }
+        ec.set_charge_limit(cur_min, limit)?;
+    }
+
+    let (min, max) = ec.get_charge_limit()?;
+    println!("Minimum {}%, Maximum {}%", min, max);
+
+    Ok(())
+}
+
+fn handle_fp_brightness(ec: &CrosEc, maybe_brightness: Option<FpBrightnessArg>) -> EcResult<()> {
+    if let Some(brightness) = maybe_brightness {
+        ec.set_fp_led_level(brightness.into())?;
+    }
+
+    let level = ec.get_fp_led_level()?;
+    println!("Fingerprint LED Brightness: {:?}%", level);
+
+    Ok(())
 }

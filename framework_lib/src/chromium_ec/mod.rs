@@ -230,6 +230,56 @@ impl CrosEc {
         Ok((status.microphone == 1, status.camera == 1))
     }
 
+    pub fn set_charge_limit(&self, min: u8, max: u8) -> EcResult<()> {
+        // Sending bytes manually because the Set command, as opposed to the Get command,
+        // does not return any data
+        let limits = &[ChargeLimitControlModes::Set as u8, max, min];
+        let data = self.send_command(EcCommands::ChargeLimitControl as u16, 0, limits)?;
+        assert_eq!(data.len(), 0);
+
+        Ok(())
+    }
+
+    /// Get charge limit in percent (min, max)
+    pub fn get_charge_limit(&self) -> EcResult<(u8, u8)> {
+        let limits = EcRequestChargeLimitControl {
+            modes: ChargeLimitControlModes::Get as u8,
+            max_percentage: 0xFF,
+            min_percentage: 0xFF,
+        }
+        .send_command(self)?;
+
+        debug!(
+            "Min Raw: {}, Max Raw: {}",
+            limits.min_percentage, limits.max_percentage
+        );
+
+        Ok((limits.min_percentage, limits.max_percentage))
+    }
+
+    pub fn set_fp_led_level(&self, level: FpLedBrightnessLevel) -> EcResult<()> {
+        // Sending bytes manually because the Set command, as opposed to the Get command,
+        // does not return any data
+        let limits = &[level as u8, 0x00];
+        let data = self.send_command(EcCommands::FpLedLevelControl as u16, 0, limits)?;
+        assert_eq!(data.len(), 0);
+
+        Ok(())
+    }
+
+    /// Get fingerprint led brightness level
+    pub fn get_fp_led_level(&self) -> EcResult<u8> {
+        let res = EcRequestFpLedLevelControl {
+            set_level: 0xFF,
+            get_level: 0xFF,
+        }
+        .send_command(self)?;
+
+        debug!("Level Raw: {}", res.level);
+
+        Ok(res.level)
+    }
+
     /// Get the intrusion switch status (whether the chassis is open or not)
     pub fn get_intrusion_status(&self) -> EcResult<IntrusionStatus> {
         let status = EcRequestChassisOpenCheck {}.send_command(self)?;

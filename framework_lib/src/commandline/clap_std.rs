@@ -4,7 +4,7 @@
 use clap::Parser;
 
 use crate::chromium_ec::CrosEcDriverType;
-use crate::commandline::{Cli, ConsoleArg, InputDeckModeArg};
+use crate::commandline::{Cli, ConsoleArg, FpBrightnessArg, InputDeckModeArg};
 
 /// Swiss army knife for Framework laptops
 #[derive(Parser)]
@@ -89,6 +89,14 @@ struct ClapCli {
     #[arg(long)]
     input_deck_mode: Option<InputDeckModeArg>,
 
+    /// Get or set max charge limit
+    #[arg(long)]
+    charge_limit: Option<Option<u8>>,
+
+    /// Get or set fingerprint LED brightness
+    #[arg(long)]
+    fp_brightness: Option<Option<FpBrightnessArg>>,
+
     /// Set keyboard backlight percentage or get, if no value provided
     #[arg(long)]
     kblight: Option<Option<u8>>,
@@ -142,6 +150,8 @@ pub fn parse(args: &[String]) -> Cli {
         intrusion: args.intrusion,
         inputmodules: args.inputmodules,
         input_deck_mode: args.input_deck_mode,
+        charge_limit: args.charge_limit,
+        fp_brightness: args.fp_brightness,
         kblight: args.kblight,
         console: args.console,
         driver: args.driver,

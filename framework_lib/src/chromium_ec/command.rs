@@ -30,6 +30,10 @@ pub enum EcCommands {
     // Framework specific commands
     /// Configure the behavior of the flash notify
     FlashNotified = 0x3E01,
+    /// Change charge limit
+    ChargeLimitControl = 0x3E03,
+    /// Get/Set Fingerprint LED brightness
+    FpLedLevelControl = 0x3E0E,
     /// Get information about the current chassis open/close status
     ChassisOpenCheck = 0x3E0F,
     /// Get information about historical chassis open/close (intrusion) information
