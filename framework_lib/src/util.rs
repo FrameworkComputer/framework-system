@@ -1,5 +1,6 @@
 //! Miscellaneous utility functions to use across modules
 
+use num::{Num, NumCast};
 use std::prelude::v1::*;
 
 #[cfg(feature = "uefi")]
@@ -131,16 +132,25 @@ fn print_ascii_buffer(buffer: &[u8], newline: bool) {
 ///
 /// Example
 ///
-/// print_multiline_buffer(&[0xa0, 0x00, 0x00, 0x36, 0x62, 0x6e, 0x03, 0x00, 0xc5, 0x11, 0x80, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], 0x2000)
+/// print_multiline_buffer(&[0xa0, 0x00, 0x00, 0x36, 0x62, 0x6e, 0x03, 0x00, 0xc5, 0x11, 0x80, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00], 0x2000)
 /// Output:
-/// 00000000: a000 0036 626e 0300 c511 8035 0000 0000  ...6bn.....5....
-/// 00000010: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+/// 00002000: a000 0036 626e 0300 c511 8035 0000 0000  ...6bn.....5....
+/// 00002010: 0000 0000 0000 0000 0000 0000 0000 00    ................
 pub fn print_multiline_buffer(buffer: &[u8], offset: usize) {
     let chunk_size = 16;
     for (i, chunk) in buffer.chunks(chunk_size).enumerate() {
         print!("{:08x}:", offset + i * chunk_size);
         print_chunk(chunk, false);
+
+        // Make sure ASCII section aligns, even if less than 16 byte chunks
+        if chunk.len() < 16 {
+            let byte_padding = 16 - chunk.len();
+            let space_padding = byte_padding / 2;
+            let padding = byte_padding * 2 + space_padding;
+            print!("{}", " ".repeat(padding));
+        }
         print!("  ");
+
         print_ascii_buffer(chunk, true);
     }
 }
@@ -150,4 +160,13 @@ pub fn find_sequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     haystack
         .windows(needle.len())
         .position(|window| window == needle)
+}
+
+/// Assert length of an EC response from the windows driver
+/// It's always 20 more than expected. TODO: Figure out why
+pub fn assert_win_len<N: Num + std::fmt::Debug + Ord + NumCast + Copy>(left: N, right: N) {
+    #[cfg(feature = "win_driver")]
+    assert_eq!(left, right + NumCast::from(20).unwrap());
+    #[cfg(not(feature = "win_driver"))]
+    assert_eq!(left, right);
 }
