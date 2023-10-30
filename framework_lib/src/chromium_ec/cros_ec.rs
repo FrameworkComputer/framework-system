@@ -55,7 +55,7 @@ struct CrosEcCommandV2 {
     data: [u8; IN_SIZE],
 }
 
-const DEV_PATH: &str = "/dev/cros_ec";
+pub const DEV_PATH: &str = "/dev/cros_ec";
 
 lazy_static! {
     static ref CROS_EC_FD: Arc<Mutex<Option<std::fs::File>>> = Arc::new(Mutex::new(None));
