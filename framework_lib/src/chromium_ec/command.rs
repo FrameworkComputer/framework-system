@@ -19,6 +19,7 @@ pub enum EcCommands {
     GetBuildInfo = 0x04,
     /// Command to read data from EC memory map
     ReadMemMap = 0x07,
+    GetCmdVersions = 0x08,
     PwmGetKeyboardBacklight = 0x0022,
     PwmSetKeyboardBacklight = 0x0023,
     I2cPassthrough = 0x9e,

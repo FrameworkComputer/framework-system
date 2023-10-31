@@ -181,6 +181,18 @@ impl CrosEc {
         }
     }
 
+    pub fn cmd_version_supported(&self, cmd: u16, version: u8) -> EcResult<bool> {
+        let res = EcRequestGetCmdVersionsV1 { cmd: cmd.into() }.send_command(self);
+        let mask = if let Ok(res) = res {
+            res.version_mask
+        } else {
+            let res = EcRequestGetCmdVersionsV0 { cmd: cmd as u8 }.send_command(self)?;
+            res.version_mask
+        };
+
+        Ok(mask & (1 << version) > 0)
+    }
+
     pub fn dump_mem_region(&self) -> Option<Vec<u8>> {
         // Crashes on Linux cros_ec driver if we read the last byte
         self.read_memory(0x00, EC_MEMMAP_SIZE - 1)

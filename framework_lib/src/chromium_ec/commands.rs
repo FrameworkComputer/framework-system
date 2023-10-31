@@ -23,6 +23,42 @@ impl EcRequest<EcResponseGetVersion> for EcRequestGetVersion {
 }
 
 #[repr(C, packed)]
+pub struct EcRequestGetCmdVersionsV0 {
+    pub cmd: u8,
+}
+#[repr(C, packed)]
+#[derive(Debug, Clone, Copy)]
+pub struct EcResponseGetCmdVersionsV0 {
+    pub version_mask: u32,
+}
+impl EcRequest<EcResponseGetCmdVersionsV0> for EcRequestGetCmdVersionsV0 {
+    fn command_id() -> EcCommands {
+        EcCommands::GetCmdVersions
+    }
+    fn command_version() -> u8 {
+        0
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestGetCmdVersionsV1 {
+    pub cmd: u32,
+}
+#[repr(C, packed)]
+#[derive(Debug, Clone, Copy)]
+pub struct EcResponseGetCmdVersionsV1 {
+    pub version_mask: u32,
+}
+impl EcRequest<EcResponseGetCmdVersionsV1> for EcRequestGetCmdVersionsV1 {
+    fn command_id() -> EcCommands {
+        EcCommands::GetCmdVersions
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+
+#[repr(C, packed)]
 pub struct EcRequestPwmSetKeyboardBacklight {
     pub percent: u8,
 }
