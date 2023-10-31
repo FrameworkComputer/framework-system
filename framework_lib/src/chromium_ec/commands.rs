@@ -244,7 +244,13 @@ pub enum ExpansionByStates {
 pub enum ExpansionBayBoard {
     DualInterposer,
     SingleInterposer,
-    Invalid,
+    UmaFans,
+}
+
+#[derive(Debug)]
+pub enum ExpansionBayIssue {
+    NoModule,
+    BadConnection(u8, u8),
 }
 
 // pub to disable unused warnings
@@ -286,12 +292,17 @@ impl EcResponseExpansionBayStatus {
     pub fn hatch_switch_closed(&self) -> bool {
         self.state & (ExpansionByStates::HatchSwitchClosed as u8) != 0
     }
-    pub fn expansion_bay_board(&self) -> Option<ExpansionBayBoard> {
+    pub fn expansion_bay_board(&self) -> Result<ExpansionBayBoard, ExpansionBayIssue> {
         match (self.board_id_1, self.board_id_0) {
-            (BOARD_VERSION_12, BOARD_VERSION_12) => Some(ExpansionBayBoard::DualInterposer),
-            (BOARD_VERSION_11, BOARD_VERSION_15) => Some(ExpansionBayBoard::SingleInterposer),
-            (BOARD_VERSION_15, BOARD_VERSION_15) => None,
-            _ => Some(ExpansionBayBoard::Invalid),
+            (BOARD_VERSION_12, BOARD_VERSION_12) => Ok(ExpansionBayBoard::DualInterposer),
+            (BOARD_VERSION_13, BOARD_VERSION_15) => Ok(ExpansionBayBoard::UmaFans),
+            (BOARD_VERSION_11, BOARD_VERSION_15) => Ok(ExpansionBayBoard::SingleInterposer),
+            (BOARD_VERSION_15, BOARD_VERSION_15) => Err(ExpansionBayIssue::NoModule),
+            // Invalid board IDs. Something wrong, could be interposer not connected
+            _ => Err(ExpansionBayIssue::BadConnection(
+                self.board_id_1,
+                self.board_id_0,
+            )),
         }
     }
 }
