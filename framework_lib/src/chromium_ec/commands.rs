@@ -1,3 +1,5 @@
+use core::fmt;
+
 use num_derive::FromPrimitive;
 
 use super::{command::*, input_deck::INPUT_DECK_SLOTS};
@@ -363,6 +365,18 @@ impl EcResponseGetHwDiag {
         (
             self.hw_diag & (1 << DIAGNOSTICS_NO_LEFT_FAN) != 0,
             self.hw_diag & (1 << DIAGNOSTICS_NO_RIGHT_FAN) != 0,
+        )
+    }
+}
+impl fmt::Display for EcResponseGetHwDiag {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let (left_fan, right_fan) = self.fan_fault();
+        write!(
+            f,
+            "BIOS Done: {}, Fan Fault Left: {}, Right: {}",
+            self.bios_complete != 0,
+            left_fan,
+            right_fan
         )
     }
 }
