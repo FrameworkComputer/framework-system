@@ -33,6 +33,7 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
+
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 use num_traits::FromPrimitive;
@@ -787,6 +788,34 @@ impl CrosEc {
         self.flash_notify(MecFlashNotify::AccessSpiDone)?;
 
         res
+    }
+
+    /// Get the GPU Serial
+    ///
+    pub fn get_gpu_serial(&self) -> EcResult<String> {
+        let gpuserial: EcResponseGetGpuSerial = EcRequestGetGpuSerial {idx: 0}.send_command(self)?;
+        let serial: String = String::from_utf8(gpuserial.serial.to_vec()).unwrap();
+
+        if gpuserial.valid == 0 {
+            println!("no valid gpu serial");
+            return Ok(serial);
+        }
+        return Ok(serial);
+    }
+
+    /// Set the GPU Serial
+    ///
+    /// # Arguments
+    /// `newserial` - a string that is 18 characters long
+    pub fn set_gpu_serial(&self, magic: u8, newserial: String) {
+        let mut array_tmp: [u8; 20] = [0; 20];
+        array_tmp[..18].copy_from_slice(newserial.as_bytes());
+        let response = EcRequestSetGpuSerial {
+            magic: magic,
+            idx: 0,
+            serial: array_tmp,
+        }
+        .send_command(self);
     }
 
     /// Requests recent console output from EC and constantly asks for more
