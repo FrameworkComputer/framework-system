@@ -88,6 +88,10 @@ pub enum EcCommands {
     ExpansionBayStatus = 0x3E1B,
     /// Get hardware diagnostics
     GetHwDiag = 0x3E1C,
+    /// Get gpu bay serial
+    GetGpuSerial = 0x3E1D,
+    /// Set gpu bay serial and program structure
+    ProgramGpuEeprom = 0x3E1F,
 }
 
 pub trait EcRequest<R> {

@@ -931,3 +931,49 @@ impl EcRequest<EcResponseFpLedLevelControlV1> for EcRequestFpLedLevelControlV1 {
         1
     }
 }
+
+#[repr(C, packed)]
+pub struct EcRequestGetGpuSerial {
+    pub idx: u8,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseGetGpuSerial {
+    pub idx: u8,
+    pub valid: u8,
+    pub serial: [u8; 20],
+}
+
+impl EcRequest<EcResponseGetGpuSerial> for EcRequestGetGpuSerial {
+    fn command_id() -> EcCommands {
+        EcCommands::GetGpuSerial
+    }
+}
+
+#[repr(u8)]
+pub enum SetGpuSerialMagic {
+    /// 7700S config magic value
+    WriteGPUConfig = 0x0D,
+    /// SSD config magic value
+    WriteSSDConfig = 0x55,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestSetGpuSerial {
+    pub magic: u8,
+    pub idx: u8,
+    pub serial: [u8; 20],
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseSetGpuSerial {
+    pub valid: u8,
+}
+
+impl EcRequest<EcResponseSetGpuSerial> for EcRequestSetGpuSerial {
+    fn command_id() -> EcCommands {
+        EcCommands::ProgramGpuEeprom
+    }
+}
