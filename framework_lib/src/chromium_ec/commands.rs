@@ -331,15 +331,15 @@ impl EcResponseExpansionBayStatus {
         self.state & (ExpansionByStates::HatchSwitchClosed as u8) != 0
     }
     pub fn expansion_bay_board(&self) -> Result<ExpansionBayBoard, ExpansionBayIssue> {
-        match (self.board_id_1, self.board_id_0) {
+        match (self.board_id_0, self.board_id_1) {
             (BOARD_VERSION_12, BOARD_VERSION_12) => Ok(ExpansionBayBoard::DualInterposer),
             (BOARD_VERSION_13, BOARD_VERSION_15) => Ok(ExpansionBayBoard::UmaFans),
             (BOARD_VERSION_11, BOARD_VERSION_15) => Ok(ExpansionBayBoard::SingleInterposer),
             (BOARD_VERSION_15, BOARD_VERSION_15) => Err(ExpansionBayIssue::NoModule),
             // Invalid board IDs. Something wrong, could be interposer not connected
             _ => Err(ExpansionBayIssue::BadConnection(
-                self.board_id_1,
                 self.board_id_0,
+                self.board_id_1,
             )),
         }
     }
