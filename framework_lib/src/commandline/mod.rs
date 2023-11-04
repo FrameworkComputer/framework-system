@@ -513,11 +513,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         if let Some((mic, cam)) = print_err(ec.get_privacy_info()) {
             println!(
                 "Microphone privacy switch: {}",
-                if mic { "Open" } else { "Closed" }
+                if mic { "Enabled" } else { "Disabled" }
             );
             println!(
                 "Camera privacy switch:     {}",
-                if cam { "Open" } else { "Closed" }
+                if cam { "Enabled" } else { "Disabled" }
             );
         } else {
             println!("Not all EC versions support this comand.")
