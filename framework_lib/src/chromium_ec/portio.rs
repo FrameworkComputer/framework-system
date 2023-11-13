@@ -210,7 +210,7 @@ fn init() -> bool {
     }
 
     if !Uid::effective().is_root() {
-        println!("Must be root to use port based I/O for EC communication.");
+        error!("Must be root to use port based I/O for EC communication.");
         *init = Initialized::Failed;
         return false;
     }
@@ -220,12 +220,21 @@ fn init() -> bool {
             portio_mec::mec_init();
         } else {
             // 8 for request/response header, 0xFF for response
-            ioperm(EC_LPC_ADDR_HOST_ARGS as u64, 8 + 0xFF, 1);
+            let res = ioperm(EC_LPC_ADDR_HOST_ARGS as u64, 8 + 0xFF, 1);
+            if res != 0 {
+                error!(
+                    "ioperm failed. portio driver is likely block by Linux kernel lockdown mode"
+                );
+                return false;
+            }
 
-            ioperm(EC_LPC_ADDR_HOST_CMD as u64, 1, 1);
-            ioperm(EC_LPC_ADDR_HOST_DATA as u64, 1, 1);
+            let res = ioperm(EC_LPC_ADDR_HOST_CMD as u64, 1, 1);
+            assert_eq!(res, 0);
+            let res = ioperm(EC_LPC_ADDR_HOST_DATA as u64, 1, 1);
+            assert_eq!(res, 0);
 
-            ioperm(NPC_MEMMAP_OFFSET as u64, super::EC_MEMMAP_SIZE as u64, 1);
+            let res = ioperm(NPC_MEMMAP_OFFSET as u64, super::EC_MEMMAP_SIZE as u64, 1);
+            assert_eq!(res, 0);
         }
     }
     *init = Initialized::Succeeded;
