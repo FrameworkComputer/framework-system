@@ -392,7 +392,7 @@ pub fn get_and_print_pd_info(ec: &CrosEc) {
                     if fl16 {
                         "Left Middle"
                     } else {
-                        "Right Front"
+                        "Left Back"
                     },
                 _ => "??",
             }
