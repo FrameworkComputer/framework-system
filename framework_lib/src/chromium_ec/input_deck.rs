@@ -130,7 +130,7 @@ impl From<u8> for InputDeckState {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct InputDeckStatus {
     pub state: InputDeckState,
     pub hubboard_present: bool,
@@ -197,7 +197,7 @@ impl From<EcResponseDeckState> for InputDeckStatus {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TopRowPositions {
     /// C1 all the way left
     /// B1 all the way left

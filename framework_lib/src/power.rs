@@ -97,6 +97,40 @@ pub struct PowerInfo {
     pub battery: Option<BatteryInformation>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReducedBatteryInformation {
+    pub cycle_count: u32,
+    pub charge_percentage: u32, // Calculated based on Remaining Capacity / LFCC
+    pub charging: bool,
+}
+
+/// Reduced version of PowerInfo
+///
+/// Usually you won't need all of the fields.
+/// Some of them (e.g. present_voltage) will vary with a high frequency, so it's not good to
+/// compare two PowerInfo structs to see whether the battery status has changed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReducedPowerInfo {
+    pub ac_present: bool,
+    pub battery: Option<ReducedBatteryInformation>,
+}
+impl From<PowerInfo> for ReducedPowerInfo {
+    fn from(val: PowerInfo) -> Self {
+        ReducedPowerInfo {
+            ac_present: val.ac_present,
+            battery: if let Some(b) = val.battery {
+                Some(ReducedBatteryInformation {
+                    cycle_count: b.cycle_count,
+                    charge_percentage: b.charge_percentage,
+                    charging: b.charging,
+                })
+            } else {
+                None
+            },
+        }
+    }
+}
+
 fn read_string(ec: &CrosEc, address: u16) -> String {
     let bytes = ec.read_memory(address, EC_MEMMAP_TEXT_MAX).unwrap();
     String::from_utf8_lossy(bytes.as_slice()).replace(|c: char| c == '\0', "")

@@ -313,7 +313,7 @@ pub const BOARD_VERSION_15: u8 = 15;
 pub struct EcRequestExpansionBayStatus {}
 
 #[repr(C, packed)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct EcResponseExpansionBayStatus {
     pub state: u8,
     pub board_id_0: u8,
