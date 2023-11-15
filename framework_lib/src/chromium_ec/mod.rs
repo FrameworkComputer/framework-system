@@ -236,7 +236,8 @@ impl CrosEc {
         ))
     }
 
-    /// Get current status of Framework Laptop's privacy switches (microphone and camera)
+    /// Get current status of Framework Laptop's microphone and camera privacy switches
+    /// [true = device enabled/connected, false = device disabled]
     pub fn get_privacy_info(&self) -> EcResult<(bool, bool)> {
         let status = EcRequestPrivacySwitches {}.send_command(self)?;
 
