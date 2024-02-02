@@ -10,6 +10,7 @@ enum InputDeckMux {
     /// C1 all the way left
     /// B1 all the way left
     /// Keyboard left
+    /// Full Width module
     TopRow0 = 0,
     /// C1 2nd-most left
     /// Keyboard middle
@@ -38,7 +39,7 @@ pub enum InputModuleType {
     Reserved3,
     Reserved4,
     Reserved5,
-    Reserved6,
+    FullWidth,
     HubBoard,
     GenericA,
     GenericB,
@@ -58,7 +59,7 @@ impl From<u8> for InputModuleType {
             3 => Self::Reserved3,
             4 => Self::Reserved4,
             5 => Self::Reserved5,
-            6 => Self::Reserved6,
+            6 => Self::FullWidth,
             7 => Self::HubBoard,
             8 => Self::GenericA,
             9 => Self::GenericB,
@@ -84,7 +85,7 @@ impl InputModuleType {
             Self::Reserved3 => 0,
             Self::Reserved4 => 0,
             Self::Reserved5 => 0,
-            Self::Reserved6 => 0,
+            Self::FullWidth => 8,
             Self::HubBoard => 0,
             Self::GenericA => 6,
             Self::GenericB => 2,
@@ -202,6 +203,7 @@ pub struct TopRowPositions {
     /// C1 all the way left
     /// B1 all the way left
     /// Keyboard left
+    /// Full Width module
     pub pos0: InputModuleType,
     /// C1 2nd-most left
     /// Keyboard middle
