@@ -134,6 +134,9 @@ pub fn get_platform() -> Option<Platform> {
                     "Laptop (13th Gen Intel Core)" => return Some(Platform::IntelGen13),
                     "Laptop 13 (AMD Ryzen 7040Series)" => return Some(Platform::Framework13Amd),
                     "Laptop 13 (AMD Ryzen 7040 Series)" => return Some(Platform::Framework13Amd),
+                    "Laptop 13 (Intel Core Ultra Series 1)" => {
+                        return Some(Platform::IntelCoreUltra1)
+                    }
                     "Laptop 16 (AMD Ryzen 7040 Series)" => return Some(Platform::Framework16),
                     _ => {}
                 }

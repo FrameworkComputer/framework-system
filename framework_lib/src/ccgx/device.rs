@@ -63,8 +63,14 @@ impl PdPort {
             (Platform::IntelGen11, _) => 6,
             (Platform::IntelGen12 | Platform::IntelGen13, PdPort::Left01) => 6,
             (Platform::IntelGen12 | Platform::IntelGen13, PdPort::Right23) => 7,
-            (Platform::Framework13Amd | Platform::Framework16, PdPort::Left01) => 1,
-            (Platform::Framework13Amd | Platform::Framework16, PdPort::Right23) => 2,
+            (
+                Platform::Framework13Amd | Platform::Framework16 | Platform::IntelCoreUltra1,
+                PdPort::Left01,
+            ) => 1,
+            (
+                Platform::Framework13Amd | Platform::Framework16 | Platform::IntelCoreUltra1,
+                PdPort::Right23,
+            ) => 2,
             // (_, _) => Err(EcError::DeviceError(format!(
             //     "Unsupported platform: {:?} {:?}",
             //     platform, self

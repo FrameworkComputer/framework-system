@@ -127,7 +127,7 @@ pub fn has_mec() -> bool {
 
     !matches!(
         smbios::get_platform().unwrap(),
-        Platform::Framework13Amd | Platform::Framework16
+        Platform::Framework13Amd | Platform::Framework16 | Platform::IntelCoreUltra1
     )
 }
 
