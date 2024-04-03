@@ -12,7 +12,7 @@ use uefi::Identify;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::Cli;
 
-use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg};
+use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, RebootEcArg};
 
 /// Get commandline arguments from UEFI environment
 pub fn get_args(boot_services: &BootServices) -> Vec<String> {
@@ -77,6 +77,7 @@ pub fn parse(args: &[String]) -> Cli {
         fp_brightness: None,
         kblight: None,
         console: None,
+        reboot_ec: None,
         // This is the only driver that works on UEFI
         driver: Some(CrosEcDriverType::Portio),
         test: false,
@@ -213,6 +214,28 @@ pub fn parse(args: &[String]) -> Cli {
                 }
             } else {
                 println!("Need to provide a value for --console. Either `follow` or `recent`");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--reboot-ec" {
+            cli.reboot_ec = if args.len() > i + 1 {
+                let reboot_ec_arg = &args[i + 1];
+                if reboot_ec_arg == "reboot" {
+                    Some(RebootEcArg::Reboot)
+                } else if reboot_ec_arg == "jump-ro" {
+                    Some(RebootEcArg::JumpRo)
+                } else if reboot_ec_arg == "jump-rw" {
+                    Some(RebootEcArg::JumpRw)
+                } else if reboot_ec_arg == "cancel-jump" {
+                    Some(RebootEcArg::CancelJump)
+                } else if reboot_ec_arg == "disable-jump" {
+                    Some(RebootEcArg::DisableJump)
+                } else {
+                    println!("Invalid value for --reboot-ec: {}", reboot_ec_arg);
+                    None
+                }
+            } else {
+                println!("Need to provide a value for --reboot-ec. Either `reboot`, `jump-ro`, `jump-rw`, `cancel-jump` or `disable-jump`");
                 None
             };
             found_an_option = true;
