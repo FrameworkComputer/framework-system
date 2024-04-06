@@ -771,17 +771,21 @@ Options:
       --pd-bin <PD_BIN>      Parse versions from PD firmware binary file
       --ec-bin <EC_BIN>      Parse versions from EC firmware binary file
       --capsule <CAPSULE>    Parse UEFI Capsule information from binary file
+      --dump <DUMP>          Dump extracted UX capsule bitmap image to a file
+      --ho2-capsule <HO2_CAPSULE>      Parse UEFI Capsule information from binary file
+      --dump-ec-flash <DUMP_EC_FLASH>  Dump EC flash contents
       --flash-ec <FLASH_EC>            Flash EC with new firmware from file
       --flash-ro-ec <FLASH_EC>         Flash EC with new firmware from file
       --flash-rw-ec <FLASH_EC>         Flash EC with new firmware from file
+      --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
       --intrusion            Show status of intrusion switch
       --inputmodules         Show status of the input modules (Framework 16 only)
+      --input-deck-mode      Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
       --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')
       --fp-brightness [<VAL>]Get or set fingerprint LED brightness level [possible values: high, medium, low]
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
-      --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
-      --dump-ec-flash <DUMP_EC_FLASH>  Dump EC flash contents
+      --hash <HASH>          Hash a file of arbitrary data
   -t, --test                 Run self-test to check if interaction with EC is possible
   -h, --help                 Print help information
     "#
