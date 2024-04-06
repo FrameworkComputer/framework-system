@@ -33,7 +33,7 @@ use crate::chromium_ec;
 use crate::chromium_ec::commands::DeckStateMode;
 use crate::chromium_ec::commands::FpLedBrightnessLevel;
 use crate::chromium_ec::commands::RebootEcCmd;
-use crate::chromium_ec::print_err;
+use crate::chromium_ec::{print_err, EcFlashType};
 use crate::chromium_ec::{EcError, EcResult};
 #[cfg(feature = "linux")]
 use crate::csme;
@@ -131,6 +131,8 @@ pub struct Cli {
     pub ho2_capsule: Option<String>,
     pub dump_ec_flash: Option<String>,
     pub flash_ec: Option<String>,
+    pub flash_ro_ec: Option<String>,
+    pub flash_rw_ec: Option<String>,
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
     pub intrusion: bool,
@@ -396,25 +398,31 @@ fn print_esrt() {
     }
 }
 
-#[cfg(feature = "uefi")]
-fn flash_ec(ec: &CrosEc, ec_bin_path: &str) {
+fn flash_ec(ec: &CrosEc, ec_bin_path: &str, flash_type: EcFlashType) {
     #[cfg(feature = "uefi")]
     let data = crate::uefi::fs::shell_read_file(ec_bin_path);
     #[cfg(not(feature = "uefi"))]
-    let data = match fs::read(ec_bin_path) {
-        Ok(data) => Some(data),
-        // TODO: Perhaps a more user-friendly error
-        Err(e) => {
-            println!("Error {:?}", e);
-            None
-        }
+    let data: Option<Vec<u8>> = {
+        let _data = match fs::read(ec_bin_path) {
+            Ok(data) => Some(data),
+            // TODO: Perhaps a more user-friendly error
+            Err(e) => {
+                println!("Error {:?}", e);
+                None
+            }
+        };
+
+        // EC communication from OS is not stable enough yet,
+        // it can't be trusted to reliably flash the EC without risk of damage.
+        println!("Sorry, flashing EC from the OS is not supported yet.");
+        None
     };
 
     if let Some(data) = data {
         println!("File");
         println!("  Size:       {:>20} B", data.len());
         println!("  Size:       {:>20} KB", data.len() / 1024);
-        if let Err(err) = ec.reflash(&data) {
+        if let Err(err) = ec.reflash(&data, flash_type) {
             println!("Error: {:?}", err);
         } else {
             println!("Success!");
@@ -708,15 +716,14 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(dump_path) = &args.dump_ec_flash {
         println!("Dumping to {}", dump_path);
+        // TODO: Should have progress indicator
         dump_ec_flash(&ec, dump_path);
-    } else if let Some(_ec_bin_path) = &args.flash_ec {
-        // EC communication from OS is not stable enough yet,
-        // it can't be trusted to reliably flash the EC without risk of damage.
-        #[cfg(not(feature = "uefi"))]
-        println!("Sorry, flashing EC from the OS is not supported yet.");
-
-        #[cfg(feature = "uefi")]
-        flash_ec(&ec, _ec_bin_path);
+    } else if let Some(ec_bin_path) = &args.flash_ec {
+        flash_ec(&ec, ec_bin_path, EcFlashType::Full);
+    } else if let Some(ec_bin_path) = &args.flash_ro_ec {
+        flash_ec(&ec, ec_bin_path, EcFlashType::Ro);
+    } else if let Some(ec_bin_path) = &args.flash_rw_ec {
+        flash_ec(&ec, ec_bin_path, EcFlashType::Rw);
     } else if let Some(hash_file) = &args.hash {
         println!("Hashing file: {}", hash_file);
         #[cfg(feature = "uefi")]
@@ -764,6 +771,9 @@ Options:
       --pd-bin <PD_BIN>      Parse versions from PD firmware binary file
       --ec-bin <EC_BIN>      Parse versions from EC firmware binary file
       --capsule <CAPSULE>    Parse UEFI Capsule information from binary file
+      --flash-ec <FLASH_EC>            Flash EC with new firmware from file
+      --flash-ro-ec <FLASH_EC>         Flash EC with new firmware from file
+      --flash-rw-ec <FLASH_EC>         Flash EC with new firmware from file
       --intrusion            Show status of intrusion switch
       --inputmodules         Show status of the input modules (Framework 16 only)
       --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')
@@ -772,7 +782,6 @@ Options:
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
       --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
       --dump-ec-flash <DUMP_EC_FLASH>  Dump EC flash contents
-      --flash-ec <FLASH_EC>            Flash EC with new firmware from file
   -t, --test                 Run self-test to check if interaction with EC is possible
   -h, --help                 Print help information
     "#

@@ -69,6 +69,8 @@ pub fn parse(args: &[String]) -> Cli {
         ec_bin: None,
         dump_ec_flash: None,
         flash_ec: None,
+        flash_ro_ec: None,
+        flash_rw_ec: None,
         capsule: None,
         dump: None,
         ho2_capsule: None,
@@ -306,7 +308,23 @@ pub fn parse(args: &[String]) -> Cli {
             cli.flash_ec = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
-                println!("--flash_ec requires extra argument to denote input file");
+                println!("--flash-ec requires extra argument to denote input file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--flash-ro-ec" {
+            cli.flash_ro_ec = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--flash-ro-ec requires extra argument to denote input file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--flash-rw-ec" {
+            cli.flash_rw_ec = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--flash-rw-ec requires extra argument to denote input file");
                 None
             };
             found_an_option = true;

@@ -59,6 +59,13 @@ const FLASH_RW_BASE: u32 = 0x40000;
 const FLASH_RW_SIZE: u32 = 0x39000;
 const FLASH_PROGRAM_OFFSET: u32 = 0x1000;
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum EcFlashType {
+    Full,
+    Ro,
+    Rw,
+}
+
 #[derive(PartialEq)]
 pub enum MecFlashNotify {
     AccessSpi = 0x00,
@@ -237,11 +244,11 @@ impl CrosEc {
         };
 
         Some((
-            std::str::from_utf8(&v.version_string_rw)
+            std::str::from_utf8(&v.version_string_ro)
                 .ok()?
                 .trim_end_matches(char::from(0))
                 .to_string(),
-            std::str::from_utf8(&v.version_string_ro)
+            std::str::from_utf8(&v.version_string_rw)
                 .ok()?
                 .trim_end_matches(char::from(0))
                 .to_string(),
@@ -368,42 +375,69 @@ impl CrosEc {
     }
 
     /// Overwrite RO and RW regions of EC flash
-    /// | Start | End   | Size  | Region    |
-    /// | 00000 | 3BFFF | 3C000 | RO Region |
-    /// | 3C000 | 3FFFF | 04000 | Preserved |
-    /// | 40000 | 3C000 | 39000 | RO Region |
-    /// | 79000 | 79FFF | 07000 | Preserved |
-    pub fn reflash(&self, data: &[u8]) -> EcResult<()> {
-        let mut _flash_bin: Vec<u8> = Vec::with_capacity(EC_FLASH_SIZE);
+    /// MEC/Legacy EC
+    /// | Start | End   | Size  | Region      |
+    /// | 00000 | 3BFFF | 3C000 | RO Region   |
+    /// | 3C000 | 3FFFF | 04000 | Preserved   |
+    /// | 40000 | 3C000 | 39000 | RO Region   |
+    /// | 79000 | 79FFF | 01000 | Preserved   |
+    /// | 80000 | 80FFF | 01000 | Flash Flags |
+    ///
+    /// NPC/Zephyr
+    /// | Start | End   | Size  | Region      |
+    /// | 00000 | 3BFFF | 3C000 | RO Region   |
+    /// | 3C000 | 3FFFF | 04000 | Preserved   |
+    /// | 40000 | 3C000 | 39000 | RO Region   |
+    /// | 79000 | 79FFF | 01000 | Flash Flags |
+    pub fn reflash(&self, data: &[u8], ft: EcFlashType) -> EcResult<()> {
+        if ft == EcFlashType::Full || ft == EcFlashType::Ro {
+            println!("For safety reasons flashing RO firmware is disabled.");
+            return Ok(());
+        }
+
         println!("Unlocking flash");
         self.flash_notify(MecFlashNotify::AccessSpi)?;
         self.flash_notify(MecFlashNotify::FirmwareStart)?;
 
-        //println!("Erasing RO region");
-        //self.erase_ec_flash(FLASH_BASE + FLASH_RO_BASE, FLASH_RO_SIZE)?;
-        println!("Erasing RW region");
-        self.erase_ec_flash(FLASH_BASE + FLASH_RW_BASE, FLASH_RW_SIZE)?;
+        // TODO: Check if erase was successful
+        // 1. First erase 0x10000 bytes
+        // 2. Read back two rows and make sure it's all 0xFF
+        // 3. Write each row (128B) individually
 
-        let ro_data = &data[FLASH_RO_BASE as usize..(FLASH_RO_BASE + FLASH_RO_SIZE) as usize];
-        //println!("Writing RO region");
-        //self.write_ec_flash(FLASH_BASE + FLASH_RO_BASE, ro_data);
+        if ft == EcFlashType::Full || ft == EcFlashType::Rw {
+            let rw_data = &data[FLASH_RW_BASE as usize..(FLASH_RW_BASE + FLASH_RW_SIZE) as usize];
 
-        let rw_data = &data[FLASH_RW_BASE as usize..(FLASH_RW_BASE + FLASH_RW_SIZE) as usize];
-        println!("Writing RW region");
-        self.write_ec_flash(FLASH_BASE + FLASH_RW_BASE, rw_data)?;
+            println!("Erasing RW region");
+            self.erase_ec_flash(FLASH_BASE + FLASH_RW_BASE, FLASH_RW_SIZE)?;
 
-        println!("Verifying");
-        let flash_ro_data = self.read_ec_flash(FLASH_BASE + FLASH_RO_BASE, FLASH_RO_SIZE)?;
-        if ro_data == flash_ro_data {
-            println!("RO verify success");
-        } else {
-            println!("RO verify fail");
+            println!("Writing RW region");
+            self.write_ec_flash(FLASH_BASE + FLASH_RW_BASE, rw_data)?;
+
+            println!("Verifying RW region");
+            let flash_rw_data = self.read_ec_flash(FLASH_BASE + FLASH_RW_BASE, FLASH_RW_SIZE)?;
+            if rw_data == flash_rw_data {
+                println!("RW verify success");
+            } else {
+                println!("RW verify fail");
+            }
         }
-        let flash_rw_data = self.read_ec_flash(FLASH_BASE + FLASH_RW_BASE, FLASH_RW_SIZE)?;
-        if rw_data == flash_rw_data {
-            println!("RW verify success");
-        } else {
-            println!("RW verify fail");
+
+        if ft == EcFlashType::Full || ft == EcFlashType::Ro {
+            let ro_data = &data[FLASH_RO_BASE as usize..(FLASH_RO_BASE + FLASH_RO_SIZE) as usize];
+
+            println!("Erasing RO region");
+            self.erase_ec_flash(FLASH_BASE + FLASH_RO_BASE, FLASH_RO_SIZE)?;
+
+            println!("Writing RO region");
+            self.write_ec_flash(FLASH_BASE + FLASH_RO_BASE, ro_data)?;
+
+            println!("Verifying RO region");
+            let flash_ro_data = self.read_ec_flash(FLASH_BASE + FLASH_RO_BASE, FLASH_RO_SIZE)?;
+            if ro_data == flash_ro_data {
+                println!("RO verify success");
+            } else {
+                println!("RO verify fail");
+            }
         }
 
         println!("Locking flash");
@@ -411,6 +445,7 @@ impl CrosEc {
         self.flash_notify(MecFlashNotify::FirmwareDone)?;
 
         println!("Flashing EC done. You can reboot the EC now");
+        // TODO: Should we force a reboot if currently running one was reflashed?
 
         Ok(())
     }
