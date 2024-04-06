@@ -12,7 +12,7 @@ use crate::os_specific;
 use crate::smbios;
 #[cfg(feature = "uefi")]
 use crate::uefi::shell_get_execution_break_flag;
-use crate::util::assert_win_len;
+use crate::util::{self, Platform};
 
 use log::Level;
 use num_derive::FromPrimitive;
@@ -57,6 +57,8 @@ const FLASH_RO_BASE: u32 = 0x0;
 const FLASH_RO_SIZE: u32 = 0x3C000;
 const FLASH_RW_BASE: u32 = 0x40000;
 const FLASH_RW_SIZE: u32 = 0x39000;
+const MEC_FLASH_FLAGS: u32 = 0x80000;
+const NPC_FLASH_FLAGS: u32 = 0x7F000;
 const FLASH_PROGRAM_OFFSET: u32 = 0x1000;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -114,6 +116,13 @@ pub enum EcResponseStatus {
     BusError = 15,
     /// Up but too busy.  Should retry
     Busy = 16,
+}
+
+pub fn has_mec() -> bool {
+    !matches!(
+        smbios::get_platform().unwrap(),
+        Platform::Framework13Amd | Platform::Framework16
+    )
 }
 
 pub trait CrosEcDriver {
@@ -270,7 +279,7 @@ impl CrosEc {
         let limits = &[ChargeLimitControlModes::Set as u8, max, min];
         let data = self.send_command(EcCommands::ChargeLimitControl as u16, 0, limits)?;
 
-        assert_win_len(data.len(), 0);
+        util::assert_win_len(data.len(), 0);
 
         Ok(())
     }
@@ -298,7 +307,7 @@ impl CrosEc {
         let limits = &[level as u8, 0x00];
         let data = self.send_command(EcCommands::FpLedLevelControl as u16, 0, limits)?;
 
-        assert_win_len(data.len(), 0);
+        util::assert_win_len(data.len(), 0);
 
         Ok(())
     }
@@ -594,39 +603,122 @@ impl CrosEc {
     }
 
     pub fn test_ec_flash_read(&self) -> EcResult<()> {
+        let mut res = Ok(());
         // TODO: Perhaps we could have some more global flag to avoid setting and unsetting that ever time
         self.flash_notify(MecFlashNotify::AccessSpi)?;
 
-        println!("  EC Test");
-        println!("    Read first row of flash.");
-        // Make sure we can read a full flash row
+        // ===== Test 1 =====
+        // Read the first row of flash.
+        // It's the beginning of RO firmware
+        println!("    Read first row of flash (RO FW)");
         let data = self.read_ec_flash(0, 0x80).unwrap();
-        if data[0..4] != [0x10, 0x00, 0x00, 0xF7] {
-            println!("      INVALID start");
-            return Err(EcError::DeviceError("INVALID start".to_string()));
-        }
-        if !data[4..].iter().all(|x| *x == 0xFF) {
-            println!("      INVALID end");
-            return Err(EcError::DeviceError("INVALID end".to_string()));
-        }
-        debug!("Expected 10 00 00 F7 and rest all FF");
-        debug!("{:02X?}", data);
 
-        println!("    Read first 16 bytes of firmware.");
-        // Make sure we can read at an offset and with arbitrary length
-        let data = self.read_ec_flash(FLASH_PROGRAM_OFFSET, 16).unwrap();
-        if data[0..4] != [0x50, 0x48, 0x43, 0x4D] {
-            println!("      INVALID: {:02X?}", &data[0..3]);
-            return Err(EcError::DeviceError(format!(
-                "INVALID: {:02X?}",
-                &data[0..3]
-            )));
-        }
-        debug!("Expected beginning with 50 48 43 4D ('PHCM' in ASCII)");
         debug!("{:02X?}", data);
+        println!("      {:02X?}", &data[..8]);
+        if data.iter().all(|x| *x == 0xFF) {
+            println!("      Erased!");
+        }
+
+        // 4 magic bytes at the beginning
+        let legacy_start = [0x10, 0x00, 0x00, 0xF7];
+        // TODO: Does zephyr always start like this?
+        let zephyr_start = [0x5E, 0x4D, 0x3B, 0x2A];
+        if data[0..4] != legacy_start && data[0..4] != zephyr_start {
+            println!("      INVALID start");
+            res = Err(EcError::DeviceError("INVALID start".to_string()));
+        }
+        // Legacy EC is all 0xFF until the end of the row
+        // Zephyr EC I'm not quite sure but it has a section of 0x00
+        let legacy_comp = !data[4..].iter().all(|x| *x == 0xFF);
+        let zephyr_comp = !data[0x20..0x40].iter().all(|x| *x == 0x00);
+        if legacy_comp && zephyr_comp {
+            println!("      INVALID end");
+            res = Err(EcError::DeviceError("INVALID end".to_string()));
+        }
+
+        // ===== Test 2 =====
+        // DISABLED
+        // TODO: Haven't figure out a pattern yet
+        //
+        // Read the first row of the second half of flash
+        // It's the beginning of RW firmware
+        println!("    Read first row of RW FW");
+        let data = self.read_ec_flash(0x40000, 0x80).unwrap();
+
+        println!("      {:02X?}", &data[..8]);
+        if data.iter().all(|x| *x == 0xFF) {
+            println!("      Erased!");
+            res = Err(EcError::DeviceError("RW Erased".to_string()));
+        }
+
+        // TODO: How can we identify if the RO image is valid?
+        // //debug!("Expected TODO and rest all FF");
+        // debug!("Expecting 80 7D 0C 20 and 0x20-0x2C all 00");
+        // let legacy_start = []; // TODO
+        // let zephyr_start = [0x80, 0x7D, 0x0C, 0x20];
+        // if data[0..4] != legacy_start && data[0..4] != zephyr_start {
+        //     println!("      INVALID start");
+        //     res = Err(EcError::DeviceError("INVALID start".to_string()));
+        // }
+        // let legacy_comp = !data[4..].iter().all(|x| *x == 0xFF);
+        // let zephyr_comp = !data[0x20..0x2C].iter().all(|x| *x == 0x00);
+        // if legacy_comp && zephyr_comp {
+        //     println!("      INVALID end");
+        //     res = Err(EcError::DeviceError("INVALID end".to_string()));
+        // }
+
+        // ===== Test 3 =====
+        //
+        // MEC EC has program code at 0x1000 with magic bytes that spell
+        // MCHP (Microchip) in ASCII backwards.
+        // Everything before is probably a header.
+        // TODO: I don't think there are magic bytes on zephyr firmware
+        //
+        if has_mec() {
+            println!("    Check MCHP magic byte at start of firmware code.");
+            // Make sure we can read at an offset and with arbitrary length
+            let data = self.read_ec_flash(FLASH_PROGRAM_OFFSET, 16).unwrap();
+            debug!("Expecting beginning with 50 48 43 4D ('PHCM' in ASCII)");
+            debug!("{:02X?}", data);
+            println!(
+                "      {:02X?} ASCII:{:?}",
+                &data[..4],
+                core::str::from_utf8(&data[..4])
+            );
+
+            if data[0..4] != [0x50, 0x48, 0x43, 0x4D] {
+                println!("      INVALID: {:02X?}", &data[0..3]);
+                res = Err(EcError::DeviceError(format!(
+                    "INVALID: {:02X?}",
+                    &data[0..3]
+                )));
+            }
+        }
+
+        // ===== Test 4 =====
+        println!("    Read flash flags");
+        let data = if has_mec() {
+            self.read_ec_flash(MEC_FLASH_FLAGS, 0x80).unwrap()
+        } else {
+            self.read_ec_flash(NPC_FLASH_FLAGS, 0x80).unwrap()
+        };
+        let flash_flags_magic = [0xA3, 0xF1, 0x00, 0x00];
+        let flash_flags_ver = [0x01, 0x0, 0x00, 0x00];
+        // All 0xFF if just reflashed and not reinitialized by EC
+        if data[0..4] == flash_flags_magic && data[8..12] == flash_flags_ver {
+            println!("      Valid flash flags");
+        } else if data.iter().all(|x| *x == 0xFF) {
+            println!("      Erased flash flags");
+            res = Err(EcError::DeviceError("Erased flash flags".to_string()));
+        } else {
+            println!("      INVALID flash flags: {:02X?}", &data[0..12]);
+            // TODO: Disable error until I confirm flash flags on MEC
+            // res = Err(EcError::DeviceError("INVALID flash flags".to_string()));
+        }
 
         self.flash_notify(MecFlashNotify::AccessSpiDone)?;
-        Ok(())
+
+        res
     }
 
     /// Requests recent console output from EC and constantly asks for more
