@@ -120,6 +120,11 @@ pub enum EcResponseStatus {
 }
 
 pub fn has_mec() -> bool {
+    let platform = smbios::get_platform().unwrap();
+    if let Platform::GenericFramework(_, _, has_mec) = platform {
+        return has_mec;
+    }
+
     !matches!(
         smbios::get_platform().unwrap(),
         Platform::Framework13Amd | Platform::Framework16

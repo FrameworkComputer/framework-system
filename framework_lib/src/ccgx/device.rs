@@ -1,4 +1,4 @@
-//! Communicate with CCGX (CCG5, CCG6) PD controllers
+//! Communicate with CCGX (CCG5, CCG6, CCG8) PD controllers
 //!
 //! The current implementation talks to them by tunneling I2C through EC host commands.
 
@@ -41,9 +41,12 @@ impl PdPort {
         let platform = &(*config).as_ref().unwrap().platform;
 
         match (platform, self) {
+            (Platform::GenericFramework((left, _), _, _), PdPort::Left01) => *left,
+            (Platform::GenericFramework((_, right), _, _), PdPort::Right23) => *right,
+            // Framework AMD Platforms (CCG8)
             (Platform::Framework13Amd | Platform::Framework16, PdPort::Left01) => 0x42,
             (Platform::Framework13Amd | Platform::Framework16, PdPort::Right23) => 0x40,
-            // Intel Platforms
+            // Framework Intel Platforms (CCG5 and CCG6)
             (_, PdPort::Left01) => 0x08,
             (_, PdPort::Right23) => 0x40,
         }
@@ -55,11 +58,11 @@ impl PdPort {
         let platform = &(*config).as_ref().unwrap().platform;
 
         Ok(match (platform, self) {
+            (Platform::GenericFramework(_, (left, _), _), PdPort::Left01) => *left,
+            (Platform::GenericFramework(_, (_, right), _), PdPort::Right23) => *right,
             (Platform::IntelGen11, _) => 6,
-            (Platform::IntelGen12, PdPort::Left01) => 6,
-            (Platform::IntelGen12, PdPort::Right23) => 7,
-            (Platform::IntelGen13, PdPort::Left01) => 6,
-            (Platform::IntelGen13, PdPort::Right23) => 7,
+            (Platform::IntelGen12 | Platform::IntelGen13, PdPort::Left01) => 6,
+            (Platform::IntelGen12 | Platform::IntelGen13, PdPort::Right23) => 7,
             (Platform::Framework13Amd | Platform::Framework16, PdPort::Left01) => 1,
             (Platform::Framework13Amd | Platform::Framework16, PdPort::Right23) => 2,
             // (_, _) => Err(EcError::DeviceError(format!(
