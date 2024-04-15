@@ -545,7 +545,11 @@ impl CrosEc {
         for chunk_no in 0..chunks {
             #[cfg(feature = "uefi")]
             if shell_get_execution_break_flag() {
-                return Err(EcError::DeviceError("Execution interrupted".to_string()));
+                // TODO: We don't want to crash here. But returning no data doesn't seem optimal
+                // either
+                // return Err(EcError::DeviceError("Execution interrupted".to_string()));
+                println!("Execution interrupted");
+                return Ok(vec![]);
             }
 
             let offset = offset + chunk_no * chunk_size;
