@@ -757,7 +757,6 @@ fn print_help(updater: bool) {
 Usage: framework_tool [OPTIONS]
 
 Options:
-  -b                         Print output one screen at a time
   -v, --verbose...           More output per occurrence
   -q, --quiet...             Less output per occurrence
       --versions             List current firmware versions
@@ -788,6 +787,7 @@ Options:
       --hash <HASH>          Hash a file of arbitrary data
   -t, --test                 Run self-test to check if interaction with EC is possible
   -h, --help                 Print help information
+  -b                         Print output one screen at a time
     "#
     );
     if updater {
