@@ -178,6 +178,7 @@ Options:
       --dump <DUMP>                 Dump extracted UX capsule bitmap image to a file
       --h2o-capsule <H2O_CAPSULE>   Parse UEFI Capsule information from binary file
       --intrusion                   Show status of intrusion switch
+      --ps2-emu <PS2_EMU>           Enable or disable PS2 mouse emulation (Intel Only) [possible values: true, false]
       --inputdeck                   Show status of the input deck
       --input-deck-mode <INPUT_DECK_MODE>
           Set input deck power mode [possible values: auto, off, on] (Framework 16 only) [possible values: auto, off, on]

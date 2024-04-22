@@ -60,15 +60,19 @@ pub enum EcCommands {
     FlashNotified = 0x3E01,
     /// Change charge limit
     ChargeLimitControl = 0x3E03,
+    /// Enable/Disable PS2 Emulation (Only Framework Intel Systems)
+    Ps2EmulationToggle = 0x3E08,
+    /// Get information about historical chassis open/close (intrusion) information
+    ChassisIntrusion = 0x3E09,
     /// Get/Set Fingerprint LED brightness
     FpLedLevelControl = 0x3E0E,
     /// Get information about the current chassis open/close status
     ChassisOpenCheck = 0x3E0F,
-    /// Get information about historical chassis open/close (intrusion) information
-    ChassisIntrusion = 0x3E09,
 
     /// Not used by this library
-    AcpiNotify = 0xE10,
+    NonAcpiNotify = 0x3E07,
+    /// Not used by this library
+    AcpiNotify = 0x3E10,
 
     /// Get information about PD controller version
     ReadPdVersion = 0x3E11,

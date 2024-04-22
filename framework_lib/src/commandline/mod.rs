@@ -171,6 +171,7 @@ pub struct Cli {
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
     pub intrusion: bool,
+    pub ps2_emu: Option<bool>,
     pub inputdeck: bool,
     pub inputdeck_mode: Option<InputDeckModeArg>,
     pub expansion_bay: bool,
@@ -769,6 +770,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         } else {
             println!("  Unable to tell");
         }
+    } else if let Some(ps2_emu) = args.ps2_emu {
+        let _ = print_err(ec.set_ps2_emu(ps2_emu));
     } else if args.inputdeck {
         let res = match smbios::get_platform().and_then(Platform::which_family) {
             Some(PlatformFamily::Framework12) => ec.print_fw12_inputdeck_status(),
@@ -1115,6 +1118,7 @@ Options:
       --flash-rw-ec <FLASH_EC>         Flash EC with new firmware from file
       --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
       --intrusion            Show status of intrusion switch
+      --ps2-emu <PS2_EMU>    Enable or disable PS2 mouse emulation (Intel Only) [possible values: true, false]
       --inputdeck            Show status of the input deck
       --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
       --expansion-bay        Show status of the expansion bay (Framework 16 only)

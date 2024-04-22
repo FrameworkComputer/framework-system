@@ -84,6 +84,7 @@ pub fn parse(args: &[String]) -> Cli {
         dump: None,
         h2o_capsule: None,
         intrusion: false,
+        ps2_emu: None,
         inputdeck: false,
         inputdeck_mode: None,
         expansion_bay: false,
@@ -227,6 +228,22 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--intrusion" {
             cli.intrusion = true;
+            found_an_option = true;
+        } else if arg == "--ps2-emu" {
+            cli.ps2_emu = if args.len() > i + 1 {
+                let ps2_emu = &args[i + 1];
+                if ps2_emu == "true" {
+                    Some(true)
+                } else if ps2_emu == "false" {
+                    Some(false)
+                } else {
+                    println!("Invalid value for --ps2-emu: {}", ps2_emu);
+                    None
+                }
+            } else {
+                println!("Need to provide a value for --ps2-emu. Either `true`, `false`");
+                None
+            };
             found_an_option = true;
         } else if arg == "--inputdeck" {
             cli.inputdeck = true;

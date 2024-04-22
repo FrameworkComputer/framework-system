@@ -1044,6 +1044,18 @@ impl EcRequest<EcResponseChargeLimitControl> for EcRequestChargeLimitControl {
     }
 }
 
+#[repr(C, packed)]
+pub struct EcRequestPs2EmulationToggle {
+    /// Enable PS2 mouse emulation
+    pub enable: bool,
+}
+
+impl EcRequest<()> for EcRequestPs2EmulationToggle {
+    fn command_id() -> EcCommands {
+        EcCommands::Ps2EmulationToggle
+    }
+}
+
 /// Configure the behavior of the charge limit control.
 /// TODO: Use this
 pub const EC_CHARGE_LIMIT_RESTORE: u8 = 0x7F;

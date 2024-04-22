@@ -492,6 +492,11 @@ impl CrosEc {
         })
     }
 
+    /// Enable/Disable PS2 mouse emulation
+    pub fn set_ps2_emu(&self, enable: bool) -> EcResult<()> {
+        EcRequestPs2EmulationToggle { enable }.send_command(self)
+    }
+
     pub fn get_input_deck_status(&self) -> EcResult<InputDeckStatus> {
         let status = EcRequestDeckState {
             mode: DeckStateMode::ReadOnly,

@@ -139,6 +139,10 @@ struct ClapCli {
     #[arg(long)]
     intrusion: bool,
 
+    /// Enable or disable PS2 mouse emulation (Intel Only)
+    #[arg(long)]
+    ps2_emu: Option<bool>,
+
     /// Show status of the input modules (Framework 16 only)
     #[arg(long)]
     inputdeck: bool,
@@ -382,6 +386,7 @@ pub fn parse(args: &[String]) -> Cli {
             .flash_rw_ec
             .map(|x| x.into_os_string().into_string().unwrap()),
         intrusion: args.intrusion,
+        ps2_emu: args.ps2_emu,
         inputdeck: args.inputdeck,
         inputdeck_mode: args.inputdeck_mode,
         expansion_bay: args.expansion_bay,
