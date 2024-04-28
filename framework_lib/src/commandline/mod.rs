@@ -807,8 +807,15 @@ fn analyze_ccgx_pd_fw(data: &[u8]) {
 }
 
 pub fn analyze_ec_fw(data: &[u8]) {
-    if let Some(ver) = ec_binary::read_ec_version(data) {
-        ec_binary::print_ec_version(&ver);
+    // Readonly firmware
+    if let Some(ver) = ec_binary::read_ec_version(data, true) {
+        ec_binary::print_ec_version(&ver, true);
+    } else {
+        println!("Failed to read version")
+    }
+    // Readwrite firmware
+    if let Some(ver) = ec_binary::read_ec_version(data, false) {
+        ec_binary::print_ec_version(&ver, false);
     } else {
         println!("Failed to read version")
     }

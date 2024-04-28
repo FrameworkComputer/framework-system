@@ -25,8 +25,8 @@ see the [Support Matrices](support-matrices.md).
     - [x] ESRT table (UEFI and Linux only) (`--esrt`)
     - [x] SMBIOS
   - [x] Get firmware version from binary file
-    - [x] MCHP EC on Intel Platform (`--ec-bin`)
-    - [ ] NPC EC on Framework 16
+    - [x] Legacy EC (Intel 13th Gen and earlier) (`--ec-bin`)
+    - [x] Zephyr EC (AMD) (`--ec-bin`)
     - [x] CCG5 PD (11th Gen TigerLake) (`--pd-bin`)
     - [x] CCG6 PD (12th Gen AlderLake) (`--pd-bin`)
     - [x] CCG8 PD (Framework 16) (`--pd-bin`)
