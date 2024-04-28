@@ -511,9 +511,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_audio_card_details();
     } else if args.privacy {
         if let Some((mic, cam)) = print_err(ec.get_privacy_info()) {
-            println!(
-                "Privacy Slider (Black = Device Connected; Red = Device Disconnected)"
-            );
+            println!("Privacy Slider (Black = Device Connected; Red = Device Disconnected)");
             println!(
                 "  Microphone:  {}",
                 if mic { "Connected" } else { "Disconnected" }
