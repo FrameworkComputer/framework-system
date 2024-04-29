@@ -102,6 +102,7 @@ pub fn parse(args: &[String]) -> Cli {
         allupdate: false,
         info: false,
         meinfo: None,
+        serialnums: false,
         nvidia: false,
         host_command: None,
     };
@@ -235,6 +236,9 @@ pub fn parse(args: &[String]) -> Cli {
             } else {
                 Some(None)
             };
+            found_an_option = true;
+        } else if arg == "--serialnums" {
+            cli.serialnums = true;
             found_an_option = true;
         } else if arg == "--intrusion" {
             cli.intrusion = true;
