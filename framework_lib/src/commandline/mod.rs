@@ -456,7 +456,8 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
             }
         }
     }
-    return 1;
+
+    1
 }
 
 pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
