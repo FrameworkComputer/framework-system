@@ -4,7 +4,7 @@
 use clap::Parser;
 
 use crate::chromium_ec::CrosEcDriverType;
-use crate::commandline::{Cli, ConsoleArg, FpBrightnessArg, InputDeckModeArg};
+use crate::commandline::{Cli, ConsoleArg, FpBrightnessArg, InputDeckModeArg, HardwareDeviceType};
 
 /// Swiss army knife for Framework laptops
 #[derive(Parser)]
@@ -24,6 +24,15 @@ struct ClapCli {
     /// Display the UEFI ESRT table
     #[arg(long)]
     esrt: bool,
+
+    // Device type to compare_version string with version string on device
+    #[clap(value_enum)]
+    #[arg(long)]
+    device: Option<HardwareDeviceType>,
+
+    // version to compare with
+    #[arg(long)]
+    compare_version: Option<String>,
 
     /// Show current power status of battery and AC (Add -vv for more details)
     #[arg(long)]
@@ -125,6 +134,8 @@ pub fn parse(args: &[String]) -> Cli {
         versions: args.versions,
         version: args.version,
         esrt: args.esrt,
+        device: args.device,
+        compare_version: args.compare_version,
         power: args.power,
         pdports: args.pdports,
         pd_info: args.pd_info,
