@@ -5,7 +5,10 @@ fn get_args() -> Vec<String> {
     std::env::args().collect()
 }
 
-fn main() {
+fn main() -> Result<(), &'static str> {
     let args = commandline::parse(&get_args());
-    commandline::run_with_args(&args, false);
+    if (commandline::run_with_args(&args, false)) != 0 {
+        return Err("Fail");
+    }
+    Ok(())
 }

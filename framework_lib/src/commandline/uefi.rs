@@ -9,7 +9,7 @@ use uefi::proto::shell_params::*;
 use uefi::table::boot::{OpenProtocolAttributes, OpenProtocolParams, SearchType};
 use uefi::Identify;
 
-use crate::chromium_ec::CrosEcDriverType;
+use crate::chromium_ec::{CrosEcDriverType, HardwareDeviceType};
 use crate::commandline::Cli;
 
 use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, RebootEcArg};
@@ -58,6 +58,8 @@ pub fn parse(args: &[String]) -> Cli {
         versions: false,
         version: false,
         esrt: false,
+        device: None,
+        compare_version: None,
         power: false,
         thermal: false,
         sensors: false,
@@ -403,6 +405,37 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--raw-command" {
             cli.raw_command = args[1..].to_vec();
+        } else if arg == "--compare-version" {
+            cli.compare_version = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--compare-version requires extra argument to denote version");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--device" {
+            cli.device = if args.len() > i + 1 {
+                let console_arg = &args[i + 1];
+                if console_arg == "bios" {
+                    Some(HardwareDeviceType::BIOS)
+                } else if console_arg == "ec" {
+                    Some(HardwareDeviceType::EC)
+                } else if console_arg == "pd0" {
+                    Some(HardwareDeviceType::PD0)
+                } else if console_arg == "pd1" {
+                    Some(HardwareDeviceType::PD1)
+                } else if console_arg == "rtm01" {
+                    Some(HardwareDeviceType::RTM01)
+                } else if console_arg == "rtm23" {
+                    Some(HardwareDeviceType::RTM23)
+                } else {
+                    println!("Invalid value for --device: {}", console_arg);
+                    None
+                }
+            } else {
+                println!("Need to provide a value for --console. Either `follow` or `recent`");
+                None
+            };
         }
     }
 

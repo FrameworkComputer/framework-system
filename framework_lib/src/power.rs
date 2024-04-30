@@ -306,10 +306,14 @@ pub fn is_standalone(ec: &CrosEc) -> bool {
     }
 }
 
-pub fn get_and_print_power_info(ec: &CrosEc) {
+pub fn get_and_print_power_info(ec: &CrosEc) -> i32 {
     if let Some(power_info) = power_info(ec) {
         print_battery_information(&power_info);
+        if let Some(_battery) = &power_info.battery {
+            return 0;
+        }
     }
+    1
 }
 
 fn print_battery_information(power_info: &PowerInfo) {
