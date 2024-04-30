@@ -303,7 +303,6 @@ pub fn parse(args: &[String]) -> Cli {
                 println!("Need to provide a value for --console. Either `follow` or `recent`");
                 None
             };
-
         }
     }
 

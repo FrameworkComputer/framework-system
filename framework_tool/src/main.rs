@@ -11,5 +11,4 @@ fn main() -> Result<(), &'static str> {
         return Err("Fail");
     }
     Ok(())
-    
 }

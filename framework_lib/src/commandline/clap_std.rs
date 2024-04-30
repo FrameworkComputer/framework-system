@@ -4,7 +4,7 @@
 use clap::Parser;
 
 use crate::chromium_ec::CrosEcDriverType;
-use crate::commandline::{Cli, ConsoleArg, FpBrightnessArg, InputDeckModeArg, HardwareDeviceType};
+use crate::commandline::{Cli, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg};
 
 /// Swiss army knife for Framework laptops
 #[derive(Parser)]

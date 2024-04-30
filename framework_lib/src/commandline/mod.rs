@@ -409,15 +409,10 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
     }
     if device == Some(HardwareDeviceType::PD0) {
         if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
-            let ver = pd_versions
-                .controller01
-                .main_fw
-                .app
-                .to_string();
+            let ver = pd_versions.controller01.main_fw.app.to_string();
             println!("Comparing PD0 version {:?}", ver);
 
-            if ver.contains(&version)
-            {
+            if ver.contains(&version) {
                 return 0;
             } else {
                 return 1;
@@ -426,15 +421,10 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
     }
     if device == Some(HardwareDeviceType::PD1) {
         if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
-            let ver = pd_versions
-                .controller23
-                .main_fw
-                .app
-                .to_string();
+            let ver = pd_versions.controller23.main_fw.app.to_string();
             println!("Comparing PD1 version {:?}", ver);
 
-            if ver.contains(&version)
-            {
+            if ver.contains(&version) {
                 return 0;
             } else {
                 return 1;
@@ -516,7 +506,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_tool_version();
     } else if args.esrt {
         print_esrt();
-    } else if let Some(compare_version_ver) = & args.compare_version {
+    } else if let Some(compare_version_ver) = &args.compare_version {
         let compare_ret = compare_version(args.device, compare_version_ver.to_string(), &ec);
         println!("Compared version:   {}", compare_ret);
         return compare_ret;
