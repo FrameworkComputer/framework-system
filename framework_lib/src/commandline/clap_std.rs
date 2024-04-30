@@ -4,7 +4,7 @@
 use clap::Parser;
 
 use crate::chromium_ec::CrosEcDriverType;
-use crate::commandline::{Cli, ConsoleArg, FpBrightnessArg, InputDeckModeArg};
+use crate::commandline::{Cli, ConsoleArg, FpBrightnessArg, InputDeckModeArg, RebootEcArg};
 
 /// Swiss army knife for Framework laptops
 #[derive(Parser)]
@@ -106,6 +106,11 @@ struct ClapCli {
     #[arg(long)]
     console: Option<ConsoleArg>,
 
+    /// Control EC RO/RW jump
+    #[clap(value_enum)]
+    #[arg(long)]
+    reboot_ec: Option<RebootEcArg>,
+
     /// Select which driver is used. By default portio is used
     #[clap(value_enum)]
     #[arg(long)]
@@ -154,6 +159,7 @@ pub fn parse(args: &[String]) -> Cli {
         fp_brightness: args.fp_brightness,
         kblight: args.kblight,
         console: args.console,
+        reboot_ec: args.reboot_ec,
         driver: args.driver,
         test: args.test,
         // TODO: Set help. Not very important because Clap handles this by itself

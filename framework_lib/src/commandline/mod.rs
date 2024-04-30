@@ -30,9 +30,9 @@ use crate::ccgx::{self, SiliconId::*};
 use crate::chromium_ec;
 use crate::chromium_ec::commands::DeckStateMode;
 use crate::chromium_ec::commands::FpLedBrightnessLevel;
+use crate::chromium_ec::commands::RebootEcCmd;
 use crate::chromium_ec::print_err;
-use crate::chromium_ec::EcError;
-use crate::chromium_ec::EcResult;
+use crate::chromium_ec::{EcError, EcResult};
 #[cfg(feature = "linux")]
 use crate::csme;
 use crate::ec_binary;
@@ -57,6 +57,16 @@ use core::prelude::rust_2021::derive;
 pub enum ConsoleArg {
     Recent,
     Follow,
+}
+
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Debug, PartialEq)]
+pub enum RebootEcArg {
+    Reboot,
+    JumpRo,
+    JumpRw,
+    CancelJump,
+    DisableJump,
 }
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
@@ -124,6 +134,7 @@ pub struct Cli {
     pub fp_brightness: Option<Option<FpBrightnessArg>>,
     pub kblight: Option<Option<u8>>,
     pub console: Option<ConsoleArg>,
+    pub reboot_ec: Option<RebootEcArg>,
     pub help: bool,
     pub info: bool,
     // UEFI only
@@ -484,6 +495,29 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 Err(err) => println!("Failed to read console: {:?}", err),
             },
         }
+    } else if let Some(reboot_arg) = &args.reboot_ec {
+        match reboot_arg {
+            RebootEcArg::Reboot => match ec.reboot_ec(RebootEcCmd::ColdReboot) {
+                Ok(_) => {}
+                Err(err) => println!("Failed: {:?}", err),
+            },
+            RebootEcArg::JumpRo => match ec.jump_ro() {
+                Ok(_) => {}
+                Err(err) => println!("Failed: {:?}", err),
+            },
+            RebootEcArg::JumpRw => match ec.jump_rw() {
+                Ok(_) => {}
+                Err(err) => println!("Failed: {:?}", err),
+            },
+            RebootEcArg::CancelJump => match ec.cancel_jump() {
+                Ok(_) => {}
+                Err(err) => println!("Failed: {:?}", err),
+            },
+            RebootEcArg::DisableJump => match ec.disable_jump() {
+                Ok(_) => {}
+                Err(err) => println!("Failed: {:?}", err),
+            },
+        }
     } else if args.test {
         println!("Self-Test");
         let result = selftest(&ec);
@@ -655,6 +689,7 @@ Options:
       --fp-brightness [<VAL>]Get or set fingerprint LED brightness level [possible values: high, medium, low]
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
+      --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
   -t, --test                 Run self-test to check if interaction with EC is possible
   -h, --help                 Print help information
     "#

@@ -25,6 +25,10 @@ pub enum EcCommands {
     I2cPassthrough = 0x9e,
     ConsoleSnapshot = 0x97,
     ConsoleRead = 0x98,
+    /// Force reboot, causes host reboot as well
+    Reboot = 0xD1,
+    /// Control EC boot
+    RebootEc = 0xD2,
     /// Get information about PD controller power
     UsbPdPowerInfo = 0x103,
 

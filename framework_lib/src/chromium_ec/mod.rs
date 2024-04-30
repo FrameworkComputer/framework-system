@@ -410,6 +410,54 @@ impl CrosEc {
             .replace(|c: char| c == '\0', "");
         Ok(ascii)
     }
+
+    /// Instantly reboot EC and host
+    pub fn reboot(&self) -> EcResult<()> {
+        EcRequestReboot {}.send_command(self)
+    }
+
+    pub fn reboot_ec(&self, command: RebootEcCmd) -> EcResult<()> {
+        EcRequestRebootEc {
+            cmd: command as u8,
+            flags: RebootEcFlags::None as u8,
+        }
+        .send_command(self)
+    }
+
+    pub fn jump_rw(&self) -> EcResult<()> {
+        // Note: AP Turns off
+        EcRequestRebootEc {
+            cmd: RebootEcCmd::JumpRw as u8,
+            flags: 0,
+            // flags: RebootEcFlags::OnApShutdown as u8,
+        }
+        .send_command(self)
+    }
+
+    pub fn jump_ro(&self) -> EcResult<()> {
+        EcRequestRebootEc {
+            cmd: RebootEcCmd::JumpRo as u8,
+            flags: 0,
+            // flags: RebootEcFlags::OnApShutdown as u8,
+        }
+        .send_command(self)
+    }
+
+    pub fn cancel_jump(&self) -> EcResult<()> {
+        EcRequestRebootEc {
+            cmd: RebootEcCmd::Cancel as u8,
+            flags: 0,
+        }
+        .send_command(self)
+    }
+
+    pub fn disable_jump(&self) -> EcResult<()> {
+        EcRequestRebootEc {
+            cmd: RebootEcCmd::DisableJump as u8,
+            flags: 0,
+        }
+        .send_command(self)
+    }
 }
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]

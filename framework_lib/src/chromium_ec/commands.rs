@@ -86,6 +86,15 @@ impl EcRequest<EcResponsePwmGetKeyboardBacklight> for EcRequestPwmGetKeyboardBac
     }
 }
 
+#[repr(C, packed)]
+pub struct EcRequestReboot {}
+
+impl EcRequest<()> for EcRequestReboot {
+    fn command_id() -> EcCommands {
+        EcCommands::Reboot
+    }
+}
+
 pub struct EcRequestConsoleSnapshot {}
 impl EcRequest<()> for EcRequestConsoleSnapshot {
     fn command_id() -> EcCommands {
@@ -108,6 +117,58 @@ impl EcRequest<()> for EcRequestConsoleRead {
     }
     fn command_version() -> u8 {
         1
+    }
+}
+
+#[repr(u8)]
+pub enum RebootEcCmd {
+    /// Cancel a pending reboot
+    Cancel = 0,
+    /// Jump to RO firmware without rebooting
+    JumpRo = 1,
+    /// Jump to RW firmware without rebooting
+    JumpRw = 2,
+    /// DEPRECATED: Was jump to RW-B
+    DeprecatedJumpToRwB = 3,
+    /// Cold reboot of the EC. Causes host reset as well
+    ColdReboot = 4,
+    /// Disable jumping until the next EC reboot
+    DisableJump = 5,
+    /// Hibernate the EC
+    Hibernate = 6,
+    /// DEPRECATED: Hibernate EC and clears AP_IDLE flag.
+    /// Use EC_REBOOT_HIBERNATE and EC_REBOOT_FLAG_CLEAR_AP_IDLE, instead.
+    DeprecatedClearApOff = 7,
+    ///  Cold-reboot and don't boot AP
+    ColdApOff = 8,
+    /// Do nothing but apply the flags
+    NoOp = 9,
+}
+
+#[repr(u8)]
+pub enum RebootEcFlags {
+    /// Default
+    None = 0x00,
+    DeprecatedRecoveryRequest = 0x01,
+    /// Reboot after AP shutdown
+    OnApShutdown = 0x02,
+    /// Switch RW slot
+    SwitchRwSlot = 0x04,
+    /// Clear AP_IDLE flag
+    ClearApidle = 0x08,
+}
+
+pub struct EcRequestRebootEc {
+    pub cmd: u8, /* enum RebootEcCmd */
+    pub flags: u8,
+}
+
+impl EcRequest<()> for EcRequestRebootEc {
+    fn command_id() -> EcCommands {
+        EcCommands::RebootEc
+    }
+    fn command_version() -> u8 {
+        0
     }
 }
 
