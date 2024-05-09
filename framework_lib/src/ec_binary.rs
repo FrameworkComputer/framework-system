@@ -15,8 +15,6 @@ const EC_RO_VER_OFFSET_ZEPHYR: usize = 0x00180;
 const EC_RW_VER_OFFSET_ZEPHYR: usize = 0x40140;
 pub const EC_LEN: usize = 0x8_0000;
 
-#[cfg(not(feature = "uefi"))]
-#[cfg(feature = "std")]
 use regex;
 
 #[cfg(feature = "uefi")]
@@ -75,29 +73,6 @@ pub fn print_ec_version(ver: &ImageVersionData, ro: bool) {
     println!("  Size:       {:>20} KB", ver.size / 1024);
 }
 
-#[cfg(feature = "uefi")]
-fn parse_ec_version(data: &_ImageVersionData) -> Option<ImageVersionData> {
-    let version = std::str::from_utf8(&data.version)
-        .ok()?
-        .trim_end_matches(char::from(0));
-
-    // TODO: regex crate does not support no_std
-
-    Some(ImageVersionData {
-        version: version.to_string(),
-        size: data.size,
-        rollback_version: data.rollback_version,
-        details: ImageVersionDetails {
-            platform: "".to_string(),
-            major: 0,
-            minor: 0,
-            patch: 0,
-            commit: "".to_string(),
-        },
-    })
-}
-
-#[cfg(not(feature = "uefi"))]
 fn parse_ec_version(data: &_ImageVersionData) -> Option<ImageVersionData> {
     let version = std::str::from_utf8(&data.version)
         .ok()?
@@ -146,7 +121,6 @@ fn parse_ec_version(data: &_ImageVersionData) -> Option<ImageVersionData> {
 ///     commit: "c6c7ac3".to_string(),
 /// }));
 /// ```
-#[cfg(not(feature = "uefi"))]
 pub fn parse_ec_version_str(version: &str) -> Option<ImageVersionDetails> {
     debug!("Trying to parse version: {:?}", version);
     let re = regex::Regex::new(r"([a-z0-9]+)(_v|-)([0-9])\.([0-9])\.([0-9]+)-(ec:)?([0-9a-f]+)")
