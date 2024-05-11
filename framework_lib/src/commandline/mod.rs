@@ -114,6 +114,7 @@ pub struct Cli {
     pub version: bool,
     pub esrt: bool,
     pub power: bool,
+    pub thermal: bool,
     pub pdports: bool,
     pub privacy: bool,
     pub pd_info: bool,
@@ -526,6 +527,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if args.power {
         power::get_and_print_power_info(&ec);
+    } else if args.thermal {
+        power::print_thermal(&ec);
     } else if args.pdports {
         power::get_and_print_pd_info(&ec);
     } else if args.info {
@@ -676,6 +679,7 @@ Options:
       --version              Show tool version information (Add -vv for more detailed information)
       --esrt                 Display the UEFI ESRT table
       --power                Show current power status (battery and AC)
+      --thermal              Show current power status (battery and AC)
       --pdports              Show information about USB-C PD ports
       --info                 Show info from SMBIOS (Only on UEFI)
       --pd-info              Show details about the PD controllers

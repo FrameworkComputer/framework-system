@@ -29,6 +29,10 @@ struct ClapCli {
     #[arg(long)]
     power: bool,
 
+    /// Print thermal information (Temperatures and Fan speed)
+    #[arg(long)]
+    thermal: bool,
+
     /// Show information about USB-C PD ports
     #[arg(long)]
     pdports: bool,
@@ -131,6 +135,7 @@ pub fn parse(args: &[String]) -> Cli {
         version: args.version,
         esrt: args.esrt,
         power: args.power,
+        thermal: args.thermal,
         pdports: args.pdports,
         pd_info: args.pd_info,
         dp_hdmi_info: args.dp_hdmi_info,
