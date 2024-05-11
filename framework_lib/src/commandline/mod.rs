@@ -7,6 +7,7 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use log::Level;
+use num_traits::FromPrimitive;
 
 #[cfg(not(feature = "uefi"))]
 pub mod clap_std;
@@ -39,6 +40,7 @@ use crate::ec_binary;
 use crate::esrt;
 use crate::power;
 use crate::smbios;
+use crate::smbios::ConfigDigit0;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
 #[cfg(feature = "uefi")]
 use crate::uefi::enable_page_break;
@@ -786,7 +788,16 @@ fn smbios_info() {
             DefinedStruct::SystemInformation(data) => {
                 println!("System Information");
                 if let Some(version) = dmidecode_string_val(&data.version()) {
-                    println!("  Version:      {}", version);
+                    // Assumes it's ASCII, which is guaranteed by SMBIOS
+                    let config_digit0 = &version[0..1];
+                    let config_digit0 = u8::from_str_radix(config_digit0, 16).unwrap();
+                    if let Some(version_config) =
+                        <ConfigDigit0 as FromPrimitive>::from_u8(config_digit0)
+                    {
+                        println!("  Version:      {:?} ({})", version_config, version);
+                    } else {
+                        println!("  Version:      {}", version);
+                    }
                 }
                 if let Some(manufacturer) = dmidecode_string_val(&data.manufacturer()) {
                     println!("  Manufacturer: {}", manufacturer);
