@@ -182,6 +182,9 @@ pub fn read_ec_version(data: &[u8], ro: bool) -> Option<ImageVersionData> {
         EC_RW_VER_OFFSET_ZEPHYR
     };
 
+    if data.len() < offset + core::mem::size_of::<_ImageVersionData>() {
+        return None;
+    }
     let v: _ImageVersionData = unsafe { std::ptr::read(data[offset..].as_ptr() as *const _) };
     if v.cookie1 != CROS_EC_IMAGE_DATA_COOKIE1 {
         debug!("Failed to find Cookie 1. Found: {:X?}", { v.cookie1 });
@@ -191,6 +194,9 @@ pub fn read_ec_version(data: &[u8], ro: bool) -> Option<ImageVersionData> {
         return parse_ec_version(&v);
     }
 
+    if data.len() < offset_zephyr + core::mem::size_of::<_ImageVersionData>() {
+        return None;
+    }
     let v: _ImageVersionData =
         unsafe { std::ptr::read(data[offset_zephyr..].as_ptr() as *const _) };
     if v.cookie1 != CROS_EC_IMAGE_DATA_COOKIE1 {

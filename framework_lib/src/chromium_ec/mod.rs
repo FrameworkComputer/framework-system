@@ -8,6 +8,7 @@
 //! - `portio` - It uses raw port I/O. This works on UEFI and on Linux if the system isn't in lockdown mode (SecureBoot disabled).
 //! - `windows` - It uses [DHowett's Windows driver](https://github.com/DHowett/FrameworkWindowsUtils)
 
+use crate::ec_binary;
 use crate::os_specific;
 use crate::smbios;
 #[cfg(feature = "uefi")]
@@ -399,6 +400,25 @@ impl CrosEc {
     /// | 40000 | 3C000 | 39000 | RO Region   |
     /// | 79000 | 79FFF | 01000 | Flash Flags |
     pub fn reflash(&self, data: &[u8], ft: EcFlashType) -> EcResult<()> {
+        if ft == EcFlashType::Full || ft == EcFlashType::Ro {
+            if let Some(version) = ec_binary::read_ec_version(data, true) {
+                println!("EC RO Version in File: {:?}", version.version);
+            } else {
+                return Err(EcError::DeviceError(
+                    "File does not contain valid EC RO firmware".to_string(),
+                ));
+            }
+        }
+        if ft == EcFlashType::Full || ft == EcFlashType::Rw {
+            if let Some(version) = ec_binary::read_ec_version(data, false) {
+                println!("EC RW Version in File: {:?}", version.version);
+            } else {
+                return Err(EcError::DeviceError(
+                    "File does not contain valid EW RO firmware".to_string(),
+                ));
+            }
+        }
+
         if ft == EcFlashType::Full || ft == EcFlashType::Ro {
             println!("For safety reasons flashing RO firmware is disabled.");
             return Ok(());
