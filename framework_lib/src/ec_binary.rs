@@ -156,6 +156,9 @@ pub fn read_ec_version(data: &[u8], ro: bool) -> Option<ImageVersionData> {
         EC_RW_VER_OFFSET_ZEPHYR
     };
 
+    if data.len() < offset + core::mem::size_of::<_ImageVersionData>() {
+        return None;
+    }
     let v: _ImageVersionData = unsafe { std::ptr::read(data[offset..].as_ptr() as *const _) };
     if v.cookie1 != CROS_EC_IMAGE_DATA_COOKIE1 {
         debug!("Failed to find Cookie 1. Found: {:X?}", { v.cookie1 });
@@ -165,6 +168,9 @@ pub fn read_ec_version(data: &[u8], ro: bool) -> Option<ImageVersionData> {
         return parse_ec_version(&v);
     }
 
+    if data.len() < offset_zephyr + core::mem::size_of::<_ImageVersionData>() {
+        return None;
+    }
     let v: _ImageVersionData =
         unsafe { std::ptr::read(data[offset_zephyr..].as_ptr() as *const _) };
     if v.cookie1 != CROS_EC_IMAGE_DATA_COOKIE1 {
@@ -281,5 +287,27 @@ mod tests {
         });
         assert_eq!(expected, read_ec_version(&data, false));
         assert_eq!(expected, read_ec_version(&data, true));
+    }
+
+    #[test]
+    // Make sure it doesn't crash when reading an invalid binary
+    // Cargo.toml is significantly smaller than ec.bin
+    fn fails_cargo_toml() {
+        let mut ec_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        ec_bin_path.push("Cargo.toml");
+        let data = fs::read(ec_bin_path).unwrap();
+        assert_eq!(None, read_ec_version(&data, false));
+        assert_eq!(None, read_ec_version(&data, true));
+    }
+
+    #[test]
+    // Make sure it doesn't crash when reading an invalid binary
+    // winux.bin is slightly larger than ec.bin
+    fn fails_winux() {
+        let mut ec_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        ec_bin_path.push("test_bins/winux.bin");
+        let data = fs::read(ec_bin_path).unwrap();
+        assert_eq!(None, read_ec_version(&data, false));
+        assert_eq!(None, read_ec_version(&data, true));
     }
 }

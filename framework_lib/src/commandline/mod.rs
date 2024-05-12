@@ -16,6 +16,8 @@ pub mod uefi;
 
 #[cfg(not(feature = "uefi"))]
 use std::fs;
+#[cfg(all(not(feature = "uefi"), feature = "std"))]
+use std::io::prelude::*;
 
 #[cfg(not(feature = "uefi"))]
 use crate::audio_card::check_synaptics_fw_version;
@@ -32,7 +34,7 @@ use crate::chromium_ec;
 use crate::chromium_ec::commands::DeckStateMode;
 use crate::chromium_ec::commands::FpLedBrightnessLevel;
 use crate::chromium_ec::commands::RebootEcCmd;
-use crate::chromium_ec::print_err;
+use crate::chromium_ec::{print_err, EcFlashType};
 use crate::chromium_ec::{EcError, EcResult};
 #[cfg(feature = "linux")]
 use crate::csme;
@@ -47,7 +49,9 @@ use crate::uefi::enable_page_break;
 use crate::util;
 #[cfg(not(feature = "uefi"))]
 use hidapi::HidApi;
-use smbioslib::*;
+use sha2::{Digest, Sha256, Sha384, Sha512};
+//use smbioslib::*;
+use smbioslib::{DefinedStruct, SMBiosInformation};
 
 use crate::chromium_ec::{CrosEc, CrosEcDriverType};
 
@@ -128,6 +132,10 @@ pub struct Cli {
     pub capsule: Option<String>,
     pub dump: Option<String>,
     pub ho2_capsule: Option<String>,
+    pub dump_ec_flash: Option<String>,
+    pub flash_ec: Option<String>,
+    pub flash_ro_ec: Option<String>,
+    pub flash_rw_ec: Option<String>,
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
     pub intrusion: bool,
@@ -138,6 +146,7 @@ pub struct Cli {
     pub kblight: Option<Option<u8>>,
     pub console: Option<ConsoleArg>,
     pub reboot_ec: Option<RebootEcArg>,
+    pub hash: Option<String>,
     pub help: bool,
     pub info: bool,
     // UEFI only
@@ -392,6 +401,55 @@ fn print_esrt() {
     }
 }
 
+fn flash_ec(ec: &CrosEc, ec_bin_path: &str, flash_type: EcFlashType) {
+    #[cfg(feature = "uefi")]
+    let data = crate::uefi::fs::shell_read_file(ec_bin_path);
+    #[cfg(not(feature = "uefi"))]
+    let data: Option<Vec<u8>> = {
+        let _data = match fs::read(ec_bin_path) {
+            Ok(data) => Some(data),
+            // TODO: Perhaps a more user-friendly error
+            Err(e) => {
+                println!("Error {:?}", e);
+                None
+            }
+        };
+
+        // EC communication from OS is not stable enough yet,
+        // it can't be trusted to reliably flash the EC without risk of damage.
+        println!("Sorry, flashing EC from the OS is not supported yet.");
+        None
+    };
+
+    if let Some(data) = data {
+        println!("File");
+        println!("  Size:       {:>20} B", data.len());
+        println!("  Size:       {:>20} KB", data.len() / 1024);
+        if let Err(err) = ec.reflash(&data, flash_type) {
+            println!("Error: {:?}", err);
+        } else {
+            println!("Success!");
+        }
+    }
+}
+
+fn dump_ec_flash(ec: &CrosEc, dump_path: &str) {
+    let flash_bin = ec.get_entire_ec_flash().unwrap();
+
+    #[cfg(all(not(feature = "uefi"), feature = "std"))]
+    {
+        let mut file = fs::File::create(dump_path).unwrap();
+        file.write_all(&flash_bin).unwrap();
+    }
+    #[cfg(feature = "uefi")]
+    {
+        let ret = crate::uefi::fs::shell_write_file(dump_path, &flash_bin);
+        if ret.is_err() {
+            println!("Failed to dump EC FW image.");
+        }
+    }
+}
+
 pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     #[cfg(feature = "uefi")]
     {
@@ -525,6 +583,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         println!("Self-Test");
         let result = selftest(&ec);
         if result.is_none() {
+            println!("FAILED!!");
             return 1;
         }
     } else if args.power {
@@ -660,6 +719,35 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 analyze_ccgx_pd_fw(pd_bin);
             }
         }
+    } else if let Some(dump_path) = &args.dump_ec_flash {
+        println!("Dumping to {}", dump_path);
+        // TODO: Should have progress indicator
+        dump_ec_flash(&ec, dump_path);
+    } else if let Some(ec_bin_path) = &args.flash_ec {
+        flash_ec(&ec, ec_bin_path, EcFlashType::Full);
+    } else if let Some(ec_bin_path) = &args.flash_ro_ec {
+        flash_ec(&ec, ec_bin_path, EcFlashType::Ro);
+    } else if let Some(ec_bin_path) = &args.flash_rw_ec {
+        flash_ec(&ec, ec_bin_path, EcFlashType::Rw);
+    } else if let Some(hash_file) = &args.hash {
+        println!("Hashing file: {}", hash_file);
+        #[cfg(feature = "uefi")]
+        let data = crate::uefi::fs::shell_read_file(hash_file);
+        #[cfg(not(feature = "uefi"))]
+        let data = match fs::read(hash_file) {
+            Ok(data) => Some(data),
+            // TODO: Perhaps a more user-friendly error
+            Err(e) => {
+                println!("Error {:?}", e);
+                None
+            }
+        };
+        if let Some(data) = data {
+            println!("File");
+            println!("  Size:       {:>20} B", data.len());
+            println!("  Size:       {:>20} KB", data.len() / 1024);
+            hash(&data);
+        }
     }
 
     0
@@ -674,7 +762,6 @@ fn print_help(updater: bool) {
 Usage: framework_tool [OPTIONS]
 
 Options:
-  -b                         Print output one screen at a time
   -v, --verbose...           More output per occurrence
   -q, --quiet...             Less output per occurrence
       --versions             List current firmware versions
@@ -689,15 +776,24 @@ Options:
       --pd-bin <PD_BIN>      Parse versions from PD firmware binary file
       --ec-bin <EC_BIN>      Parse versions from EC firmware binary file
       --capsule <CAPSULE>    Parse UEFI Capsule information from binary file
+      --dump <DUMP>          Dump extracted UX capsule bitmap image to a file
+      --ho2-capsule <HO2_CAPSULE>      Parse UEFI Capsule information from binary file
+      --dump-ec-flash <DUMP_EC_FLASH>  Dump EC flash contents
+      --flash-ec <FLASH_EC>            Flash EC with new firmware from file
+      --flash-ro-ec <FLASH_EC>         Flash EC with new firmware from file
+      --flash-rw-ec <FLASH_EC>         Flash EC with new firmware from file
+      --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
       --intrusion            Show status of intrusion switch
       --inputmodules         Show status of the input modules (Framework 16 only)
+      --input-deck-mode      Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
       --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')
       --fp-brightness [<VAL>]Get or set fingerprint LED brightness level [possible values: high, medium, low]
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
-      --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
+      --hash <HASH>          Hash a file of arbitrary data
   -t, --test                 Run self-test to check if interaction with EC is possible
   -h, --help                 Print help information
+  -b                         Print output one screen at a time
     "#
     );
     if updater {
@@ -714,6 +810,29 @@ Options:
     //                    Example: raw-command 0x3E14
     //"#
     //);
+}
+
+/// Useful to hash update files to check integrity
+fn hash(data: &[u8]) {
+    let mut sha256_hasher = Sha256::new();
+    let mut sha384_hasher = Sha384::new();
+    let mut sha512_hasher = Sha512::new();
+
+    sha256_hasher.update(data);
+    sha384_hasher.update(data);
+    sha512_hasher.update(data);
+
+    let sha256 = &sha256_hasher.finalize()[..];
+    let sha384 = &sha384_hasher.finalize()[..];
+    let sha512 = &sha512_hasher.finalize()[..];
+
+    println!("Hashes");
+    print!("  SHA256:  ");
+    util::print_buffer_short(sha256);
+    print!("  SHA384:  ");
+    util::print_buffer_short(sha384);
+    print!("  SHA512:  ");
+    util::print_buffer_short(sha512);
 }
 
 fn selftest(ec: &CrosEc) -> Option<()> {
@@ -736,8 +855,11 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     println!("  Reading EC Build Version");
     print_err(ec.version_info())?;
 
-    println!("  Reading EC Flash");
+    println!("  Reading EC Flash by EC");
     ec.flash_version()?;
+
+    println!("  Reading EC Flash directly");
+    ec.test_ec_flash_read().ok()?;
 
     println!("  Getting power info from EC");
     power::power_info(ec)?;

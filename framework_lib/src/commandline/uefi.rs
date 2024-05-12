@@ -68,6 +68,10 @@ pub fn parse(args: &[String]) -> Cli {
         privacy: false,
         pd_bin: None,
         ec_bin: None,
+        dump_ec_flash: None,
+        flash_ec: None,
+        flash_ro_ec: None,
+        flash_rw_ec: None,
         capsule: None,
         dump: None,
         ho2_capsule: None,
@@ -79,6 +83,7 @@ pub fn parse(args: &[String]) -> Cli {
         kblight: None,
         console: None,
         reboot_ec: None,
+        hash: None,
         // This is the only driver that works on UEFI
         driver: Some(CrosEcDriverType::Portio),
         test: false,
@@ -292,6 +297,46 @@ pub fn parse(args: &[String]) -> Cli {
                 Some(args[i + 1].clone())
             } else {
                 println!("--ho2-capsule requires extra argument to denote input file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--dump-ec-flash" {
+            cli.dump_ec_flash = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--dump-ec-flash requires extra argument to denote output file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--flash-ec" {
+            cli.flash_ec = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--flash-ec requires extra argument to denote input file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--flash-ro-ec" {
+            cli.flash_ro_ec = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--flash-ro-ec requires extra argument to denote input file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--flash-rw-ec" {
+            cli.flash_rw_ec = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--flash-rw-ec requires extra argument to denote input file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--hash" {
+            cli.hash = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--hash requires extra argument to denote input file");
                 None
             };
             found_an_option = true;

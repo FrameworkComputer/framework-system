@@ -20,6 +20,14 @@ pub enum EcCommands {
     /// Command to read data from EC memory map
     ReadMemMap = 0x07,
     GetCmdVersions = 0x08,
+    FlashInfo = 0x10,
+    /// Write section of EC flash
+    FlashRead = 0x11,
+    /// Write section of EC flash
+    FlashWrite = 0x12,
+    /// Erase section of EC flash
+    FlashErase = 0x13,
+    FlashProtect = 0x15,
     PwmGetKeyboardBacklight = 0x0022,
     PwmSetKeyboardBacklight = 0x0023,
     I2cPassthrough = 0x9e,
@@ -85,14 +93,14 @@ impl<T: EcRequest<R>, R> EcRequestRaw<R> for T {
     fn command_id_u16() -> u16 {
         Self::command_id() as u16
     }
+    fn command_version() -> u8 {
+        Self::command_version()
+    }
 }
 
 pub trait EcRequestRaw<R> {
     fn command_id_u16() -> u16;
-    // Can optionally override this
-    fn command_version() -> u8 {
-        0
-    }
+    fn command_version() -> u8;
 
     fn format_request(&self) -> &[u8]
     where
@@ -152,7 +160,7 @@ pub trait EcRequestRaw<R> {
         let expected = response.len() != std::mem::size_of::<R>();
         if expected {
             return Err(EcError::DeviceError(format!(
-                "Returned data size {} is not the expted size: {}",
+                "Returned data size ({}) is not the expted size: {}",
                 response.len(),
                 std::mem::size_of::<R>()
             )));

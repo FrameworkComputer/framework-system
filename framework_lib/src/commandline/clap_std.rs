@@ -81,6 +81,22 @@ struct ClapCli {
     #[arg(long)]
     ho2_capsule: Option<std::path::PathBuf>,
 
+    /// Dump EC flash contents
+    #[arg(long)]
+    dump_ec_flash: Option<std::path::PathBuf>,
+
+    /// Flash EC with new firmware from file
+    #[arg(long)]
+    flash_ec: Option<std::path::PathBuf>,
+
+    /// Flash EC with new RO firmware from file
+    #[arg(long)]
+    flash_ro_ec: Option<std::path::PathBuf>,
+
+    /// Flash EC with new RW firmware from file
+    #[arg(long)]
+    flash_rw_ec: Option<std::path::PathBuf>,
+
     /// Show status of intrusion switch
     #[arg(long)]
     intrusion: bool,
@@ -89,7 +105,7 @@ struct ClapCli {
     #[arg(long)]
     inputmodules: bool,
 
-    /// Show status of the input modules (Framework 16 only)
+    /// Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
     #[arg(long)]
     input_deck_mode: Option<InputDeckModeArg>,
 
@@ -114,6 +130,10 @@ struct ClapCli {
     #[clap(value_enum)]
     #[arg(long)]
     reboot_ec: Option<RebootEcArg>,
+
+    /// Hash a file of arbitrary data
+    #[arg(long)]
+    hash: Option<std::path::PathBuf>,
 
     /// Select which driver is used. By default portio is used
     #[clap(value_enum)]
@@ -157,6 +177,18 @@ pub fn parse(args: &[String]) -> Cli {
         ho2_capsule: args
             .ho2_capsule
             .map(|x| x.into_os_string().into_string().unwrap()),
+        dump_ec_flash: args
+            .dump_ec_flash
+            .map(|x| x.into_os_string().into_string().unwrap()),
+        flash_ec: args
+            .flash_ec
+            .map(|x| x.into_os_string().into_string().unwrap()),
+        flash_ro_ec: args
+            .flash_ro_ec
+            .map(|x| x.into_os_string().into_string().unwrap()),
+        flash_rw_ec: args
+            .flash_rw_ec
+            .map(|x| x.into_os_string().into_string().unwrap()),
         intrusion: args.intrusion,
         inputmodules: args.inputmodules,
         input_deck_mode: args.input_deck_mode,
@@ -165,6 +197,7 @@ pub fn parse(args: &[String]) -> Cli {
         kblight: args.kblight,
         console: args.console,
         reboot_ec: args.reboot_ec,
+        hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         test: args.test,
         // TODO: Set help. Not very important because Clap handles this by itself

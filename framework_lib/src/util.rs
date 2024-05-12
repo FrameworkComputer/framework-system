@@ -170,3 +170,10 @@ pub fn assert_win_len<N: Num + std::fmt::Debug + Ord + NumCast + Copy>(left: N, 
     #[cfg(not(feature = "win_driver"))]
     assert_eq!(left, right);
 }
+
+pub fn print_buffer_short(buffer: &[u8]) {
+    for byte in buffer {
+        print!("{:02x}", byte);
+    }
+    println!();
+}

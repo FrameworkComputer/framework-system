@@ -1,5 +1,4 @@
 use crate::chromium_ec::{EcError, EcResponseStatus, EcResult};
-use crate::smbios;
 use alloc::format;
 use alloc::string::ToString;
 use alloc::vec;
@@ -15,16 +14,9 @@ use num::FromPrimitive;
 #[cfg(feature = "linux_pio")]
 use std::sync::{Arc, Mutex};
 
-use crate::chromium_ec::portio_mec;
+use crate::chromium_ec::{has_mec, portio_mec};
 use crate::os_specific;
-use crate::util::{self, Platform};
-
-fn has_mec() -> bool {
-    !matches!(
-        smbios::get_platform().unwrap(),
-        Platform::Framework13Amd | Platform::Framework16
-    )
-}
+use crate::util;
 
 /*
  * Value written to legacy command port / prefix byte to indicate protocol

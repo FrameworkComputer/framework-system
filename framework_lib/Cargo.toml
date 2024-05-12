@@ -14,7 +14,13 @@ linux = ["linux_pio", "unix"]
 windows = ["std", "smbios", "dep:windows", "win_driver"]
 smbios = ["dep:smbios-lib"]
 std = ["dep:clap", "dep:clap-verbosity-flag", "dep:env_logger", "smbios-lib?/std", "dep:hidapi", "dep:rusb"]
-uefi = ["dep:plain", "raw_pio", "smbios", "lazy_static/spin_no_std", "dep:uefi", "dep:uefi-services"]
+uefi = [
+    "dep:plain", "raw_pio", "smbios", "lazy_static/spin_no_std", "dep:uefi", "dep:uefi-services",
+    # Otherwise I get: `LLVM ERROR: Do not know how to split the result of this operator!`
+    # Seems to be a Ruset/LLVM bug when SSE is enabled.
+    # See: https://github.com/rust-lang/rust/issues/61721
+    "sha2/force-soft"
+]
 
 # EC communication via Port I/O on Linux
 linux_pio = ["dep:libc"]
@@ -31,6 +37,7 @@ built = { version = "0.5", features = ["chrono", "git2"] }
 
 [dependencies]
 lazy_static = "1.4.0"
+sha2 = { version = "0.10.6", default_features = false, features = [ "force-soft" ] }
 regex = { version = "1.10.0", default-features = false }
 redox_hwio = { version = "0.1.5", default_features = false }
 libc = { version = "0.2.137", optional = true }
