@@ -7,6 +7,7 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use log::Level;
+use num_traits::FromPrimitive;
 
 #[cfg(not(feature = "uefi"))]
 pub mod clap_std;
@@ -41,6 +42,7 @@ use crate::ec_binary;
 use crate::esrt;
 use crate::power;
 use crate::smbios;
+use crate::smbios::ConfigDigit0;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
 #[cfg(feature = "uefi")]
 use crate::uefi::enable_page_break;
@@ -118,6 +120,7 @@ pub struct Cli {
     pub version: bool,
     pub esrt: bool,
     pub power: bool,
+    pub thermal: bool,
     pub pdports: bool,
     pub privacy: bool,
     pub pd_info: bool,
@@ -585,6 +588,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if args.power {
         power::get_and_print_power_info(&ec);
+    } else if args.thermal {
+        power::print_thermal(&ec);
     } else if args.pdports {
         power::get_and_print_pd_info(&ec);
     } else if args.info {
@@ -763,6 +768,7 @@ Options:
       --version              Show tool version information (Add -vv for more detailed information)
       --esrt                 Display the UEFI ESRT table
       --power                Show current power status (battery and AC)
+      --thermal              Show current power status (battery and AC)
       --pdports              Show information about USB-C PD ports
       --info                 Show info from SMBIOS (Only on UEFI)
       --pd-info              Show details about the PD controllers
@@ -904,7 +910,16 @@ fn smbios_info() {
             DefinedStruct::SystemInformation(data) => {
                 println!("System Information");
                 if let Some(version) = dmidecode_string_val(&data.version()) {
-                    println!("  Version:      {}", version);
+                    // Assumes it's ASCII, which is guaranteed by SMBIOS
+                    let config_digit0 = &version[0..1];
+                    let config_digit0 = u8::from_str_radix(config_digit0, 16).unwrap();
+                    if let Some(version_config) =
+                        <ConfigDigit0 as FromPrimitive>::from_u8(config_digit0)
+                    {
+                        println!("  Version:      {:?} ({})", version_config, version);
+                    } else {
+                        println!("  Version:      {}", version);
+                    }
                 }
                 if let Some(manufacturer) = dmidecode_string_val(&data.manufacturer()) {
                     println!("  Manufacturer: {}", manufacturer);

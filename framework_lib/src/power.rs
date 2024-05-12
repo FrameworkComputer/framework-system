@@ -11,15 +11,17 @@ use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, MainP
 use crate::chromium_ec::command::EcRequestRaw;
 use crate::chromium_ec::commands::{EcRequestReadPdVersion, EcRequestUsbPdPowerInfo};
 use crate::chromium_ec::{print_err_ref, CrosEc, CrosEcDriver, EcResult};
+use crate::smbios;
 use crate::smbios::get_platform;
+use crate::util::Platform;
 
 /// Maximum length of strings in memmap
 const EC_MEMMAP_TEXT_MAX: u16 = 8;
 
 // The offset address of each type of data in mapped memory.
 // TODO: Move non-power values to other modules
-const _EC_MEMMAP_TEMP_SENSOR: u16 = 0x00; // Temp sensors 0x00 - 0x0f
-const _EC_MEMMAP_FAN: u16 = 0x10; // Fan speeds 0x10 - 0x17
+const EC_MEMMAP_TEMP_SENSOR: u16 = 0x00; // Temp sensors 0x00 - 0x0f
+const EC_MEMMAP_FAN: u16 = 0x10; // Fan speeds 0x10 - 0x17
 const _EC_MEMMAP_TEMP_SENSOR_B: u16 = 0x18; // More temp sensors 0x18 - 0x1f
 const _EC_MEMMAP_ID: u16 = 0x2120; // 0x20 == 'E', 0x21 == 'C'
 const EC_MEMMAP_ID_VERSION: u16 = 0x22; // Version of data in 0x20 - 0x2f
@@ -157,6 +159,56 @@ pub fn print_memmap_version_info(ec: &CrosEc) {
     let _battery_ver = ec.read_memory(EC_MEMMAP_BATTERY_VERSION, 2).unwrap(); /* Version of data in 0x40 - 0x7f */
     let _switches_ver = ec.read_memory(EC_MEMMAP_SWITCHES_VERSION, 2).unwrap(); /* Version of data in 0x30 - 0x33 */
     let _events_ver = ec.read_memory(EC_MEMMAP_EVENTS_VERSION, 2).unwrap();
+}
+
+fn in_c(t: u8) -> u8 {
+    if t == 255 {
+        t
+    } else {
+        t - 73
+    }
+}
+
+pub fn print_thermal(ec: &CrosEc) {
+    let temps = ec.read_memory(EC_MEMMAP_TEMP_SENSOR, 0x0F).unwrap();
+    let fans = ec.read_memory(EC_MEMMAP_FAN, 0x08).unwrap();
+
+    let platform = smbios::get_platform();
+    match platform {
+        Some(Platform::IntelGen11) | Some(Platform::IntelGen12) | Some(Platform::IntelGen13) => {
+            println!("  F75303_Local: {:>4} C", in_c(temps[0]));
+            println!("  F75303_CPU:   {:>4} C", in_c(temps[1]));
+            println!("  F75303_DDR:   {:>4} C", in_c(temps[2]));
+            println!("  Battery:      {:>4} C", in_c(temps[3]));
+            println!("  PECI:         {:>4} C", in_c(temps[4]));
+            println!("  F57397_VCCGT: {:>4} C", in_c(temps[5]));
+        }
+        Some(Platform::Framework13Amd | Platform::Framework16) => {
+            println!("  F75303_Local: {:>4} C", in_c(temps[0]));
+            println!("  F75303_CPU:   {:>4} C", in_c(temps[1]));
+            println!("  F75303_DDR:   {:>4} C", in_c(temps[2]));
+            println!("  APU:          {:>4} C", in_c(temps[3]));
+            if matches!(platform, Some(Platform::Framework16)) {
+                println!("  dGPU VR:      {:>4} C", in_c(temps[4]));
+                println!("  dGPU VRAM:    {:>4} C", in_c(temps[5]));
+                println!("  dGPU AMB:     {:>4} C", in_c(temps[6]));
+                println!("  dGPU temp:    {:>4} C", in_c(temps[7]));
+            }
+        }
+        _ => {
+            println!("  Temp 0:       {:>4} C", in_c(temps[0]));
+            println!("  Temp 1:       {:>4} C", in_c(temps[1]));
+            println!("  Temp 2:       {:>4} C", in_c(temps[2]));
+            println!("  Temp 3:       {:>4} C", in_c(temps[3]));
+            println!("  Temp 4:       {:>4} C", in_c(temps[4]));
+            println!("  Temp 5:       {:>4} C", in_c(temps[5]));
+            println!("  Temp 6:       {:>4} C", in_c(temps[6]));
+            println!("  Temp 7:       {:>4} C", in_c(temps[7]));
+        }
+    }
+
+    let fan0 = u16::from_le_bytes([fans[0], fans[1]]);
+    println!("  Fan Speed:    {:>4} RPM", fan0);
 }
 
 // TODO: Use Result
