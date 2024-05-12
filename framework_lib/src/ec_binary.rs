@@ -314,4 +314,26 @@ mod tests {
         assert_eq!(expected, read_ec_version(&data, false));
         assert_eq!(expected, read_ec_version(&data, true));
     }
+
+    #[test]
+    // Make sure it doesn't crash when reading an invalid binary
+    // Cargo.toml is significantly smaller than ec.bin
+    fn fails_cargo_toml() {
+        let mut ec_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        ec_bin_path.push("Cargo.toml");
+        let data = fs::read(ec_bin_path).unwrap();
+        assert_eq!(None, read_ec_version(&data, false));
+        assert_eq!(None, read_ec_version(&data, true));
+    }
+
+    #[test]
+    // Make sure it doesn't crash when reading an invalid binary
+    // winux.bin is slightly larger than ec.bin
+    fn fails_winux() {
+        let mut ec_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        ec_bin_path.push("test_bins/winux.bin");
+        let data = fs::read(ec_bin_path).unwrap();
+        assert_eq!(None, read_ec_version(&data, false));
+        assert_eq!(None, read_ec_version(&data, true));
+    }
 }
