@@ -86,6 +86,9 @@ pub fn parse(args: &[String]) -> Cli {
         hash: None,
         // This is the only driver that works on UEFI
         driver: Some(CrosEcDriverType::Portio),
+        pd_addrs: None,
+        pd_ports: None,
+        has_mec: None,
         test: false,
         help: false,
         allupdate: false,
@@ -169,7 +172,7 @@ pub fn parse(args: &[String]) -> Cli {
                     Some(Some(percent))
                 } else {
                     println!(
-                        "Invalid value for --charge_limit: '{}'. Must be integer < 100.",
+                        "Invalid value for --charge-limit: '{}'. Must be integer < 100.",
                         args[i + 1]
                     );
                     None
@@ -340,9 +343,70 @@ pub fn parse(args: &[String]) -> Cli {
                 None
             };
             found_an_option = true;
+        } else if arg == "--pd-addrs" {
+            cli.pd_addrs = if args.len() > i + 2 {
+                let left = args[i + 1].parse::<u16>();
+                let right = args[i + 2].parse::<u16>();
+                if left.is_ok() && right.is_ok() {
+                    Some((left.unwrap(), right.unwrap()))
+                } else {
+                    println!(
+                        "Invalid values for --pd-addrs: '{} {}'. Must be u16 integers.",
+                        args[i + 1],
+                        args[i + 2]
+                    );
+                    None
+                }
+            } else {
+                println!("--pd-addrs requires two arguments, one for each address");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--pd-ports" {
+            cli.pd_ports = if args.len() > i + 2 {
+                let left = args[i + 1].parse::<u8>();
+                let right = args[i + 2].parse::<u8>();
+                if left.is_ok() && right.is_ok() {
+                    Some((left.unwrap(), right.unwrap()))
+                } else {
+                    println!(
+                        "Invalid values for --pd-ports: '{} {}'. Must be u16 integers.",
+                        args[i + 1],
+                        args[i + 2]
+                    );
+                    None
+                }
+            } else {
+                println!("--pd-ports requires two arguments, one for each port");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--has-mec" {
+            cli.has_mec = if args.len() > i + 1 {
+                if let Ok(b) = args[i + 1].parse::<bool>() {
+                    Some(b)
+                } else {
+                    println!(
+                        "Invalid value for --has-mec: '{}'. Must be 'true' or 'false'.",
+                        args[i + 1]
+                    );
+                    None
+                }
+            } else {
+                println!("--has-mec requires extra boolean argument.");
+                None
+            };
+            found_an_option = true;
         } else if arg == "--raw-command" {
             cli.raw_command = args[1..].to_vec();
         }
+    }
+
+    let custom_platform = cli.pd_addrs.is_some() && cli.pd_ports.is_some() && cli.has_mec.is_some();
+    let no_customization =
+        cli.pd_addrs.is_none() && cli.pd_ports.is_none() && cli.has_mec.is_none();
+    if !(custom_platform || no_customization) {
+        println!("To customize the platform you need to provide all of --pd-addrs, --pd-ports and --has-mec");
     }
 
     if args.len() == 1 && cli.paginate {

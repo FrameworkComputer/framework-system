@@ -27,6 +27,9 @@ pub enum Platform {
     Framework13Amd,
     /// Framework 16
     Framework16,
+    /// Generic Framework device
+    /// pd_addrs, pd_ports, has_mec
+    GenericFramework((u16, u16), (u8, u8), bool),
 }
 
 #[derive(Debug)]
@@ -36,11 +39,26 @@ pub struct Config {
 }
 
 impl Config {
-    fn new() -> Self {
-        Config {
-            verbose: false,
-            platform: Platform::IntelGen11,
+    pub fn set(platform: Platform) {
+        #[cfg(feature = "std")]
+        let mut config = CONFIG.lock().unwrap();
+        #[cfg(not(feature = "std"))]
+        let mut config = CONFIG.lock();
+
+        if (*config).is_none() {
+            *config = Some(Config {
+                verbose: false,
+                platform,
+            });
         }
+    }
+    pub fn is_set() -> bool {
+        #[cfg(feature = "std")]
+        let config = CONFIG.lock().unwrap();
+        #[cfg(not(feature = "std"))]
+        let config = CONFIG.lock();
+
+        (*config).is_some()
     }
 
     pub fn get() -> MutexGuard<'static, Option<Self>> {
@@ -50,12 +68,13 @@ impl Config {
         let mut config = CONFIG.lock();
 
         if (*config).is_none() {
-            let mut cfg = Config::new();
             if let Some(platform) = smbios::get_platform() {
                 // TODO: Perhaps add Qemu or NonFramework as a platform
-                cfg.platform = platform;
+                *config = Some(Config {
+                    verbose: false,
+                    platform,
+                });
             }
-            *config = Some(cfg);
         }
 
         // TODO: See if we can map the Option::unwrap before returning

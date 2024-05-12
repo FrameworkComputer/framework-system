@@ -47,6 +47,7 @@ use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
 #[cfg(feature = "uefi")]
 use crate::uefi::enable_page_break;
 use crate::util;
+use crate::util::Config;
 #[cfg(not(feature = "uefi"))]
 use hidapi::HidApi;
 use sha2::{Digest, Sha256, Sha384, Sha512};
@@ -147,6 +148,9 @@ pub struct Cli {
     pub console: Option<ConsoleArg>,
     pub reboot_ec: Option<RebootEcArg>,
     pub hash: Option<String>,
+    pub pd_addrs: Option<(u16, u16)>,
+    pub pd_ports: Option<(u8, u8)>,
+    pub has_mec: Option<bool>,
     pub help: bool,
     pub info: bool,
     // UEFI only
@@ -467,6 +471,16 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             .format_target(false)
             .format_timestamp(None)
             .init();
+    }
+
+    // Must be run before any application code to set the config
+    if args.pd_addrs.is_some() && args.pd_ports.is_some() && args.has_mec.is_some() {
+        let platform = util::Platform::GenericFramework(
+            args.pd_addrs.unwrap(),
+            args.pd_ports.unwrap(),
+            args.has_mec.unwrap(),
+        );
+        Config::set(platform);
     }
 
     let ec = if let Some(driver) = args.driver {
@@ -836,11 +850,14 @@ fn hash(data: &[u8]) {
 }
 
 fn selftest(ec: &CrosEc) -> Option<()> {
-    println!(
-        "  SMBIOS Platform:     {:?}",
-        smbios::get_platform().unwrap()
-    );
-    println!("  SMBIOS is_framework: {}", smbios::is_framework());
+    if let Some(platform) = smbios::get_platform() {
+        println!("  SMBIOS Platform:     {:?}", platform);
+    } else {
+        println!("  SMBIOS Platform:     Unknown");
+        println!();
+        println!("Specify custom platform parameters with --pd-ports --pd-addrs --has-mec");
+        return None;
+    };
 
     println!("  Dump EC memory region");
     if let Some(mem) = ec.dump_mem_region() {

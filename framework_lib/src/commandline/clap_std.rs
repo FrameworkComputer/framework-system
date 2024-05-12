@@ -140,6 +140,21 @@ struct ClapCli {
     #[arg(long)]
     driver: Option<CrosEcDriverType>,
 
+    /// Specify I2C addresses of the PD chips (Advanced)
+    #[clap(number_of_values = 2, requires("pd_ports"), requires("has_mec"))]
+    #[arg(long)]
+    pd_addrs: Vec<u16>,
+
+    /// Specify I2C ports of the PD chips (Advanced)
+    #[clap(number_of_values = 2, requires("pd_addrs"), requires("has_mec"))]
+    #[arg(long)]
+    pd_ports: Vec<u8>,
+
+    /// Specify the type of EC chip (MEC/MCHP or other)
+    #[clap(requires("pd_addrs"), requires("pd_ports"))]
+    #[arg(long)]
+    has_mec: Option<bool>,
+
     /// Run self-test to check if interaction with EC is possible
     #[arg(long, short)]
     test: bool,
@@ -148,6 +163,31 @@ struct ClapCli {
 /// Parse a list of commandline arguments and return the struct
 pub fn parse(args: &[String]) -> Cli {
     let args = ClapCli::parse_from(args);
+
+    let pd_addrs = match args.pd_addrs.len() {
+        2 => Some((args.pd_addrs[0], args.pd_addrs[1])),
+        0 => None,
+        _ => {
+            // Actually unreachable, checked by clap
+            println!(
+                "Must provide exactly to PD Addresses. Provided: {:?}",
+                args.pd_addrs
+            );
+            std::process::exit(1);
+        }
+    };
+    let pd_ports = match args.pd_ports.len() {
+        2 => Some((args.pd_ports[0], args.pd_ports[1])),
+        0 => None,
+        _ => {
+            // Actually unreachable, checked by clap
+            println!(
+                "Must provide exactly to PD Ports. Provided: {:?}",
+                args.pd_ports
+            );
+            std::process::exit(1);
+        }
+    };
 
     Cli {
         verbosity: args.verbosity.log_level_filter(),
@@ -199,6 +239,9 @@ pub fn parse(args: &[String]) -> Cli {
         reboot_ec: args.reboot_ec,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
+        pd_addrs,
+        pd_ports,
+        has_mec: args.has_mec,
         test: args.test,
         // TODO: Set help. Not very important because Clap handles this by itself
         help: false,

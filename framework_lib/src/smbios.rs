@@ -5,7 +5,7 @@ use std::prelude::v1::*;
 #[cfg(not(feature = "uefi"))]
 use std::io::ErrorKind;
 
-use crate::util::Platform;
+use crate::util::{Config, Platform};
 use num_derive::FromPrimitive;
 use smbioslib::*;
 #[cfg(feature = "uefi")]
@@ -40,6 +40,12 @@ pub enum ConfigDigit0 {
 
 /// Check whether the manufacturer in the SMBIOS says Framework
 pub fn is_framework() -> bool {
+    if matches!(
+        get_platform(),
+        Some(Platform::GenericFramework((_, _), (_, _), _))
+    ) {
+        return true;
+    }
     let smbios = if let Some(smbios) = get_smbios() {
         smbios
     } else {
@@ -104,6 +110,16 @@ pub fn get_platform() -> Option<Platform> {
         return platform;
     }
 
+    if Config::is_set() {
+        // Config::get() recursively calls get_platform.
+        // Except if it's a GenericFramework platform
+        let config = Config::get();
+        let platform = &(*config).as_ref().unwrap().platform;
+        if matches!(platform, Platform::GenericFramework((_, _), (_, _), _)) {
+            return Some(*platform);
+        }
+    }
+
     let smbios = get_smbios();
     if smbios.is_none() {
         println!("Failed to find SMBIOS");
@@ -123,7 +139,7 @@ pub fn get_platform() -> Option<Platform> {
                 }
             }
             if let Some(family) = dmidecode_string_val(&data.family()) {
-                // Actually "Laptop" and "16in Laptop"
+                // Actually "Laptop", "13in Laptop", and "16in Laptop"
                 match family.as_str() {
                     // TGL Mainboard (I don't this ever appears in family)
                     "FRANBMCP" => return Some(Platform::IntelGen11),
