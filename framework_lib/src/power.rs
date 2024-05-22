@@ -52,8 +52,8 @@ const EC_MEMMAP_BATT_MFGR: u16 = 0x60; // Battery Manufacturer String
 const EC_MEMMAP_BATT_MODEL: u16 = 0x68; // Battery Model Number String
 const EC_MEMMAP_BATT_SERIAL: u16 = 0x70; // Battery Serial Number String
 const EC_MEMMAP_BATT_TYPE: u16 = 0x78; // Battery Type String
-const _EC_MEMMAP_ALS: u16 = 0x80; // ALS readings in lux (2 X 16 bits)
-                                  // Unused 0x84 - 0x8f
+const EC_MEMMAP_ALS: u16 = 0x80; // ALS readings in lux (2 X 16 bits)
+                                 // Unused 0x84 - 0x8f
 const _EC_MEMMAP_ACC_STATUS: u16 = 0x90; // Accelerometer status (8 bits )
                                          // Unused 0x91
 const _EC_MEMMAP_ACC_DATA: u16 = 0x92; // Accelerometers data 0x92 - 0x9f
@@ -189,6 +189,13 @@ pub fn print_memmap_version_info(ec: &CrosEc) {
     let _battery_ver = ec.read_memory(EC_MEMMAP_BATTERY_VERSION, 2).unwrap(); /* Version of data in 0x40 - 0x7f */
     let _switches_ver = ec.read_memory(EC_MEMMAP_SWITCHES_VERSION, 2).unwrap(); /* Version of data in 0x30 - 0x33 */
     let _events_ver = ec.read_memory(EC_MEMMAP_EVENTS_VERSION, 2).unwrap();
+}
+
+pub fn print_sensors(ec: &CrosEc) {
+    let als = ec.read_memory(EC_MEMMAP_ALS, 0x04).unwrap();
+
+    let als_int = u32::from_le_bytes([als[0], als[1], als[2], als[3]]);
+    println!("ALS: {:>4} Lux", als_int);
 }
 
 pub fn print_thermal(ec: &CrosEc) {
