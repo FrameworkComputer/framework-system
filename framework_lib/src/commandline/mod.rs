@@ -390,7 +390,9 @@ fn print_versions(ec: &CrosEc) {
         println!("CSME");
         if let Ok(csme) = csme::csme_from_sysfs() {
             println!("  Enabled:        {}", csme.enabled);
-            println!("  Version:        {}", csme.version);
+            println!("  Version:        {}", csme.main_ver);
+            println!("  Recovery Ver:   {}", csme.recovery_ver);
+            println!("  Original Ver:   {}", csme.fitc_ver);
         } else {
             println!("  Unknown");
         }
