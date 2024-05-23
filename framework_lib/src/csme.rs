@@ -14,17 +14,65 @@ pub struct CsmeInfo {
     /// Whether the CSME is currently enabled or not
     pub enabled: bool,
     /// Currently running CSME firmware version
-    pub version: CsmeVersion,
+    pub main_ver: CsmeVersion,
+    pub recovery_ver: CsmeVersion,
+    pub fitc_ver: CsmeVersion,
 }
 /// CSME Version
 ///
 /// Example: 0:16.0.15.1810
+#[derive(Debug, PartialEq, Eq)]
 pub struct CsmeVersion {
     pub platform: u32,
     pub major: u32,
     pub minor: u32,
     pub hotfix: u32,
     pub buildno: u32,
+}
+
+impl From<&str> for CsmeVersion {
+    fn from(fw_ver: &str) -> Self {
+        // Parse the CSME version
+        // Example: 0:16.0.15.1810
+        let mut sections = fw_ver.split(':');
+
+        let left = sections
+            .next()
+            .unwrap()
+            .parse::<u32>()
+            .expect("Unexpected value");
+        let mut right = sections.next().unwrap().split('.');
+
+        let second = right
+            .next()
+            .unwrap()
+            .parse::<u32>()
+            .expect("Unexpected value");
+        let third = right
+            .next()
+            .unwrap()
+            .parse::<u32>()
+            .expect("Unexpected value");
+        let fourth = right
+            .next()
+            .unwrap()
+            .parse::<u32>()
+            .expect("Unexpected value");
+        let fifth = right
+            .next()
+            .unwrap()
+            .trim()
+            .parse::<u32>()
+            .expect("Unexpected value");
+
+        CsmeVersion {
+            platform: left,
+            major: second,
+            minor: third,
+            hotfix: fourth,
+            buildno: fifth,
+        }
+    }
 }
 
 impl fmt::Display for CsmeVersion {
@@ -50,36 +98,28 @@ pub fn csme_from_sysfs() -> io::Result<CsmeInfo> {
             let path = csmeme_entry.path();
             if path.is_dir() {
                 let dev_state = fs::read_to_string(path.join("dev_state"))?;
-                // TODO: Make sure invalid cases are handled and not silently ignored
+                // Can be one of INITIALIZING, INIT_CLIENTS, ENABLED, RESETTING, DISABLED,
+                // POWER_DOWN, POWER_UP
+                // See linux kernel at: Documentation/ABI/testing/sysfs-class-mei
                 let enabled = matches!(dev_state.as_str(), "ENABLED");
 
+                // Kernel gives us multiple \n separated lines in a file
                 let fw_vers = fs::read_to_string(path.join("fw_ver"))?;
-                // Kernel gives us multiple \n separated lines
-                let fw_vers: Vec<&str> = fw_vers.lines().collect();
-                // TODO: I don't understand why the kernel gives me 4 versions.
-                // Make sure my assumption that all versios are the same holds tru.
-                assert!(fw_vers.iter().all(|&item| item == fw_vers[0]));
-                let fw_ver: &str = fw_vers[0];
-                // Parse the CSME version
-                // Example: 0:16.0.15.1810
-                let sections: Vec<&str> = fw_ver.split(':').collect();
-                let first = sections[0].parse::<u32>().expect("Unexpected value");
-                let right: Vec<&str> = sections[1].split('.').collect();
-                let second = right[0].parse::<u32>().expect("Unexpected value");
-                let third = right[1].parse::<u32>().expect("Unexpected value");
-                let fourth = right[2].parse::<u32>().expect("Unexpected value");
-                let fifth = right[3].trim().parse::<u32>().expect("Unexpected value");
+                let fw_vers = fw_vers.lines();
+
+                let mut infos = fw_vers.map(CsmeVersion::from);
+                let main_ver = infos.next().unwrap();
+                let recovery_ver = infos.next().unwrap();
+                let fitc_ver = infos.next().unwrap();
+                // Make sure there are three and no more
+                assert_eq!(infos.next(), None);
 
                 csme_info = Some(CsmeInfo {
                     enabled,
-                    version: CsmeVersion {
-                        platform: first,
-                        major: second,
-                        minor: third,
-                        hotfix: fourth,
-                        buildno: fifth,
-                    },
-                });
+                    main_ver,
+                    recovery_ver,
+                    fitc_ver,
+                })
             }
         }
     }
