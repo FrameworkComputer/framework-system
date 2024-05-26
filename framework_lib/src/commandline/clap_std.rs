@@ -33,6 +33,10 @@ struct ClapCli {
     #[arg(long)]
     thermal: bool,
 
+    /// Print expansion bay information
+    #[arg(long)]
+    expansion_bay: bool,
+
     /// Show information about USB-C PD ports
     #[arg(long)]
     pdports: bool,
@@ -196,6 +200,7 @@ pub fn parse(args: &[String]) -> Cli {
         esrt: args.esrt,
         power: args.power,
         thermal: args.thermal,
+        expansion_bay: args.expansion_bay,
         pdports: args.pdports,
         pd_info: args.pd_info,
         dp_hdmi_info: args.dp_hdmi_info,

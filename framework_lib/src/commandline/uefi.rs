@@ -60,6 +60,7 @@ pub fn parse(args: &[String]) -> Cli {
         esrt: false,
         power: false,
         thermal: false,
+        expansion_bay: false,
         pdports: false,
         pd_info: false,
         dp_hdmi_info: false,
@@ -130,6 +131,9 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--thermal" {
             cli.thermal = true;
+            found_an_option = true;
+        } else if arg == "--expansion-bay" {
+            cli.expansion_bay = true;
             found_an_option = true;
         } else if arg == "--pdports" {
             cli.pdports = true;
