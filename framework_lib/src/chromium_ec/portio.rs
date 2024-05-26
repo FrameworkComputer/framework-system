@@ -227,7 +227,11 @@ fn init() -> bool {
             let res = ioperm(EC_LPC_ADDR_HOST_DATA as u64, 1, 1);
             assert_eq!(res, 0);
 
-            let res = ioperm(NPC_MEMMAP_OFFSET as u64, super::EC_MEMMAP_SIZE as u64, 1);
+            let res = ioperm(
+                NPC_MEMMAP_OFFSET as u64,
+                (super::EC_MEMMAP_SIZE * 2) as u64,
+                1,
+            );
             assert_eq!(res, 0);
         }
     }
