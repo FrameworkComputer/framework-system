@@ -4,6 +4,7 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::convert::TryInto;
+use core::fmt;
 use core::prelude::v1::derive;
 use log::Level;
 
@@ -68,6 +69,35 @@ const EC_BATT_FLAG_BATT_PRESENT: u8 = 0x02;
 const EC_BATT_FLAG_DISCHARGING: u8 = 0x04;
 const EC_BATT_FLAG_CHARGING: u8 = 0x08;
 const EC_BATT_FLAG_LEVEL_CRITICAL: u8 = 0x10;
+
+#[derive(Debug)]
+enum TempSensor {
+    Ok(u8),
+    NotPresent,
+    Error,
+    NotPowered,
+    NotCalibrated,
+}
+impl From<u8> for TempSensor {
+    fn from(t: u8) -> Self {
+        match t {
+            0xFF => TempSensor::NotPresent,
+            0xFE => TempSensor::Error,
+            0xFD => TempSensor::NotPowered,
+            0xFC => TempSensor::NotCalibrated,
+            _ => TempSensor::Ok(t - 73),
+        }
+    }
+}
+impl fmt::Display for TempSensor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let TempSensor::Ok(t) = self {
+            write!(f, "{} C", t)
+        } else {
+            write!(f, "{:?}", self)
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BatteryInformation {
@@ -161,14 +191,6 @@ pub fn print_memmap_version_info(ec: &CrosEc) {
     let _events_ver = ec.read_memory(EC_MEMMAP_EVENTS_VERSION, 2).unwrap();
 }
 
-fn in_c(t: u8) -> u8 {
-    if t == 255 {
-        t
-    } else {
-        t - 73
-    }
-}
-
 pub fn print_thermal(ec: &CrosEc) {
     let temps = ec.read_memory(EC_MEMMAP_TEMP_SENSOR, 0x0F).unwrap();
     let fans = ec.read_memory(EC_MEMMAP_FAN, 0x08).unwrap();
@@ -176,34 +198,34 @@ pub fn print_thermal(ec: &CrosEc) {
     let platform = smbios::get_platform();
     match platform {
         Some(Platform::IntelGen11) | Some(Platform::IntelGen12) | Some(Platform::IntelGen13) => {
-            println!("  F75303_Local: {:>4} C", in_c(temps[0]));
-            println!("  F75303_CPU:   {:>4} C", in_c(temps[1]));
-            println!("  F75303_DDR:   {:>4} C", in_c(temps[2]));
-            println!("  Battery:      {:>4} C", in_c(temps[3]));
-            println!("  PECI:         {:>4} C", in_c(temps[4]));
-            println!("  F57397_VCCGT: {:>4} C", in_c(temps[5]));
+            println!("  F75303_Local: {:>4}", TempSensor::from(temps[0]));
+            println!("  F75303_CPU:   {:>4}", TempSensor::from(temps[1]));
+            println!("  F75303_DDR:   {:>4}", TempSensor::from(temps[2]));
+            println!("  Battery:      {:>4}", TempSensor::from(temps[3]));
+            println!("  PECI:         {:>4}", TempSensor::from(temps[4]));
+            println!("  F57397_VCCGT: {:>4}", TempSensor::from(temps[5]));
         }
         Some(Platform::Framework13Amd | Platform::Framework16) => {
-            println!("  F75303_Local: {:>4} C", in_c(temps[0]));
-            println!("  F75303_CPU:   {:>4} C", in_c(temps[1]));
-            println!("  F75303_DDR:   {:>4} C", in_c(temps[2]));
-            println!("  APU:          {:>4} C", in_c(temps[3]));
+            println!("  F75303_Local: {:>4}", TempSensor::from(temps[0]));
+            println!("  F75303_CPU:   {:>4}", TempSensor::from(temps[1]));
+            println!("  F75303_DDR:   {:>4}", TempSensor::from(temps[2]));
+            println!("  APU:          {:>4}", TempSensor::from(temps[3]));
             if matches!(platform, Some(Platform::Framework16)) {
-                println!("  dGPU VR:      {:>4} C", in_c(temps[4]));
-                println!("  dGPU VRAM:    {:>4} C", in_c(temps[5]));
-                println!("  dGPU AMB:     {:>4} C", in_c(temps[6]));
-                println!("  dGPU temp:    {:>4} C", in_c(temps[7]));
+                println!("  dGPU VR:      {:>4}", TempSensor::from(temps[4]));
+                println!("  dGPU VRAM:    {:>4}", TempSensor::from(temps[5]));
+                println!("  dGPU AMB:     {:>4}", TempSensor::from(temps[6]));
+                println!("  dGPU temp:    {:>4}", TempSensor::from(temps[7]));
             }
         }
         _ => {
-            println!("  Temp 0:       {:>4} C", in_c(temps[0]));
-            println!("  Temp 1:       {:>4} C", in_c(temps[1]));
-            println!("  Temp 2:       {:>4} C", in_c(temps[2]));
-            println!("  Temp 3:       {:>4} C", in_c(temps[3]));
-            println!("  Temp 4:       {:>4} C", in_c(temps[4]));
-            println!("  Temp 5:       {:>4} C", in_c(temps[5]));
-            println!("  Temp 6:       {:>4} C", in_c(temps[6]));
-            println!("  Temp 7:       {:>4} C", in_c(temps[7]));
+            println!("  Temp 0:       {:>4}", TempSensor::from(temps[0]));
+            println!("  Temp 1:       {:>4}", TempSensor::from(temps[1]));
+            println!("  Temp 2:       {:>4}", TempSensor::from(temps[2]));
+            println!("  Temp 3:       {:>4}", TempSensor::from(temps[3]));
+            println!("  Temp 4:       {:>4}", TempSensor::from(temps[4]));
+            println!("  Temp 5:       {:>4}", TempSensor::from(temps[5]));
+            println!("  Temp 6:       {:>4}", TempSensor::from(temps[6]));
+            println!("  Temp 7:       {:>4}", TempSensor::from(temps[7]));
         }
     }
 
