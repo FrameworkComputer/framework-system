@@ -1,0 +1,27 @@
+[package]
+name = "frameworkd"
+authors = [ "Framework Computer Inc" ]
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["windows"]
+linux = ["framework_lib/linux"]
+windows = ["framework_lib/windows"]
+
+[dependencies]
+trayicon = "0.2"
+winapi = { version = "0.3.9", features = ["winuser", "windef", "minwindef", "shellapi", "libloaderapi", "commctrl", "basetsd"] }
+#crossbeam-channel = "0.5"
+brightness = "0.5.0"
+qmk_hid = { path = '../../qmk_hid' }
+winrt-notification = "0.5.1"
+windows = "0.3"
+
+[build-dependencies]
+windows = "0.3"
+windres = "0.2"
+
+[dependencies.framework_lib]
+path = "../framework_lib"
+default-features = false

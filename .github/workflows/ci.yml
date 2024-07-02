@@ -56,6 +56,9 @@ jobs:
     - name: Build Linux tool
       run: cargo build -p framework_tool
 
+    - name: Build Linux daemon
+      run: cargo build -p frameworkd
+
     - name: Check if Linux tool can start
       run: cargo run -- --help
 
@@ -64,6 +67,12 @@ jobs:
       with:
         name: framework_tool
         path: target/debug/framework_tool
+
+    - name: Upload Linux Daemon
+      uses: actions/upload-artifact@v3
+      with:
+        name: framework_d
+        path: target/debug/framework_d
 
     - name: Build UEFI application (no ESP)
       run: make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
@@ -97,6 +106,9 @@ jobs:
     - name: Build Windows tool
       run: cargo build -p framework_tool --no-default-features --features "windows"
 
+    - name: Build Windows daemon
+      run: cargo build -p frameworkd --no-default-features --features "windows"
+
     - name: Check if Windows tool can start
       run: cargo run --no-default-features --features "windows" -- --help
 
@@ -105,6 +117,12 @@ jobs:
       with:
         name: framework_tool.exe
         path: target/debug/framework_tool.exe
+
+    - name: Upload Windows Daemon
+      uses: actions/upload-artifact@v3
+      with:
+        name: frameworkd.exe
+        path: target/debug/frameworkd.exe
 
 
   test:
@@ -147,7 +165,7 @@ jobs:
       run: cargo fmt --all -- --check
 
     - name: Run cargo clippy
-      run: cargo clippy -p framework_lib -p framework_tool -- -D warnings
+      run: cargo clippy -p framework_lib -p framework_tool -p framework_d -- -D warnings
 
   # Just make sure doc generation works
   doc:
@@ -170,3 +188,13 @@ jobs:
 
     - name: Run cargo doc
       run: cargo doc
+
+  build-installer:
+    name: Build frameworkd Windows installer
+    runs-on: windows-latest
+    steps:
+      - name: Build installer
+        run: cargo wix -p frameworkd --nocapture -d
+
+      - name: Check output
+        run: dir target\wix
