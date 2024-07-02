@@ -70,15 +70,21 @@ pub fn guid_from_str(string: &str) -> Option<Guid> {
 pub const TGL_BIOS_GUID: Guid = guid!("b3bdb2e4-c5cb-5c1b-bdc3-e6fc132462ff");
 pub const ADL_BIOS_GUID: Guid = guid!("a30a8cf3-847f-5e59-bd59-f9ec145c1a8c");
 pub const RPL_BIOS_GUID: Guid = guid!("13fd4ed2-cba9-50ba-bb91-aece0acb4cc3");
+pub const MTL_BIOS_GUID: Guid = guid!("72cecb9b-2b37-5ec2-a9ff-c739aabaadf3");
+
 pub const TGL_RETIMER01_GUID: Guid = guid!("832af090-2ef9-7c47-8f6d-b405c8c7f156");
 pub const TGL_RETIMER23_GUID: Guid = guid!("20ef4108-6c64-d049-b6de-11ee35980b8f");
 pub const ADL_RETIMER01_GUID: Guid = guid!("a9c91b0c-c0b8-463d-a7da-a5d6ec646333");
 pub const ADL_RETIMER23_GUID: Guid = guid!("ba2e4e6e-3b0c-4f25-8a59-4c553fc86ea2");
 pub const RPL_RETIMER01_GUID: Guid = guid!("0c42b824-818f-428f-8687-5efcaf059bea");
 pub const RPL_RETIMER23_GUID: Guid = guid!("268ccbde-e087-420b-bf82-2212bd3f9bfc");
+pub const MTL_RETIMER01_GUID: Guid = guid!("c57fd615-2ac9-4154-bf34-4dc715344408");
+pub const MTL_RETIMER23_GUID: Guid = guid!("bdffce36-809c-4fa6-aecc-54536922f0e0");
+
 pub const FL16_BIOS_GUID: Guid = guid!("6ae76af1-c002-5d64-8e18-658d205acf34");
 pub const AMD13_BIOS_GUID: Guid = guid!("b5f7dcc1-568c-50f8-a4dd-e39d1f93fda1");
 pub const RPL_CSME_GUID: Guid = guid!("865d322c-6ac7-4734-b43e-55db5a557d63");
+pub const MTL_CSME_GUID: Guid = guid!("32d8d677-eebc-4947-8f8a-0693a45240e5");
 
 // In EDK2
 // Handled by MdeModulePkg/Library/DxeCapsuleLibFmp/DxeCapsuleLib.c
@@ -91,13 +97,17 @@ pub enum FrameworkGuidKind {
     TglBios,
     AdlBios,
     RplBios,
+    MtlBios,
     TglRetimer01,
     TglRetimer23,
     AdlRetimer01,
     AdlRetimer23,
     RplRetimer01,
     RplRetimer23,
+    MtlRetimer01,
+    MtlRetimer23,
     RplCsme,
+    MtlCsme,
     Fl16Bios,
     Amd13Bios,
     WinUx,
@@ -109,15 +119,19 @@ pub fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
         TGL_BIOS_GUID => FrameworkGuidKind::TglBios,
         ADL_BIOS_GUID => FrameworkGuidKind::AdlBios,
         RPL_BIOS_GUID => FrameworkGuidKind::RplBios,
+        MTL_BIOS_GUID => FrameworkGuidKind::MtlBios,
+        FL16_BIOS_GUID => FrameworkGuidKind::Fl16Bios,
+        AMD13_BIOS_GUID => FrameworkGuidKind::Amd13Bios,
         TGL_RETIMER01_GUID => FrameworkGuidKind::TglRetimer01,
         TGL_RETIMER23_GUID => FrameworkGuidKind::TglRetimer23,
         ADL_RETIMER01_GUID => FrameworkGuidKind::AdlRetimer01,
         ADL_RETIMER23_GUID => FrameworkGuidKind::AdlRetimer23,
         RPL_RETIMER01_GUID => FrameworkGuidKind::RplRetimer01,
         RPL_RETIMER23_GUID => FrameworkGuidKind::RplRetimer23,
+        MTL_RETIMER01_GUID => FrameworkGuidKind::MtlRetimer01,
+        MTL_RETIMER23_GUID => FrameworkGuidKind::MtlRetimer23,
         RPL_CSME_GUID => FrameworkGuidKind::RplCsme,
-        FL16_BIOS_GUID => FrameworkGuidKind::Fl16Bios,
-        AMD13_BIOS_GUID => FrameworkGuidKind::Amd13Bios,
+        MTL_CSME_GUID => FrameworkGuidKind::MtlCsme,
         WINUX_GUID => FrameworkGuidKind::WinUx,
         _ => FrameworkGuidKind::Unknown,
     }

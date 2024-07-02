@@ -23,6 +23,8 @@ pub enum Platform {
     IntelGen12,
     /// Framework 13 - Intel 13th Gen, Codenamed RaptorLake
     IntelGen13,
+    /// Framework 13 - Intel Core Ultra Series 1, Codenamed MeteorLake
+    IntelCoreUltra1,
     /// Framework 13 - AMD Ryzen
     Framework13Amd,
     /// Framework 16
