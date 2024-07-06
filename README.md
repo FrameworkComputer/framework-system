@@ -22,7 +22,7 @@ see the [Support Matrices](support-matrices.md).
 ###### Firmware Information
 
   - [x] Show system information
-    - [x] ESRT table (UEFI and Linux only) (`--esrt`)
+    - [x] ESRT table (UEFI, Linux, FreeBSD only) (`--esrt`)
     - [x] SMBIOS
   - [x] Get firmware version from binary file
     - [x] Legacy EC (Intel 13th Gen and earlier) (`--ec-bin`)
