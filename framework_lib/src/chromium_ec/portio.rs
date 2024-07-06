@@ -4,8 +4,9 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::convert::TryInto;
+#[cfg(any(feature = "linux_pio", feature = "freebsd_pio", feature = "raw_pio"))]
 use hwio::{Io, Pio};
-#[cfg(feature = "linux_pio")]
+#[cfg(all(feature = "linux_pio", target_os = "linux"))]
 use libc::ioperm;
 use log::Level;
 #[cfg(feature = "linux_pio")]

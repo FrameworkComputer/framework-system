@@ -8,10 +8,11 @@ build = "build.rs"
 [features]
 default = ["linux"]
 # Linux/FreeBSD
-unix = ["std", "cros_ec_driver", "raw_pio", "smbios", "dep:nix"]
-linux = ["linux_pio", "unix"]
+unix = ["std", "raw_pio", "smbios", "dep:nix", "dep:libc"]
+linux = ["unix", "linux_pio", "cros_ec_driver"]
+freebsd = ["unix", "freebsd_pio"]
 # Windows does not have the cros_ec driver nor raw port I/O access to userspace
-windows = ["std", "smbios", "dep:windows", "win_driver"]
+windows = ["std", "smbios", "dep:windows", "win_driver", "raw_pio"]
 smbios = ["dep:smbios-lib"]
 std = ["dep:clap", "dep:clap-verbosity-flag", "dep:env_logger", "smbios-lib?/std", "dep:hidapi", "dep:rusb"]
 uefi = [
@@ -22,8 +23,10 @@ uefi = [
     "sha2/force-soft"
 ]
 
+# EC communication via Port I/O on FreeBSD
+freebsd_pio = ["redox_hwio/std"]
 # EC communication via Port I/O on Linux
-linux_pio = ["dep:libc"]
+linux_pio = ["dep:libc", "redox_hwio/std"]
 # EC communication via raw Port I/O (e.g. UEFI or other ring 0 code)
 raw_pio = []
 # EC communication via cros_ec driver on Linux
@@ -39,7 +42,7 @@ built = { version = "0.5", features = ["chrono", "git2"] }
 lazy_static = "1.4.0"
 sha2 = { version = "0.10.6", default_features = false, features = [ "force-soft" ] }
 regex = { version = "1.10.0", default-features = false }
-redox_hwio = { version = "0.1.5", default_features = false }
+redox_hwio = { git = "https://github.com/FrameworkComputer/rust-hwio", branch = "freebsd", default_features = false }
 libc = { version = "0.2.137", optional = true }
 clap = { version = "4.0", features = ["derive"], optional = true }
 clap-verbosity-flag = { version = "2.0.1", optional = true }

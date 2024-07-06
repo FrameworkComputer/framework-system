@@ -841,8 +841,11 @@ dependencies = [
 [[package]]
 name = "redox_hwio"
 version = "0.1.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8eb516ad341a84372b5b15a5a35cf136ba901a639c8536f521b108253d7fce74"
+source = "git+https://github.com/FrameworkComputer/rust-hwio?branch=freebsd#9e6e7529ffd6caf7aa6a17be1eca6756b302f736"
+dependencies = [
+ "lazy_static",
+ "nix",
+]
 
 [[package]]
 name = "regex"
