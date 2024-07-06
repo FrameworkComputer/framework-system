@@ -16,7 +16,7 @@ see the [Support Matrices](support-matrices.md).
 - [x] OS Tool (`framework_tool`)
   - [x] Tested on Linux
   - [x] Tested on Windows
-  - [ ] Tested on FreeBSD
+  - [x] Tested on FreeBSD
 - [x] UEFI Shell tool (`framework_uefi`)
 
 ###### Firmware Information
@@ -298,4 +298,16 @@ Keyboard backlight: 0%
 [DEBUG] Chromium EC Driver: Portio
 [DEBUG] send_command(command=0x22, ver=0, data_len=0)
 Keyboard backlight: 0%
+```
+
+## FreeBSD
+
+```
+sudo pkg install hidapi
+
+# Build the library and tool
+cargo build --no-default-features --features freebsd
+
+# Running the tool
+cargo run --no-default-features --features freebsd
 ```
