@@ -104,7 +104,27 @@ pub fn get_smbios() -> Option<SMBiosData> {
             println!("Failed to get SMBIOS: {:?}", err);
             None
         }
+
+fn get_product_name() -> Option<String> {
+    // On FreeBSD we can short-circuit and avoid parsing SMBIOS
+    #[cfg(target_os = "freebsd")]
+    if let Ok(product) = kenv_get("smbios.system.product") {
+        return Some(product);
     }
+
+    let smbios = get_smbios();
+    if smbios.is_none() {
+        println!("Failed to find SMBIOS");
+    }
+    let mut smbios = smbios.into_iter().flatten();
+    smbios.find_map(|undefined_struct| {
+        if let DefinedStruct::SystemInformation(data) = undefined_struct.defined_struct() {
+            if let Some(product_name) = dmidecode_string_val(&data.product_name()) {
+                return Some(product_name.as_str().to_string());
+            }
+        }
+        None
+    })
 }
 
 pub fn get_platform() -> Option<Platform> {
@@ -127,46 +147,18 @@ pub fn get_platform() -> Option<Platform> {
         }
     }
 
-    let smbios = get_smbios();
-    if smbios.is_none() {
-        println!("Failed to find SMBIOS");
-    }
-    let mut smbios = smbios.into_iter().flatten();
-    let platform = smbios.find_map(|undefined_struct| {
-        if let DefinedStruct::SystemInformation(data) = undefined_struct.defined_struct() {
-            if let Some(product_name) = dmidecode_string_val(&data.product_name()) {
-                match product_name.as_str() {
-                    "Laptop" => return Some(Platform::IntelGen11),
-                    "Laptop (12th Gen Intel Core)" => return Some(Platform::IntelGen12),
-                    "Laptop (13th Gen Intel Core)" => return Some(Platform::IntelGen13),
-                    "Laptop 13 (AMD Ryzen 7040Series)" => return Some(Platform::Framework13Amd),
-                    "Laptop 13 (AMD Ryzen 7040 Series)" => return Some(Platform::Framework13Amd),
-                    "Laptop 13 (Intel Core Ultra Series 1)" => {
-                        return Some(Platform::IntelCoreUltra1)
-                    }
-                    "Laptop 16 (AMD Ryzen 7040 Series)" => return Some(Platform::Framework16),
-                    _ => {}
-                }
-            }
-            if let Some(family) = dmidecode_string_val(&data.family()) {
-                // Actually "Laptop", "13in Laptop", and "16in Laptop"
-                match family.as_str() {
-                    // TGL Mainboard (I don't this ever appears in family)
-                    "FRANBMCP" => return Some(Platform::IntelGen11),
-                    // ADL Mainboard (I don't this ever appears in family)
-                    "FRANMACP" => return Some(Platform::IntelGen12),
-                    // RPL Mainboard (I don't this ever appears in family)
-                    "FRANMCCP" => return Some(Platform::IntelGen13),
-                    // Framework 13 AMD Mainboard
-                    "FRANMDCP" => return Some(Platform::Framework13Amd),
-                    // Framework 16 Mainboard
-                    "FRANMZCP" => return Some(Platform::Framework16),
-                    _ => {}
-                }
-            }
-        }
-        None
-    });
+    let product_name = get_product_name()?;
+
+    let platform = match product_name.as_str() {
+        "Laptop" => Some(Platform::IntelGen11),
+        "Laptop (12th Gen Intel Core)" => Some(Platform::IntelGen12),
+        "Laptop (13th Gen Intel Core)" => Some(Platform::IntelGen13),
+        "Laptop 13 (AMD Ryzen 7040Series)" => Some(Platform::Framework13Amd),
+        "Laptop 13 (AMD Ryzen 7040 Series)" => Some(Platform::Framework13Amd),
+        "Laptop 13 (Intel Core Ultra Series 1)" => Some(Platform::IntelCoreUltra1),
+        "Laptop 16 (AMD Ryzen 7040 Series)" => Some(Platform::Framework16),
+        _ => None,
+    };
 
     if platform.is_none() {
         println!("Failed to find PlatformFamily");
