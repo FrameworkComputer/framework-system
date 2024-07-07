@@ -11,7 +11,7 @@ use core::prelude::rust_2021::derive;
 
 use crate::ccgx::{AppVersion, BaseVersion, ControllerVersion};
 use crate::chromium_ec::command::EcCommands;
-use crate::chromium_ec::{CrosEc, CrosEcDriver, EcError, EcResponseStatus, EcResult};
+use crate::chromium_ec::{CrosEc, CrosEcDriver, EcError, EcResult};
 use crate::util::{self, assert_win_len, Config, Platform};
 use std::mem::size_of;
 
@@ -299,8 +299,7 @@ impl PdController {
         let data = self.ccgx_read(register, 8)?;
         Ok(ControllerVersion {
             base: BaseVersion::from(&data[..4]),
-            app: AppVersion::try_from(&data[4..])
-                .or(Err(EcError::Response(EcResponseStatus::InvalidResponse)))?,
+            app: AppVersion::from(&data[4..]),
         })
     }
 

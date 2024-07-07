@@ -292,7 +292,7 @@ fn print_versions(ec: &CrosEc) {
     println!("UEFI BIOS");
     if let Some(smbios) = get_smbios() {
         let bios_entries = smbios.collect::<SMBiosInformation>();
-        let bios = bios_entries.get(0).unwrap();
+        let bios = bios_entries.first().unwrap();
         println!("  Version:        {}", bios.version());
         println!("  Release Date:   {}", bios.release_date());
     }

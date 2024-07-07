@@ -124,7 +124,7 @@ pub fn get_smbios() -> Option<SMBiosData> {
     // Get the SMBIOS entrypoint address from the kernel environment
     let addr_hex = kenv_get("hint.smbios.0.mem").ok()?;
     let addr_hex = addr_hex.trim_start_matches("0x");
-    let addr = u64::from_str_radix(&addr_hex, 16).unwrap();
+    let addr = u64::from_str_radix(addr_hex, 16).unwrap();
     trace!("SMBIOS Entrypoint Addr: {} 0x{:x}", addr_hex, addr);
 
     let mut dev_mem = std::fs::File::open("/dev/mem").ok()?;
