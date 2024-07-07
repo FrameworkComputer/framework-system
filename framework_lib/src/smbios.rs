@@ -46,6 +46,13 @@ pub fn is_framework() -> bool {
     ) {
         return true;
     }
+
+    // Don't need to parse SMBIOS on FreeBSD, can just read kenv
+    #[cfg(target_os = "freebsd")]
+    if let Ok(maker) = kenv_get("smbios.system.maker") {
+        return maker == "Framework";
+    }
+
     let smbios = if let Some(smbios) = get_smbios() {
         smbios
     } else {
@@ -168,4 +175,31 @@ pub fn get_platform() -> Option<Platform> {
     assert!(cached_platform.is_none());
     *cached_platform = Some(platform);
     platform
+}
+
+#[cfg(target_os = "freebsd")]
+fn kenv_get(name: &str) -> nix::Result<String> {
+    use libc::{c_int, KENV_GET, KENV_MVALLEN};
+    use nix::errno::Errno;
+    use std::ffi::{CStr, CString};
+
+    let cname = CString::new(name).unwrap();
+    let name_ptr = cname.as_ptr();
+
+    let mut value_buf = [0; 1 + KENV_MVALLEN as usize];
+
+    unsafe {
+        let res: c_int = libc::kenv(
+            KENV_GET,
+            name_ptr,
+            value_buf.as_mut_ptr(),
+            value_buf.len() as c_int,
+        );
+        Errno::result(res)?;
+
+        let cvalue = CStr::from_ptr(value_buf.as_ptr());
+        let value = cvalue.to_string_lossy().into_owned();
+
+        Ok(value)
+    }
 }
