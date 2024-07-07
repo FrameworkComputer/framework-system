@@ -2,7 +2,7 @@
 
 use std::prelude::v1::*;
 
-#[cfg(not(feature = "uefi"))]
+#[cfg(all(not(feature = "uefi"), not(target_os = "freebsd")))]
 use std::io::ErrorKind;
 
 use crate::util::{Config, Platform};
@@ -12,6 +12,9 @@ use smbioslib::*;
 use spin::Mutex;
 #[cfg(not(feature = "uefi"))]
 use std::sync::Mutex;
+
+#[cfg(target_os = "freebsd")]
+use std::io::{Read, Seek, SeekFrom};
 
 /// Current platform. Won't ever change during the program's runtime
 static CACHED_PLATFORM: Mutex<Option<Option<Platform>>> = Mutex::new(None);
@@ -82,6 +85,103 @@ pub fn dmidecode_string_val(s: &SMBiosString) -> Option<String> {
     }
 }
 
+#[cfg(target_os = "freebsd")]
+#[repr(C)]
+pub struct Smbios3 {
+    pub anchor: [u8; 5],
+    pub checksum: u8,
+    pub length: u8,
+    pub major_version: u8,
+    pub minor_version: u8,
+    pub docrev: u8,
+    pub revision: u8,
+    _reserved: u8,
+    pub table_length: u32,
+    pub table_address: u64,
+}
+
+#[cfg(target_os = "freebsd")]
+#[repr(packed)]
+pub struct Smbios {
+    pub anchor: [u8; 4],
+    pub checksum: u8,
+    pub length: u8,
+    pub major_version: u8,
+    pub minor_version: u8,
+    pub max_structure_size: u16,
+    pub revision: u8,
+    pub formatted: [u8; 5],
+    pub inter_anchor: [u8; 5],
+    pub inter_checksum: u8,
+    pub table_length: u16,
+    pub table_address: u32,
+    pub structure_count: u16,
+    pub bcd_revision: u8,
+}
+
+#[cfg(target_os = "freebsd")]
+pub fn get_smbios() -> Option<SMBiosData> {
+    // Get the SMBIOS entrypoint address from the kernel environment
+    let addr_hex = kenv_get("hint.smbios.0.mem").ok()?;
+    let addr_hex = addr_hex.trim_start_matches("0x");
+    let addr = u64::from_str_radix(&addr_hex, 16).unwrap();
+    trace!("SMBIOS Entrypoint Addr: {} 0x{:x}", addr_hex, addr);
+
+    let mut dev_mem = std::fs::File::open("/dev/mem").ok()?;
+    // Smbios struct is larger than Smbios3 struct
+    let mut header_buf = [0; std::mem::size_of::<Smbios>()];
+    dev_mem.seek(SeekFrom::Start(addr)).ok()?;
+    dev_mem.read_exact(&mut header_buf).ok()?;
+
+    let entrypoint = unsafe { &*(header_buf.as_ptr() as *const Smbios3) };
+
+    trace!("SMBIOS Anchor {:?} = ", entrypoint.anchor);
+    let (addr, len, version) = match entrypoint.anchor {
+        [b'_', b'S', b'M', b'3', b'_'] => {
+            trace!("_SM3_");
+            let entrypoint = unsafe { &*(header_buf.as_ptr() as *const Smbios3) };
+            let ver = Some(SMBiosVersion {
+                major: entrypoint.major_version,
+                minor: entrypoint.minor_version,
+                revision: 0,
+            });
+
+            (entrypoint.table_address, entrypoint.table_length, ver)
+        }
+        [b'_', b'S', b'M', b'_', _] => {
+            trace!("_SM_");
+            let entrypoint = unsafe { &*(header_buf.as_ptr() as *const Smbios) };
+            let ver = Some(SMBiosVersion {
+                major: entrypoint.major_version,
+                minor: entrypoint.minor_version,
+                revision: 0,
+            });
+
+            (
+                entrypoint.table_address as u64,
+                entrypoint.table_length as u32,
+                ver,
+            )
+        }
+        [b'_', b'D', b'M', b'I', b'_'] => {
+            error!("_DMI_ - UNSUPPORTED");
+            return None;
+        }
+        _ => {
+            error!(" Unknown - UNSUPPORTED");
+            return None;
+        }
+    };
+
+    // Get actual SMBIOS table data
+    let mut smbios_buf = vec![0; len as usize];
+    dev_mem.seek(SeekFrom::Start(addr)).ok()?;
+    dev_mem.read_exact(&mut smbios_buf).ok()?;
+
+    let smbios = SMBiosData::from_vec_and_version(smbios_buf, version);
+    Some(smbios)
+}
+
 #[cfg(feature = "uefi")]
 pub fn get_smbios() -> Option<SMBiosData> {
     let data = crate::uefi::smbios_data().unwrap();
@@ -90,9 +190,8 @@ pub fn get_smbios() -> Option<SMBiosData> {
     Some(smbios)
 }
 // On Linux this reads either from /dev/mem or sysfs
-// On FreeBSD from /dev/mem
 // On Windows from the kernel API
-#[cfg(not(feature = "uefi"))]
+#[cfg(all(not(feature = "uefi"), not(target_os = "freebsd")))]
 pub fn get_smbios() -> Option<SMBiosData> {
     match smbioslib::table_load_from_device() {
         Ok(data) => Some(data),
@@ -104,6 +203,8 @@ pub fn get_smbios() -> Option<SMBiosData> {
             println!("Failed to get SMBIOS: {:?}", err);
             None
         }
+    }
+}
 
 fn get_product_name() -> Option<String> {
     // On FreeBSD we can short-circuit and avoid parsing SMBIOS

@@ -907,6 +907,14 @@ fn selftest(ec: &CrosEc) -> Option<()> {
 }
 
 fn smbios_info() {
+    println!("Summary");
+    println!("  Is Framework: {}", is_framework());
+    if let Some(platform) = smbios::get_platform() {
+        println!("  Platform:     {:?}", platform);
+    } else {
+        println!("  Platform:     Unknown",);
+    }
+
     let smbios = get_smbios();
     if smbios.is_none() {
         error!("Failed to find SMBIOS");
