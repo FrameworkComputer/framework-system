@@ -20,8 +20,6 @@ use core::prelude::v1::derive;
 #[cfg(not(feature = "uefi"))]
 use guid_macros::guid;
 #[cfg(feature = "uefi")]
-use std::slice;
-#[cfg(feature = "uefi")]
 use uefi::{guid, Guid};
 
 #[cfg(feature = "linux")]
@@ -30,6 +28,15 @@ use std::fs;
 use std::io;
 #[cfg(feature = "linux")]
 use std::path::Path;
+
+#[cfg(target_os = "freebsd")]
+use nix::ioctl_readwrite;
+#[cfg(target_os = "freebsd")]
+use std::fs::OpenOptions;
+#[cfg(target_os = "freebsd")]
+use std::os::fd::AsRawFd;
+#[cfg(target_os = "freebsd")]
+use std::os::unix::fs::OpenOptionsExt;
 
 /// Decode from GUID string version
 ///
@@ -316,7 +323,7 @@ fn esrt_from_sysfs(dir: &Path) -> io::Result<Esrt> {
     Ok(esrt_table)
 }
 
-#[cfg(all(not(feature = "uefi"), feature = "linux"))]
+#[cfg(all(not(feature = "uefi"), feature = "linux", target_os = "linux"))]
 pub fn get_esrt() -> Option<Esrt> {
     let res = esrt_from_sysfs(Path::new("/sys/firmware/efi/esrt/entries")).ok();
     if res.is_none() {
@@ -332,11 +339,43 @@ pub fn get_esrt() -> Option<Esrt> {
     None
 }
 
+#[cfg(target_os = "freebsd")]
+#[repr(C)]
+struct EfiGetTableIoc {
+    buf: *mut u8,
+    uuid: [u8; 16],
+    table_len: usize,
+    buf_len: usize,
+}
+#[cfg(target_os = "freebsd")]
+ioctl_readwrite!(efi_get_table, b'E', 1, EfiGetTableIoc);
+
 #[cfg(all(not(feature = "uefi"), target_os = "freebsd"))]
 pub fn get_esrt() -> Option<Esrt> {
-    // TODO: Implement
-    println!("Reading ESRT is not implemented on FreeBSD yet.");
-    None
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .custom_flags(libc::O_NONBLOCK)
+        .open("/dev/efi")
+        .unwrap();
+
+    let mut buf: Vec<u8> = Vec::new();
+    let mut table = EfiGetTableIoc {
+        buf: std::ptr::null_mut(),
+        uuid: SYSTEM_RESOURCE_TABLE_GUID.to_bytes(),
+        buf_len: 0,
+        table_len: 0,
+    };
+    unsafe {
+        let fd = file.as_raw_fd();
+        let _res = efi_get_table(fd, &mut table).unwrap();
+        buf.resize(table.table_len, 0);
+        table.buf_len = table.table_len;
+        table.buf = buf.as_mut_ptr();
+
+        let _res = efi_get_table(fd, &mut table).unwrap();
+        esrt_from_buf(table.buf)
+    }
 }
 
 /// gEfiSystemResourceTableGuid from MdePkg/MdePkg.dec
@@ -353,26 +392,32 @@ pub fn get_esrt() -> Option<Esrt> {
         let table_guid: Guid = unsafe { std::mem::transmute(table.guid) };
         match table_guid {
             SYSTEM_RESOURCE_TABLE_GUID => unsafe {
-                let raw_esrt = &*(table.address as *const _Esrt);
-                let mut esrt = Esrt {
-                    resource_count: raw_esrt.resource_count,
-                    resource_count_max: raw_esrt.resource_count_max,
-                    resource_version: raw_esrt.resource_version,
-                    entries: vec![],
-                };
-
-                // Make sure it's the version we expect
-                debug_assert!(esrt.resource_version == ESRT_FIRMWARE_RESOURCE_VERSION);
-
-                let src_ptr = std::ptr::addr_of!(raw_esrt.entries) as *const EsrtResourceEntry;
-                let slice_entries = slice::from_raw_parts(src_ptr, esrt.resource_count as usize);
-
-                esrt.entries = slice_entries.to_vec();
-
-                return Some(esrt);
+                return esrt_from_buf(table.address as *const u8);
             },
             _ => {}
         }
     }
     None
+}
+
+/// Parse the ESRT table buffer
+#[cfg(any(feature = "uefi", target_os = "freebsd"))]
+unsafe fn esrt_from_buf(ptr: *const u8) -> Option<Esrt> {
+    let raw_esrt = &*(ptr as *const _Esrt);
+    let mut esrt = Esrt {
+        resource_count: raw_esrt.resource_count,
+        resource_count_max: raw_esrt.resource_count_max,
+        resource_version: raw_esrt.resource_version,
+        entries: vec![],
+    };
+
+    // Make sure it's the version we expect
+    debug_assert!(esrt.resource_version == ESRT_FIRMWARE_RESOURCE_VERSION);
+
+    let src_ptr = core::ptr::addr_of!(raw_esrt.entries) as *const EsrtResourceEntry;
+    let slice_entries = core::slice::from_raw_parts(src_ptr, esrt.resource_count as usize);
+
+    esrt.entries = slice_entries.to_vec();
+
+    Some(esrt)
 }

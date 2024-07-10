@@ -150,7 +150,7 @@ fn read_version(
         unsafe { std::ptr::read(data[0..version_len].as_ptr() as *const _) };
 
     let base_version = BaseVersion::from(version_info.base_version);
-    let app_version = AppVersion::try_from(version_info.app_version).ok()?;
+    let app_version = AppVersion::from(version_info.app_version);
 
     let fw_silicon_id = version_info.silicon_id;
     let fw_silicon_family = version_info.silicon_family;

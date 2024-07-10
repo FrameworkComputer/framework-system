@@ -2,7 +2,7 @@
 
 use std::prelude::v1::*;
 
-#[cfg(not(feature = "uefi"))]
+#[cfg(all(not(feature = "uefi"), not(target_os = "freebsd")))]
 use std::io::ErrorKind;
 
 use crate::util::{Config, Platform};
@@ -12,6 +12,9 @@ use smbioslib::*;
 use spin::Mutex;
 #[cfg(not(feature = "uefi"))]
 use std::sync::Mutex;
+
+#[cfg(target_os = "freebsd")]
+use std::io::{Read, Seek, SeekFrom};
 
 /// Current platform. Won't ever change during the program's runtime
 static CACHED_PLATFORM: Mutex<Option<Option<Platform>>> = Mutex::new(None);
@@ -46,6 +49,13 @@ pub fn is_framework() -> bool {
     ) {
         return true;
     }
+
+    // Don't need to parse SMBIOS on FreeBSD, can just read kenv
+    #[cfg(target_os = "freebsd")]
+    if let Ok(maker) = kenv_get("smbios.system.maker") {
+        return maker == "Framework";
+    }
+
     let smbios = if let Some(smbios) = get_smbios() {
         smbios
     } else {
@@ -75,6 +85,103 @@ pub fn dmidecode_string_val(s: &SMBiosString) -> Option<String> {
     }
 }
 
+#[cfg(target_os = "freebsd")]
+#[repr(C)]
+pub struct Smbios3 {
+    pub anchor: [u8; 5],
+    pub checksum: u8,
+    pub length: u8,
+    pub major_version: u8,
+    pub minor_version: u8,
+    pub docrev: u8,
+    pub revision: u8,
+    _reserved: u8,
+    pub table_length: u32,
+    pub table_address: u64,
+}
+
+#[cfg(target_os = "freebsd")]
+#[repr(packed)]
+pub struct Smbios {
+    pub anchor: [u8; 4],
+    pub checksum: u8,
+    pub length: u8,
+    pub major_version: u8,
+    pub minor_version: u8,
+    pub max_structure_size: u16,
+    pub revision: u8,
+    pub formatted: [u8; 5],
+    pub inter_anchor: [u8; 5],
+    pub inter_checksum: u8,
+    pub table_length: u16,
+    pub table_address: u32,
+    pub structure_count: u16,
+    pub bcd_revision: u8,
+}
+
+#[cfg(target_os = "freebsd")]
+pub fn get_smbios() -> Option<SMBiosData> {
+    // Get the SMBIOS entrypoint address from the kernel environment
+    let addr_hex = kenv_get("hint.smbios.0.mem").ok()?;
+    let addr_hex = addr_hex.trim_start_matches("0x");
+    let addr = u64::from_str_radix(addr_hex, 16).unwrap();
+    trace!("SMBIOS Entrypoint Addr: {} 0x{:x}", addr_hex, addr);
+
+    let mut dev_mem = std::fs::File::open("/dev/mem").ok()?;
+    // Smbios struct is larger than Smbios3 struct
+    let mut header_buf = [0; std::mem::size_of::<Smbios>()];
+    dev_mem.seek(SeekFrom::Start(addr)).ok()?;
+    dev_mem.read_exact(&mut header_buf).ok()?;
+
+    let entrypoint = unsafe { &*(header_buf.as_ptr() as *const Smbios3) };
+
+    trace!("SMBIOS Anchor {:?} = ", entrypoint.anchor);
+    let (addr, len, version) = match entrypoint.anchor {
+        [b'_', b'S', b'M', b'3', b'_'] => {
+            trace!("_SM3_");
+            let entrypoint = unsafe { &*(header_buf.as_ptr() as *const Smbios3) };
+            let ver = Some(SMBiosVersion {
+                major: entrypoint.major_version,
+                minor: entrypoint.minor_version,
+                revision: 0,
+            });
+
+            (entrypoint.table_address, entrypoint.table_length, ver)
+        }
+        [b'_', b'S', b'M', b'_', _] => {
+            trace!("_SM_");
+            let entrypoint = unsafe { &*(header_buf.as_ptr() as *const Smbios) };
+            let ver = Some(SMBiosVersion {
+                major: entrypoint.major_version,
+                minor: entrypoint.minor_version,
+                revision: 0,
+            });
+
+            (
+                entrypoint.table_address as u64,
+                entrypoint.table_length as u32,
+                ver,
+            )
+        }
+        [b'_', b'D', b'M', b'I', b'_'] => {
+            error!("_DMI_ - UNSUPPORTED");
+            return None;
+        }
+        _ => {
+            error!(" Unknown - UNSUPPORTED");
+            return None;
+        }
+    };
+
+    // Get actual SMBIOS table data
+    let mut smbios_buf = vec![0; len as usize];
+    dev_mem.seek(SeekFrom::Start(addr)).ok()?;
+    dev_mem.read_exact(&mut smbios_buf).ok()?;
+
+    let smbios = SMBiosData::from_vec_and_version(smbios_buf, version);
+    Some(smbios)
+}
+
 #[cfg(feature = "uefi")]
 pub fn get_smbios() -> Option<SMBiosData> {
     let data = crate::uefi::smbios_data().unwrap();
@@ -83,9 +190,8 @@ pub fn get_smbios() -> Option<SMBiosData> {
     Some(smbios)
 }
 // On Linux this reads either from /dev/mem or sysfs
-// On FreeBSD from /dev/mem
 // On Windows from the kernel API
-#[cfg(not(feature = "uefi"))]
+#[cfg(all(not(feature = "uefi"), not(target_os = "freebsd")))]
 pub fn get_smbios() -> Option<SMBiosData> {
     match smbioslib::table_load_from_device() {
         Ok(data) => Some(data),
@@ -98,6 +204,28 @@ pub fn get_smbios() -> Option<SMBiosData> {
             None
         }
     }
+}
+
+fn get_product_name() -> Option<String> {
+    // On FreeBSD we can short-circuit and avoid parsing SMBIOS
+    #[cfg(target_os = "freebsd")]
+    if let Ok(product) = kenv_get("smbios.system.product") {
+        return Some(product);
+    }
+
+    let smbios = get_smbios();
+    if smbios.is_none() {
+        println!("Failed to find SMBIOS");
+    }
+    let mut smbios = smbios.into_iter().flatten();
+    smbios.find_map(|undefined_struct| {
+        if let DefinedStruct::SystemInformation(data) = undefined_struct.defined_struct() {
+            if let Some(product_name) = dmidecode_string_val(&data.product_name()) {
+                return Some(product_name.as_str().to_string());
+            }
+        }
+        None
+    })
 }
 
 pub fn get_platform() -> Option<Platform> {
@@ -120,46 +248,18 @@ pub fn get_platform() -> Option<Platform> {
         }
     }
 
-    let smbios = get_smbios();
-    if smbios.is_none() {
-        println!("Failed to find SMBIOS");
-    }
-    let mut smbios = smbios.into_iter().flatten();
-    let platform = smbios.find_map(|undefined_struct| {
-        if let DefinedStruct::SystemInformation(data) = undefined_struct.defined_struct() {
-            if let Some(product_name) = dmidecode_string_val(&data.product_name()) {
-                match product_name.as_str() {
-                    "Laptop" => return Some(Platform::IntelGen11),
-                    "Laptop (12th Gen Intel Core)" => return Some(Platform::IntelGen12),
-                    "Laptop (13th Gen Intel Core)" => return Some(Platform::IntelGen13),
-                    "Laptop 13 (AMD Ryzen 7040Series)" => return Some(Platform::Framework13Amd),
-                    "Laptop 13 (AMD Ryzen 7040 Series)" => return Some(Platform::Framework13Amd),
-                    "Laptop 13 (Intel Core Ultra Series 1)" => {
-                        return Some(Platform::IntelCoreUltra1)
-                    }
-                    "Laptop 16 (AMD Ryzen 7040 Series)" => return Some(Platform::Framework16),
-                    _ => {}
-                }
-            }
-            if let Some(family) = dmidecode_string_val(&data.family()) {
-                // Actually "Laptop", "13in Laptop", and "16in Laptop"
-                match family.as_str() {
-                    // TGL Mainboard (I don't this ever appears in family)
-                    "FRANBMCP" => return Some(Platform::IntelGen11),
-                    // ADL Mainboard (I don't this ever appears in family)
-                    "FRANMACP" => return Some(Platform::IntelGen12),
-                    // RPL Mainboard (I don't this ever appears in family)
-                    "FRANMCCP" => return Some(Platform::IntelGen13),
-                    // Framework 13 AMD Mainboard
-                    "FRANMDCP" => return Some(Platform::Framework13Amd),
-                    // Framework 16 Mainboard
-                    "FRANMZCP" => return Some(Platform::Framework16),
-                    _ => {}
-                }
-            }
-        }
-        None
-    });
+    let product_name = get_product_name()?;
+
+    let platform = match product_name.as_str() {
+        "Laptop" => Some(Platform::IntelGen11),
+        "Laptop (12th Gen Intel Core)" => Some(Platform::IntelGen12),
+        "Laptop (13th Gen Intel Core)" => Some(Platform::IntelGen13),
+        "Laptop 13 (AMD Ryzen 7040Series)" => Some(Platform::Framework13Amd),
+        "Laptop 13 (AMD Ryzen 7040 Series)" => Some(Platform::Framework13Amd),
+        "Laptop 13 (Intel Core Ultra Series 1)" => Some(Platform::IntelCoreUltra1),
+        "Laptop 16 (AMD Ryzen 7040 Series)" => Some(Platform::Framework16),
+        _ => None,
+    };
 
     if platform.is_none() {
         println!("Failed to find PlatformFamily");
@@ -168,4 +268,31 @@ pub fn get_platform() -> Option<Platform> {
     assert!(cached_platform.is_none());
     *cached_platform = Some(platform);
     platform
+}
+
+#[cfg(target_os = "freebsd")]
+fn kenv_get(name: &str) -> nix::Result<String> {
+    use libc::{c_int, KENV_GET, KENV_MVALLEN};
+    use nix::errno::Errno;
+    use std::ffi::{CStr, CString};
+
+    let cname = CString::new(name).unwrap();
+    let name_ptr = cname.as_ptr();
+
+    let mut value_buf = [0; 1 + KENV_MVALLEN as usize];
+
+    unsafe {
+        let res: c_int = libc::kenv(
+            KENV_GET,
+            name_ptr,
+            value_buf.as_mut_ptr(),
+            value_buf.len() as c_int,
+        );
+        Errno::result(res)?;
+
+        let cvalue = CStr::from_ptr(value_buf.as_ptr());
+        let value = cvalue.to_string_lossy().into_owned();
+
+        Ok(value)
+    }
 }

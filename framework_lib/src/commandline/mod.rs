@@ -293,7 +293,7 @@ fn print_versions(ec: &CrosEc) {
     println!("UEFI BIOS");
     if let Some(smbios) = get_smbios() {
         let bios_entries = smbios.collect::<SMBiosInformation>();
-        let bios = bios_entries.get(0).unwrap();
+        let bios = bios_entries.first().unwrap();
         println!("  Version:        {}", bios.version());
         println!("  Release Date:   {}", bios.release_date());
     }
@@ -911,6 +911,14 @@ fn selftest(ec: &CrosEc) -> Option<()> {
 }
 
 fn smbios_info() {
+    println!("Summary");
+    println!("  Is Framework: {}", is_framework());
+    if let Some(platform) = smbios::get_platform() {
+        println!("  Platform:     {:?}", platform);
+    } else {
+        println!("  Platform:     Unknown",);
+    }
+
     let smbios = get_smbios();
     if smbios.is_none() {
         error!("Failed to find SMBIOS");
