@@ -334,9 +334,63 @@ pub fn get_esrt() -> Option<Esrt> {
 
 #[cfg(all(not(feature = "uefi"), feature = "windows"))]
 pub fn get_esrt() -> Option<Esrt> {
-    // TODO: Implement
-    error!("Reading ESRT is not implemented on Windows yet.");
-    None
+    let mut esrt_table = Esrt {
+        resource_count: 0,
+        resource_count_max: 0,
+        resource_version: ESRT_FIRMWARE_RESOURCE_VERSION,
+        entries: vec![],
+    };
+    use wmi::*;
+    debug!("Opening WMI");
+    let wmi_con = WMIConnection::new(COMLibrary::new().unwrap()).unwrap();
+    use std::collections::HashMap;
+    use wmi::Variant;
+    debug!("Querying WMI");
+    let results: Vec<HashMap<String, Variant>> = wmi_con.raw_query("SELECT HardwareID FROM Win32_PnPEntity WHERE ClassGUID = '{f2e7dd72-6468-4e36-b6f1-6488f42c1b52}'").unwrap();
+
+    for (i, hardware_id) in results.iter().enumerate() {
+        let hwid = &hardware_id["HardwareID"];
+        if let Variant::Array(strs) = hwid {
+            if let Variant::String(s) = &strs[0] {
+                // Sample "UEFI\\RES_{c57fd615-2ac9-4154-bf34-4dc715344408}&REV_CF"
+                let re = regex::Regex::new(r"([\-a-h0-9]+)\}&REV_([A-F0-9]+)").expect("Bad regex");
+                let caps = re.captures(s).expect("No caps");
+                let guid_str = caps.get(1).unwrap().as_str().to_string();
+                let ver_str = caps.get(2).unwrap().as_str().to_string();
+
+                let guid = guid_from_str(&guid_str).unwrap();
+                let guid_kind = match_guid_kind(&guid);
+                let ver = u32::from_str_radix(&ver_str, 16).unwrap();
+                debug!("ESRT Entry {}", i);
+                debug!("  Name:    {:?}", guid_kind);
+                debug!("  GUID:    {}", guid_str);
+                debug!("  Version: {:X} ({})", ver, ver);
+
+                let esrt = EsrtResourceEntry {
+                    fw_class: guid,
+                    // TODO: 0 is Unknown, see if Windows exposes it
+                    fw_type: 0,
+                    fw_version: ver,
+                    // TODO: Not exposed by windows
+                    lowest_supported_fw_version: 0,
+                    // TODO: Not exposed by windows
+                    capsule_flags: 0,
+                    // TODO: Not exposed by windows
+                    last_attempt_version: 0,
+                    // TODO: Not exposed by windows
+                    last_attempt_status: 0,
+                };
+                esrt_table.resource_count += 1;
+                esrt_table.resource_count_max += 1;
+                esrt_table.entries.push(esrt);
+            } else {
+                error!("Strs: {:#?}", strs[0]);
+            }
+        } else {
+            error!("{:#?}", hwid);
+        }
+    }
+    Some(esrt_table)
 }
 
 #[cfg(target_os = "freebsd")]
