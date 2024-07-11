@@ -358,7 +358,9 @@ fn print_versions(ec: &CrosEc) {
                 | esrt::ADL_RETIMER01_GUID
                 | esrt::ADL_RETIMER23_GUID
                 | esrt::RPL_RETIMER01_GUID
-                | esrt::RPL_RETIMER23_GUID => {
+                | esrt::RPL_RETIMER23_GUID
+                | esrt::MTL_RETIMER01_GUID
+                | esrt::MTL_RETIMER23_GUID => {
                     if !found_retimer {
                         found_retimer = true;
                     }
@@ -366,13 +368,19 @@ fn print_versions(ec: &CrosEc) {
                 _ => {}
             }
             match entry.fw_class {
-                esrt::TGL_RETIMER01_GUID | esrt::ADL_RETIMER01_GUID | esrt::RPL_RETIMER01_GUID => {
+                esrt::TGL_RETIMER01_GUID
+                | esrt::ADL_RETIMER01_GUID
+                | esrt::RPL_RETIMER01_GUID
+                | esrt::MTL_RETIMER01_GUID => {
                     println!(
                         "  Left:           0x{:X} ({})",
                         entry.fw_version, entry.fw_version
                     );
                 }
-                esrt::TGL_RETIMER23_GUID | esrt::ADL_RETIMER23_GUID | esrt::RPL_RETIMER23_GUID => {
+                esrt::TGL_RETIMER23_GUID
+                | esrt::ADL_RETIMER23_GUID
+                | esrt::RPL_RETIMER23_GUID
+                | esrt::MTL_RETIMER23_GUID => {
                     println!(
                         "  Right:          0x{:X} ({})",
                         entry.fw_version, entry.fw_version
