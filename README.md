@@ -108,6 +108,7 @@ On UEFI and FreeBSD raw port I/O is used - on Linux this can also be used as a f
     - [x] HDMI Expansion Card (`--dp-hdmi-update`)
     - [x] DisplayPort Expansion Card (`--dp-hdmi-update`)
     - [ ] Audio Expansion Card
+  - [x] Get driver version for all devices (Windows only) (`--drivers`)
 
 ###### System Status
 

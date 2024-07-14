@@ -246,6 +246,10 @@ struct ClapCli {
     #[arg(long)]
     s0ix_counter: bool,
 
+    /// Display Windows Driver versions
+    #[arg(long)]
+    drivers: bool,
+
     /// Hash a file of arbitrary data
     #[arg(long)]
     hash: Option<std::path::PathBuf>,
@@ -466,6 +470,7 @@ pub fn parse(args: &[String]) -> Cli {
         ec_hib_delay: args.ec_hib_delay,
         uptimeinfo: args.uptimeinfo,
         s0ix_counter: args.s0ix_counter,
+        drivers: args.drivers,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         pd_addrs,

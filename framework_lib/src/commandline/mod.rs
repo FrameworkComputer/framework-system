@@ -66,6 +66,8 @@ use crate::uefi::enable_page_break;
 #[cfg(feature = "rusb")]
 use crate::usbhub::check_usbhub_version;
 use crate::util::{self, Config, Platform, PlatformFamily};
+#[cfg(target_os = "windows")]
+use crate::wmi;
 #[cfg(feature = "hidapi")]
 use hidapi::HidApi;
 use sha2::{Digest, Sha256, Sha384, Sha512};
@@ -217,6 +219,7 @@ pub struct Cli {
     pub uptimeinfo: bool,
     pub s0ix_counter: bool,
     pub hash: Option<String>,
+    pub drivers: bool,
     pub pd_addrs: Option<(u16, u16, u16)>,
     pub pd_ports: Option<(u8, u8, u8)>,
     pub help: bool,
@@ -1687,6 +1690,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(ec_bin_path) = &args.flash_rw_ec {
         flash_ec(&ec, ec_bin_path, EcFlashType::Rw, args.dry_run);
+    } else if args.drivers {
+        #[cfg(target_os = "windows")]
+        wmi::print_drivers();
+        #[cfg(not(target_os = "windows"))]
+        println!("Driver Version only supported on Windows");
     } else if let Some(hash_file) = &args.hash {
         println!("Hashing file: {}", hash_file);
         #[cfg(feature = "uefi")]

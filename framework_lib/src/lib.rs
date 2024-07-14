@@ -49,6 +49,8 @@ pub mod smbios;
 #[cfg(feature = "uefi")]
 pub mod uefi;
 mod util;
+#[cfg(target_os = "windows")]
+pub mod wmi;
 
 pub mod built_info {
     // The file has been placed there by the build script.
