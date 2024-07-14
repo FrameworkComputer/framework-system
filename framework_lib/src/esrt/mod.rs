@@ -346,10 +346,10 @@ pub fn get_esrt() -> Option<Esrt> {
     use std::collections::HashMap;
     use wmi::Variant;
     debug!("Querying WMI");
-    let results: Vec<HashMap<String, Variant>> = wmi_con.raw_query("SELECT HardwareID FROM Win32_PnPEntity WHERE ClassGUID = '{f2e7dd72-6468-4e36-b6f1-6488f42c1b52}'").unwrap();
+    let results: Vec<HashMap<String, Variant>> = wmi_con.raw_query("SELECT HardwareID, Name FROM Win32_PnPEntity WHERE ClassGUID = '{f2e7dd72-6468-4e36-b6f1-6488f42c1b52}'").unwrap();
 
-    for (i, hardware_id) in results.iter().enumerate() {
-        let hwid = &hardware_id["HardwareID"];
+    for (i, val) in results.iter().enumerate() {
+        let hwid = &val["HardwareID"];
         if let Variant::Array(strs) = hwid {
             if let Variant::String(s) = &strs[0] {
                 // Sample "UEFI\\RES_{c57fd615-2ac9-4154-bf34-4dc715344408}&REV_CF"
@@ -366,10 +366,21 @@ pub fn get_esrt() -> Option<Esrt> {
                 debug!("  GUID:    {}", guid_str);
                 debug!("  Version: {:X} ({})", ver, ver);
 
+                let fw_type = if let Variant::String(name) = &val["Name"] {
+                    match name.as_str() {
+                        "System Firmware" => 1,
+                        "Device Firmware" => 2,
+                        _ => 0,
+                    }
+                } else {
+                    0
+                };
+
+                // TODO: The missing fields are present in Device Manager
+                // So there must be a way to get at them
                 let esrt = EsrtResourceEntry {
                     fw_class: guid,
-                    // TODO: 0 is Unknown, see if Windows exposes it
-                    fw_type: 0,
+                    fw_type,
                     fw_version: ver,
                     // TODO: Not exposed by windows
                     lowest_supported_fw_version: 0,
