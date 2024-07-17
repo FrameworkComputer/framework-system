@@ -1,4 +1,12 @@
 fn main() {
+    // Add app icon
+    if std::env::var_os("CARGO_CFG_WINDOWS").is_some() {
+        winresource::WindowsResource::new()
+            .set_icon("..\\res\\framework_startmenuicon.ico")
+            .compile()
+            .unwrap();
+    }
+
     if !cfg!(debug_assertions) {
         // Statically link vcruntime to allow running on clean install
         static_vcruntime::metabuild();
