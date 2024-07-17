@@ -25,31 +25,40 @@ lazy_static! {
     static ref DEVICE: Arc<Mutex<Option<DevHandle>>> = Arc::new(Mutex::new(None));
 }
 
-fn init() {
+fn init() -> bool {
     let mut device = DEVICE.lock().unwrap();
     if (*device).is_some() {
-        return;
+        return true;
     }
 
     let path = w!(r"\\.\GLOBALROOT\Device\CrosEC");
-    unsafe {
-        *device = Some(DevHandle(
-            CreateFileW(
-                path,
-                FILE_GENERIC_READ.0 | FILE_GENERIC_WRITE.0,
-                FILE_SHARE_READ | FILE_SHARE_WRITE,
-                None,
-                OPEN_EXISTING,
-                FILE_FLAGS_AND_ATTRIBUTES(0),
-                None,
-            )
-            .unwrap(),
-        ));
-    }
+    let res = unsafe {
+        CreateFileW(
+            path,
+            FILE_GENERIC_READ.0 | FILE_GENERIC_WRITE.0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            None,
+            OPEN_EXISTING,
+            FILE_FLAGS_AND_ATTRIBUTES(0),
+            None,
+        )
+    };
+    let handle = match res {
+        Ok(h) => h,
+        Err(err) => {
+            error!("Failed to find Windows driver. {:?}", err);
+            return false;
+        }
+    };
+
+    *device = Some(DevHandle(handle));
+    true
 }
 
 pub fn read_memory(offset: u16, length: u16) -> EcResult<Vec<u8>> {
-    init();
+    if !init() {
+        return Err(EcError::DeviceError("Failed to initialize".to_string()));
+    }
     let mut rm = CrosEcReadMem {
         offset: offset as u32,
         bytes: length as u32,

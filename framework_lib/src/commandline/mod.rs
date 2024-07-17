@@ -1111,7 +1111,8 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     if let Some(mem) = ec.dump_mem_region() {
         util::print_multiline_buffer(&mem, 0);
     } else {
-        println!("    Failed to read EC memory region")
+        println!("    Failed to read EC memory region");
+        return None;
     }
 
     println!("  Checking EC memory mapped magic bytes");
