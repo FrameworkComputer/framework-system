@@ -951,13 +951,13 @@ fn smbios_info() {
                 if let Some(version) = dmidecode_string_val(&data.version()) {
                     // Assumes it's ASCII, which is guaranteed by SMBIOS
                     let config_digit0 = &version[0..1];
-                    let config_digit0 = u8::from_str_radix(config_digit0, 16).unwrap();
-                    if let Some(version_config) =
-                        <ConfigDigit0 as FromPrimitive>::from_u8(config_digit0)
+                    let config_digit0 = u8::from_str_radix(config_digit0, 16);
+                    if let Ok(version_config) =
+                        config_digit0.map(<ConfigDigit0 as FromPrimitive>::from_u8)
                     {
                         println!("  Version:      {:?} ({})", version_config, version);
                     } else {
-                        println!("  Version:      {}", version);
+                        println!("  Version:      '{}'", version);
                     }
                 }
                 if let Some(manufacturer) = dmidecode_string_val(&data.manufacturer()) {
@@ -972,8 +972,35 @@ fn smbios_info() {
                 if let Some(sku_number) = dmidecode_string_val(&data.sku_number()) {
                     println!("  SKU Number:   {}", sku_number);
                 }
+                if let Some(sn) = dmidecode_string_val(&data.serial_number()) {
+                    println!("  Serial Number:{}", sn);
+                }
                 if let Some(family) = dmidecode_string_val(&data.family()) {
                     println!("  Family:       {}", family);
+                }
+            }
+            DefinedStruct::BaseBoardInformation(data) => {
+                println!("BaseBoard Information");
+                if let Some(version) = dmidecode_string_val(&data.version()) {
+                    // Assumes it's ASCII, which is guaranteed by SMBIOS
+                    let config_digit0 = &version[0..1];
+                    let config_digit0 = u8::from_str_radix(config_digit0, 16);
+                    if let Ok(version_config) =
+                        config_digit0.map(<ConfigDigit0 as FromPrimitive>::from_u8)
+                    {
+                        println!("  Version:      {:?} ({})", version_config, version);
+                    } else {
+                        println!("  Version:      '{}'", version);
+                    }
+                }
+                if let Some(manufacturer) = dmidecode_string_val(&data.manufacturer()) {
+                    println!("  Manufacturer: {}", manufacturer);
+                }
+                if let Some(product_name) = dmidecode_string_val(&data.product()) {
+                    println!("  Product:      {}", product_name);
+                }
+                if let Some(sn) = dmidecode_string_val(&data.serial_number()) {
+                    println!("  Serial Number:{}", sn);
                 }
             }
             _ => {}
