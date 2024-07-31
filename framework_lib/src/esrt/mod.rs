@@ -341,7 +341,7 @@ pub fn get_esrt() -> Option<Esrt> {
 
 #[cfg(target_os = "freebsd")]
 #[repr(C)]
-struct EfiGetTableIoc {
+pub struct EfiGetTableIoc {
     buf: *mut u8,
     uuid: [u8; 16],
     table_len: usize,
