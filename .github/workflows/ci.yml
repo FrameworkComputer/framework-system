@@ -36,7 +36,7 @@ jobs:
 
   build:
     name: Build Linux and UEFI
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
@@ -129,7 +129,7 @@ jobs:
 
   lints:
     name: Lints
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
@@ -152,7 +152,7 @@ jobs:
   # Just make sure doc generation works
   doc:
     name: Generate docs
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
       # Fail if warnings are produced
