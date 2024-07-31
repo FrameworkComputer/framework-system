@@ -3,36 +3,33 @@ on:
   push:
 
 jobs:
-# Won't work because pkg-config can't find hidapi.
-# I changed build.rs to search for 'hidapi-libusb', which is how it's installed
-# on Ubuntu. But that still can't find it.
-# freebsd-cross-build:
-#   name: Cross-Build for FreeBSD
-#   runs-on: 'ubuntu-22.04'
-#   env:
-#     CARGO_NET_GIT_FETCH_WITH_CLI: true
-#   steps:
-#   - uses: actions/checkout@v3
+  freebsd-cross-build:
+    name: Cross-Build for FreeBSD
+    runs-on: 'ubuntu-24.04'
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
+    steps:
+    - uses: actions/checkout@v4
 
-#   - name: Install dependencies
-#     run: |
-#       sudo apt-get update
-#       sudo apt-get install -y libudev-dev libhidapi-dev
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libudev-dev libhidapi-dev
 
-#   - name: Setup Rust toolchain
-#     run: rustup show
+    - name: Setup Rust toolchain
+      run: rustup show
 
-#   - name: Install cross compilation tool
-#     run: cargo install cross
+    - name: Install cross compilation tool
+      run: cargo install cross
 
-#   - name: Build FreeBSD tool
-#     run: cross build --target=x86_64-unknown-freebsd --no-default-features --features unix
+    - name: Build FreeBSD tool
+      run: cross build --target=x86_64-unknown-freebsd --no-default-features --features cross_freebsd
 
-#   - name: Upload FreeBSD App
-#     uses: actions/upload-artifact@v3
-#     with:
-#       name: framework_tool_freebsd
-#       path: target/x86_64-unknown-freebsd/debug/framework_tool
+    - name: Upload FreeBSD App
+      uses: actions/upload-artifact@v4
+      with:
+        name: framework_tool_freebsd
+        path: target/x86_64-unknown-freebsd/debug/framework_tool
 
   build:
     name: Build Linux and UEFI
