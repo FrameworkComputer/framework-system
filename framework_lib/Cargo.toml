@@ -9,12 +9,14 @@ build = "build.rs"
 default = ["linux"]
 # Linux/FreeBSD
 unix = ["std", "raw_pio", "smbios", "dep:nix", "dep:libc"]
-linux = ["unix", "linux_pio", "cros_ec_driver"]
-freebsd = ["unix", "freebsd_pio"]
+linux = ["unix", "linux_pio", "cros_ec_driver", "hidapi"]
+freebsd = ["unix", "freebsd_pio", "hidapi"]
+cross_freebsd = ["unix", "freebsd_pio"]
 # Windows does not have the cros_ec driver nor raw port I/O access to userspace
-windows = ["std", "smbios", "dep:windows", "win_driver", "raw_pio"]
+windows = ["std", "smbios", "dep:windows", "win_driver", "raw_pio", "hidapi"]
 smbios = ["dep:smbios-lib"]
-std = ["dep:clap", "dep:clap-verbosity-flag", "dep:env_logger", "smbios-lib?/std", "dep:hidapi", "dep:rusb"]
+std = ["dep:clap", "dep:clap-verbosity-flag", "dep:env_logger", "smbios-lib?/std", "dep:rusb"]
+hidapi = ["dep:hidapi"]
 uefi = [
     "dep:plain", "raw_pio", "smbios", "lazy_static/spin_no_std", "dep:uefi", "dep:uefi-services",
     # Otherwise I get: `LLVM ERROR: Do not know how to split the result of this operator!`
