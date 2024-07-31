@@ -40,7 +40,7 @@ jobs:
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
@@ -60,7 +60,7 @@ jobs:
       run: cargo run -- --help
 
     - name: Upload Linux App
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: framework_tool
         path: target/debug/framework_tool
@@ -69,7 +69,7 @@ jobs:
       run: make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
 
     - name: Upload UEFI App
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: framework.efi
         path: framework_uefi/build/x86_64-unknown-uefi/boot.efi
@@ -86,7 +86,7 @@ jobs:
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Rust toolchain
       run: rustup show
@@ -101,7 +101,7 @@ jobs:
       run: cargo run --no-default-features --features "windows" -- --help
 
     - name: Upload Windows App
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: framework_tool.exe
         path: target/debug/framework_tool.exe
@@ -114,7 +114,7 @@ jobs:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
@@ -133,7 +133,7 @@ jobs:
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
@@ -158,7 +158,7 @@ jobs:
       # Fail if warnings are produced
       RUSTDOCFLAGS: -Dwarnings
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
