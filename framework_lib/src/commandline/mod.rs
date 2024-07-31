@@ -19,7 +19,7 @@ use std::fs;
 #[cfg(all(not(feature = "uefi"), feature = "std"))]
 use std::io::prelude::*;
 
-#[cfg(not(feature = "uefi"))]
+#[cfg(feature = "rusb")]
 use crate::audio_card::check_synaptics_fw_version;
 use crate::built_info;
 use crate::capsule;
@@ -200,7 +200,7 @@ fn print_pd_details(ec: &CrosEc) {
 #[cfg(feature = "hidapi")]
 const NOT_SET: &str = "NOT SET";
 
-#[cfg(not(feature = "uefi"))]
+#[cfg(feature = "rusb")]
 fn print_audio_card_details() {
     check_synaptics_fw_version();
 }
@@ -624,7 +624,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         #[cfg(not(feature = "hidapi"))]
         let _ = pd_bin_path;
     } else if args.audio_card_info {
-        #[cfg(not(feature = "uefi"))]
+        #[cfg(feature = "rusb")]
         print_audio_card_details();
     } else if args.privacy {
         if let Some((mic, cam)) = print_err(ec.get_privacy_info()) {

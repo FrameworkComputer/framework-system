@@ -9,13 +9,15 @@ build = "build.rs"
 default = ["linux"]
 # Linux/FreeBSD
 unix = ["std", "raw_pio", "smbios", "dep:nix", "dep:libc"]
-linux = ["unix", "linux_pio", "cros_ec_driver", "hidapi"]
-freebsd = ["unix", "freebsd_pio", "hidapi"]
+linux = ["unix", "linux_pio", "cros_ec_driver", "hidapi", "rusb"]
+freebsd = ["unix", "freebsd_pio", "hidapi", "rusb"]
+# hidapi and rusb don't seem to build in the cross container at the moment
 cross_freebsd = ["unix", "freebsd_pio"]
 # Windows does not have the cros_ec driver nor raw port I/O access to userspace
-windows = ["std", "smbios", "dep:windows", "win_driver", "raw_pio", "hidapi"]
+windows = ["std", "smbios", "dep:windows", "win_driver", "raw_pio", "hidapi", "rusb"]
 smbios = ["dep:smbios-lib"]
-std = ["dep:clap", "dep:clap-verbosity-flag", "dep:env_logger", "smbios-lib?/std", "dep:rusb"]
+std = ["dep:clap", "dep:clap-verbosity-flag", "dep:env_logger", "smbios-lib?/std"]
+rusb = ["dep:rusb"]
 hidapi = ["dep:hidapi"]
 uefi = [
     "dep:plain", "raw_pio", "smbios", "lazy_static/spin_no_std", "dep:uefi", "dep:uefi-services",

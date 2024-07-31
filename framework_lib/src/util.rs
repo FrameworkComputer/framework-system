@@ -96,7 +96,7 @@ pub unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
 }
 
 /// Convert any type to a mut u8 slice (Like a C byte buffer)
-#[cfg(not(feature = "uefi"))]
+#[cfg(feature = "rusb")]
 pub unsafe fn any_as_mut_u8_slice<T: Sized>(p: &mut T) -> &mut [u8] {
     let len = ::std::mem::size_of::<T>();
     ::std::slice::from_raw_parts_mut((p as *mut T) as *mut u8, len)
