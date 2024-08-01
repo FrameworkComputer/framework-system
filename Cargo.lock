@@ -841,7 +841,7 @@ dependencies = [
 [[package]]
 name = "redox_hwio"
 version = "0.1.6"
-source = "git+https://github.com/FrameworkComputer/rust-hwio?branch=freebsd#9e6e7529ffd6caf7aa6a17be1eca6756b302f736"
+source = "git+https://github.com/FrameworkComputer/rust-hwio?branch=freebsd#9bcff4277d8f3d7dce2b12c6ad81d092ae35c4ba"
 dependencies = [
  "lazy_static",
  "nix",

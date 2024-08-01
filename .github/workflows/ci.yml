@@ -3,44 +3,44 @@ on:
   push:
 
 jobs:
-# Won't work because pkg-config can't find hidapi.
-# I changed build.rs to search for 'hidapi-libusb', which is how it's installed
-# on Ubuntu. But that still can't find it.
-# freebsd-cross-build:
-#   name: Cross-Build for FreeBSD
-#   runs-on: 'ubuntu-22.04'
-#   env:
-#     CARGO_NET_GIT_FETCH_WITH_CLI: true
-#   steps:
-#   - uses: actions/checkout@v3
-
-#   - name: Install dependencies
-#     run: |
-#       sudo apt-get update
-#       sudo apt-get install -y libudev-dev libhidapi-dev
-
-#   - name: Setup Rust toolchain
-#     run: rustup show
-
-#   - name: Install cross compilation tool
-#     run: cargo install cross
-
-#   - name: Build FreeBSD tool
-#     run: cross build --target=x86_64-unknown-freebsd --no-default-features --features unix
-
-#   - name: Upload FreeBSD App
-#     uses: actions/upload-artifact@v3
-#     with:
-#       name: framework_tool_freebsd
-#       path: target/x86_64-unknown-freebsd/debug/framework_tool
-
-  build:
-    name: Build Linux and UEFI
-    runs-on: ubuntu-22.04
+  freebsd-cross-build:
+    name: Cross-Build for FreeBSD
+    runs-on: 'ubuntu-24.04'
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libudev-dev libhidapi-dev
+
+    - name: Setup Rust toolchain
+      run: |
+        rm rust-toolchain.toml
+        rustup toolchain install 1.75.0-x86_64-unknown-freebsd
+        rustup show
+
+    - name: Install cross compilation tool
+      run: cargo install cross
+
+    - name: Build FreeBSD tool
+      run: cross build --target=x86_64-unknown-freebsd --no-default-features --features cross_freebsd
+
+    - name: Upload FreeBSD App
+      uses: actions/upload-artifact@v4
+      with:
+        name: framework_tool_freebsd
+        path: target/x86_64-unknown-freebsd/debug/framework_tool
+
+  build:
+    name: Build Linux and UEFI
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
+    steps:
+    - uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
@@ -60,7 +60,7 @@ jobs:
       run: cargo run -- --help
 
     - name: Upload Linux App
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: framework_tool
         path: target/debug/framework_tool
@@ -69,7 +69,7 @@ jobs:
       run: make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
 
     - name: Upload UEFI App
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: framework.efi
         path: framework_uefi/build/x86_64-unknown-uefi/boot.efi
@@ -86,7 +86,7 @@ jobs:
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Rust toolchain
       run: rustup show
@@ -101,7 +101,7 @@ jobs:
       run: cargo run --no-default-features --features "windows" -- --help
 
     - name: Upload Windows App
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: framework_tool.exe
         path: target/debug/framework_tool.exe
@@ -114,7 +114,7 @@ jobs:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
@@ -129,11 +129,11 @@ jobs:
 
   lints:
     name: Lints
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
@@ -152,13 +152,13 @@ jobs:
   # Just make sure doc generation works
   doc:
     name: Generate docs
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
       # Fail if warnings are produced
       RUSTDOCFLAGS: -Dwarnings
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |

@@ -9,12 +9,16 @@ build = "build.rs"
 default = ["linux"]
 # Linux/FreeBSD
 unix = ["std", "raw_pio", "smbios", "dep:nix", "dep:libc"]
-linux = ["unix", "linux_pio", "cros_ec_driver"]
-freebsd = ["unix", "freebsd_pio"]
+linux = ["unix", "linux_pio", "cros_ec_driver", "hidapi", "rusb"]
+freebsd = ["unix", "freebsd_pio", "hidapi", "rusb"]
+# hidapi and rusb don't seem to build in the cross container at the moment
+cross_freebsd = ["unix", "freebsd_pio"]
 # Windows does not have the cros_ec driver nor raw port I/O access to userspace
-windows = ["std", "smbios", "dep:windows", "win_driver", "raw_pio"]
+windows = ["std", "smbios", "dep:windows", "win_driver", "raw_pio", "hidapi", "rusb"]
 smbios = ["dep:smbios-lib"]
-std = ["dep:clap", "dep:clap-verbosity-flag", "dep:env_logger", "smbios-lib?/std", "dep:hidapi", "dep:rusb"]
+std = ["dep:clap", "dep:clap-verbosity-flag", "dep:env_logger", "smbios-lib?/std"]
+rusb = ["dep:rusb"]
+hidapi = ["dep:hidapi"]
 uefi = [
     "dep:plain", "raw_pio", "smbios", "lazy_static/spin_no_std", "dep:uefi", "dep:uefi-services",
     # Otherwise I get: `LLVM ERROR: Do not know how to split the result of this operator!`
@@ -40,9 +44,9 @@ built = { version = "0.5", features = ["chrono", "git2"] }
 
 [dependencies]
 lazy_static = "1.4.0"
-sha2 = { version = "0.10.6", default_features = false, features = [ "force-soft" ] }
+sha2 = { version = "0.10.6", default-features = false, features = [ "force-soft" ] }
 regex = { version = "1.10.0", default-features = false }
-redox_hwio = { git = "https://github.com/FrameworkComputer/rust-hwio", branch = "freebsd", default_features = false }
+redox_hwio = { git = "https://github.com/FrameworkComputer/rust-hwio", branch = "freebsd", default-features = false }
 libc = { version = "0.2.155", optional = true }
 clap = { version = "4.0", features = ["derive"], optional = true }
 clap-verbosity-flag = { version = "2.0.1", optional = true }

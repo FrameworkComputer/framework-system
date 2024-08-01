@@ -19,7 +19,7 @@ use std::fs;
 #[cfg(all(not(feature = "uefi"), feature = "std"))]
 use std::io::prelude::*;
 
-#[cfg(not(feature = "uefi"))]
+#[cfg(feature = "rusb")]
 use crate::audio_card::check_synaptics_fw_version;
 use crate::built_info;
 use crate::capsule;
@@ -27,7 +27,7 @@ use crate::capsule_content::{
     find_bios_version, find_ec_in_bios_cap, find_pd_in_bios_cap, find_retimer_version,
 };
 use crate::ccgx::device::{PdController, PdPort};
-#[cfg(not(feature = "uefi"))]
+#[cfg(feature = "hidapi")]
 use crate::ccgx::hid::{check_ccg_fw_version, find_devices, DP_CARD_PID, HDMI_CARD_PID};
 use crate::ccgx::{self, SiliconId::*};
 use crate::chromium_ec;
@@ -48,7 +48,7 @@ use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
 use crate::uefi::enable_page_break;
 use crate::util;
 use crate::util::Config;
-#[cfg(not(feature = "uefi"))]
+#[cfg(feature = "hidapi")]
 use hidapi::HidApi;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 //use smbioslib::*;
@@ -197,15 +197,15 @@ fn print_pd_details(ec: &CrosEc) {
     print_single_pd_details(&pd_23);
 }
 
-#[cfg(not(feature = "uefi"))]
+#[cfg(feature = "hidapi")]
 const NOT_SET: &str = "NOT SET";
 
-#[cfg(not(feature = "uefi"))]
+#[cfg(feature = "rusb")]
 fn print_audio_card_details() {
     check_synaptics_fw_version();
 }
 
-#[cfg(not(feature = "uefi"))]
+#[cfg(feature = "hidapi")]
 fn print_dp_hdmi_details() {
     match HidApi::new() {
         Ok(api) => {
@@ -270,7 +270,7 @@ fn print_tool_version() {
 }
 
 // TODO: Check if HDMI card is same
-#[cfg(not(feature = "uefi"))]
+#[cfg(feature = "hidapi")]
 fn flash_dp_hdmi_card(pd_bin_path: &str) {
     let data = match fs::read(pd_bin_path) {
         Ok(data) => Some(data),
@@ -616,15 +616,15 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.pd_info {
         print_pd_details(&ec);
     } else if args.dp_hdmi_info {
-        #[cfg(not(feature = "uefi"))]
+        #[cfg(feature = "hidapi")]
         print_dp_hdmi_details();
     } else if let Some(pd_bin_path) = &args.dp_hdmi_update {
-        #[cfg(not(feature = "uefi"))]
+        #[cfg(feature = "hidapi")]
         flash_dp_hdmi_card(pd_bin_path);
-        #[cfg(feature = "uefi")]
+        #[cfg(not(feature = "hidapi"))]
         let _ = pd_bin_path;
     } else if args.audio_card_info {
-        #[cfg(not(feature = "uefi"))]
+        #[cfg(feature = "rusb")]
         print_audio_card_details();
     } else if args.privacy {
         if let Some((mic, cam)) = print_err(ec.get_privacy_info()) {

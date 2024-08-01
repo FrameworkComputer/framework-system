@@ -1,0 +1,7 @@
+[target.x86_64-unknown-freebsd]
+image = "ghcr.io/cross-rs/x86_64-unknown-freebsd:main"
+pre-build = ["""
+export FREEBSD_MIRROR=$(/freebsd-fetch-best-mirror.sh) &&
+/freebsd-setup-packagesite.sh &&
+/freebsd-install-package.sh hidapi
+"""]

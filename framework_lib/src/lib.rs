@@ -12,7 +12,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
-#[cfg(not(feature = "uefi"))]
+#[cfg(feature = "rusb")]
 pub mod audio_card;
 
 #[cfg(feature = "uefi")]
