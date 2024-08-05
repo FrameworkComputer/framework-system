@@ -21,12 +21,16 @@ use wmi::*;
 //   Get-WmiObject -query "SELECT * FROM Win32_PnPEntity WHERE ConfigManagerErrorCode <> 0"
 //
 // Win32_PnpSignedDriver
-//   get-wmiobject Win32_PnpSignedDriver |   select Manufacturer,DeviceName,HardwareID,DriverVersion
+//   get-wmiobject Win32_PnpSignedDriver |  select Manufacturer,DeviceName,HardwareID,DriverVersion
 //   get-wmiobject Win32_PnpSignedDriver |  where manufacturer -like 'Goodix' | select Manufacturer,DeviceName,HardwareID,DriverVersion
 //   get-wmiobject Win32_PnpSignedDriver |  where manufacturer -like 'Intel' | select Manufacturer,DeviceName,HardwareID,DriverVersion
 //
 // Win32_Product
 //   Get-WmiObject -Class Win32_Product | select IdentifyingNumber, Name, Version
+//
+// Get-WmiObject -Class Win32_Product | select IdentifyingNumber, Name, Version | Format-Table | Out-String -width 9999 > product.txt
+// get-wmiobject Win32_PnpSignedDriver |  select Manufacturer,DeviceName,HardwareID,DriverVersion | Format-Table | Out-String -width 9999 > pnp.txt
+// get-wmiobject Win32_SystemDriver | select DisplayName,Name,@{n="version";e={(gi $_.pathname).VersionInfo.FileVersion}},PathName | Format-Table | Out-String -width 9999 > system.txt
 
 pub fn print_yellow_bangs() {
     println!("Devices with Yellow Bangs");
@@ -98,6 +102,16 @@ const PNP_DRIVERS: &[&str] = &[
     // Also in system_drivers
     // Not using the one here, because it doesn't show up when the card isn't plugged in
     // Genesys Logic             Framework SD Expansion Card                                USB\VID_32AC&PID_0009&REV_0003                          4.5.10.201
+
+    // MediaTek, Inc.               RZ616 Wi-Fi 6E 160MHz                           PCI\VEN_14C3&DEV_0616&SUBSYS_E61614C3&REV_00            3.3.0.908
+    "RZ616 Wi-Fi 6E 160MHz",
+    // Mediatek Inc.                RZ616 Bluetooth(R) Adapter                      USB\VID_0E8D&PID_E616&REV_0100&MI_00                    1.1037.0.395
+    "RZ616 Bluetooth(R) Adapter",
+    // For both of these WMI shows 31.0.24018.2001 instead of 23.40.18.02. But it's actually the same version
+    // Advanced Micro Devices, Inc. AMD Radeon(TM) 780M                             PCI\VEN_1002&DEV_15BF&SUBSYS_0005F111&REV_C1            31.0.24018.2001
+    "AMD Radeon(TM) 780M",
+    // Advanced Micro Devices, Inc. AMD Radeon(TM) RX 7700S                         PCI\VEN_1002&DEV_7480&SUBSYS_0007F111&REV_C1            31.0.24018.2001
+    "AMD Radeon(TM) RX 7700S",
 ];
 
 const PRODUCTS: &[&str] = &[
@@ -108,6 +122,9 @@ const PRODUCTS: &[&str] = &[
     "Intel(R) Chipset Device Software",
     // {00000060-0230-1033-84C8-B8D95FA3C8C3} Intel(R) Wireless Bluetooth(R)                                            23.60.0.1
     // {1C1EBF97-5EC2-4C01-BCFC-037D140796B4} Intel(R) Serial IO                                                        30.100.2405.44
+
+    // {35143df0-ba1c-4148-8744-137275e83211} AMD_Chipset_Drivers                                                       5.06.29.310
+    "AMD_Chipset_Drivers",
 ];
 
 pub fn print_drivers() {
@@ -235,6 +252,11 @@ pub fn print_drivers() {
         //"IntcAzAudAddService",   // Service for Realtek HD Audio (WDM)
         //"intelpmax",             // Intel(R) Dynamic Device Peak Power Manager Driver
         //"IntelPMT",              // Intel(R) Platform Monitoring Technology Service
+
+        // Mediatek PCI LE Extensible Wireless LAN Card Driver mtkwlex               3.3.0.0908                             C:\Windows\system32\drivers\mtkwl6ex.sys
+        // ("mtkwlex", Some("RZ616 WiFi Driver")),
+        // MTK BT Filter Driver                                MTKBTFilterx64        1.1037.0.395 TK                        C:\Windows\system32\drivers\mtkbtfilterx.sys
+        // ("MTKBTFilterx64", Some("RZ616 Bluetooth Driver")),
     ]);
 
     let results: Vec<HashMap<String, Variant>> = wmi_con
