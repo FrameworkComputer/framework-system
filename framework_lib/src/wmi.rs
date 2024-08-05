@@ -108,6 +108,7 @@ const PNP_DRIVERS: &[&str] = &[
     // Mediatek Inc.                RZ616 Bluetooth(R) Adapter                      USB\VID_0E8D&PID_E616&REV_0100&MI_00                    1.1037.0.395
     "RZ616 Bluetooth(R) Adapter",
     // For both of these WMI shows 31.0.24018.2001 instead of 23.40.18.02. But it's actually the same version
+    // 31.0.22024.17002 instead of 23.20.24.17
     // Advanced Micro Devices, Inc. AMD Radeon(TM) 780M                             PCI\VEN_1002&DEV_15BF&SUBSYS_0005F111&REV_C1            31.0.24018.2001
     "AMD Radeon(TM) 780M",
     // Advanced Micro Devices, Inc. AMD Radeon(TM) RX 7700S                         PCI\VEN_1002&DEV_7480&SUBSYS_0007F111&REV_C1            31.0.24018.2001
