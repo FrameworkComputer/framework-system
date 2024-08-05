@@ -51,9 +51,9 @@ pub fn print_yellow_bangs() {
         // TODO: Unpack the Variant types
         // TODO: Use serde
         let description = if let Variant::String(s) = &bang["Description"] {
-            s
+            s.clone()
         } else {
-            &"".to_string()
+            "".to_string()
         };
         println!("  {}", description);
         println!("    Compatible IDs:        {:?}", &bang["CompatibleID"]);
@@ -141,14 +141,14 @@ pub fn print_drivers() {
         .unwrap();
     for val in results.iter() {
         let device_name = if let Variant::String(s) = &val["DeviceName"] {
-            s
+            s.clone()
         } else {
-            &"".to_string()
+            "".to_string()
         };
         let version = if let Variant::String(s) = &val["DriverVersion"] {
-            s
+            s.clone()
         } else {
-            &"".to_string()
+            "".to_string()
         };
 
         // Skip those that we don't care about
@@ -165,14 +165,14 @@ pub fn print_drivers() {
         .unwrap();
     for val in results.iter() {
         let name = if let Variant::String(s) = &val["Name"] {
-            s
+            s.clone()
         } else {
-            &"".to_string()
+            "".to_string()
         };
         let version = if let Variant::String(s) = &val["Version"] {
-            s
+            s.clone()
         } else {
-            &"".to_string()
+            "".to_string()
         };
 
         // Skip those that we don't care about
@@ -264,19 +264,19 @@ pub fn print_drivers() {
         .unwrap();
     for val in results.iter() {
         let display_name = if let Variant::String(s) = &val["DisplayName"] {
-            s
+            s.clone()
         } else {
-            &"".to_string()
+            "".to_string()
         };
         let name = if let Variant::String(s) = &val["Name"] {
-            s
+            s.clone()
         } else {
-            &"".to_string()
+            "".to_string()
         };
         let path_name = if let Variant::String(s) = &val["PathName"] {
-            s
+            s.clone()
         } else {
-            &"".to_string()
+            "".to_string()
         };
 
         // select * from CIM_Datafile" & _ " where Name = '" & Replace(strPath, "\", "\\") &
@@ -299,13 +299,13 @@ pub fn print_drivers() {
         };
 
         // Skip those that we don't care about
-        let str_name: &str = name;
+        let str_name: &str = &name;
         //if let Ok(alias) = system_drivers.binary_search_by(|(k, _)| k.cmp(&str_name)).map(|x| system_drivers[x].1) {
         if let Some(alias) = system_drivers.get(&str_name) {
             let alias = if let Some(alias) = alias {
                 *alias
             } else {
-                display_name
+                &display_name
             };
             println!("  {}", alias);
             debug!("    Display: {}", display_name);
