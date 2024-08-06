@@ -1065,8 +1065,14 @@ fn selftest(ec: &CrosEc) -> Option<()> {
         return None;
     }
 
-    // Try to get PD versions through EC
-    power::read_pd_version(ec).ok()?;
+    println!("Reading PD Version from EC");
+    if let Err(err) = power::read_pd_version(ec) {
+        // TGL does not have this command, so we have to ignore it
+        if err != EcError::Response(EcResponseStatus::InvalidCommand) {
+            println!("Err: {:?}", err);
+            return None;
+        }
+    }
 
     let pd_01 = PdController::new(PdPort::Left01, ec.clone());
     let pd_23 = PdController::new(PdPort::Right23, ec.clone());

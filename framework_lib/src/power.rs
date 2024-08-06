@@ -191,6 +191,7 @@ pub fn print_memmap_version_info(ec: &CrosEc) {
     let _events_ver = ec.read_memory(EC_MEMMAP_EVENTS_VERSION, 2).unwrap();
 }
 
+/// Not supported on TGL EC
 pub fn get_als_reading(ec: &CrosEc) -> Option<u32> {
     let als = ec.read_memory(EC_MEMMAP_ALS, 0x04)?;
     Some(u32::from_le_bytes([als[0], als[1], als[2], als[3]]))
