@@ -26,7 +26,7 @@ use crate::capsule;
 use crate::capsule_content::{
     find_bios_version, find_ec_in_bios_cap, find_pd_in_bios_cap, find_retimer_version,
 };
-use crate::ccgx::device::{PdController, PdPort};
+use crate::ccgx::device::{FwMode, PdController, PdPort};
 #[cfg(feature = "hidapi")]
 use crate::ccgx::hid::{check_ccg_fw_version, find_devices, DP_CARD_PID, HDMI_CARD_PID};
 use crate::ccgx::{self, SiliconId::*};
@@ -47,7 +47,7 @@ use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
 #[cfg(feature = "uefi")]
 use crate::uefi::enable_page_break;
 use crate::util;
-use crate::util::Config;
+use crate::util::{Config, Platform};
 #[cfg(feature = "hidapi")]
 use hidapi::HidApi;
 use sha2::{Digest, Sha256, Sha384, Sha512};
@@ -289,6 +289,14 @@ fn flash_dp_hdmi_card(pd_bin_path: &str) {
     }
 }
 
+fn active_mode(mode: &FwMode, reference: FwMode) -> &'static str {
+    if mode == &reference {
+        " (Active)"
+    } else {
+        ""
+    }
+}
+
 fn print_versions(ec: &CrosEc) {
     println!("UEFI BIOS");
     if let Some(smbios) = get_smbios() {
@@ -322,24 +330,57 @@ fn print_versions(ec: &CrosEc) {
     println!("PD Controllers");
 
     if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
+        let right = &pd_versions.controller01;
+        let left = &pd_versions.controller23;
         println!("  Right (01)");
-        println!(
-            "    Main   App:     {}",
-            pd_versions.controller01.main_fw.app
-        );
-        println!(
-            "    Backup App:     {}",
-            pd_versions.controller01.backup_fw.app
-        );
+        // let active_mode =
+        if let Some(Platform::IntelGen11) = smbios::get_platform() {
+            println!(
+                "    Main:       {}{}",
+                right.main_fw.base,
+                active_mode(&right.active_fw, FwMode::MainFw)
+            );
+            println!(
+                "    Backup:     {}{}",
+                right.backup_fw.base,
+                active_mode(&right.active_fw, FwMode::BackupFw)
+            );
+        } else {
+            println!(
+                "    Main:       {}{}",
+                right.main_fw.app,
+                active_mode(&right.active_fw, FwMode::MainFw)
+            );
+            println!(
+                "    Backup:     {}{}",
+                right.backup_fw.app,
+                active_mode(&right.active_fw, FwMode::BackupFw)
+            );
+        }
         println!("  Left  (23)");
-        println!(
-            "    Main   App:     {}",
-            pd_versions.controller23.main_fw.app
-        );
-        println!(
-            "    Backup App:     {}",
-            pd_versions.controller23.backup_fw.app
-        );
+        if let Some(Platform::IntelGen11) = smbios::get_platform() {
+            println!(
+                "    Main:       {}{}",
+                left.main_fw.base,
+                active_mode(&left.active_fw, FwMode::MainFw)
+            );
+            println!(
+                "    Backup:     {}{}",
+                left.backup_fw.base,
+                active_mode(&left.active_fw, FwMode::BackupFw)
+            );
+        } else {
+            println!(
+                "    Main:       {}{}",
+                left.main_fw.app,
+                active_mode(&left.active_fw, FwMode::MainFw)
+            );
+            println!(
+                "    Backup:     {}{}",
+                left.backup_fw.app,
+                active_mode(&left.active_fw, FwMode::BackupFw)
+            );
+        }
     } else if let Ok(pd_versions) = power::read_pd_version(ec) {
         // As fallback try to get it from the EC. But not all EC versions have this command
         println!("  Right (01):     {}", pd_versions.controller01.app);
@@ -486,7 +527,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
 
     // Must be run before any application code to set the config
     if args.pd_addrs.is_some() && args.pd_ports.is_some() && args.has_mec.is_some() {
-        let platform = util::Platform::GenericFramework(
+        let platform = Platform::GenericFramework(
             args.pd_addrs.unwrap(),
             args.pd_ports.unwrap(),
             args.has_mec.unwrap(),
@@ -898,6 +939,7 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     println!("  Getting AC info from EC");
     // All our laptops have at least 4 PD ports so far
     if power::get_pd_info(ec, 4).iter().any(|x| x.is_err()) {
+        println!("    Failed to get PD Info from EC");
         return None;
     }
 

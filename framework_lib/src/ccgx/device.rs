@@ -283,7 +283,9 @@ impl PdController {
         Ok((fw_mode, flash_row_size))
     }
     pub fn get_fw_versions(&self) -> EcResult<ControllerFirmwares> {
+        let (active_fw, _row_size) = self.get_device_info()?;
         Ok(ControllerFirmwares {
+            active_fw,
             bootloader: self.get_single_fw_ver(FwMode::BootLoader)?,
             backup_fw: self.get_single_fw_ver(FwMode::BackupFw)?,
             main_fw: self.get_single_fw_ver(FwMode::MainFw)?,
