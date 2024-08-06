@@ -7,7 +7,7 @@ use std::fmt;
 
 use crate::chromium_ec::{CrosEc, EcResult};
 
-use self::device::{PdController, PdPort};
+use self::device::{FwMode, PdController, PdPort};
 
 pub mod binary;
 pub mod device;
@@ -159,11 +159,7 @@ pub struct AppVersion {
 
 impl fmt::Display for AppVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}.{}.{:0>2} ({:?})",
-            self.major, self.minor, self.circuit, self.application
-        )
+        write!(f, "{}.{}.{:0>2}", self.major, self.minor, self.circuit)
     }
 }
 
@@ -197,6 +193,7 @@ pub struct ControllerVersion {
 
 #[derive(Debug, PartialEq)]
 pub struct ControllerFirmwares {
+    pub active_fw: FwMode,
     pub bootloader: ControllerVersion,
     pub backup_fw: ControllerVersion,
     pub main_fw: ControllerVersion,

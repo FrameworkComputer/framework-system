@@ -582,6 +582,7 @@ fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
 }
 
 // NOTE: Only works on ADL at the moment!
+// TODO: Not on TGL, need to check if RPL and later have it.
 pub fn read_pd_version(ec: &CrosEc) -> EcResult<MainPdVersions> {
     let info = EcRequestReadPdVersion {}.send_command(ec)?;
 
