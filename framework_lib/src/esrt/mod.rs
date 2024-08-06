@@ -417,11 +417,12 @@ ioctl_readwrite!(efi_get_table, b'E', 1, EfiGetTableIoc);
 
 #[cfg(all(not(feature = "uefi"), target_os = "freebsd"))]
 pub fn get_esrt() -> Option<Esrt> {
+    let path = "/dev/efi";
     let file = OpenOptions::new()
         .read(true)
         .write(true)
         .custom_flags(libc::O_NONBLOCK)
-        .open("/dev/efi")
+        .open(path)
         .unwrap();
 
     let mut buf: Vec<u8> = Vec::new();
@@ -433,7 +434,10 @@ pub fn get_esrt() -> Option<Esrt> {
     };
     unsafe {
         let fd = file.as_raw_fd();
-        let _res = efi_get_table(fd, &mut table).unwrap();
+        if let Err(err) = efi_get_table(fd, &mut table) {
+            error!("Failed to access ESRT at {}: {:?}", path, err);
+            return None;
+        }
         buf.resize(table.table_len, 0);
         table.buf_len = table.table_len;
         table.buf = buf.as_mut_ptr();
