@@ -3,6 +3,8 @@ BUILD=build/$(TARGET)
 
 SRC_DIR=.
 
+MKFS=mkfs.vfat
+
 QEMU?=qemu-system-x86_64
 QEMU_FLAGS=\
 	-M q35 \
@@ -33,7 +35,7 @@ $(BUILD)/boot.img: $(BUILD)/efi.img
 # Create filesystem with updater (bootx64.efi)
 $(BUILD)/efi.img: $(BUILD)/boot.efi
 	dd if=/dev/zero of=$@.tmp bs=512 count=98304
-	mkfs.vfat $@.tmp
+	$(MKFS) $@.tmp
 	mmd -i $@.tmp efi
 	mmd -i $@.tmp efi/boot
 	mcopy -i $@.tmp $< ::efi/boot/bootx64.efi
