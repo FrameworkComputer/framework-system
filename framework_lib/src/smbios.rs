@@ -126,6 +126,7 @@ pub struct Smbios {
 
 #[cfg(target_os = "freebsd")]
 pub fn get_smbios() -> Option<SMBiosData> {
+    trace!("get_smbios() FreeBSD entry");
     // Get the SMBIOS entrypoint address from the kernel environment
     let addr_hex = kenv_get("hint.smbios.0.mem").ok()?;
     let addr_hex = addr_hex.trim_start_matches("0x");
@@ -189,6 +190,7 @@ pub fn get_smbios() -> Option<SMBiosData> {
 
 #[cfg(feature = "uefi")]
 pub fn get_smbios() -> Option<SMBiosData> {
+    trace!("get_smbios() uefi entry");
     let data = crate::uefi::smbios_data().unwrap();
     let version = None; // TODO: Maybe add the version here
     let smbios = SMBiosData::from_vec_and_version(data, version);
@@ -198,6 +200,7 @@ pub fn get_smbios() -> Option<SMBiosData> {
 // On Windows from the kernel API
 #[cfg(all(not(feature = "uefi"), not(target_os = "freebsd")))]
 pub fn get_smbios() -> Option<SMBiosData> {
+    trace!("get_smbios() linux entry");
     match smbioslib::table_load_from_device() {
         Ok(data) => Some(data),
         Err(ref e) if e.kind() == ErrorKind::PermissionDenied => {
