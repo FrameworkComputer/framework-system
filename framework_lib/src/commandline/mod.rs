@@ -537,7 +537,7 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
     }
     if device == Some(HardwareDeviceType::PD0) {
         if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
-            let ver = pd_versions.controller01.main_fw.app.to_string();
+            let ver = pd_versions.controller01.active_fw_ver();
             println!("Comparing PD0 version {:?}", ver);
 
             if ver.contains(&version) {
@@ -549,7 +549,7 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
     }
     if device == Some(HardwareDeviceType::PD1) {
         if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
-            let ver = pd_versions.controller23.main_fw.app.to_string();
+            let ver = pd_versions.controller23.active_fw_ver();
             println!("Comparing PD1 version {:?}", ver);
 
             if ver.contains(&version) {

@@ -1,11 +1,15 @@
 //! Interact with Infineon (formerly Cypress) PD controllers (their firmware binaries) in the CCGx series
 
+use alloc::string::String;
+use alloc::string::ToString;
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 use num_derive::FromPrimitive;
 use std::fmt;
 
 use crate::chromium_ec::{CrosEc, EcResult};
+use crate::smbios;
+use crate::util::Platform;
 
 use self::device::{FwMode, PdController, PdPort};
 
@@ -102,7 +106,7 @@ pub enum SiliconId {
     Ccg8 = 0x3580,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub struct BaseVersion {
     /// Major part of the version. X of X.Y.Z.BB
     pub major: u8,
@@ -138,7 +142,7 @@ impl From<u32> for BaseVersion {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Application {
     Notebook,
     Monitor,
@@ -146,7 +150,7 @@ pub enum Application {
     Invalid,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub struct AppVersion {
     pub application: Application,
     /// Major part of the version. X of X.Y.Z
@@ -185,7 +189,7 @@ impl From<u32> for AppVersion {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub struct ControllerVersion {
     pub base: BaseVersion,
     pub app: AppVersion,
@@ -197,6 +201,26 @@ pub struct ControllerFirmwares {
     pub bootloader: ControllerVersion,
     pub backup_fw: ControllerVersion,
     pub main_fw: ControllerVersion,
+}
+
+impl ControllerFirmwares {
+    pub fn active_fw(&self) -> ControllerVersion {
+        match self.active_fw {
+            FwMode::MainFw => self.main_fw,
+            FwMode::BackupFw => self.backup_fw,
+            FwMode::BootLoader => self.bootloader,
+        }
+    }
+
+    pub fn active_fw_ver(&self) -> String {
+        let active = self.active_fw();
+        // On 11th Gen we modified base version instead of app version
+        if let Some(Platform::IntelGen11) = smbios::get_platform() {
+            active.base.to_string()
+        } else {
+            active.app.to_string()
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
