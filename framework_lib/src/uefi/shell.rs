@@ -1,35 +1,32 @@
-use uefi::table::boot::{OpenProtocolAttributes, OpenProtocolParams, SearchType};
+use uefi::table::boot::{BootServices, OpenProtocolAttributes, OpenProtocolParams, SearchType};
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace};
 use uefi::proto::shell::Shell;
 use uefi::Identify;
 
-//use uefi::table::boot::ScopedProtocol;
-//fn find_shell_handle() -> Option<ScopedProtocol<'static, Shell>> {
-//    let st = uefi::table::system_table_boot()?;
-//    let boot_services = st.boot_services();
-//    let shell_handles = boot_services.locate_handle_buffer(SearchType::ByProtocol(&Shell::GUID));
-//    if let Ok(sh_buf) = shell_handles {
-//        for handle in &*sh_buf {
-//            return Some(unsafe {
-//                boot_services
-//                    .open_protocol::<Shell>(
-//                        OpenProtocolParams {
-//                            handle: *handle,
-//                            agent: boot_services.image_handle(),
-//                            controller: None,
-//                        },
-//                        OpenProtocolAttributes::GetProtocol,
-//                    )
-//                    .expect("Failed to open Shell handle")
-//            });
-//        }
-//    } else {
-//        panic!("No shell handle found!");
-//    }
-//    None
-//}
+use uefi::table::boot::ScopedProtocol;
+pub fn find_shell_handle(bt: &BootServices) -> Option<ScopedProtocol<Shell>> {
+    let shell_handles = bt.locate_handle_buffer(SearchType::ByProtocol(&Shell::GUID));
+    if let Ok(sh_buf) = shell_handles {
+        if let Some(handle) = (*sh_buf).iter().next() {
+            return Some(unsafe {
+                bt.open_protocol::<Shell>(
+                    OpenProtocolParams {
+                        handle: *handle,
+                        agent: bt.image_handle(),
+                        controller: None,
+                    },
+                    OpenProtocolAttributes::GetProtocol,
+                )
+                .expect("Failed to open Shell handle")
+            });
+        }
+    } else {
+        panic!("No shell handle found!");
+    }
+    None
+}
 
 /// Returns true when the execution break was requested, false otherwise
 pub fn get_execution_break_flag() -> Option<bool> {

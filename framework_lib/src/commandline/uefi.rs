@@ -19,7 +19,7 @@ pub fn get_args(bt: &BootServices) -> Vec<String> {
     let shell_params = bt.open_protocol_exclusive::<ShellParameters>(bt.image_handle());
     let shell_params = match shell_params {
         Ok(s) => s,
-        Err(e) => {
+        Err(_e) => {
             error!("Failed to get ShellParameters protocol");
             // TODO: Should probably return an error here
             return vec![];

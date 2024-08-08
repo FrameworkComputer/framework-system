@@ -4,7 +4,7 @@ use uefi::prelude::*;
 use uefi::proto::shell::FileOpenMode;
 use uefi::Result;
 
-use super::find_shell_handle;
+use super::shell::find_shell_handle;
 
 pub fn wstr(string: &str) -> Vec<u16> {
     let mut wstring = vec![];
@@ -18,7 +18,9 @@ pub fn wstr(string: &str) -> Vec<u16> {
 }
 
 pub fn shell_read_file(path: &str) -> Option<Vec<u8>> {
-    let shell = if let Some(shell) = find_shell_handle() {
+    let st = uefi::table::system_table_boot()?;
+    let bt = st.boot_services();
+    let shell = if let Some(shell) = find_shell_handle(bt) {
         shell
     } else {
         println!("Failed to open Shell Protocol");
@@ -60,11 +62,13 @@ pub fn shell_read_file(path: &str) -> Option<Vec<u8>> {
 }
 
 pub fn shell_write_file(path: &str, data: &[u8]) -> Result {
-    let shell = if let Some(shell) = find_shell_handle() {
+    let st = uefi::table::system_table_boot().ok_or(Status::LOAD_ERROR)?;
+    let bt = st.boot_services();
+    let shell = if let Some(shell) = find_shell_handle(bt) {
         shell
     } else {
         println!("Failed to open Shell Protocol");
-        return Status::LOAD_ERROR.into();
+        return Status::LOAD_ERROR.to_result();
     };
 
     debug_assert_eq!(shell.major_version, 2);
@@ -77,13 +81,13 @@ pub fn shell_write_file(path: &str, data: &[u8]) -> Result {
         handle
     } else {
         println!("Failed to open file: {:?}", handle);
-        return Status::LOAD_ERROR.into();
+        return Status::LOAD_ERROR.to_result();
     };
     let handle = if let Some(handle) = handle {
         handle
     } else {
         println!("Failed to open file: {:?}", handle);
-        return Status::LOAD_ERROR.into();
+        return Status::LOAD_ERROR.to_result();
     };
     let file_handle = handle;
 
@@ -128,5 +132,5 @@ pub fn shell_write_file(path: &str, data: &[u8]) -> Result {
 
     shell.close_file(file_handle).unwrap();
 
-    Status::SUCCESS.into()
+    Status::SUCCESS.to_result()
 }
