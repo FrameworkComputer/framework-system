@@ -11,8 +11,8 @@
 use crate::ec_binary;
 use crate::os_specific;
 use crate::smbios;
-//#[cfg(feature = "uefi")]
-//use crate::uefi::shell_get_execution_break_flag;
+#[cfg(feature = "uefi")]
+use crate::uefi::shell::get_execution_break_flag;
 use crate::util::{self, Platform};
 
 use log::Level;
@@ -568,14 +568,14 @@ impl CrosEc {
             (0x80, size / 0x80)
         };
         for chunk_no in 0..chunks {
-            //#[cfg(feature = "uefi")]
-            //if shell_get_execution_break_flag() {
-            //    // TODO: We don't want to crash here. But returning no data doesn't seem optimal
-            //    // either
-            //    // return Err(EcError::DeviceError("Execution interrupted".to_string()));
-            //    println!("Execution interrupted");
-            //    return Ok(vec![]);
-            //}
+            #[cfg(feature = "uefi")]
+            if let Some(true) = get_execution_break_flag() {
+                // TODO: We don't want to crash here. But returning no data doesn't seem optimal
+                // either
+                // return Err(EcError::DeviceError("Execution interrupted".to_string()));
+                println!("Execution interrupted");
+                return Ok(vec![]);
+            }
 
             let offset = offset + chunk_no * chunk_size;
             let cur_chunk_size = std::cmp::min(chunk_size, size - chunk_no * chunk_size);
@@ -787,10 +787,10 @@ impl CrosEc {
             cmd.subcmd = ConsoleReadSubCommand::ConsoleReadNext as u8;
 
             // Need to explicitly handle CTRL-C termination on UEFI Shell
-            // #[cfg(feature = "uefi")]
-            // if shell_get_execution_break_flag() {
-            //     return Ok(console);
-            // }
+            #[cfg(feature = "uefi")]
+            if let Some(true) = get_execution_break_flag() {
+                return Ok(console);
+            }
         }
     }
 

@@ -1,44 +1,44 @@
-use alloc::vec::Vec;
-use core::slice;
-use uefi::table::boot::{OpenProtocolAttributes, OpenProtocolParams, ScopedProtocol, SearchType};
+use uefi::table::boot::{OpenProtocolAttributes, OpenProtocolParams, SearchType};
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace};
 use uefi::proto::shell::Shell;
+use uefi::Identify;
 
-fn find_shell_handle() -> Option<ScopedProtocol<'static, Shell>> {
-    let st = uefi::table::system_table_boot()?;
-    let boot_services = st.boot_services();
-    let shell_handles = boot_services.locate_handle_buffer(SearchType::ByProtocol(&Shell::GUID));
-    if let Ok(sh_buf) = shell_handles {
-        for handle in &*sh_buf {
-            return Some(unsafe {
-                boot_services
-                    .open_protocol::<Shell>(
-                        OpenProtocolParams {
-                            handle: *handle,
-                            agent: boot_services.image_handle(),
-                            controller: None,
-                        },
-                        OpenProtocolAttributes::GetProtocol,
-                    )
-                    .expect("Failed to open Shell handle")
-            });
-        }
-    } else {
-        panic!("No shell handle found!");
-    }
-    None
-}
+//use uefi::table::boot::ScopedProtocol;
+//fn find_shell_handle() -> Option<ScopedProtocol<'static, Shell>> {
+//    let st = uefi::table::system_table_boot()?;
+//    let boot_services = st.boot_services();
+//    let shell_handles = boot_services.locate_handle_buffer(SearchType::ByProtocol(&Shell::GUID));
+//    if let Ok(sh_buf) = shell_handles {
+//        for handle in &*sh_buf {
+//            return Some(unsafe {
+//                boot_services
+//                    .open_protocol::<Shell>(
+//                        OpenProtocolParams {
+//                            handle: *handle,
+//                            agent: boot_services.image_handle(),
+//                            controller: None,
+//                        },
+//                        OpenProtocolAttributes::GetProtocol,
+//                    )
+//                    .expect("Failed to open Shell handle")
+//            });
+//        }
+//    } else {
+//        panic!("No shell handle found!");
+//    }
+//    None
+//}
 
 /// Returns true when the execution break was requested, false otherwise
-pub fn shell_get_execution_break_flag() -> bool {
+pub fn get_execution_break_flag() -> Option<bool> {
     // TODO: Avoid unwrap
     let st = uefi::table::system_table_boot().unwrap();
     let boot_services = st.boot_services();
     let shell_handles = boot_services.locate_handle_buffer(SearchType::ByProtocol(&Shell::GUID));
     if let Ok(sh_buf) = shell_handles {
-        for handle in &*sh_buf {
+        if let Some(handle) = (*sh_buf).iter().next() {
             let shell_handle = unsafe {
                 boot_services
                     .open_protocol::<Shell>(
@@ -53,11 +53,12 @@ pub fn shell_get_execution_break_flag() -> bool {
             };
 
             let event = unsafe { shell_handle.execution_break.unsafe_clone() };
-            return boot_services.check_event(event)?;
+            return boot_services.check_event(event).ok();
         }
-        return false;
+        Some(false)
     } else {
-        panic!("No shell handle found!");
+        error!("No shell handle found!");
+        None
     }
 }
 
@@ -86,10 +87,10 @@ pub fn enable_page_break() -> Option<()> {
             };
             shell_handle.enable_page_break();
         }
+
+        Some(())
     } else {
-        panic!("No shell handle found!");
+        error!("No shell handle found!");
+        None
     }
-
-    Some(())
 }
-

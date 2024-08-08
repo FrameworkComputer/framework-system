@@ -44,8 +44,8 @@ use crate::power;
 use crate::smbios;
 use crate::smbios::ConfigDigit0;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
-// #[cfg(feature = "uefi")]
-// use crate::uefi::enable_page_break;
+#[cfg(feature = "uefi")]
+use crate::uefi::shell::enable_page_break;
 use crate::util;
 use crate::util::Config;
 #[cfg(feature = "hidapi")]
@@ -505,10 +505,10 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         CrosEc::new()
     };
 
-    // #[cfg(feature = "uefi")]
-    // if args.paginate {
-    //     enable_page_break();
-    // }
+    #[cfg(feature = "uefi")]
+    if args.paginate {
+        enable_page_break();
+    }
 
     if args.help {
         // Only print with uefi feature here because without clap will already

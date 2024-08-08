@@ -12,8 +12,8 @@ extern crate alloc;
 use framework_lib::commandline;
 
 #[entry]
-fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
-    uefi::helpers::init(&mut system_table).unwrap();
+fn main(_handle: Handle, system_table: SystemTable<Boot>) -> Status {
+    uefi::helpers::init().unwrap();
     let bs = system_table.boot_services();
 
     let args = commandline::uefi::get_args(bs);

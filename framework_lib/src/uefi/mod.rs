@@ -6,7 +6,7 @@ use log::{debug, error, info, trace};
 use uefi::table::cfg::{SMBIOS3_GUID, SMBIOS_GUID};
 
 //pub mod fs;
-//pub mod shell;
+pub mod shell;
 
 #[repr(packed)]
 pub struct Smbios {
