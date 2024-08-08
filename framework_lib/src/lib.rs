@@ -28,13 +28,13 @@ pub mod guid;
 mod os_specific;
 pub mod power;
 pub mod smbios;
-//#[cfg(feature = "uefi")]
-//pub mod uefi;
+#[cfg(feature = "uefi")]
+pub mod uefi;
 mod util;
 
 #[cfg(feature = "uefi")]
 #[macro_use]
-extern crate uefi;
+extern crate uefi as external_uefi;
 
 pub mod built_info {
     // The file has been placed there by the build script.

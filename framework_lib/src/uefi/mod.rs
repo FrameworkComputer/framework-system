@@ -1,103 +1,12 @@
 use alloc::vec::Vec;
 use core::slice;
-use uefi::table::boot::{OpenProtocolAttributes, OpenProtocolParams, ScopedProtocol, SearchType};
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace};
-use uefi::proto::shell::Shell;
 use uefi::table::cfg::{SMBIOS3_GUID, SMBIOS_GUID};
-use uefi::table::{Boot, SystemTable};
-use uefi::Identify;
 
-pub mod fs;
-
-pub fn get_system_table() -> &'static SystemTable<Boot> {
-    unsafe { uefi_services::system_table().as_ref() }
-}
-
-fn find_shell_handle() -> Option<ScopedProtocol<'static, Shell>> {
-    let st = unsafe { uefi_services::system_table().as_ref() };
-    let boot_services = st.boot_services();
-    let shell_handles = boot_services.locate_handle_buffer(SearchType::ByProtocol(&Shell::GUID));
-    if let Ok(sh_buf) = shell_handles {
-        for handle in &*sh_buf {
-            return Some(unsafe {
-                boot_services
-                    .open_protocol::<Shell>(
-                        OpenProtocolParams {
-                            handle: *handle,
-                            agent: boot_services.image_handle(),
-                            controller: None,
-                        },
-                        OpenProtocolAttributes::GetProtocol,
-                    )
-                    .expect("Failed to open Shell handle")
-            });
-        }
-    } else {
-        panic!("No shell handle found!");
-    }
-    None
-}
-
-/// Returns true when the execution break was requested, false otherwise
-pub fn shell_get_execution_break_flag() -> bool {
-    let st = unsafe { uefi_services::system_table().as_ref() };
-    let boot_services = st.boot_services();
-    let shell_handles = boot_services.locate_handle_buffer(SearchType::ByProtocol(&Shell::GUID));
-    if let Ok(sh_buf) = shell_handles {
-        for handle in &*sh_buf {
-            let shell_handle = unsafe {
-                boot_services
-                    .open_protocol::<Shell>(
-                        OpenProtocolParams {
-                            handle: *handle,
-                            agent: boot_services.image_handle(),
-                            controller: None,
-                        },
-                        OpenProtocolAttributes::GetProtocol,
-                    )
-                    .expect("Failed to open Shell handle")
-            };
-
-            let event = unsafe { shell_handle.execution_break.unsafe_clone() };
-            return boot_services.check_event(event).unwrap();
-        }
-        return false;
-    } else {
-        panic!("No shell handle found!");
-    }
-}
-
-/// Enable pagination in UEFI shell
-///
-/// Pagination is handled by the UEFI shell environment automatically, whenever
-/// the application prints more than fits on the screen.
-pub fn enable_page_break() {
-    let st = unsafe { uefi_services::system_table().as_ref() };
-    let boot_services = st.boot_services();
-    let shell_handles = boot_services.locate_handle_buffer(SearchType::ByProtocol(&Shell::GUID));
-    if let Ok(sh_buf) = shell_handles {
-        for handle in &*sh_buf {
-            //trace!("Calling enable_page_break");
-            let shell_handle = unsafe {
-                boot_services
-                    .open_protocol::<Shell>(
-                        OpenProtocolParams {
-                            handle: *handle,
-                            agent: boot_services.image_handle(),
-                            controller: None,
-                        },
-                        OpenProtocolAttributes::GetProtocol,
-                    )
-                    .expect("Failed to open Shell handle")
-            };
-            shell_handle.enable_page_break();
-        }
-    } else {
-        panic!("No shell handle found!");
-    }
-}
+//pub mod fs;
+//pub mod shell;
 
 #[repr(packed)]
 pub struct Smbios {
@@ -145,7 +54,7 @@ pub struct Smbios3 {
 }
 
 pub fn smbios_data() -> Option<Vec<u8>> {
-    let st = uefi::table::system_table_boot()?.as_ref();
+    let st = uefi::table::system_table_boot()?;
     let config_tables = st.config_table();
 
     for table in config_tables {
