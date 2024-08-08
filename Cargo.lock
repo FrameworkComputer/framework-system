@@ -232,12 +232,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3fd119d74b830634cea2a0f58bbd0d54540518a14397557951e79340abc28c0"
 
 [[package]]
-name = "convert_case"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
-
-[[package]]
 name = "core-foundation"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -323,19 +317,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive_more"
-version = "0.99.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fb810d30a7c1953f91334de7244731fc3f3c10d7fe163338a35b9f640960321"
-dependencies = [
- "convert_case",
- "proc-macro2",
- "quote",
- "rustc_version",
- "syn 1.0.107",
-]
-
-[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -402,7 +383,7 @@ dependencies = [
  "sha2",
  "smbios-lib",
  "spin 0.9.8",
- "uefi",
+ "uefi 0.20.0",
  "uefi-services",
  "windows 0.58.0",
  "wmi",
@@ -419,10 +400,8 @@ dependencies = [
 name = "framework_uefi"
 version = "0.1.0"
 dependencies = [
- "framework_lib",
  "log",
- "uefi",
- "uefi-services",
+ "uefi 0.30.0",
 ]
 
 [[package]]
@@ -992,15 +971,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustc_version"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
-dependencies = [
- "semver",
-]
-
-[[package]]
 name = "ryu"
 version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1198,9 +1168,9 @@ checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
 
 [[package]]
 name = "ucs2"
-version = "0.3.2"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bad643914094137d475641b6bab89462505316ec2ce70907ad20102d28a79ab8"
+checksum = "df79298e11f316400c57ec268f3c2c29ac3c4d4777687955cd3d4f3a35ce7eba"
 dependencies = [
  "bit_field",
 ]
@@ -1208,14 +1178,30 @@ dependencies = [
 [[package]]
 name = "uefi"
 version = "0.20.0"
-source = "git+https://github.com/FrameworkComputer/uefi-rs?branch=merged#76130a0f1c1585012e598b8c514526bac09c68e0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab39d5e7740f21ed4c46d6659f31038bbe3fe7a8be1f702d8a984348837c43b1"
 dependencies = [
  "bitflags 1.3.2",
- "derive_more",
  "log",
  "ptr_meta",
  "ucs2",
- "uefi-macros",
+ "uefi-macros 0.11.0",
+]
+
+[[package]]
+name = "uefi"
+version = "0.30.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c937815260747b061aaa63a0f721d350a5740b72f166c5a4180226aa6fa204b9"
+dependencies = [
+ "bitflags 2.6.0",
+ "cfg-if",
+ "log",
+ "ptr_meta",
+ "ucs2",
+ "uefi-macros 0.14.0",
+ "uefi-raw",
+ "uguid",
 ]
 
 [[package]]
@@ -1230,14 +1216,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "uefi-macros"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f345e42323c05e41e29e409505f5f8e0df7b5743340215d60344dbd79b729f4"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.13",
+]
+
+[[package]]
+name = "uefi-raw"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29a70d0f6b34cbeb4e5cd492b442bf9679a838fbb010551c4a3e3b9e25e316a8"
+dependencies = [
+ "bitflags 2.6.0",
+ "ptr_meta",
+ "uguid",
+]
+
+[[package]]
 name = "uefi-services"
 version = "0.17.0"
-source = "git+https://github.com/FrameworkComputer/uefi-rs?branch=merged#76130a0f1c1585012e598b8c514526bac09c68e0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42d8ffbcc532083312224b4540737c1102ede6a81360fa9320a60deff329a3a1"
 dependencies = [
  "cfg-if",
  "log",
- "uefi",
+ "uefi 0.20.0",
 ]
+
+[[package]]
+name = "uguid"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab14ea9660d240e7865ce9d54ecdbd1cd9fa5802ae6f4512f093c7907e921533"
 
 [[package]]
 name = "unicode-bidi"

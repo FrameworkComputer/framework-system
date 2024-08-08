@@ -3,18 +3,18 @@ name = "framework_uefi"
 version = "0.1.0"
 edition = "2021"
 # Minimum Supported Rust Version
-rust-version = "1.68"
+rust-version = "1.70"
 
 [[bin]]
 name = "uefitool"
 path = "src/main.rs"
 
 [dependencies]
-uefi = { version = "0.20", features = ["alloc"] }
-uefi-services = "0.17"
-log = { version = "0.4", default-features = true }
+# TODO: alloc
+uefi = { version = "0.30", features = ["panic_handler", "logger"] }
+log = { version = "0.4.21" }
 
-[dependencies.framework_lib]
-path = "../framework_lib"
-features = ["uefi"]
-default-features = false
+#[dependencies.framework_lib]
+#path = "../framework_lib"
+#features = ["uefi"]
+#default-features = false
