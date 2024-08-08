@@ -4,6 +4,8 @@
 #[allow(unused_imports)]
 use log::{debug, error, info, trace};
 use uefi::prelude::*;
+#[allow(unused_imports)]
+use uefi::{print, println};
 
 extern crate alloc;
 
