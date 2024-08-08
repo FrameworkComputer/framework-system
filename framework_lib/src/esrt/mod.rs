@@ -56,6 +56,12 @@ use std::os::unix::fs::OpenOptionsExt;
 /// let guid = guid_from_str("invalid-guid");
 /// assert_eq!(guid, None);
 /// ```
+#[cfg(feature = "uefi")]
+pub fn guid_from_str(string: &str) -> Option<Guid> {
+    uefi::Guid::try_parse(string).ok()
+}
+// TOOD: This should be the same source on UEFI vs non-uefi
+#[cfg(not(feature = "uefi"))]
 pub fn guid_from_str(string: &str) -> Option<Guid> {
     let string = string.strip_suffix('\n').unwrap_or(string);
     let sections: Vec<&str> = string.split('-').collect();
@@ -448,7 +454,7 @@ pub const SYSTEM_RESOURCE_TABLE_GUID: Guid = guid!("b122a263-3661-4f68-9929-78f8
 
 #[cfg(feature = "uefi")]
 pub fn get_esrt() -> Option<Esrt> {
-    let st = unsafe { uefi_services::system_table().as_ref() };
+    let st = uefi::table::system_table_boot()?;
     let config_tables = st.config_table();
 
     for table in config_tables {

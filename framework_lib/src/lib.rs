@@ -15,10 +15,6 @@ extern crate log;
 #[cfg(feature = "rusb")]
 pub mod audio_card;
 
-#[cfg(feature = "uefi")]
-#[macro_use]
-extern crate uefi_services;
-
 pub mod capsule;
 pub mod capsule_content;
 pub mod ccgx;
@@ -32,9 +28,13 @@ pub mod guid;
 mod os_specific;
 pub mod power;
 pub mod smbios;
-#[cfg(feature = "uefi")]
-pub mod uefi;
+//#[cfg(feature = "uefi")]
+//pub mod uefi;
 mod util;
+
+#[cfg(feature = "uefi")]
+#[macro_use]
+extern crate uefi;
 
 pub mod built_info {
     // The file has been placed there by the build script.

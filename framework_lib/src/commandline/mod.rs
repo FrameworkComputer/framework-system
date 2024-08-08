@@ -44,8 +44,8 @@ use crate::power;
 use crate::smbios;
 use crate::smbios::ConfigDigit0;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
-#[cfg(feature = "uefi")]
-use crate::uefi::enable_page_break;
+// #[cfg(feature = "uefi")]
+// use crate::uefi::enable_page_break;
 use crate::util;
 use crate::util::Config;
 #[cfg(feature = "hidapi")]
@@ -418,7 +418,7 @@ fn print_esrt() {
 
 fn flash_ec(ec: &CrosEc, ec_bin_path: &str, flash_type: EcFlashType) {
     #[cfg(feature = "uefi")]
-    let data = crate::uefi::fs::shell_read_file(ec_bin_path);
+    let data: Option<Vec<u8>> = None; //crate::uefi::fs::shell_read_file(ec_bin_path);
     #[cfg(not(feature = "uefi"))]
     let data: Option<Vec<u8>> = {
         let _data = match fs::read(ec_bin_path) {
@@ -458,10 +458,10 @@ fn dump_ec_flash(ec: &CrosEc, dump_path: &str) {
     }
     #[cfg(feature = "uefi")]
     {
-        let ret = crate::uefi::fs::shell_write_file(dump_path, &flash_bin);
-        if ret.is_err() {
-            println!("Failed to dump EC FW image.");
-        }
+        //let ret = crate::uefi::fs::shell_write_file(dump_path, &flash_bin);
+        //if ret.is_err() {
+        //    println!("Failed to dump EC FW image.");
+        //}
     }
 }
 
@@ -505,10 +505,10 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         CrosEc::new()
     };
 
-    #[cfg(feature = "uefi")]
-    if args.paginate {
-        enable_page_break();
-    }
+    // #[cfg(feature = "uefi")]
+    // if args.paginate {
+    //     enable_page_break();
+    // }
 
     if args.help {
         // Only print with uefi feature here because without clap will already
@@ -653,7 +653,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     //    raw_command(&args[1..]);
     } else if let Some(pd_bin_path) = &args.pd_bin {
         #[cfg(feature = "uefi")]
-        let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(pd_bin_path);
+        let data: Option<Vec<u8>> = None; //crate::uefi::fs::shell_read_file(pd_bin_path);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(pd_bin_path) {
             Ok(data) => Some(data),
@@ -672,7 +672,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(ec_bin_path) = &args.ec_bin {
         #[cfg(feature = "uefi")]
-        let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(ec_bin_path);
+        let data: Option<Vec<u8>> = None; //crate::uefi::fs::shell_read_file(ec_bin_path);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(ec_bin_path) {
             Ok(data) => Some(data),
@@ -691,7 +691,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(capsule_path) = &args.capsule {
         #[cfg(feature = "uefi")]
-        let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(capsule_path);
+        let data: Option<Vec<u8>> = None; //crate::uefi::fs::shell_read_file(capsule_path);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(capsule_path) {
             Ok(data) => Some(data),
@@ -720,7 +720,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(capsule_path) = &args.ho2_capsule {
         #[cfg(feature = "uefi")]
-        let data = crate::uefi::fs::shell_read_file(capsule_path);
+        let data = Some([]); //crate::uefi::fs::shell_read_file(capsule_path);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(capsule_path) {
             Ok(data) => Some(data),
@@ -759,7 +759,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(hash_file) = &args.hash {
         println!("Hashing file: {}", hash_file);
         #[cfg(feature = "uefi")]
-        let data = crate::uefi::fs::shell_read_file(hash_file);
+        let data = Some([]); //crate::uefi::fs::shell_read_file(hash_file);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(hash_file) {
             Ok(data) => Some(data),

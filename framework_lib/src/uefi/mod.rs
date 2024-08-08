@@ -145,7 +145,7 @@ pub struct Smbios3 {
 }
 
 pub fn smbios_data() -> Option<Vec<u8>> {
-    let st = unsafe { uefi_services::system_table().as_ref() };
+    let st = uefi::table::system_table_boot()?.as_ref();
     let config_tables = st.config_table();
 
     for table in config_tables {

@@ -6,6 +6,7 @@ use std::prelude::v1::*;
 use std::io::ErrorKind;
 
 use crate::util::{Config, Platform};
+//use crate::uefi::smbios_data;
 use num_derive::FromPrimitive;
 use smbioslib::*;
 #[cfg(feature = "uefi")]
@@ -184,7 +185,7 @@ pub fn get_smbios() -> Option<SMBiosData> {
 
 #[cfg(feature = "uefi")]
 pub fn get_smbios() -> Option<SMBiosData> {
-    let data = crate::uefi::smbios_data().unwrap();
+    let data = vec![]; //smbios_data().unwrap();
     let version = None; // TODO: Maybe add the version here
     let smbios = SMBiosData::from_vec_and_version(data, version);
     Some(smbios)

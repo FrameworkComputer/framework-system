@@ -1,13 +1,13 @@
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace};
 use uefi::prelude::BootServices;
-use uefi::proto::shell_params::*;
-use uefi::table::boot::{OpenProtocolAttributes, OpenProtocolParams, SearchType};
-use uefi::Identify;
+use uefi::proto::shell_params::ShellParameters;
+//use uefi::table::boot::{OpenProtocolAttributes, OpenProtocolParams, SearchType};
+//use uefi::Identify;
 
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::Cli;
@@ -15,40 +15,19 @@ use crate::commandline::Cli;
 use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, RebootEcArg};
 
 /// Get commandline arguments from UEFI environment
-pub fn get_args(boot_services: &BootServices) -> Vec<String> {
-    // TODO: I think i should open this from the ImageHandle?
-    let shell_params_h =
-        boot_services.locate_handle_buffer(SearchType::ByProtocol(&ShellParameters::GUID));
-    let shell_params_h = if let Ok(shell_params_h) = shell_params_h {
-        shell_params_h
-    } else {
-        error!("ShellParameters protocol not found");
-        return vec![];
+pub fn get_args(bt: &BootServices) -> Vec<String> {
+    let shell_params = bt.open_protocol_exclusive::<ShellParameters>(bt.image_handle());
+    let shell_params = match shell_params {
+        Ok(s) => s,
+        Err(e) => {
+            error!("Failed to get ShellParameters protocol");
+            // TODO: Should probably return an error here
+            return vec![];
+            //return e.status();
+        }
     };
 
-    for handle in &*shell_params_h {
-        let params_handle = unsafe {
-            boot_services
-                .open_protocol::<ShellParameters>(
-                    OpenProtocolParams {
-                        handle: *handle,
-                        agent: boot_services.image_handle(),
-                        controller: None,
-                    },
-                    OpenProtocolAttributes::GetProtocol,
-                )
-                .expect("Failed to open ShellParameters handle")
-        };
-
-        // Ehm why are there two and one has no args?
-        // Maybe one is the shell itself?
-        if params_handle.argc == 0 {
-            continue;
-        }
-
-        return params_handle.get_args();
-    }
-    vec![]
+    shell_params.args().map(|x| x.to_string()).collect()
 }
 
 pub fn parse(args: &[String]) -> Cli {

@@ -11,10 +11,10 @@ path = "src/main.rs"
 
 [dependencies]
 # TODO: alloc
-uefi = { version = "0.30", features = ["panic_handler", "logger"] }
+uefi = { version = "0.30", features = ["alloc", "global_allocator", "panic_handler", "logger"] }
 log = { version = "0.4.21" }
 
-#[dependencies.framework_lib]
-#path = "../framework_lib"
-#features = ["uefi"]
-#default-features = false
+[dependencies.framework_lib]
+path = "../framework_lib"
+features = ["uefi"]
+default-features = false
