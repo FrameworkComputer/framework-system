@@ -76,7 +76,7 @@ pub fn parse(args: &[String]) -> Cli {
         raw_command: vec![],
     };
 
-    if args.len() == 0 {
+    if args.is_empty() {
         cli.help = true;
     }
 
@@ -330,8 +330,8 @@ pub fn parse(args: &[String]) -> Cli {
             cli.pd_addrs = if args.len() > i + 2 {
                 let left = args[i + 1].parse::<u16>();
                 let right = args[i + 2].parse::<u16>();
-                if left.is_ok() && right.is_ok() {
-                    Some((left.unwrap(), right.unwrap()))
+                if let (Ok(left), Ok(right)) = (left, right) {
+                    Some((left, right))
                 } else {
                     println!(
                         "Invalid values for --pd-addrs: '{} {}'. Must be u16 integers.",
@@ -349,8 +349,8 @@ pub fn parse(args: &[String]) -> Cli {
             cli.pd_ports = if args.len() > i + 2 {
                 let left = args[i + 1].parse::<u8>();
                 let right = args[i + 2].parse::<u8>();
-                if left.is_ok() && right.is_ok() {
-                    Some((left.unwrap(), right.unwrap()))
+                if let (Ok(left), Ok(right)) = (left, right) {
+                    Some((left, right))
                 } else {
                     println!(
                         "Invalid values for --pd-ports: '{} {}'. Must be u16 integers.",

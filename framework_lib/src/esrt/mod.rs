@@ -460,12 +460,10 @@ pub fn get_esrt() -> Option<Esrt> {
     for table in config_tables {
         // TODO: Why aren't they the same type?
         //debug!("Table: {:?}", table);
-        let table_guid: Guid = unsafe { std::mem::transmute(table.guid) };
-        match table_guid {
-            SYSTEM_RESOURCE_TABLE_GUID => unsafe {
+        if table.guid == SYSTEM_RESOURCE_TABLE_GUID {
+            unsafe {
                 return esrt_from_buf(table.address as *const u8);
-            },
-            _ => {}
+            }
         }
     }
     None
