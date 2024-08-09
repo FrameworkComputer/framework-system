@@ -18,7 +18,9 @@ fn main(_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
 
     let args = commandline::uefi::get_args(bs);
     let args = commandline::parse(&args);
-    commandline::run_with_args(&args, false);
+    if commandline::run_with_args(&args, false) == 0 {
+        return Status::SUCCESS;
+    }
 
     // Force it go into UEFI shell
     Status::LOAD_ERROR
