@@ -873,6 +873,8 @@ pub enum HardwareDeviceType {
     PD1,
     RTM01,
     RTM23,
+    AcLeft,
+    AcRight,
 }
 
 impl CrosEcDriver for CrosEc {

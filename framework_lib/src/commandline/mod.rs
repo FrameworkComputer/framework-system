@@ -3,6 +3,7 @@
 //! Can be easily re-used from any OS or UEFI shell.
 //! We have implemented both in the `framework_tool` and `framework_uefi` crates.
 
+use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
@@ -525,20 +526,10 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
         }
     }
 
-    if device == Some(HardwareDeviceType::EC) {
-        let ver = print_err(ec.version_info()).unwrap_or_else(|| "UNKNOWN".to_string());
-        println!("Comparing EC version {:?}", ver);
-
-        if ver.contains(&version) {
-            return 0;
-        } else {
-            return 1;
-        }
-    }
-    if device == Some(HardwareDeviceType::PD0) {
-        if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
-            let ver = pd_versions.controller01.active_fw_ver();
-            println!("Comparing PD0 version {:?}", ver);
+    match device {
+        Some(HardwareDeviceType::EC) => {
+            let ver = print_err(ec.version_info()).unwrap_or_else(|| "UNKNOWN".to_string());
+            println!("Comparing EC version {:?}", ver);
 
             if ver.contains(&version) {
                 return 0;
@@ -546,18 +537,61 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
                 return 1;
             }
         }
-    }
-    if device == Some(HardwareDeviceType::PD1) {
-        if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
-            let ver = pd_versions.controller23.active_fw_ver();
-            println!("Comparing PD1 version {:?}", ver);
+        Some(HardwareDeviceType::PD0) => {
+            if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
+                let ver = pd_versions.controller01.active_fw_ver();
+                println!("Comparing PD0 version {:?}", ver);
 
-            if ver.contains(&version) {
-                return 0;
+                if ver.contains(&version) {
+                    return 0;
+                } else {
+                    return 1;
+                }
+            }
+        }
+        Some(HardwareDeviceType::PD1) => {
+            if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
+                let ver = pd_versions.controller23.active_fw_ver();
+                println!("Comparing PD1 version {:?}", ver);
+
+                if ver.contains(&version) {
+                    return 0;
+                } else {
+                    return 1;
+                }
+            }
+        }
+        Some(HardwareDeviceType::AcLeft) => {
+            if let Ok((_right, left)) = power::is_charging(ec) {
+                let ver = format!("{}", left as i32);
+                println!("Comparing AcLeft {:?}", ver);
+                if ver == version {
+                    return 0;
+                } else {
+                    return 1;
+                }
             } else {
+                error!("Failed to get charging information");
+                // Not charging is the safe default
                 return 1;
             }
         }
+        Some(HardwareDeviceType::AcRight) => {
+            if let Ok((right, _left)) = power::is_charging(ec) {
+                let ver = format!("{}", right as i32);
+                println!("Comparing AcRight {:?}", ver);
+                if ver == version {
+                    return 0;
+                } else {
+                    return 1;
+                }
+            } else {
+                error!("Failed to get charging information");
+                // Not charging is the safe default
+                return 1;
+            }
+        }
+        _ => {}
     }
 
     if let Some(esrt) = esrt::get_esrt() {
@@ -647,7 +681,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_esrt();
     } else if let Some(compare_version_ver) = &args.compare_version {
         let compare_ret = compare_version(args.device, compare_version_ver.to_string(), &ec);
-        println!("Compared version:   {}", compare_ret);
+        println!("Comparison Result:  {}", compare_ret);
         return compare_ret;
     } else if args.intrusion {
         println!("Chassis status:");
