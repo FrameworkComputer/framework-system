@@ -194,6 +194,7 @@ pub fn print_memmap_version_info(ec: &CrosEc) {
 pub fn print_sensors(ec: &CrosEc) {
     let als = ec.read_memory(EC_MEMMAP_ALS, 0x04).unwrap();
 
+    // Not supported on TGL EC
     let als_int = u32::from_le_bytes([als[0], als[1], als[2], als[3]]);
     println!("ALS: {:>4} Lux", als_int);
 }
