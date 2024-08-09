@@ -94,6 +94,7 @@ pub fn parse(args: &[String]) -> Cli {
         help: false,
         allupdate: false,
         info: false,
+        serialnums: false,
         raw_command: vec![],
     };
 
@@ -143,6 +144,9 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--info" {
             cli.info = true;
+            found_an_option = true;
+        } else if arg == "--serialnums" {
+            cli.serialnums = true;
             found_an_option = true;
         } else if arg == "--intrusion" {
             cli.intrusion = true;

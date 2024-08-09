@@ -1,10 +1,12 @@
 //! Retrieve SMBIOS tables and extract information from them
 
+use core::str::FromStr;
 use std::prelude::v1::*;
 
 #[cfg(all(not(feature = "uefi"), not(target_os = "freebsd")))]
 use std::io::ErrorKind;
 
+use crate::serialnum::FrameworkSerial;
 use crate::util::{Config, Platform};
 use num_derive::FromPrimitive;
 use smbioslib::*;
@@ -294,5 +296,109 @@ fn kenv_get(name: &str) -> nix::Result<String> {
         let value = cvalue.to_string_lossy().into_owned();
 
         Ok(value)
+    }
+}
+
+#[derive(Debug)]
+enum SmbiosSerialNumber {
+    Mainboard = 1,
+    Laptop,
+    Camera,
+    Display,
+    Battery,
+    Touchpad,
+    Keyboard,
+    Fingerprint,
+    AudioDaughtercard,
+    ACover,
+    BCover,
+    CCover,
+    AntennaMain,
+    AntennaAux,
+    TouchpadFpc,
+    FingerprintFfc,
+    EdpCable,
+    LcdCable,
+    ThermalAssembly,
+    WifiModule,
+    Speaker,
+    RamSlot1,
+    RamSlot2,
+    Ssd,
+    AudioFfc,
+}
+
+pub fn dump_oem_strings(strings: &SMBiosStringSet) {
+    for (i, s) in strings.into_iter().enumerate() {
+        let idx = i + 1;
+        let sn = match idx {
+            1 => Some(SmbiosSerialNumber::Mainboard),
+            2 => Some(SmbiosSerialNumber::Laptop),
+            3 => Some(SmbiosSerialNumber::Camera),
+            4 => Some(SmbiosSerialNumber::Display),
+            5 => Some(SmbiosSerialNumber::Battery),
+            6 => Some(SmbiosSerialNumber::Touchpad),
+            7 => Some(SmbiosSerialNumber::Keyboard),
+            8 => Some(SmbiosSerialNumber::Fingerprint),
+            10 => Some(SmbiosSerialNumber::AudioDaughtercard),
+            11 => Some(SmbiosSerialNumber::ACover),
+            12 => Some(SmbiosSerialNumber::BCover),
+            13 => Some(SmbiosSerialNumber::CCover),
+            14 => Some(SmbiosSerialNumber::AntennaMain),
+            15 => Some(SmbiosSerialNumber::AntennaAux),
+            16 => Some(SmbiosSerialNumber::TouchpadFpc),
+            17 => Some(SmbiosSerialNumber::FingerprintFfc),
+            18 => Some(SmbiosSerialNumber::EdpCable),
+            19 => Some(SmbiosSerialNumber::LcdCable),
+            20 => Some(SmbiosSerialNumber::ThermalAssembly),
+            21 => Some(SmbiosSerialNumber::WifiModule),
+            22 => Some(SmbiosSerialNumber::Speaker),
+            23 => Some(SmbiosSerialNumber::RamSlot1),
+            24 => Some(SmbiosSerialNumber::RamSlot2),
+            25 => Some(SmbiosSerialNumber::Ssd),
+            26 => Some(SmbiosSerialNumber::AudioFfc),
+            _ => None,
+        };
+        match sn {
+            Some(SmbiosSerialNumber::RamSlot1)
+            | Some(SmbiosSerialNumber::RamSlot2)
+            | Some(SmbiosSerialNumber::Ssd)
+            | Some(SmbiosSerialNumber::WifiModule) => {
+                println!("{} {:<20} (Unused)", s, format!("{:?}", sn.unwrap()))
+            }
+            Some(SmbiosSerialNumber::Fingerprint) | Some(SmbiosSerialNumber::CCover) => {
+                println!("{}", s);
+                println!("  {:<20} (Only Pre-Built)", format!("{:?}", sn.unwrap()));
+                if let Ok(serial) = FrameworkSerial::from_str(&format!("{:?}", s)) {
+                    println!(
+                        "  {} (Config {}) by {}, {:>4} Phase ({:?}, Week {}, {})",
+                        serial.product,
+                        serial.cfg1,
+                        serial.oem,
+                        format!("{:?}", serial.cfg0),
+                        serial.day,
+                        serial.week,
+                        serial.year,
+                    );
+                }
+            }
+            Some(sn) => {
+                println!("{}", s);
+                println!("  {:?}", sn);
+                if let Ok(serial) = FrameworkSerial::from_str(&format!("{:?}", s)) {
+                    println!(
+                        "  {} (Config {}) by {}, {:>4} Phase ({:?}, Week {}, {})",
+                        serial.product,
+                        serial.cfg1,
+                        serial.oem,
+                        format!("{:?}", serial.cfg0),
+                        serial.day,
+                        serial.week,
+                        serial.year,
+                    );
+                }
+            }
+            _ => println!("{} Unknown/Reserved", s),
+        }
     }
 }
