@@ -23,7 +23,8 @@ default-members = [
 ]
 
 [patch.crates-io]
-uefi = { git = "https://github.com/FrameworkComputer/uefi-rs", branch = "shell-2024-8-8" }
+uefi = { git = "https://github.com/FrameworkComputer/uefi-rs", branch = "shell-2024-8-9" }
+uefi-raw = { git = "https://github.com/FrameworkComputer/uefi-rs", branch = "shell-2024-8-9" }
 
 [profile.release]
 lto = true

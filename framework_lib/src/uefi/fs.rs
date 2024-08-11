@@ -1,7 +1,7 @@
 use alloc::vec;
 use alloc::vec::Vec;
 use uefi::prelude::*;
-use uefi::proto::shell::FileOpenMode;
+use uefi_raw::protocol::shell::FileOpenMode;
 use uefi::Result;
 
 use super::shell::find_shell_handle;
@@ -27,8 +27,8 @@ pub fn shell_read_file(path: &str) -> Option<Vec<u8>> {
         return None;
     };
 
-    debug_assert_eq!(shell.major_version, 2);
-    debug_assert_eq!(shell.minor_version, 2);
+    debug_assert_eq!(shell.major_version(), 2);
+    debug_assert_eq!(shell.minor_version(), 2);
 
     let c_path = wstr(path);
     let handle = shell.open_file_by_name(c_path.as_slice(), FileOpenMode::Read as u64);
@@ -71,8 +71,8 @@ pub fn shell_write_file(path: &str, data: &[u8]) -> Result {
         return Status::LOAD_ERROR.to_result();
     };
 
-    debug_assert_eq!(shell.major_version, 2);
-    debug_assert_eq!(shell.minor_version, 2);
+    debug_assert_eq!(shell.major_version(), 2);
+    debug_assert_eq!(shell.minor_version(), 2);
 
     let mode = FileOpenMode::Read as u64 + FileOpenMode::Write as u64 + FileOpenMode::Create as u64;
     let c_path = wstr(path);

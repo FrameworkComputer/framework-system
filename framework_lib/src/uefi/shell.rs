@@ -49,7 +49,7 @@ pub fn get_execution_break_flag() -> Option<bool> {
                     .expect("Failed to open Shell handle")
             };
 
-            let event = unsafe { shell_handle.execution_break.unsafe_clone() };
+            let event = shell_handle.execution_break()?;
             return boot_services.check_event(event).ok();
         }
         Some(false)
