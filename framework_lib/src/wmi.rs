@@ -103,10 +103,12 @@ const PNP_DRIVERS: &[&str] = &[
     // Not using the one here, because it doesn't show up when the card isn't plugged in
     // Genesys Logic             Framework SD Expansion Card                                USB\VID_32AC&PID_0009&REV_0003                          4.5.10.201
 
-    // Both present in system drivers
     // MediaTek, Inc.               RZ616 Wi-Fi 6E 160MHz                           PCI\VEN_14C3&DEV_0616&SUBSYS_E61614C3&REV_00            3.3.0.908
     // Mediatek Inc.                RZ616 Bluetooth(R) Adapter                      USB\VID_0E8D&PID_E616&REV_0100&MI_00                    1.1037.0.395
-
+    "RZ616 Bluetooth(R) Adapter",
+    // MediaTek, Inc.               RZ717 WiFi 7 160MHz                             PCI\VEN_14C3&DEV_0717&SUBSYS_071714C3&REV_00                 5.4.0.1920
+    // Mediatek Inc.                RZ717 Bluetooth(R) Adapter                      USB\VID_0E8D&PID_0717&REV_0100&MI_00                         1.1037.0.433
+    "RZ717 Bluetooth(R) Adapter",
     // For both of these WMI shows 31.0.24018.2001 instead of 23.40.18.02. But it's actually the same version
     // 31.0.22024.17002 instead of 23.20.24.17
     // Advanced Micro Devices, Inc. AMD Radeon(TM) 780M                             PCI\VEN_1002&DEV_15BF&SUBSYS_0005F111&REV_C1            31.0.24018.2001
@@ -115,6 +117,8 @@ const PNP_DRIVERS: &[&str] = &[
     "AMD Radeon(TM) RX 7700S",
     // Framework                    Framework NE160QDM-NZ6                          MONITOR\BOE0BC9                                         1.0.0.0
     "Framework NE160QDM-NZ6",
+    // Advanced Micro Devices, Inc  AMD DRTM Boot Driver                            ACPI\VEN_DRTM&DEV_0001                                       1.0.18.4
+    "AMD DRTM Boot Driver",
 ];
 
 const PRODUCTS: &[&str] = &[
@@ -258,8 +262,11 @@ pub fn print_drivers() {
 
         // Mediatek PCI LE Extensible Wireless LAN Card Driver mtkwlex               3.3.0.0908                             C:\Windows\system32\drivers\mtkwl6ex.sys
         ("mtkwlex", Some("RZ616 WiFi Driver")),
+        // Mediatek PCI LE Extensible Wireless LAN Card Driver                         mtkwecx              5.4.0.1920                             C:\Windows\system32\DriverStore\FileRepository\mtkwecx.inf_amd64_b64df836c89617f7\mtkwecx.sys
+        ("mtkwecx", Some("RZ717 WiFi Driver")),
+        // RZ616 and RZ717
         // MTK BT Filter Driver                                MTKBTFilterx64        1.1037.0.395 TK                        C:\Windows\system32\drivers\mtkbtfilterx.sys
-        ("MTKBTFilterx64", Some("RZ616 Bluetooth Driver")),
+        // ("MTKBTFilterx64", Some("RZ616/RZ717 Bluetooth Driver")),
     ]);
 
     let results: Vec<HashMap<String, Variant>> = wmi_con
