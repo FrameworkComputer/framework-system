@@ -54,12 +54,13 @@ const EC_MEMMAP_BATT_SERIAL: u16 = 0x70; // Battery Serial Number String
 const EC_MEMMAP_BATT_TYPE: u16 = 0x78; // Battery Type String
 const EC_MEMMAP_ALS: u16 = 0x80; // ALS readings in lux (2 X 16 bits)
                                  // Unused 0x84 - 0x8f
-const _EC_MEMMAP_ACC_STATUS: u16 = 0x90; // Accelerometer status (8 bits )
-                                         // Unused 0x91
-const _EC_MEMMAP_ACC_DATA: u16 = 0x92; // Accelerometers data 0x92 - 0x9f
-                                       // 0x92: u16Lid Angle if available, LID_ANGLE_UNRELIABLE otherwise
-                                       // 0x94 - 0x99: u161st Accelerometer
-                                       // 0x9a - 0x9f: u162nd Accelerometer
+const EC_MEMMAP_ACC_STATUS: u16 = 0x90; // Accelerometer status (8 bits )
+                                        // Unused 0x91
+const EC_MEMMAP_ACC_DATA: u16 = 0x92; // Accelerometers data 0x92 - 0x9f
+                                      // 0x92: u16Lid Angle if available, LID_ANGLE_UNRELIABLE otherwise
+                                      // 0x94 - 0x99: u161st Accelerometer
+                                      // 0x9a - 0x9f: u162nd Accelerometer
+const LID_ANGLE_UNRELIABLE: u16 = 500;
 const _EC_MEMMAP_GYRO_DATA: u16 = 0xa0; // Gyroscope data 0xa0 - 0xa5
                                         // Unused 0xa6 - 0xdf
 
@@ -163,6 +164,28 @@ impl From<PowerInfo> for ReducedPowerInfo {
     }
 }
 
+#[derive(Debug)]
+struct AccelData {
+    x: u16,
+    y: u16,
+    z: u16,
+}
+impl From<Vec<u8>> for AccelData {
+    fn from(t: Vec<u8>) -> Self {
+        Self {
+            x: u16::from_le_bytes([t[0], t[1]]),
+            y: u16::from_le_bytes([t[2], t[3]]),
+            z: u16::from_le_bytes([t[4], t[5]]),
+        }
+    }
+}
+impl fmt::Display for AccelData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "X: {:>5} Y: {:>5}, Z: {:>5}", self.x, self.y, self.z)
+    }
+}
+
+
 fn read_string(ec: &CrosEc, address: u16) -> String {
     let bytes = ec.read_memory(address, EC_MEMMAP_TEXT_MAX).unwrap();
     String::from_utf8_lossy(bytes.as_slice()).replace(['\0'], "")
@@ -200,6 +223,34 @@ pub fn get_als_reading(ec: &CrosEc) -> Option<u32> {
 pub fn print_sensors(ec: &CrosEc) {
     let als_int = get_als_reading(ec).unwrap();
     println!("ALS: {:>4} Lux", als_int);
+
+    // bit 4 = busy
+    // bit 7 = present
+    // #define EC_MEMMAP_ACC_STATUS_SAMPLE_ID_MASK 0x0f
+    let acc_status = ec.read_memory(EC_MEMMAP_ACC_STATUS, 0x01).unwrap()[0];
+    // While busy, keep reading
+
+    let lid_angle = ec.read_memory(EC_MEMMAP_ACC_DATA, 0x02).unwrap();
+    let lid_angle = u16::from_le_bytes([lid_angle[0], lid_angle[1]]);
+    let accel_1 = ec.read_memory(EC_MEMMAP_ACC_DATA + 2, 0x06).unwrap();
+    let accel_2 = ec.read_memory(EC_MEMMAP_ACC_DATA + 8, 0x06).unwrap();
+
+    println!("Accelerometers:");
+    println!("  Status Bit: {} 0x{:X}", acc_status, acc_status);
+    println!("  Present:    {}", (acc_status & 0x80) > 0);
+    println!("  Busy:       {}", (acc_status & 0x8) > 0);
+    print!("  Lid Angle: ");
+    if lid_angle == LID_ANGLE_UNRELIABLE {
+        println!("Unreliable");
+    } else {
+        println!("{} Deg", lid_angle);
+    }
+    println!("  Sensor 1:  {}", AccelData::from(accel_1));
+    println!("  Sensor 2:  {}", AccelData::from(accel_2));
+    // Accelerometers
+    //   Lid Angle: 26 Deg
+    //   Sensor 1:  00.00 X 00.00 Y 00.00 Z
+    //   Sensor 2:  00.00 X 00.00 Y 00.00 Z
 }
 
 pub fn print_thermal(ec: &CrosEc) {
