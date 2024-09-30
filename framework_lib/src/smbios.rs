@@ -261,7 +261,9 @@ pub fn get_platform() -> Option<Platform> {
         _ => None,
     };
 
-    if platform.is_none() {
+    if let Some(platform) = platform {
+        Config::set(platform);
+    } else {
         println!("Failed to find PlatformFamily");
     }
 
