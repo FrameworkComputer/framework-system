@@ -206,6 +206,7 @@ pub struct PdVersions {
 }
 
 /// Same as PdVersions but only the main FW
+#[derive(Debug)]
 pub struct MainPdVersions {
     pub controller01: ControllerVersion,
     pub controller23: ControllerVersion,
