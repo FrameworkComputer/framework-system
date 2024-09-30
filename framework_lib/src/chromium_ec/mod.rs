@@ -864,6 +864,19 @@ pub enum CrosEcDriverType {
     Windows,
 }
 
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Debug, Copy, PartialEq)]
+pub enum HardwareDeviceType {
+    BIOS,
+    EC,
+    PD0,
+    PD1,
+    RTM01,
+    RTM23,
+    AcLeft,
+    AcRight,
+}
+
 impl CrosEcDriver for CrosEc {
     fn read_memory(&self, offset: u16, length: u16) -> Option<Vec<u8>> {
         if !smbios::is_framework() {
