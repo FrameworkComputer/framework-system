@@ -31,6 +31,7 @@ pub mod esrt;
 pub mod guid;
 mod os_specific;
 pub mod power;
+pub mod serialnum;
 pub mod smbios;
 #[cfg(feature = "uefi")]
 pub mod uefi;

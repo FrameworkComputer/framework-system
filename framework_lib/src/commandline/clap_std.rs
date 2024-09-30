@@ -41,9 +41,13 @@ struct ClapCli {
     #[arg(long)]
     pdports: bool,
 
-    /// Show info from SMBIOS (Only on UEFI)
+    /// Show info from SMBIOS
     #[arg(long)]
     info: bool,
+
+    /// Show info about system serial numbers
+    #[arg(long)]
+    serialnums: bool,
 
     /// Show details about the PD controllers
     #[arg(long)]
@@ -255,6 +259,7 @@ pub fn parse(args: &[String]) -> Cli {
         // UEFI only - every command needs to implement a parameter to enable the pager
         paginate: false,
         info: args.info,
+        serialnums: args.serialnums,
         raw_command: vec![],
     }
 }
