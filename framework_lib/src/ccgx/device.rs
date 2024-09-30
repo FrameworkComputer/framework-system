@@ -181,6 +181,11 @@ impl PdController {
     }
 
     fn i2c_read(&self, addr: u16, len: u16) -> EcResult<EcI2cPassthruResponse> {
+        trace!(
+            "I2C passthrough from I2C Port {} to I2C Addr {}",
+            self.port.i2c_port().unwrap(),
+            self.port.i2c_address()
+        );
         trace!("i2c_read(addr: {}, len: {})", addr, len);
         if usize::from(len) > MAX_I2C_CHUNK {
             return EcResult::Err(EcError::DeviceError(format!(
