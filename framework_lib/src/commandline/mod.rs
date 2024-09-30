@@ -1163,10 +1163,14 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
 fn handle_charge_limit(ec: &CrosEc, maybe_limit: Option<u8>) -> EcResult<()> {
     let (cur_min, _cur_max) = ec.get_charge_limit()?;
     if let Some(limit) = maybe_limit {
-        // Prevent accidentally setting a very low limit
+        // Prevent setting unreasonable limits
         if limit < 25 {
             return Err(EcError::DeviceError(
                 "Not recommended to set charge limit below 25%".to_string(),
+            ));
+        } else if limit > 100 {
+            return Err(EcError::DeviceError(
+                "Charge limit cannot be set above 100%".to_string(),
             ));
         }
         ec.set_charge_limit(cur_min, limit)?;
