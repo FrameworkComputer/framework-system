@@ -1,5 +1,0 @@
-[toolchain]
-profile = "default"
-channel = "stable"
-components = ["rust-src", "clippy", "rustfmt"]
-targets = ["x86_64-unknown-uefi"]

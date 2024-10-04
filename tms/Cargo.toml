@@ -1,0 +1,29 @@
+[package]
+name = "tms"
+version = "0.1.0"
+description = "Switch between tablet and laptop mode in Windows"
+keywords = ["windows", "tablet", "laptop", "slate"]
+rust-version = "1.72.1"
+edition = "2021"
+# license.workspace = true
+# edition.workspace = true
+# publish.workspace = true
+
+[dependencies.once_cell]
+version = "1.19.0"
+
+[dependencies.uuid]
+version = "1.8.0"
+features = ["macro-diagnostics"]
+
+[dependencies.windows-sys]
+version = "0.52.0"
+features = [
+  "Win32_Devices_DeviceAndDriverInstallation",
+  "Win32_Storage_FileSystem",
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_System_IO",
+  "Win32_System_WindowsProgramming",
+  "Win32_System_Threading",
+]

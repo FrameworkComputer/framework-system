@@ -5,6 +5,7 @@
 resolver = "2"
 
 members = [
+    "tms",
     # Linux and Windows tool to inspect and customize the system
     "framework_tool",
     # UEFI tool to inspect and customize the system
@@ -22,9 +23,9 @@ default-members = [
     "framework_tool",
 ]
 
-[patch.crates-io]
-uefi = { git = "https://github.com/FrameworkComputer/uefi-rs", branch = "merged" }
-uefi-services = { git = "https://github.com/FrameworkComputer/uefi-rs", branch = "merged" }
+#[patch.crates-io]
+#uefi = { git = "https://github.com/FrameworkComputer/uefi-rs", branch = "merged" }
+#uefi-services = { git = "https://github.com/FrameworkComputer/uefi-rs", branch = "merged" }
 
 [profile.release]
 lto = true
