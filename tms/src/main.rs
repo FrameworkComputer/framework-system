@@ -7,6 +7,12 @@
 //! Depends on this ACPI code: https://learn.microsoft.com/en-us/windows-hardware/drivers/gpiobtn/acpi-descriptor-samples#acpi-description-for-laptopslate-mode-indicator
 //! In order to load the Microsoft "GPIO Laptop or Slate Indicator Driver"
 //! Code based off of https://github.com/microsoft/Windows-rust-driver-samples/blob/main/general/echo/kmdf/exe/src/main.rs
+//!
+//! Usage:
+//! tms.exe       - Toggle mode
+//! tms.exe on    - Enable tablet mode
+//! tms.exe off   - Disable tablet mode
+//! tms.exe check - Check current mode
 
 #![deny(missing_docs)]
 #![deny(unsafe_op_in_unsafe_fn)]
@@ -27,10 +33,11 @@
 #![deny(rustdoc::unescaped_backticks)]
 #![deny(rustdoc::redundant_explicit_links)]
 
-use std::{error::Error, ffi::OsString, os::windows::prelude::*, sync::RwLock};
+use std::{env, error::Error, ffi::OsString, os::windows::prelude::*, sync::RwLock};
 
 use once_cell::sync::Lazy;
 use uuid::{uuid, Uuid};
+use windows::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_CONVERTIBLESLATEMODE};
 use windows_sys::Win32::{
     Devices::DeviceAndDriverInstallation,
     Foundation::{GetLastError, FALSE, HANDLE, INVALID_HANDLE_VALUE},
@@ -48,7 +55,65 @@ struct Globals {
 static GLOBAL_DATA: Lazy<RwLock<Globals>> = Lazy::new(|| RwLock::new(Globals::default()));
 static GUID_GPIOBUTTONS_LAPTOPSLATE_INTERFACE: Uuid = uuid!("317fc439-3f77-41c8-b09e-08ad63272aa3");
 
+fn check_tablet_mode() -> bool {
+    // Switch
+    // 1.
+    // HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\ImmersiveShell\TabletMode
+    //
+    // 2.
+    // https://stackoverflow.com/questions/31865120/enable-tablet-mode-on-windows-10-through-code
+    //
+
+    // Detect
+    // 1.
+    // https://devblogs.microsoft.com/oldnewthing/20160706-00/?p=93815
+    // #[cfg(feature = "UI_ViewManagement")]
+    // UIViewSettings
+    // UserInteractionMode
+    //
+    // 2. Notification
+    // WM_SETTINGCHANGE  with "ConvertibleSlateMode" or "UserInteractionMode"
+    unsafe {
+        // Either 0 or 1
+        let res = GetSystemMetrics(SM_CONVERTIBLESLATEMODE);
+        res == 0
+    }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
+    let tablet_mode = check_tablet_mode();
+    println!("Currently in tablet mode: {:?}", tablet_mode);
+
+    let args: Vec<_> = env::args().collect();
+    if args.len() > 1 {
+        match args[1].as_str() {
+            "on" => {
+                if tablet_mode {
+                    println!("Turning tablet mode on");
+                    return Ok(());
+                }
+            }
+            "off" => {
+                if !tablet_mode {
+                    println!("Turning tablet mode off");
+                    return Ok(());
+                }
+            }
+            "check" => {
+                // Just checking, not switching
+                return Ok(());
+            }
+            _ => {
+                println!("Usage:");
+                println!("  {}       - Toggle mode", args[0]);
+                println!("  {} on    - Enable tablet mode", args[0]);
+                println!("  {} off   - Disable tablet mode", args[0]);
+                println!("  {} check - Check current mode", args[0]);
+                return Ok(());
+            }
+        }
+    }
+
     get_device_path(&GUID_GPIOBUTTONS_LAPTOPSLATE_INTERFACE)?;
 
     let globals = GLOBAL_DATA.read()?;
@@ -82,7 +147,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    println!("Opened device successfully");
+    // println!("Opened device successfully");
 
     write_tablet_mode(h_device)?;
 
@@ -126,13 +191,13 @@ fn write_tablet_mode(h_device: HANDLE) -> Result<(), Box<dyn Error>> {
         .into());
     }
 
-    println!("{bytes_returned} Pattern Bytes Written successfully");
+    // println!("{bytes_returned} Pattern Bytes Written successfully");
 
     Ok(())
 }
 
 fn get_device_path(interface_guid: &Uuid) -> Result<(), Box<dyn Error>> {
-    println!("Looking for guid: {interface_guid:?}");
+    // println!("Looking for GUID: {interface_guid:?}");
 
     let mut guid = windows_sys::core::GUID {
         data1: 0,
