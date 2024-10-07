@@ -98,6 +98,10 @@ pub enum EcCommands {
     GetGpuSerial = 0x3E1D,
     /// Set gpu bay serial and program structure
     ProgramGpuEeprom = 0x3E1F,
+    /// This command return the AP throttle status
+    GetApThrottleStatus = 0x3E22,
+    /// Get the current state of the pd port
+    GetPdPortState = 0x3E23,
 }
 
 pub trait EcRequest<R> {

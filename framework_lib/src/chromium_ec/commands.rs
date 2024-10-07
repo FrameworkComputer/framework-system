@@ -1155,3 +1155,47 @@ impl EcRequest<EcResponseSetGpuSerial> for EcRequestSetGpuSerial {
         EcCommands::ProgramGpuEeprom
     }
 }
+
+#[repr(C, packed)]
+pub struct EcRequestGetApThrottleStatus {}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseGetApThrottleStatus {
+    pub soft_ap_throttle: u8,
+    pub hard_ap_throttle: u8,
+}
+
+impl EcRequest<EcResponseGetApThrottleStatus> for EcRequestGetApThrottleStatus {
+    fn command_id() -> EcCommands {
+        EcCommands::GetApThrottleStatus
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestGetPdPortState {
+    pub port: u8,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseGetPdPortState {
+    pub c_state: u8,
+    pub pd_state: u8,
+    pub power_role: u8,
+    pub data_role: u8,
+    pub vconn: u8,
+    pub epr_active: u8,
+    pub epr_support: u8,
+    pub cc_polarity: u8,
+    pub voltage: u16,
+    pub current: u16,
+    pub active_port: u8,
+    pub pd_alt_mode_status: u8,
+}
+
+impl EcRequest<EcResponseGetPdPortState> for EcRequestGetPdPortState {
+    fn command_id() -> EcCommands {
+        EcCommands::GetPdPortState
+    }
+}

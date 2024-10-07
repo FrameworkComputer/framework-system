@@ -1239,6 +1239,10 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     print_err(pd_23.get_fw_versions())?;
     println!(" - OK");
 
+    println!("  AP Throttle Status");
+    let throttle = ec.get_ap_throttle_status().ok()?;
+    println!("    {:?}", throttle);
+
     Some(())
 }
 

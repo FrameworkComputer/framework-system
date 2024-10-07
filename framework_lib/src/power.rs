@@ -742,6 +742,10 @@ pub fn get_and_print_pd_info(ec: &CrosEc) {
             println!("  Dual Role:     Unknown");
             println!("  Max Power:     Unknown");
         }
+
+        let state = ec.get_pd_port_state(port as u8);
+        println!("  State:         {:?}", state);
+        println!();
     }
 }
 
