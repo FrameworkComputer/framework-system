@@ -488,6 +488,9 @@ sensors and number of fans, so your output may look different:
   F75303_DDR:   39 C
   APU:          62 C
   API Fan:         0 RPM
+  AP Throttle Status
+    Soft:        false
+    Hard:        false
 ```
 
 ## Check sensors

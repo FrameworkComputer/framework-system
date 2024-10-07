@@ -113,6 +113,8 @@ pub enum EcCommands {
     ProgramGpuEeprom = 0x3E1F,
     /// Get battery cutoff (ship mode) status
     GetCutoffStatus = 0x3E21,
+    /// This command return the AP throttle status
+    GetApThrottleStatus = 0x3E22,
     /// Get PD port state from Cypress PD controller
     GetPdPortState = 0x3E23,
     /// Read board ID of specific ADC channel
