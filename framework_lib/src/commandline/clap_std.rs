@@ -6,6 +6,7 @@ use clap::Parser;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::{
     Cli, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg, RebootEcArg,
+    TabletModeArg,
 };
 
 /// Swiss army knife for Framework laptops
@@ -144,6 +145,11 @@ struct ClapCli {
     #[arg(long)]
     kblight: Option<Option<u8>>,
 
+    /// Set tablet mode override
+    #[clap(value_enum)]
+    #[arg(long)]
+    tablet_mode: Option<TabletModeArg>,
+
     /// Get EC console, choose whether recent or to follow the output
     #[clap(value_enum)]
     #[arg(long)]
@@ -263,6 +269,7 @@ pub fn parse(args: &[String]) -> Cli {
         get_gpio: args.get_gpio,
         fp_brightness: args.fp_brightness,
         kblight: args.kblight,
+        tablet_mode: args.tablet_mode,
         console: args.console,
         reboot_ec: args.reboot_ec,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),

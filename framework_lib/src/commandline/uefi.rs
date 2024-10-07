@@ -12,7 +12,7 @@ use uefi::Identify;
 use crate::chromium_ec::{CrosEcDriverType, HardwareDeviceType};
 use crate::commandline::Cli;
 
-use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, RebootEcArg};
+use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, RebootEcArg, TabletModeArg};
 
 /// Get commandline arguments from UEFI environment
 pub fn get_args(boot_services: &BootServices) -> Vec<String> {
@@ -86,6 +86,7 @@ pub fn parse(args: &[String]) -> Cli {
         get_gpio: None,
         fp_brightness: None,
         kblight: None,
+        tablet_mode: None,
         console: None,
         reboot_ec: None,
         hash: None,
@@ -212,6 +213,28 @@ pub fn parse(args: &[String]) -> Cli {
                 }
             } else {
                 Some(None)
+            };
+            found_an_option = true;
+        } else if arg == "--tablet-mode" {
+            cli.tablet_mode = if args.len() > i + 1 {
+                let tablet_mode_arg = &args[i + 1];
+                if tablet_mode_arg == "auto" {
+                    Some(TabletModeArg::Auto)
+                } else if tablet_mode_arg == "tablet" {
+                    Some(TabletModeArg::Tablet)
+                } else if tablet_mode_arg == "laptop" {
+                    Some(TabletModeArg::Laptop)
+                } else {
+                    println!(
+                        "Need to provide a value for --tablet-mode: '{}'. {}",
+                        args[i + 1],
+                        "Must be one of: `auto`, `tablet` or `laptop`",
+                    );
+                    None
+                }
+            } else {
+                println!("Need to provide a value for --tablet-mode. One of: `auto`, `tablet` or `laptop`");
+                None
             };
             found_an_option = true;
         } else if arg == "--fp-brightness" {

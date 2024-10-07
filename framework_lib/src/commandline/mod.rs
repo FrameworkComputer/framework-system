@@ -35,6 +35,7 @@ use crate::chromium_ec;
 use crate::chromium_ec::commands::DeckStateMode;
 use crate::chromium_ec::commands::FpLedBrightnessLevel;
 use crate::chromium_ec::commands::RebootEcCmd;
+use crate::chromium_ec::commands::TabletModeOverride;
 use crate::chromium_ec::EcResponseStatus;
 use crate::chromium_ec::{print_err, EcFlashType};
 use crate::chromium_ec::{EcError, EcResult};
@@ -60,6 +61,14 @@ use crate::chromium_ec::{CrosEc, CrosEcDriverType, HardwareDeviceType};
 
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
+
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Debug, PartialEq)]
+pub enum TabletModeArg {
+    Auto,
+    Tablet,
+    Laptop,
+}
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
 #[derive(Clone, Debug, PartialEq)]
@@ -152,6 +161,7 @@ pub struct Cli {
     pub get_gpio: Option<String>,
     pub fp_brightness: Option<Option<FpBrightnessArg>>,
     pub kblight: Option<Option<u8>>,
+    pub tablet_mode: Option<TabletModeArg>,
     pub console: Option<ConsoleArg>,
     pub reboot_ec: Option<RebootEcArg>,
     pub hash: Option<String>,
@@ -743,6 +753,13 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         } else {
             println!("Unable to tell");
         }
+    } else if let Some(tablet_arg) = &args.tablet_mode {
+        let mode = match tablet_arg {
+            TabletModeArg::Auto => TabletModeOverride::Default,
+            TabletModeArg::Tablet => TabletModeOverride::ForceTablet,
+            TabletModeArg::Laptop => TabletModeOverride::ForceClamshell,
+        };
+        ec.set_tablet_mode(mode);
     } else if let Some(console_arg) = &args.console {
         match console_arg {
             ConsoleArg::Follow => {
