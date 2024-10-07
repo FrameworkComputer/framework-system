@@ -1975,6 +1975,10 @@ impl CrosEc {
         }
         Ok(())
     }
+
+    pub fn get_ap_throttle_status(&self) -> EcResult<EcResponseGetApThrottleStatus> {
+        EcRequestGetApThrottleStatus {}.send_command(self)
+    }
 }
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]

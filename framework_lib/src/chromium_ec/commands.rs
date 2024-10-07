@@ -1787,3 +1787,19 @@ impl EcRequest<EcResponseReadBoardId> for EcRequestReadBoardId {
         EcCommands::ReadBoardId
     }
 }
+
+#[repr(C, packed)]
+pub struct EcRequestGetApThrottleStatus {}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseGetApThrottleStatus {
+    pub soft_ap_throttle: u8,
+    pub hard_ap_throttle: u8,
+}
+
+impl EcRequest<EcResponseGetApThrottleStatus> for EcRequestGetApThrottleStatus {
+    fn command_id() -> EcCommands {
+        EcCommands::GetApThrottleStatus
+    }
+}
