@@ -12,3 +12,6 @@ windows = ["framework_lib/windows"]
 [dependencies.framework_lib]
 path = "../framework_lib"
 default-features = false
+
+[build-dependencies]
+static_vcruntime = "2.0"
