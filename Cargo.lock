@@ -1362,6 +1362,7 @@ name = "tms"
 version = "0.1.0"
 dependencies = [
  "once_cell",
+ "static_vcruntime",
  "uuid",
  "windows 0.58.0",
  "windows-sys 0.52.0",
