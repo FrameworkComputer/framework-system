@@ -50,6 +50,11 @@ pub fn is_framework() -> bool {
         return true;
     }
 
+    // If we match any of our platforms, it's our platform
+    if get_platform().is_some() {
+        return true;
+    }
+
     // Don't need to parse SMBIOS on FreeBSD, can just read kenv
     #[cfg(target_os = "freebsd")]
     if let Ok(maker) = kenv_get("smbios.system.maker") {

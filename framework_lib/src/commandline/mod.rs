@@ -1021,6 +1021,12 @@ fn smbios_info() {
                     println!("  Family:       {}", family);
                 }
             }
+            DefinedStruct::SystemChassisInformation(data) => {
+                println!("System Chassis Information");
+                if let Some(chassis) = data.chassis_type() {
+                    println!("  Type:         {}", chassis);
+                }
+            }
             DefinedStruct::BaseBoardInformation(data) => {
                 println!("BaseBoard Information");
                 if let Some(version) = dmidecode_string_val(&data.version()) {
