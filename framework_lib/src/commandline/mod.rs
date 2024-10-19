@@ -819,6 +819,12 @@ Options:
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
       --hash <HASH>          Hash a file of arbitrary data
+      --pd-addrs <PD_ADDRS> <PD_ADDRS>
+          Specify I2C addresses of the PD chips (Advanced)
+      --pd-ports <PD_PORTS> <PD_PORTS>
+          Specify I2C ports of the PD chips (Advanced)
+      --has-mec <HAS_MEC>
+          Specify the type of EC chip (MEC/MCHP or other) [possible values: true, false]
   -t, --test                 Run self-test to check if interaction with EC is possible
   -h, --help                 Print help information
   -b                         Print output one screen at a time
