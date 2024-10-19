@@ -1826,7 +1826,11 @@ Options:
       --autofanctrl [<FANID>]Turn on automatic fan speed control (optionally provide fan index)
       --pdports              Show information about USB-C PD ports
       --info                 Show info from SMBIOS (Only on UEFI)
+      --meinfo [<DUMPFILE>]   Show Intel ME information (from SMBIOS type 0xDB)
       --pd-info              Show details about the PD controllers
+      --pd-reset <PD_NUM>    Reset a specific PD controller (for debugging only)
+      --pd-disable <PD_NUM>  Disable all ports on a specific PD controller (for debugging only)
+      --pd-enable <PD_NUM>   Enable all ports on a specific PD controller (for debugging only)
       --privacy              Show privacy switch statuses (camera and microphone)
       --pd-bin <PD_BIN>      Parse versions from PD firmware binary file
       --ec-bin <EC_BIN>      Parse versions from EC firmware binary file
@@ -1838,6 +1842,9 @@ Options:
       --flash-ro-ec <FLASH_EC>         Flash EC with new firmware from file
       --flash-rw-ec <FLASH_EC>         Flash EC with new firmware from file
       --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
+      --ec-hib-delay [<SECONDS>]   Get or set EC hibernate delay (S5 to G3)
+      --uptimeinfo           Show EC uptime information
+      --s0ix-counter         Show S0ix counter
       --intrusion            Show status of intrusion switch
       --inputdeck            Show status of the input deck
       --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
@@ -1845,17 +1852,32 @@ Options:
       --nvidia               Show NVIDIA GPU information (Framework 16 only)
       --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')
       --charge-current-limit [<VAL>] Get or set battery current charge limit (Percentage number as arg, e.g. '100')
+      --charge-rate-limit [<VAL>]   Set max charge rate limit
       --get-gpio <GET_GPIO>  Get GPIO value by name or all, if no name provided
       --fp-led-level [<VAL>] Get or set fingerprint LED brightness level [possible values: high, medium, low]
       --fp-brightness [<VAL>]Get or set fingerprint LED brightness percentage
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
+      --rgbkbd <START> <HEXCOLOR> [<HEXCOLOR> ...]
+                             Set the color of a key to RGB. Multiple colors for adjacent keys can be set at once
+      --tablet-mode <MODE>   Set tablet mode override [possible values: auto, tablet, laptop]
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
       --hash <HASH>          Hash a file of arbitrary data
       --flash-gpu-descriptor <MAGIC> <18 DIGIT SN> Overwrite the GPU bay descriptor SN and type.
       --flash-gpu-descriptor-file <DESCRIPTOR_FILE> Write the GPU bay descriptor with a descriptor file.
+      --dump-gpu-descriptor-file <DESCRIPTOR_FILE> Dump the GPU bay descriptor to a file
   -f, --force                Force execution of an unsafe command - may render your hardware unbootable!
       --dry-run              Simulate execution of a command (e.g. --flash-ec)
+      --pd-addrs <PD_ADDR_LEFT> <PD_ADDR_RIGHT>  <PD_ADDR_BACK>
+          Specify I2C addresses of the PD chips (Advanced)
+      --pd-ports <PD_PORT_LEFT> <PD_PORT_RIGHT>  <PD_PORT_BACK>
+          Specify I2C ports of the PD chips (Advanced)
+      --has-mec <HAS_MEC>
+          Specify the type of EC chip (MEC/MCHP or other) [possible values: true, false]
+      --host-command <CMD_ID> <VERSION> [DATA...]
+                             Send an EC host command
   -t, --test                 Run self-test to check if interaction with EC is possible
+      --test-retimer         Run self-test to check if interaction with retimers is possible
+      --boardid              Print all board IDs
   -h, --help                 Print help information
   -b                         Print output one screen at a time
     "#
