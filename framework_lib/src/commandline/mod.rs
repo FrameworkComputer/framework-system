@@ -1246,7 +1246,7 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     Some(())
 }
 
-fn smbios_info() {
+pub fn smbios_info() {
     println!("Summary");
     println!("  Is Framework: {}", is_framework());
     if let Some(platform) = smbios::get_platform() {
