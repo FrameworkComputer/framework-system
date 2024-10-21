@@ -185,6 +185,28 @@ impl fmt::Display for AccelData {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum LidAngle {
+    Angle(u16),
+    Unreliable,
+}
+impl From<u16> for LidAngle {
+    fn from(a: u16) -> Self {
+        match a {
+            LID_ANGLE_UNRELIABLE => Self::Unreliable,
+            _ => Self::Angle(a),
+        }
+    }
+}
+impl fmt::Display for LidAngle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Angle(deg) => write!(f, "{}", deg),
+            Self::Unreliable => write!(f, "Unreliable"),
+        }
+    }
+}
+
 fn read_string(ec: &CrosEc, address: u16) -> String {
     let bytes = ec.read_memory(address, EC_MEMMAP_TEXT_MAX).unwrap();
     String::from_utf8_lossy(bytes.as_slice()).replace(['\0'], "")
@@ -219,7 +241,7 @@ pub fn get_als_reading(ec: &CrosEc) -> Option<u32> {
     Some(u32::from_le_bytes([als[0], als[1], als[2], als[3]]))
 }
 
-pub fn get_accel_data(ec: &CrosEc) -> (AccelData, AccelData, u16) {
+pub fn get_accel_data(ec: &CrosEc) -> (AccelData, AccelData, LidAngle) {
     // bit 4 = busy
     // bit 7 = present
     // #define EC_MEMMAP_ACC_STATUS_SAMPLE_ID_MASK 0x0f
@@ -235,7 +257,11 @@ pub fn get_accel_data(ec: &CrosEc) -> (AccelData, AccelData, u16) {
     // println!("  Status Bit: {} 0x{:X}", acc_status, acc_status);
     // println!("  Present:    {}", (acc_status & 0x80) > 0);
     // println!("  Busy:       {}", (acc_status & 0x8) > 0);
-    (AccelData::from(accel_1), AccelData::from(accel_2), lid_angle)
+    (
+        AccelData::from(accel_1),
+        AccelData::from(accel_2),
+        LidAngle::from(lid_angle),
+    )
 }
 
 pub fn print_sensors(ec: &CrosEc) {
