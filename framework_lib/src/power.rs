@@ -309,10 +309,14 @@ pub fn is_standalone(ec: &CrosEc) -> bool {
     }
 }
 
-pub fn get_and_print_power_info(ec: &CrosEc) {
+pub fn get_and_print_power_info(ec: &CrosEc) -> i32 {
     if let Some(power_info) = power_info(ec) {
         print_battery_information(&power_info);
+        if let Some(_battery) = &power_info.battery {
+            return 0;
+        }
     }
+    1
 }
 
 fn print_battery_information(power_info: &PowerInfo) {
@@ -559,6 +563,7 @@ pub fn get_and_print_pd_info(ec: &CrosEc) {
 }
 
 // TODO: Improve return type to be more obvious
+// (right, left)
 pub fn is_charging(ec: &CrosEc) -> EcResult<(bool, bool)> {
     let port0 = check_ac(ec, 0)?.role == UsbPowerRoles::Sink;
     let port1 = check_ac(ec, 1)?.role == UsbPowerRoles::Sink;

@@ -272,6 +272,38 @@ own EC firmware and flash it.
 - [x] Basic unit tests
 - [x] Test parsing real binaries
 
+## Version Check
+
+Check if the firmware version is what you expect, returns exit code 0 on
+succcess, 1 on failure.
+
+```
+# Check which devices it's available for
+> ./framework_system --device
+  [possible values: bios, ec, pd0, pd1, rtm01, rtm23]
+
+For more information try '--help'
+
+# Successful compare
+> ./framework_system --device bios --compare-version 03.01
+Target Version "03.01"
+Comparing BIOS version "03.01"
+Compared version:   0
+> echo $?
+0
+
+# Failed compare
+> ./framework_system --device bios --compare-version 03.00
+    Finished dev [unoptimized + debuginfo] target(s) in 0.05s
+Target Version "03.00"
+Comparing BIOS version "03.01"
+Compared version:   1
+Error: "Fail"
+
+> echo $?
+1
+```
+
 ## Debugging
 
 To debug, increase the verbosity from the commandline with `-v`.

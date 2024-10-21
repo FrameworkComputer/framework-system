@@ -3,6 +3,7 @@
 //! Can be easily re-used from any OS or UEFI shell.
 //! We have implemented both in the `framework_tool` and `framework_uefi` crates.
 
+use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
@@ -54,7 +55,7 @@ use sha2::{Digest, Sha256, Sha384, Sha512};
 //use smbioslib::*;
 use smbioslib::{DefinedStruct, SMBiosInformation};
 
-use crate::chromium_ec::{CrosEc, CrosEcDriverType};
+use crate::chromium_ec::{CrosEc, CrosEcDriverType, HardwareDeviceType};
 
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
@@ -120,6 +121,8 @@ pub struct Cli {
     pub versions: bool,
     pub version: bool,
     pub esrt: bool,
+    pub device: Option<HardwareDeviceType>,
+    pub compare_version: Option<String>,
     pub power: bool,
     pub thermal: bool,
     pub sensors: bool,
@@ -506,6 +509,119 @@ fn dump_ec_flash(ec: &CrosEc, dump_path: &str) {
     }
 }
 
+fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &CrosEc) -> i32 {
+    println!("Target Version {:?}", version);
+
+    if let Some(smbios) = get_smbios() {
+        let bios_entries = smbios.collect::<SMBiosInformation>();
+        let bios = bios_entries.get(0).unwrap();
+
+        if device == Some(HardwareDeviceType::BIOS) {
+            println!("Comparing BIOS version {:?}", bios.version().to_string());
+            if version.to_uppercase() == bios.version().to_string().to_uppercase() {
+                return 0;
+            } else {
+                return 1;
+            }
+        }
+    }
+
+    match device {
+        Some(HardwareDeviceType::EC) => {
+            let ver = print_err(ec.version_info()).unwrap_or_else(|| "UNKNOWN".to_string());
+            println!("Comparing EC version {:?}", ver);
+
+            if ver.contains(&version) {
+                return 0;
+            } else {
+                return 1;
+            }
+        }
+        Some(HardwareDeviceType::PD0) => {
+            if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
+                let ver = pd_versions.controller01.active_fw_ver();
+                println!("Comparing PD0 version {:?}", ver);
+
+                if ver.contains(&version) {
+                    return 0;
+                } else {
+                    return 1;
+                }
+            }
+        }
+        Some(HardwareDeviceType::PD1) => {
+            if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
+                let ver = pd_versions.controller23.active_fw_ver();
+                println!("Comparing PD1 version {:?}", ver);
+
+                if ver.contains(&version) {
+                    return 0;
+                } else {
+                    return 1;
+                }
+            }
+        }
+        Some(HardwareDeviceType::AcLeft) => {
+            if let Ok((_right, left)) = power::is_charging(ec) {
+                let ver = format!("{}", left as i32);
+                println!("Comparing AcLeft {:?}", ver);
+                if ver == version {
+                    return 0;
+                } else {
+                    return 1;
+                }
+            } else {
+                error!("Failed to get charging information");
+                // Not charging is the safe default
+                return 1;
+            }
+        }
+        Some(HardwareDeviceType::AcRight) => {
+            if let Ok((right, _left)) = power::is_charging(ec) {
+                let ver = format!("{}", right as i32);
+                println!("Comparing AcRight {:?}", ver);
+                if ver == version {
+                    return 0;
+                } else {
+                    return 1;
+                }
+            } else {
+                error!("Failed to get charging information");
+                // Not charging is the safe default
+                return 1;
+            }
+        }
+        _ => {}
+    }
+
+    if let Some(esrt) = esrt::get_esrt() {
+        for entry in &esrt.entries {
+            match entry.fw_class {
+                esrt::TGL_RETIMER01_GUID | esrt::ADL_RETIMER01_GUID | esrt::RPL_RETIMER01_GUID => {
+                    if device == Some(HardwareDeviceType::RTM01) {
+                        println!("Comparing RTM01 version {:?}", entry.fw_version.to_string());
+
+                        if entry.fw_version.to_string().contains(&version) {
+                            return 0;
+                        }
+                    }
+                }
+                esrt::TGL_RETIMER23_GUID | esrt::ADL_RETIMER23_GUID | esrt::RPL_RETIMER23_GUID => {
+                    if device == Some(HardwareDeviceType::RTM23) {
+                        println!("Comparing RTM23 version {:?}", entry.fw_version.to_string());
+                        if entry.fw_version.to_string().contains(&version) {
+                            return 0;
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    1
+}
+
 pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     #[cfg(feature = "uefi")]
     {
@@ -563,6 +679,10 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_tool_version();
     } else if args.esrt {
         print_esrt();
+    } else if let Some(compare_version_ver) = &args.compare_version {
+        let compare_ret = compare_version(args.device, compare_version_ver.to_string(), &ec);
+        println!("Comparison Result:  {}", compare_ret);
+        return compare_ret;
     } else if args.intrusion {
         println!("Chassis status:");
         if let Some(status) = print_err(ec.get_intrusion_status()) {
@@ -653,7 +773,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             return 1;
         }
     } else if args.power {
-        power::get_and_print_power_info(&ec);
+        return power::get_and_print_power_info(&ec);
     } else if args.thermal {
         power::print_thermal(&ec);
     } else if args.sensors {
@@ -835,6 +955,8 @@ Options:
       --versions             List current firmware versions
       --version              Show tool version information (Add -vv for more detailed information)
       --esrt                 Display the UEFI ESRT table
+      --device <DEVICE>      Device used to compare firmware version [possible values: bios, ec, pd0, pd1, rtm01, rtm23]
+      --compare-version      Version string used to match firmware version (use with --device)
       --power                Show current power status (battery and AC)
       --thermal              Print thermal information (Temperatures and Fan speed)
       --sensors              Print sensor information (ALS, G-Sensor)

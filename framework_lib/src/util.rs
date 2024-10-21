@@ -64,6 +64,7 @@ impl Config {
     }
 
     pub fn get() -> MutexGuard<'static, Option<Self>> {
+        trace!("Config::get() entry");
         let unset = {
             #[cfg(feature = "std")]
             let config = CONFIG.lock().unwrap();
@@ -88,6 +89,7 @@ impl Config {
         let mut config = CONFIG.lock();
 
         if new_config.is_some() {
+            trace!("Config::get() initializing");
             *config = new_config;
         }
 
