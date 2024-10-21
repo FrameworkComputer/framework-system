@@ -64,19 +64,31 @@ impl Config {
     }
 
     pub fn get() -> MutexGuard<'static, Option<Self>> {
+        let unset = {
+            #[cfg(feature = "std")]
+            let config = CONFIG.lock().unwrap();
+            #[cfg(not(feature = "std"))]
+            let config = CONFIG.lock();
+            (*config).is_none()
+        };
+        let new_config = if unset {
+            // get_platform will call Config::get() recursively,
+            // can't hold the lock when calling it
+            smbios::get_platform().map(|platform| Config {
+                verbose: false,
+                platform,
+            })
+        } else {
+            None
+        };
+
         #[cfg(feature = "std")]
         let mut config = CONFIG.lock().unwrap();
         #[cfg(not(feature = "std"))]
         let mut config = CONFIG.lock();
 
-        if (*config).is_none() {
-            if let Some(platform) = smbios::get_platform() {
-                // TODO: Perhaps add Qemu or NonFramework as a platform
-                *config = Some(Config {
-                    verbose: false,
-                    platform,
-                });
-            }
+        if new_config.is_some() {
+            *config = new_config;
         }
 
         // TODO: See if we can map the Option::unwrap before returning
