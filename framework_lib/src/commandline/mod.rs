@@ -35,6 +35,7 @@ use crate::chromium_ec;
 use crate::chromium_ec::commands::DeckStateMode;
 use crate::chromium_ec::commands::FpLedBrightnessLevel;
 use crate::chromium_ec::commands::RebootEcCmd;
+use crate::chromium_ec::EcResponseStatus;
 use crate::chromium_ec::{print_err, EcFlashType};
 use crate::chromium_ec::{EcError, EcResult};
 #[cfg(feature = "linux")]
@@ -1049,14 +1050,16 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     println!("  Reading EC Build Version");
     print_err(ec.version_info())?;
 
-    println!("  Reading EC Flash by EC");
+    print!("  Reading EC Flash by EC");
     ec.flash_version()?;
+    println!(" - OK");
 
-    println!("  Reading EC Flash directly");
+    println!("  Reading EC Flash directly - See below");
     ec.test_ec_flash_read().ok()?;
 
-    println!("  Getting power info from EC");
+    print!("  Getting power info from EC");
     power::power_info(ec)?;
+    println!(" - OK");
 
     println!("  Getting AC info from EC");
     // All our laptops have at least 4 PD ports so far
@@ -1065,19 +1068,31 @@ fn selftest(ec: &CrosEc) -> Option<()> {
         return None;
     }
 
-    // Try to get PD versions through EC
-    power::read_pd_version(ec).ok()?;
+    print!("Reading PD Version from EC");
+    if let Err(err) = power::read_pd_version(ec) {
+        // TGL does not have this command, so we have to ignore it
+        if err != EcError::Response(EcResponseStatus::InvalidCommand) {
+            println!();
+            println!("Err: {:?}", err);
+        } else {
+            println!(" - Skipped");
+        }
+    } else {
+        println!(" - OK");
+    }
 
     let pd_01 = PdController::new(PdPort::Left01, ec.clone());
     let pd_23 = PdController::new(PdPort::Right23, ec.clone());
-    println!("  Getting PD01 info");
+    print!("  Getting PD01 info through I2C tunnel");
     print_err(pd_01.get_silicon_id())?;
     print_err(pd_01.get_device_info())?;
     print_err(pd_01.get_fw_versions())?;
-    println!("  Getting PD23 info");
+    println!(" - OK");
+    print!("  Getting PD23 info through I2C tunnel");
     print_err(pd_23.get_silicon_id())?;
     print_err(pd_23.get_device_info())?;
     print_err(pd_23.get_fw_versions())?;
+    println!(" - OK");
 
     Some(())
 }
