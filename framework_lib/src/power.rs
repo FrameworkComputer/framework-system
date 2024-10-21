@@ -164,18 +164,18 @@ impl From<PowerInfo> for ReducedPowerInfo {
     }
 }
 
-#[derive(Debug)]
-struct AccelData {
-    x: u16,
-    y: u16,
-    z: u16,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AccelData {
+    pub x: i16,
+    pub y: i16,
+    pub z: i16,
 }
 impl From<Vec<u8>> for AccelData {
     fn from(t: Vec<u8>) -> Self {
         Self {
-            x: u16::from_le_bytes([t[0], t[1]]),
-            y: u16::from_le_bytes([t[2], t[3]]),
-            z: u16::from_le_bytes([t[4], t[5]]),
+            x: i16::from_le_bytes([t[0], t[1]]),
+            y: i16::from_le_bytes([t[2], t[3]]),
+            z: i16::from_le_bytes([t[4], t[5]]),
         }
     }
 }
