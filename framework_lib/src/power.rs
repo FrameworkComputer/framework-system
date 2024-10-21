@@ -191,10 +191,13 @@ pub fn print_memmap_version_info(ec: &CrosEc) {
     let _events_ver = ec.read_memory(EC_MEMMAP_EVENTS_VERSION, 2).unwrap();
 }
 
-pub fn print_sensors(ec: &CrosEc) {
-    let als = ec.read_memory(EC_MEMMAP_ALS, 0x04).unwrap();
+pub fn get_als_reading(ec: &CrosEc) -> Option<u32> {
+    let als = ec.read_memory(EC_MEMMAP_ALS, 0x04)?;
+    Some(u32::from_le_bytes([als[0], als[1], als[2], als[3]]))
+}
 
-    let als_int = u32::from_le_bytes([als[0], als[1], als[2], als[3]]);
+pub fn print_sensors(ec: &CrosEc) {
+    let als_int = get_als_reading(ec).unwrap();
     println!("ALS: {:>4} Lux", als_int);
 }
 
