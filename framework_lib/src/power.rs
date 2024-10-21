@@ -185,7 +185,6 @@ impl fmt::Display for AccelData {
     }
 }
 
-
 fn read_string(ec: &CrosEc, address: u16) -> String {
     let bytes = ec.read_memory(address, EC_MEMMAP_TEXT_MAX).unwrap();
     String::from_utf8_lossy(bytes.as_slice()).replace(['\0'], "")
@@ -218,6 +217,25 @@ pub fn print_memmap_version_info(ec: &CrosEc) {
 pub fn get_als_reading(ec: &CrosEc) -> Option<u32> {
     let als = ec.read_memory(EC_MEMMAP_ALS, 0x04)?;
     Some(u32::from_le_bytes([als[0], als[1], als[2], als[3]]))
+}
+
+pub fn get_accel_data(ec: &CrosEc) -> (AccelData, AccelData, u16) {
+    // bit 4 = busy
+    // bit 7 = present
+    // #define EC_MEMMAP_ACC_STATUS_SAMPLE_ID_MASK 0x0f
+    let _acc_status = ec.read_memory(EC_MEMMAP_ACC_STATUS, 0x01).unwrap()[0];
+    // While busy, keep reading
+
+    let lid_angle = ec.read_memory(EC_MEMMAP_ACC_DATA, 0x02).unwrap();
+    let lid_angle = u16::from_le_bytes([lid_angle[0], lid_angle[1]]);
+    let accel_1 = ec.read_memory(EC_MEMMAP_ACC_DATA + 2, 0x06).unwrap();
+    let accel_2 = ec.read_memory(EC_MEMMAP_ACC_DATA + 8, 0x06).unwrap();
+
+    // TODO: Make sure we got a new sample
+    // println!("  Status Bit: {} 0x{:X}", acc_status, acc_status);
+    // println!("  Present:    {}", (acc_status & 0x80) > 0);
+    // println!("  Busy:       {}", (acc_status & 0x8) > 0);
+    (AccelData::from(accel_1), AccelData::from(accel_2), lid_angle)
 }
 
 pub fn print_sensors(ec: &CrosEc) {
