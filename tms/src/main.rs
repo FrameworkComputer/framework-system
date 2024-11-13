@@ -161,6 +161,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 // Just checking, not switching
                 return Ok(());
             }
+            "watch" => {
+                watch()?;
+                return Ok(());
+            }
             _ => {
                 println!("Usage:");
                 println!("  {}           - Toggle mode", args[0]);
@@ -329,4 +333,82 @@ fn get_device_path(interface_guid: &Uuid) -> Result<(), Box<dyn Error>> {
         .expect("Unable to convert Device Path to String");
 
     Ok(())
+}
+
+use windows::{
+    core::s, Win32::Foundation::*, Win32::Graphics::Gdi::ValidateRect,
+    Win32::System::LibraryLoader::GetModuleHandleA, Win32::UI::WindowsAndMessaging::*,
+};
+use enigo::{
+    Direction::{Press, Release},
+    Enigo, Key, Keyboard, Settings,
+};
+
+
+fn watch() -> Result<(), Box<dyn Error>> {
+    unsafe {
+        let instance = GetModuleHandleA(None)?;
+        let window_class = s!("window");
+
+        let wc = WNDCLASSA {
+            hCursor: LoadCursorW(None, IDC_ARROW)?,
+            hInstance: instance.into(),
+            lpszClassName: window_class,
+
+            style: CS_HREDRAW | CS_VREDRAW,
+            lpfnWndProc: Some(wndproc),
+            ..Default::default()
+        };
+
+        let atom = RegisterClassA(&wc);
+        debug_assert!(atom != 0);
+
+        let window = CreateWindowExA(
+            WINDOW_EX_STYLE::default(),
+            window_class,
+            s!("This is a sample window"),
+            WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            None,
+            None,
+            instance,
+            None,
+        )?;
+
+        let mut message = MSG::default();
+
+        while GetMessageA(&mut message, None, 0, 0).into() {
+            DispatchMessageA(&message);
+        }
+
+        Ok(())
+    }
+}
+
+use std::ffi::CStr;
+extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+    unsafe {
+        match message {
+            WM_SETTINGCHANGE => {
+                // lparam contains a pointer to a string
+                if lparam.0 != 0 {
+                    let c_str: &CStr = CStr::from_ptr(lparam.0 as *const i8);
+                    let lparam_str: &str = c_str.to_str().unwrap();
+
+                    if lparam_str == "ConvertibleSlateMode" {
+                        let tablet_mode = check_tablet_mode();
+                        println!("Toggle Touchpad: {:?}", tablet_mode);
+                        toggle_touchpad();
+                        // Not necessary, but need to run as admin
+                        // SetForegroundWindow(window);
+                    }
+                }
+                LRESULT(0)
+            }
+            _ => DefWindowProcA(window, message, wparam, lparam),
+        }
+    }
 }
