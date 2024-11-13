@@ -108,21 +108,20 @@ fn toggle_touchpad() {
 // reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\Status
 // HKEY_CURRENT_USER exists and reflects the correct value
 // reg query HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\Status
-fn check_touchpad_enable() -> bool {
+fn check_touchpad_enable() -> Result<bool, Box<dyn Error>> {
     use winreg::enums::*;
     use winreg::RegKey;
     let hklm = RegKey::predef(HKEY_CURRENT_USER);
     let cur_ver = hklm
-        .open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad\\Status")
-        .unwrap();
-    let enabled: u32 = cur_ver.get_value("Enabled").unwrap();
-    enabled == 1
+        .open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad\\Status")?;
+    let enabled: u32 = cur_ver.get_value("Enabled")?;
+    Ok(enabled == 1)
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     let tablet_mode = check_tablet_mode();
     println!("Currently in tablet mode:   {:?}", tablet_mode);
-    let touchpad_enable = check_touchpad_enable();
+    let touchpad_enable = check_touchpad_enable()?;
     println!("Touchpad currently enabled: {:?}", touchpad_enable);
 
     let args: Vec<_> = env::args().collect();
@@ -177,6 +176,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
+    toggle_tabletmode()?;
+
+    Ok(())
+}
+
+fn toggle_tabletmode() -> Result<(), Box<dyn Error>> {
     get_device_path(&GUID_GPIOBUTTONS_LAPTOPSLATE_INTERFACE)?;
 
     let globals = GLOBAL_DATA.read()?;
