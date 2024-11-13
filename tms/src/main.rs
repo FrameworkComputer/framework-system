@@ -8,11 +8,18 @@
 //! In order to load the Microsoft "GPIO Laptop or Slate Indicator Driver"
 //! Code based off of https://github.com/microsoft/Windows-rust-driver-samples/blob/main/general/echo/kmdf/exe/src/main.rs
 //!
+//! Changing tablet mode requires admin
+//! Changing touchpad enable does not require admin
+//! Checking either, does not requireadmin
+//!
 //! Usage:
-//! tms.exe       - Toggle mode
-//! tms.exe on    - Enable tablet mode
-//! tms.exe off   - Disable tablet mode
-//! tms.exe check - Check current mode
+//! tms.exe           - Toggle mode
+//! tms.exe on        - Enable tablet mode
+//! tms.exe off       - Disable tablet mode
+//! tms.exe tp-toggle - Toggle touchpad enable
+//! tms.exe tp-on     - Toggle touchpad on
+//! tms.exe tp-off    - Toggle touchpad off
+//! tms.exe tp-check  - Check current touchpad enable
 
 #![deny(missing_docs)]
 #![deny(unsafe_op_in_unsafe_fn)]
@@ -80,22 +87,54 @@ fn check_tablet_mode() -> bool {
     }
 }
 
+fn toggle_touchpad() {
+    use enigo::{
+        Direction::{Press, Release},
+        Enigo, Key, Keyboard, Settings,
+    };
+    let mut enigo = Enigo::new(&Settings::default()).unwrap();
+
+    enigo.key(Key::Control, Press).unwrap();
+    enigo.key(Key::Meta, Press).unwrap();
+    enigo.key(Key::F24, Press).unwrap();
+
+    enigo.key(Key::Control, Release).unwrap();
+    enigo.key(Key::Meta, Release).unwrap();
+    enigo.key(Key::F24, Release).unwrap();
+}
+
+// See https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/touchpad-enable-or-disable-toggle-button
+// HKEY_LOCAL_MACHINE does not seem to exist
+// reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\Status
+// HKEY_CURRENT_USER exists and reflects the correct value
+// reg query HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\Status
+fn check_touchpad_enable() -> bool {
+    use winreg::enums::*;
+    use winreg::RegKey;
+    let hklm = RegKey::predef(HKEY_CURRENT_USER);
+    let cur_ver = hklm
+        .open_subkey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\PrecisionTouchPad\\Status")
+        .unwrap();
+    let enabled: u32 = cur_ver.get_value("Enabled").unwrap();
+    enabled == 1
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let tablet_mode = check_tablet_mode();
-    println!("Currently in tablet mode: {:?}", tablet_mode);
+    println!("Currently in tablet mode:   {:?}", tablet_mode);
+    let touchpad_enable = check_touchpad_enable();
+    println!("Touchpad currently enabled: {:?}", touchpad_enable);
 
     let args: Vec<_> = env::args().collect();
     if args.len() > 1 {
         match args[1].as_str() {
             "on" => {
                 if tablet_mode {
-                    println!("Turning tablet mode on");
                     return Ok(());
                 }
             }
             "off" => {
                 if !tablet_mode {
-                    println!("Turning tablet mode off");
                     return Ok(());
                 }
             }
@@ -103,12 +142,36 @@ fn main() -> Result<(), Box<dyn Error>> {
                 // Just checking, not switching
                 return Ok(());
             }
+            "tp-on" => {
+                if !touchpad_enable {
+                    toggle_touchpad();
+                }
+                return Ok(());
+            }
+            "tp-off" => {
+                if touchpad_enable {
+                    toggle_touchpad();
+                }
+                return Ok(());
+            }
+            "tp-toggle" => {
+                toggle_touchpad();
+                return Ok(());
+            }
+            "tp-check" => {
+                // Just checking, not switching
+                return Ok(());
+            }
             _ => {
                 println!("Usage:");
-                println!("  {}       - Toggle mode", args[0]);
-                println!("  {} on    - Enable tablet mode", args[0]);
-                println!("  {} off   - Disable tablet mode", args[0]);
-                println!("  {} check - Check current mode", args[0]);
+                println!("  {}           - Toggle mode", args[0]);
+                println!("  {} on        - Enable tablet mode", args[0]);
+                println!("  {} off       - Disable tablet mode", args[0]);
+                println!("  {} check     - Check current mode", args[0]);
+                println!("  {} tp-toggle - Toggle touchpad enable", args[0]);
+                println!("  {} tp-on     - Toggle touchpad on", args[0]);
+                println!("  {} tp-off    - Toggle touchpad off", args[0]);
+                println!("  {} tp-check  - Check current touchpad enable", args[0]);
                 return Ok(());
             }
         }
