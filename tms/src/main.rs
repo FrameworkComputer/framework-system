@@ -17,6 +17,7 @@
 //! tms.exe on        - Enable tablet mode
 //! tms.exe off       - Disable tablet mode
 //! tms.exe tp-toggle - Toggle touchpad enable
+//! tms.exe tp-sync   - Sync touchpad with tablet mode
 //! tms.exe tp-on     - Toggle touchpad on
 //! tms.exe tp-off    - Toggle touchpad off
 //! tms.exe tp-check  - Check current touchpad enable
@@ -103,6 +104,21 @@ fn toggle_touchpad() {
     enigo.key(Key::F24, Release).unwrap();
 }
 
+fn sync_touchpad() -> Result<(), Box<dyn Error>> {
+    let tablet_mode = check_tablet_mode();
+    let touchpad_enable = check_touchpad_enable()?;
+    let touchpad_disable = !touchpad_enable;
+
+    // In tablet mode, touchpad should be disabled
+    // In laptop mode, touchpad should be enabled
+    // If that's not the case, toggle touchpad enable
+    if tablet_mode != touchpad_disable {
+        toggle_touchpad();
+    }
+
+    Ok(())
+}
+
 // See https://learn.microsoft.com/en-us/windows-hardware/design/component-guidelines/touchpad-enable-or-disable-toggle-button
 // HKEY_LOCAL_MACHINE does not seem to exist
 // reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\Status
@@ -157,6 +173,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 toggle_touchpad();
                 return Ok(());
             }
+            "tp-sync" => {
+                sync_touchpad()?;
+                return Ok(());
+            }
             "tp-check" => {
                 // Just checking, not switching
                 return Ok(());
@@ -172,6 +192,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 println!("  {} off       - Disable tablet mode", args[0]);
                 println!("  {} check     - Check current mode", args[0]);
                 println!("  {} tp-toggle - Toggle touchpad enable", args[0]);
+                println!("  {} tp-sync   - Sync touchpad with tablet mode", args[0]);
                 println!("  {} tp-on     - Toggle touchpad on", args[0]);
                 println!("  {} tp-off    - Toggle touchpad off", args[0]);
                 println!("  {} tp-check  - Check current touchpad enable", args[0]);
@@ -339,11 +360,6 @@ use windows::{
     core::s, Win32::Foundation::*, Win32::Graphics::Gdi::ValidateRect,
     Win32::System::LibraryLoader::GetModuleHandleA, Win32::UI::WindowsAndMessaging::*,
 };
-use enigo::{
-    Direction::{Press, Release},
-    Enigo, Key, Keyboard, Settings,
-};
-
 
 fn watch() -> Result<(), Box<dyn Error>> {
     unsafe {
@@ -399,9 +415,9 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
                     let lparam_str: &str = c_str.to_str().unwrap();
 
                     if lparam_str == "ConvertibleSlateMode" {
-                        let tablet_mode = check_tablet_mode();
-                        println!("Toggle Touchpad: {:?}", tablet_mode);
-                        toggle_touchpad();
+                        // Ignore error
+                        let _ = sync_touchpad();
+
                         // Not necessary, but need to run as admin
                         // SetForegroundWindow(window);
                     }
