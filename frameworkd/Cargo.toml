@@ -4,11 +4,6 @@ authors = [ "Framework Computer Inc" ]
 version = "0.1.0"
 edition = "2021"
 
-[features]
-default = ["windows"]
-linux = ["framework_lib/linux"]
-windows = ["framework_lib/windows"]
-
 [dependencies]
 trayicon = "0.2"
 winapi = { version = "0.3.9", features = ["winuser", "windef", "minwindef", "shellapi", "libloaderapi", "commctrl", "basetsd"] }
@@ -24,4 +19,3 @@ windres = "0.2"
 
 [dependencies.framework_lib]
 path = "../framework_lib"
-default-features = false

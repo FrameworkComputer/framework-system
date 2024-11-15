@@ -43,3 +43,6 @@ features = [
 
 [build-dependencies]
 static_vcruntime = "2.0"
+
+[dependencies.framework_lib]
+path = "../framework_lib"
