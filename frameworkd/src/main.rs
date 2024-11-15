@@ -278,20 +278,25 @@ fn add_menu(menu: MenuBuilder<Events>, _icon: &'static [u8], nm: Events) -> Menu
         Events::NumLockOn => ("Numlock On (Number Keys)", true),
         _ => ("???", false),
     };
-    menu.submenu(
+    #[cfg(features = "lotus")]
+    let menu = menu.submenu(
         "Launch Inputmodule Apps",
         MenuBuilder::new()
             .item("Keyboard (VIA)", Events::LaunchVia)
             .item("Keyboard (QMK GUI)", Events::LaunchQmkGui)
             .item("LED Matrix", Events::LaunchLedmatrixControl),
     )
-    .separator()
+    .separator();
+
     // TODO
     // .item("Sync keyboard brightness", Events::SyncKeyboards)
-    .item(
+    #[cfg(features = "lotus")]
+    let menu = menu.item(
         "Sync keyboard brightness with screen",
         Events::SyncKeyboardScreen,
-    )
+    );
+
+    menu
     //.separator()
     .checkable(nm_str, nm_checked, Events::NumLockToggle)
     //.with(MenuItem::Item {
@@ -432,10 +437,13 @@ fn main() {
 
             Events::DoubleClickTrayIcon => {
                 println!("Double click");
-                let devs = brightness::blocking::brightness_devices();
-                for dev in devs {
-                    let dev = dev.unwrap();
-                    dev.set(50).unwrap();
+                #[cfg(features = "lotus")]
+                {
+                    let devs = brightness::blocking::brightness_devices();
+                    for dev in devs {
+                        let dev = dev.unwrap();
+                        dev.set(50).unwrap();
+                    }
                 }
             }
             Events::RightClickTrayIcon => {
@@ -443,14 +451,18 @@ fn main() {
             }
             Events::LeftClickTrayIcon => {
                 println!("Single click");
-                let devs = brightness::blocking::brightness_devices();
-                for dev in devs {
-                    // TODO: Skip unsupported monitors
-                    let dev = dev.unwrap();
-                    println!("{:?}", dev.device_name());
-                    println!("  {:?}", dev.get());
+                #[cfg(features = "lotus")]
+                {
+                    let devs = brightness::blocking::brightness_devices();
+                    for dev in devs {
+                        // TODO: Skip unsupported monitors
+                        let dev = dev.unwrap();
+                        println!("{:?}", dev.device_name());
+                        println!("  {:?}", dev.get());
+                    }
+                    sync_keyboard_screen();
                 }
-                sync_keyboard_screen();
+                tray_icon.show_menu().unwrap();
             }
             Events::_ToggleTabletMode => {
                 println!("Toggle Tablet Mode");
