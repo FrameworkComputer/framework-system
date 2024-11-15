@@ -30,7 +30,8 @@ const FWK_GUIDES: &str = "https://guides.frame.work/c/Root";
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 enum Events {
-    ClickTrayIcon,
+    RightClickTrayIcon,
+    LeftClickTrayIcon,
     DoubleClickTrayIcon,
     Exit,
     LaunchVia,
@@ -361,8 +362,9 @@ fn main() {
             let _ = s.send(*e);
         })
         .icon_from_buffer(icon)
-        .tooltip("Cool Tray 👀 Icon")
-        .on_click(Events::ClickTrayIcon)
+        .tooltip("Framework Computer")
+        .on_right_click(Events::RightClickTrayIcon)
+        .on_click(Events::LeftClickTrayIcon)
         .on_double_click(Events::DoubleClickTrayIcon)
         .menu(add_menu(MenuBuilder::new(), icon, Events::NumLockOn))
         .build()
@@ -426,7 +428,10 @@ fn main() {
                     dev.set(50).unwrap();
                 }
             }
-            Events::ClickTrayIcon => {
+            Events::RightClickTrayIcon => {
+                tray_icon.show_menu().unwrap();
+            }
+            Events::LeftClickTrayIcon => {
                 println!("Single click");
                 let devs = brightness::blocking::brightness_devices();
                 for dev in devs {
