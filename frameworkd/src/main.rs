@@ -33,6 +33,8 @@ enum Events {
     RightClickTrayIcon,
     LeftClickTrayIcon,
     DoubleClickTrayIcon,
+    _ToggleTabletMode,
+    ToggleTouchpad,
     Exit,
     LaunchVia,
     LaunchQmkGui,
@@ -308,6 +310,14 @@ fn add_menu(menu: MenuBuilder<Events>, _icon: &'static [u8], nm: Events) -> Menu
             .item("Guides", Events::LaunchGuides),
     )
     .separator()
+    .submenu(
+        "Advanced",
+        MenuBuilder::new()
+            // TODO: Doesn't work when repeatedly called, I think
+            // we can't CreateFileW multiple times in the same process
+            // .item("Toggle tablet-mode", Events::ToggleTabletMode)
+            .item("Toggle touchpad enable", Events::ToggleTouchpad)
+    )
     .item("E&xit", Events::Exit)
 }
 
@@ -441,6 +451,16 @@ fn main() {
                     println!("  {:?}", dev.get());
                 }
                 sync_keyboard_screen();
+            }
+            Events::_ToggleTabletMode => {
+                println!("Toggle Tablet Mode");
+                use trayicon::touchpad_tabletmode;
+                let _ = touchpad_tabletmode::toggle_tabletmode();
+            }
+            Events::ToggleTouchpad=> {
+                println!("Toggle Touchpad");
+                use trayicon::touchpad_tabletmode;
+                let _ = touchpad_tabletmode::toggle_touchpad();
             }
             Events::Exit => {
                 std::process::exit(0);
