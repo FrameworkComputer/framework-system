@@ -11,6 +11,9 @@
 ;; Stays in the taskbar tray and can be stopped from there
 Persistent
 
+;; Sync on startup
+sync_touchpad()
+
 ;;
 ;; Register an AHK function as a callback.
 ;;
@@ -27,9 +30,30 @@ recv_WM_SETTINGCHANGE(wParam, lParam, msg, hwnd)
     ;; MsgBox Format("LPARAM: {1}", lparam_str), "WM_SETTINGCHANGE"
     ;; System switched between tablet and laptop mode
     If lparam_str == "ConvertibleSlateMode" {
+      sync_touchpad()
+    }
+  }
+}
+
+sync_touchpad()
+{
+  ;; Touchpad can't be enabled in tabletmode
+  ;; Touchpad must be enabled in laptop mode
+  If check_touchpad() == check_tabletmode() {
       ;; MsgBox "Toggle touchpad"
       ;; CTRL+WIN+F24 to toggle touchpad
       Send "^#{F24}"
-    }
   }
+}
+
+check_touchpad()
+{
+  Enabled := RegRead("HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\PrecisionTouchPad\Status", "Enabled")
+  return Enabled == 1
+}
+check_tabletmode()
+{
+  SM_CONVERTIBLESLATEMODE := 0x2003
+  Enabled := SysGet(SM_CONVERTIBLESLATEMODE)
+  return Enabled == 0
 }
