@@ -1,7 +1,6 @@
 // In debug builds don't disable terminal
 // Otherwise we can't see println and can't exit with CTRL+C
-//#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-#![windows_subsystem = "windows"]
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use core::mem::MaybeUninit;
 use std::collections::HashMap;
