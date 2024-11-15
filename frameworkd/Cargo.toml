@@ -5,7 +5,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-trayicon = "0.2"
+trayicon = { git = 'https://github.com/FrameworkComputer/trayicon-rs-private', branch = "auto-tablet-mode-touchpad" }
 winapi = { version = "0.3.9", features = ["winuser", "windef", "minwindef", "shellapi", "libloaderapi", "commctrl", "basetsd"] }
 #crossbeam-channel = "0.5"
 brightness = "0.5.0"
