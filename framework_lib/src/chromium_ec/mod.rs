@@ -418,6 +418,26 @@ impl CrosEc {
         Ok((status.microphone == 1, status.camera == 1))
     }
 
+    /// Let charge fully once, if currently a charge limit is set
+    pub fn charge_limit_override(&self) -> EcResult<()> {
+        let params = &[ChargeLimitControlModes::Override as u8, 0, 0];
+        let data = self.send_command(EcCommands::ChargeLimitControl as u16, 0, params)?;
+
+        util::assert_win_len(data.len(), 0);
+
+        Ok(())
+    }
+
+    /// Disable all charge limits
+    pub fn charge_limit_disable(&self) -> EcResult<()> {
+        let params = &[ChargeLimitControlModes::Disable as u8, 0, 0];
+        let data = self.send_command(EcCommands::ChargeLimitControl as u16, 0, params)?;
+
+        util::assert_win_len(data.len(), 0);
+
+        Ok(())
+    }
+
     pub fn set_charge_limit(&self, min: u8, max: u8) -> EcResult<()> {
         // Sending bytes manually because the Set command, as opposed to the Get command,
         // does not return any data
@@ -496,8 +516,8 @@ impl CrosEc {
     pub fn set_fp_led_level(&self, level: FpLedBrightnessLevel) -> EcResult<()> {
         // Sending bytes manually because the Set command, as opposed to the Get command,
         // does not return any data
-        let limits = &[level as u8, 0x00];
-        let data = self.send_command(EcCommands::FpLedLevelControl as u16, 0, limits)?;
+        let params = &[level as u8, 0x00];
+        let data = self.send_command(EcCommands::FpLedLevelControl as u16, 0, params)?;
 
         util::assert_win_len(data.len(), 0);
 
