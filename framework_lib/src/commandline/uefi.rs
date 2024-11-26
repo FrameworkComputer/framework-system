@@ -81,6 +81,8 @@ pub fn parse(args: &[String]) -> Cli {
         intrusion: false,
         inputmodules: false,
         input_deck_mode: None,
+        charge_full: false,
+        charge_limit_disable: false,
         charge_limit: None,
         fp_brightness: None,
         kblight: None,
@@ -171,6 +173,12 @@ pub fn parse(args: &[String]) -> Cli {
                 );
                 None
             };
+            found_an_option = true;
+        } else if arg == "--charge-full" {
+            cli.charge_full = true;
+            found_an_option = true;
+        } else if arg == "--charge-limit-override" {
+            cli.charge_limit_disable = true;
             found_an_option = true;
         } else if arg == "--charge-limit" {
             cli.charge_limit = if args.len() > i + 1 {

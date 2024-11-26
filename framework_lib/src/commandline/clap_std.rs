@@ -124,7 +124,15 @@ struct ClapCli {
     #[arg(long)]
     input_deck_mode: Option<InputDeckModeArg>,
 
-    /// Get or set max charge limit
+    /// Temporarily remove the charge limit and charge full
+    #[arg(long)]
+    charge_full: bool,
+
+    /// Remove min/max charge limit (Overwritten by BIOS on reboot)
+    #[arg(long)]
+    charge_limit_disable: bool,
+
+    /// Get or set max charge limit (Overwritten by BIOS on reboot)
     #[arg(long)]
     charge_limit: Option<Option<u8>>,
 
@@ -250,6 +258,8 @@ pub fn parse(args: &[String]) -> Cli {
         intrusion: args.intrusion,
         inputmodules: args.inputmodules,
         input_deck_mode: args.input_deck_mode,
+        charge_full: args.charge_full,
+        charge_limit_disable: args.charge_limit_disable,
         charge_limit: args.charge_limit,
         fp_brightness: args.fp_brightness,
         kblight: args.kblight,
