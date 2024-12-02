@@ -181,6 +181,25 @@ impl EcRequest<EcResponsePwmGetKeyboardBacklight> for EcRequestPwmGetKeyboardBac
 }
 
 #[repr(C, packed)]
+pub struct EcRequestGpioGetV0 {
+    pub name: [u8; 32],
+}
+
+#[repr(C, packed)]
+pub struct EcResponseGpioGetV0 {
+    pub val: u8,
+}
+
+impl EcRequest<EcResponseGpioGetV0> for EcRequestGpioGetV0 {
+    fn command_id() -> EcCommands {
+        EcCommands::GpioGet
+    }
+    fn command_version() -> u8 {
+        0
+    }
+}
+
+#[repr(C, packed)]
 pub struct EcRequestReboot {}
 
 impl EcRequest<()> for EcRequestReboot {

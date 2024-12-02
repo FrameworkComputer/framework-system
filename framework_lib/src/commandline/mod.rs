@@ -148,6 +148,7 @@ pub struct Cli {
     pub inputmodules: bool,
     pub input_deck_mode: Option<InputDeckModeArg>,
     pub charge_limit: Option<Option<u8>>,
+    pub get_gpio: Option<String>,
     pub fp_brightness: Option<Option<FpBrightnessArg>>,
     pub kblight: Option<Option<u8>>,
     pub console: Option<ConsoleArg>,
@@ -720,6 +721,13 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         ec.set_input_deck_mode((*mode).into()).unwrap();
     } else if let Some(maybe_limit) = args.charge_limit {
         print_err(handle_charge_limit(&ec, maybe_limit));
+    } else if let Some(gpio_name) = &args.get_gpio {
+        print!("Getting GPIO value {}: ", gpio_name);
+        if let Ok(value) = ec.get_gpio(gpio_name) {
+            println!("{:?}", value);
+        } else {
+            println!("Not found");
+        }
     } else if let Some(maybe_brightness) = &args.fp_brightness {
         print_err(handle_fp_brightness(&ec, *maybe_brightness));
     } else if let Some(Some(kblight)) = args.kblight {
@@ -979,6 +987,7 @@ Options:
       --inputmodules         Show status of the input modules (Framework 16 only)
       --input-deck-mode      Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
       --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')
+      --get-gpio <GET_GPIO>  Get GPIO value by name
       --fp-brightness [<VAL>]Get or set fingerprint LED brightness level [possible values: high, medium, low]
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]

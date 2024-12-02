@@ -30,6 +30,7 @@ pub enum EcCommands {
     FlashProtect = 0x15,
     PwmGetKeyboardBacklight = 0x0022,
     PwmSetKeyboardBacklight = 0x0023,
+    GpioGet = 0x93,
     I2cPassthrough = 0x9e,
     ConsoleSnapshot = 0x97,
     ConsoleRead = 0x98,

@@ -128,6 +128,10 @@ struct ClapCli {
     #[arg(long)]
     charge_limit: Option<Option<u8>>,
 
+    /// Get GPIO value by name
+    #[arg(long)]
+    get_gpio: Option<String>,
+
     /// Get or set fingerprint LED brightness
     #[arg(long)]
     fp_brightness: Option<Option<FpBrightnessArg>>,
@@ -251,6 +255,7 @@ pub fn parse(args: &[String]) -> Cli {
         inputmodules: args.inputmodules,
         input_deck_mode: args.input_deck_mode,
         charge_limit: args.charge_limit,
+        get_gpio: args.get_gpio,
         fp_brightness: args.fp_brightness,
         kblight: args.kblight,
         console: args.console,
