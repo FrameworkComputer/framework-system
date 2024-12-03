@@ -974,7 +974,7 @@ pub fn print_err<T>(something: EcResult<T>) -> Option<T> {
 }
 
 /// Which of the two EC images is currently in-use
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum EcCurrentImage {
     Unknown = 0,
     RO = 1,
