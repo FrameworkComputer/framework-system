@@ -56,12 +56,33 @@ use windows_sys::Win32::{
 };
 
 use framework_lib::windows::*;
+use framework_lib::smbios::{self, Platform};
+use framework_lib::chromium_ec::{CrosEc, EcResult};
+
+fn print_framework12_gpios() -> EcResult<()> {
+    if let Some(Platform::Framework12) = smbios::get_platform() {
+        let gpios = [
+            "chassis_open_l",
+            "lid_sw_l",
+            "tablet_mode_l",
+        ];
+
+        let ec = CrosEc::new();
+        println!("GPIO State");
+        for gpio in gpios {
+            println!("  {:<25} {}", gpio, ec.get_gpio(gpio)?);
+        }
+    }
+    Ok(())
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
     let tablet_mode = check_tablet_mode();
     println!("Currently in tablet mode:   {:?}", tablet_mode);
     let touchpad_enable = check_touchpad_enable()?;
     println!("Touchpad currently enabled: {:?}", touchpad_enable);
+
+    print_framework12_gpios().unwrap();
 
     let args: Vec<_> = env::args().collect();
     if args.len() > 1 {
