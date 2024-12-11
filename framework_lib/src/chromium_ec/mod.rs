@@ -854,6 +854,17 @@ impl CrosEc {
         }
         .send_command(self)
     }
+
+    pub fn get_gpio(&self, name: &str) -> EcResult<bool> {
+        const MAX_LEN: usize = 32;
+        let mut request = EcRequestGpioGetV0 { name: [0; MAX_LEN] };
+
+        let end = MAX_LEN.min(name.len());
+        request.name[..end].copy_from_slice(name[..end].as_bytes());
+
+        let res = request.send_command(self)?;
+        Ok(res.val == 1)
+    }
 }
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]

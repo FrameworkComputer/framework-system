@@ -82,6 +82,7 @@ pub fn parse(args: &[String]) -> Cli {
         inputmodules: false,
         input_deck_mode: None,
         charge_limit: None,
+        get_gpio: None,
         fp_brightness: None,
         kblight: None,
         console: None,
@@ -185,6 +186,13 @@ pub fn parse(args: &[String]) -> Cli {
                 }
             } else {
                 Some(None)
+            };
+            found_an_option = true;
+        } else if arg == "--get-gpio" {
+            cli.get_gpio = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                None
             };
             found_an_option = true;
         } else if arg == "--kblight" {
