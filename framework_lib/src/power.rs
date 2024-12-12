@@ -202,8 +202,114 @@ pub fn print_sensors(ec: &CrosEc) {
     println!("ALS: {:>4} Lux", als_int);
 }
 
+pub fn print_expansion_bay_info(ec: &CrosEc) {
+    let platform = smbios::get_platform();
+    if !matches!(
+        platform,
+        Some(Platform::Framework13Amd) | Some(Platform::Framework16)
+    ) {
+        println!("Only applicable to Framework 16 and Framework AMD systems");
+        return;
+    }
+
+    println!("AMD");
+    // TODO: This is also on Azalea?
+    let power_slider = ec.read_memory(0x151, 0x02).unwrap()[0];
+    let dc_ac = if power_slider <= 0b1000 { "DC" } else { "AC" };
+    let mode = match power_slider {
+        0b0000_0001 | 0b0001_0000 => "Best Performance",
+        0b0000_0010 | 0b0010_0000 => "Balanced",
+        0b0000_0100 | 0b0100_0000 => "Best Power Efficiency",
+        0b0000_1000 => "Battery Saver",
+        _ => "Unknown Mode",
+    };
+    println!(
+        "  Power Slider:     {}, {} ({:#09b})",
+        dc_ac, mode, power_slider
+    );
+
+    // TODO: This is also on Azalea?
+    let stt_table = ec.read_memory(0x154, 0x01).unwrap()[0];
+    println!("  STT Table:        {:?}", stt_table);
+
+    // TODO: What's this? Always [0x00, 0x00] so far
+    // TODO: This is also on Azalea?
+    // Core Performance Boost
+    let cbp = ec.read_memory(0x155, 0x02).unwrap();
+    println!("  CBP:              {} ({:?})", cbp == [0x00, 0x00], cbp);
+
+    // TODO: When is this changed?
+    // TODO: This is also on Azalea?
+    let dtt_temp = ec.read_memory(0x160, 0x0F).unwrap();
+    println!("  DTT Temp:         {:?}", dtt_temp);
+
+    if !matches!(platform, Some(Platform::Framework16)) {
+        return;
+    }
+
+    println!("Expansion Bay");
+
+    // TODO: This is the serial struct in the Expansion Bay?
+    let serial_struct = ec.read_memory(0x140, 0x04).unwrap();
+    println!("  Serial Struct:    {:?}", serial_struct);
+
+    // TODO: Why is this in the same namespace?
+    // let batt_manuf_day = ec.read_memory(0x144, 0x01).unwrap()[0];
+    // let batt_manuf_month = ec.read_memory(0x145, 0x01).unwrap()[0];
+    // let batt_manuf_year = ec.read_memory(0x146, 0x02).unwrap();
+    // let batt_manuf_year = u16::from_le_bytes([batt_manuf_year[0], batt_manuf_year[1]]);
+    // println!("  Batt Manuf        {:?}-{:?}-{:?}", batt_manuf_year, batt_manuf_month, batt_manuf_day);
+
+    // TODO: This is the PD in the dGPU module?
+    let pd_ver = ec.read_memory(0x14C, 0x04).unwrap();
+    println!("  PD Version:       {:?}", pd_ver);
+
+    let gpu_ctrl = ec.read_memory(0x150, 0x01).unwrap()[0];
+    // Unused, this is for the BIOS to set
+    let _set_mux_status = match gpu_ctrl & 0b11 {
+        0b00 => "EC Received and Clear",
+        0b01 => "BIOS Set APU",
+        0b10 => "BIOS Set GPU",
+        _ => "Unknown",
+    };
+    let mux_status = if (gpu_ctrl & 0b100) > 0 { "APU" } else { "GPU" };
+    let board_status = if (gpu_ctrl & 0b1000) > 0 {
+        "Present"
+    } else {
+        "Absent"
+    };
+    // Unused, set by BIOS: (gpu_ctrl & 0b10000)
+    let pcie_config = match gpu_ctrl & 0b01100000 {
+        0b00 => "8x1",
+        0b01 => "4x1",
+        0b10 => "4x2",
+        0b11 => "Disabled",
+        _ => "Unknown",
+    };
+    println!("  GPU CTRL:         {:#x}", gpu_ctrl);
+    println!("    MUX Status:     {}", mux_status);
+    println!("    Board Status:   {}", board_status);
+    println!("    PCIe Config:    {}", pcie_config);
+
+    // TODO: This seems like it's not correctly working? It's always false
+    let display_on = ec.read_memory(0x153, 0x01).unwrap()[0];
+    println!("  Display On:       {:?}", display_on == 0x01);
+
+    let gpu_type = ec.read_memory(0x157, 0x01).unwrap()[0];
+    let gpu_name = match gpu_type {
+        0x00 => "Initializing",
+        0x01 => "Fan Only",
+        0x02 => "AMD R23M",
+        0x03 => "SSD",
+        0x04 => "PCIe Accessory",
+        _ => "Unknown",
+    };
+    println!("  GPU Type:         {} ({:?})", gpu_name, gpu_type);
+}
+
 pub fn print_thermal(ec: &CrosEc) {
     let temps = ec.read_memory(EC_MEMMAP_TEMP_SENSOR, 0x0F).unwrap();
+    println!("Temps: {:?}", temps);
     let fans = ec.read_memory(EC_MEMMAP_FAN, 0x08).unwrap();
 
     let platform = smbios::get_platform();
@@ -221,6 +327,8 @@ pub fn print_thermal(ec: &CrosEc) {
             println!("  F75303_CPU:   {:>4}", TempSensor::from(temps[1]));
             println!("  F75303_DDR:   {:>4}", TempSensor::from(temps[2]));
             println!("  APU:          {:>4}", TempSensor::from(temps[3]));
+            // TODO: Only display if dGPU is present
+            // TODO: Sometimes  these show 0 even if the GPU is present. Why?
             if matches!(platform, Some(Platform::Framework16)) {
                 println!("  dGPU VR:      {:>4}", TempSensor::from(temps[4]));
                 println!("  dGPU VRAM:    {:>4}", TempSensor::from(temps[5]));
@@ -241,7 +349,13 @@ pub fn print_thermal(ec: &CrosEc) {
     }
 
     let fan0 = u16::from_le_bytes([fans[0], fans[1]]);
-    println!("  Fan Speed:    {:>4} RPM", fan0);
+    let fan1 = u16::from_le_bytes([fans[2], fans[3]]);
+    if matches!(platform, Some(Platform::Framework16)) {
+        println!("  Fan L Speed:  {:>4} RPM", fan0);
+        println!("  Fan R Speed:  {:>4} RPM", fan1);
+    } else {
+        println!("  Fan Speed:    {:>4} RPM", fan0);
+    }
 }
 
 // TODO: Use Result
