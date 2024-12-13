@@ -436,12 +436,16 @@ pub fn parse(args: &[String]) -> Cli {
                     Some(HardwareDeviceType::RTM01)
                 } else if console_arg == "rtm23" {
                     Some(HardwareDeviceType::RTM23)
+                } else if console_arg == "ac-left" {
+                    Some(HardwareDeviceType::AcLeft)
+                } else if console_arg == "ac-right" {
+                    Some(HardwareDeviceType::AcRight)
                 } else {
                     println!("Invalid value for --device: {}", console_arg);
                     None
                 }
             } else {
-                println!("Need to provide a value for --console. Either `follow` or `recent`");
+                println!("Need to provide a value for --console. Possible values: bios, ec, pd0, pd1, rtm01, rtm23, ac-left, ac-right");
                 None
             };
         }
