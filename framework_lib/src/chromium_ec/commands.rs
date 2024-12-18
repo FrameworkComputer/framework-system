@@ -844,6 +844,7 @@ pub enum FpLedBrightnessLevel {
     High = 0,
     Medium = 1,
     Low = 2,
+    UltraLow = 3,
 }
 
 #[repr(C, packed)]
