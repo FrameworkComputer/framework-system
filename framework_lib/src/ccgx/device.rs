@@ -66,6 +66,7 @@ impl PdPort {
                 Platform::Framework13Amd7080
                 | Platform::Framework13AmdAi300
                 | Platform::Framework16Amd7080
+                | Platform::IntelCoreUltra3
                 | Platform::Framework16AmdAi300,
                 PdPort::Right01,
             ) => 0x42,
@@ -93,6 +94,7 @@ impl PdPort {
                 | Platform::IntelGen11
                 | Platform::IntelGen12
                 | Platform::IntelGen13
+                | Platform::IntelCoreUltra3
                 | Platform::IntelCoreUltra1,
                 PdPort::Left23,
             ) => 0x40,
@@ -124,6 +126,7 @@ impl PdPort {
                 | Platform::Framework16Amd7080
                 | Platform::Framework16AmdAi300
                 | Platform::IntelCoreUltra1
+                | Platform::IntelCoreUltra3
                 | Platform::Framework13AmdAi300
                 | Platform::Framework12IntelGen13,
                 PdPort::Right01,
@@ -133,6 +136,7 @@ impl PdPort {
                 | Platform::Framework16Amd7080
                 | Platform::Framework16AmdAi300
                 | Platform::IntelCoreUltra1
+                | Platform::IntelCoreUltra3
                 | Platform::Framework13AmdAi300
                 | Platform::Framework12IntelGen13,
                 PdPort::Left23,
