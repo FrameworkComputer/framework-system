@@ -678,6 +678,7 @@ fn print_versions(ec: &CrosEc) {
             | Some(Platform::IntelGen12)
             | Some(Platform::IntelGen13)
             | Some(Platform::IntelCoreUltra1)
+            | Some(Platform::IntelCoreUltra3)
     );
     let mut left_retimer: Option<u32> = None;
     let mut right_retimer: Option<u32> = None;
