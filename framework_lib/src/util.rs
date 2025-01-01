@@ -29,6 +29,8 @@ pub enum Platform {
     IntelGen13,
     /// Framework 13 - Intel Core Ultra Series 1, Codenamed MeteorLake
     IntelCoreUltra1,
+    /// Framework 13 - Intel Core Ultra Series 3, Codenamed PantherLake
+    IntelCoreUltra3,
     /// Framework 13 - AMD Ryzen 7080 Series
     Framework13Amd7080,
     /// Framework 13 - AMD Ryzen AI 300 Series
@@ -66,7 +68,8 @@ impl Platform {
             | Platform::IntelGen11
             | Platform::IntelGen12
             | Platform::IntelGen13
-            | Platform::IntelCoreUltra1 => Some(CpuVendor::Intel),
+            | Platform::IntelCoreUltra1
+            | Platform::IntelCoreUltra3 => Some(CpuVendor::Intel),
             Platform::Framework13Amd7080
             | Platform::Framework13AmdAi300
             | Platform::Framework16Amd7080
@@ -83,6 +86,7 @@ impl Platform {
             | Platform::IntelGen12
             | Platform::IntelGen13
             | Platform::IntelCoreUltra1
+            | Platform::IntelCoreUltra3
             | Platform::Framework13Amd7080
             | Platform::Framework13AmdAi300 => Some(PlatformFamily::Framework13),
             Platform::Framework16Amd7080 => Some(PlatformFamily::Framework16),
