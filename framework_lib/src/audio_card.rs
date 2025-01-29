@@ -46,7 +46,7 @@ pub fn check_synaptics_fw_version() {
         {
             continue;
         }
-        let mut handle = dev.open().unwrap();
+        let handle = dev.open().unwrap();
 
         let interface_number = if let Some(num) = find_hid_interface(&handle) {
             num

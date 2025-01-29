@@ -4,7 +4,6 @@ use std::sync::{Arc, Mutex};
 #[allow(unused_imports)]
 use windows::{
     core::*,
-    w,
     Win32::Foundation::*,
     Win32::{
         Storage::FileSystem::*,
@@ -15,8 +14,14 @@ use windows::{
 use crate::chromium_ec::EC_MEMMAP_SIZE;
 use crate::chromium_ec::{EcError, EcResponseStatus, EcResult};
 
+// Create a wrapper around HANDLE to mark it as Send.
+// I'm not sure, but I think it's safe to do that for this type of HANDL.
+#[derive(Copy, Clone)]
+struct DevHandle(HANDLE);
+unsafe impl Send for DevHandle {}
+
 lazy_static! {
-    static ref DEVICE: Arc<Mutex<Option<HANDLE>>> = Arc::new(Mutex::new(None));
+    static ref DEVICE: Arc<Mutex<Option<DevHandle>>> = Arc::new(Mutex::new(None));
 }
 
 fn init() {
@@ -27,10 +32,10 @@ fn init() {
 
     let path = w!(r"\\.\GLOBALROOT\Device\CrosEC");
     unsafe {
-        *device = Some(
+        *device = Some(DevHandle(
             CreateFileW(
                 path,
-                FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+                FILE_GENERIC_READ.0 | FILE_GENERIC_WRITE.0,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,
                 None,
                 OPEN_EXISTING,
@@ -38,7 +43,7 @@ fn init() {
                 None,
             )
             .unwrap(),
-        );
+        ));
     }
 }
 
@@ -56,8 +61,13 @@ pub fn read_memory(offset: u16, length: u16) -> EcResult<Vec<u8>> {
     let retb: u32 = 0;
     unsafe {
         let device = DEVICE.lock().unwrap();
+        let device = if let Some(device) = *device {
+            device
+        } else {
+            return EcResult::Err(EcError::DeviceError("No EC device".to_string()));
+        };
         DeviceIoControl(
-            *device,
+            device.0,
             IOCTL_CROSEC_RDMEM,
             Some(const_ptr),
             ptr_size,
@@ -94,8 +104,13 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
 
     unsafe {
         let device = DEVICE.lock().unwrap();
+        let device = if let Some(device) = *device {
+            device
+        } else {
+            return EcResult::Err(EcError::DeviceError("No EC device".to_string()));
+        };
         DeviceIoControl(
-            *device,
+            device.0,
             IOCTL_CROSEC_XCMD,
             Some(const_ptr),
             size.try_into().unwrap(),
@@ -103,7 +118,8 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
             size.try_into().unwrap(),
             Some(&mut returned as *mut u32),
             None,
-        );
+        )
+        .unwrap();
     }
 
     match FromPrimitive::from_u32(cmd.result) {
