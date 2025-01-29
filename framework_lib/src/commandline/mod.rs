@@ -516,7 +516,7 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
 
     if let Some(smbios) = get_smbios() {
         let bios_entries = smbios.collect::<SMBiosInformation>();
-        let bios = bios_entries.get(0).unwrap();
+        let bios = bios_entries.first().unwrap();
 
         if device == Some(HardwareDeviceType::BIOS) {
             println!("Comparing BIOS version {:?}", bios.version().to_string());
