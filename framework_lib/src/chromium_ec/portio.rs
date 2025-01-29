@@ -126,7 +126,8 @@ struct EcHostResponse {
     /// Reserved byte in protocol v3. Must be 0
     pub reserved: u16,
 }
-const _HEADER_LEN: usize = std::mem::size_of::<EcHostResponse>();
+#[allow(dead_code)]
+pub const HEADER_LEN: usize = std::mem::size_of::<EcHostResponse>();
 
 fn transfer_write(buffer: &[u8]) {
     if has_mec() {

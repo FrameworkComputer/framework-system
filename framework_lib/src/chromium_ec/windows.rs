@@ -11,6 +11,7 @@ use windows::{
     },
 };
 
+use crate::chromium_ec::portio::HEADER_LEN;
 use crate::chromium_ec::EC_MEMMAP_SIZE;
 use crate::chromium_ec::{EcError, EcResponseStatus, EcResult};
 
@@ -89,16 +90,18 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
         version: command_version as u32,
         command: command as u32,
         outsize: data.len() as u32,
-        insize: CROSEC_CMD_MAX_REQUEST as u32,
+        insize: (CROSEC_CMD_MAX_REQUEST - HEADER_LEN) as u32,
         result: 0xFF,
-        buffer: [0_u8; 256],
+        buffer: [0_u8; CROSEC_CMD_MAX_REQUEST],
     };
     cmd.buffer[0..data.len()].clone_from_slice(data);
 
-    let size = std::mem::size_of::<CrosEcCommand>();
+    let buf_size = std::mem::size_of::<CrosEcCommand>();
+    // Must keep 8 bytes of space for the EC command request/response headers
+    let cmd_len = buf_size - HEADER_LEN;
+    let out_len = buf_size - HEADER_LEN;
     let const_ptr = &mut cmd as *const _ as *const ::core::ffi::c_void;
     let mut_ptr = &mut cmd as *mut _ as *mut ::core::ffi::c_void;
-    let _ptr_size = std::mem::size_of::<CrosEcCommand>() as u32;
 
     let mut returned: u32 = 0;
 
@@ -113,9 +116,9 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
             device.0,
             IOCTL_CROSEC_XCMD,
             Some(const_ptr),
-            size.try_into().unwrap(),
+            cmd_len.try_into().unwrap(),
             Some(mut_ptr),
-            size.try_into().unwrap(),
+            out_len.try_into().unwrap(),
             Some(&mut returned as *mut u32),
             None,
         )
@@ -129,7 +132,7 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
     }
 
     // TODO: Figure out why that's sometimes bigger
-    let end = std::cmp::min(returned, 256);
+    let end = std::cmp::min(returned, CROSEC_CMD_MAX_REQUEST as u32);
 
     let out_buffer = &cmd.buffer[..(end as usize)];
     Ok(out_buffer.to_vec())
