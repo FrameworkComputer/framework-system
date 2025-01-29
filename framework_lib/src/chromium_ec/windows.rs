@@ -55,8 +55,13 @@ pub fn read_memory(offset: u16, length: u16) -> EcResult<Vec<u8>> {
     let retb: u32 = 0;
     unsafe {
         let device = DEVICE.lock().unwrap();
+        let device = if let Some(device) = *device {
+            device
+        } else {
+            return EcResult::Err(EcError::DeviceError("No EC device".to_string()));
+        };
         DeviceIoControl(
-            *device,
+            device,
             IOCTL_CROSEC_RDMEM,
             Some(const_ptr),
             ptr_size,
@@ -93,8 +98,13 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
 
     unsafe {
         let device = DEVICE.lock().unwrap();
+        let device = if let Some(device) = *device {
+            device
+        } else {
+            return EcResult::Err(EcError::DeviceError("No EC device".to_string()));
+        };
         DeviceIoControl(
-            *device,
+            device,
             IOCTL_CROSEC_XCMD,
             Some(const_ptr),
             size.try_into().unwrap(),
