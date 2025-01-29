@@ -1,6 +1,7 @@
 use nix::ioctl_readwrite;
 use num_traits::FromPrimitive;
 use std::os::unix::io::AsRawFd;
+use std::sync::{Arc, Mutex};
 
 use crate::chromium_ec::command::EcCommands;
 use crate::chromium_ec::{EcError, EcResponseStatus, EcResult, EC_MEMMAP_SIZE};
@@ -56,9 +57,9 @@ struct CrosEcCommandV2 {
 
 const DEV_PATH: &str = "/dev/cros_ec";
 
-// TODO: Make sure this is thread-safe!
-// Are file descriptors threadsafe? Or do I need to open one per thread?
-static mut CROS_EC_FD: Option<std::fs::File> = None;
+lazy_static! {
+    static ref CROS_EC_FD: Arc<Mutex<Option<std::fs::File>>> = Arc::new(Mutex::new(None));
+}
 
 const CROS_EC_IOC_MAGIC: u8 = 0xEC;
 ioctl_readwrite!(cros_ec_cmd, CROS_EC_IOC_MAGIC, 0, _CrosEcCommandV2);
@@ -67,14 +68,19 @@ ioctl_readwrite!(cros_ec_mem, CROS_EC_IOC_MAGIC, 1, CrosEcReadMem);
 //ioctl_none!(cros_ec_eventmask, CROS_EC_IOC_MAGIC, 2);
 
 fn get_fildes() -> i32 {
-    unsafe { CROS_EC_FD.as_ref().unwrap().as_raw_fd() }
+    let fd = CROS_EC_FD.lock().unwrap();
+    fd.as_ref().unwrap().as_raw_fd()
 }
 
 // TODO: Also de-init
 fn init() {
+    let mut device = CROS_EC_FD.lock().unwrap();
+    if (*device).is_some() {
+        return;
+    }
     match std::fs::File::open(DEV_PATH) {
         Err(why) => println!("Failed to open {}. Because: {:?}", DEV_PATH, why),
-        Ok(file) => unsafe { CROS_EC_FD = Some(file) },
+        Ok(file) => *device = Some(file),
     };
     // 2. Read max 80 bytes and check if equal to "1.0.0"
     // 3. Make sure it's v2
