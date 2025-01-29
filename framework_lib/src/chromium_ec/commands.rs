@@ -412,7 +412,8 @@ pub enum RebootEcFlags {
 }
 
 pub struct EcRequestRebootEc {
-    pub cmd: u8, /* enum RebootEcCmd */
+    /// See enum RebootEcCmd
+    pub cmd: u8,
     pub flags: u8,
 }
 
@@ -770,10 +771,8 @@ impl EcRequest<EcResponseChargeLimitControl> for EcRequestChargeLimitControl {
     }
 }
 
-/*
- * Configure the behavior of the charge limit control.
- * TODO: Use this
- */
+/// Configure the behavior of the charge limit control.
+/// TODO: Use this
 pub const EC_CHARGE_LIMIT_RESTORE: u8 = 0x7F;
 
 #[repr(u8)]
