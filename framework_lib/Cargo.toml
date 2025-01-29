@@ -3,7 +3,8 @@ name = "framework_lib"
 version = "0.1.0"
 edition = "2021"
 # Minimum Supported Rust Version
-rust-version = "1.68"
+# Ubuntu 24.04 LTS ships 1.75
+rust-version = "1.74"
 build = "build.rs"
 
 [features]
