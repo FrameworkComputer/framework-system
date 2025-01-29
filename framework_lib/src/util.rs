@@ -36,7 +36,8 @@ pub enum Platform {
 
 #[derive(Debug)]
 pub struct Config {
-    pub verbose: bool,
+    // TODO: Actually set and read this
+    pub _verbose: bool,
     pub platform: Platform,
 }
 
@@ -49,7 +50,7 @@ impl Config {
 
         if (*config).is_none() {
             *config = Some(Config {
-                verbose: false,
+                _verbose: false,
                 platform,
             });
         }
@@ -76,7 +77,7 @@ impl Config {
             // get_platform will call Config::get() recursively,
             // can't hold the lock when calling it
             smbios::get_platform().map(|platform| Config {
-                verbose: false,
+                _verbose: false,
                 platform,
             })
         } else {
