@@ -348,12 +348,12 @@ pub fn get_esrt() -> Option<Esrt> {
     debug!("Querying WMI");
     let results: Vec<HashMap<String, Variant>> = wmi_con.raw_query("SELECT HardwareID, Name FROM Win32_PnPEntity WHERE ClassGUID = '{f2e7dd72-6468-4e36-b6f1-6488f42c1b52}'").unwrap();
 
+    let re = regex::Regex::new(r"([\-a-h0-9]+)\}&REV_([A-F0-9]+)").expect("Bad regex");
     for (i, val) in results.iter().enumerate() {
         let hwid = &val["HardwareID"];
         if let Variant::Array(strs) = hwid {
             if let Variant::String(s) = &strs[0] {
                 // Sample "UEFI\\RES_{c57fd615-2ac9-4154-bf34-4dc715344408}&REV_CF"
-                let re = regex::Regex::new(r"([\-a-h0-9]+)\}&REV_([A-F0-9]+)").expect("Bad regex");
                 let caps = re.captures(s).expect("No caps");
                 let guid_str = caps.get(1).unwrap().as_str().to_string();
                 let ver_str = caps.get(2).unwrap().as_str().to_string();
