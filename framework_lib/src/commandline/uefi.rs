@@ -57,6 +57,7 @@ pub fn parse(args: &[String]) -> Cli {
         paginate: false,
         versions: false,
         version: false,
+        features: false,
         esrt: false,
         device: None,
         compare_version: None,
@@ -122,6 +123,9 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--version" {
             cli.version = true;
+            found_an_option = true;
+        } else if arg == "--features" {
+            cli.features = true;
             found_an_option = true;
         } else if arg == "-b" {
             cli.paginate = true;

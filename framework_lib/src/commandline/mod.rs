@@ -121,6 +121,7 @@ pub struct Cli {
     pub verbosity: log::LevelFilter,
     pub versions: bool,
     pub version: bool,
+    pub features: bool,
     pub esrt: bool,
     pub device: Option<HardwareDeviceType>,
     pub compare_version: Option<String>,
@@ -679,6 +680,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_versions(&ec);
     } else if args.version {
         print_tool_version();
+    } else if args.features {
+        ec.get_features().unwrap();
     } else if args.esrt {
         print_esrt();
     } else if let Some(compare_version_ver) = &args.compare_version {
@@ -963,6 +966,7 @@ Options:
   -q, --quiet...             Less output per occurrence
       --versions             List current firmware versions
       --version              Show tool version information (Add -vv for more detailed information)
+      --features             Show features support by the firmware
       --esrt                 Display the UEFI ESRT table
       --device <DEVICE>      Device used to compare firmware version [possible values: bios, ec, pd0, pd1, rtm01, rtm23]
       --compare-version      Version string used to match firmware version (use with --device)

@@ -23,6 +23,10 @@ struct ClapCli {
     #[arg(long)]
     version: bool,
 
+    /// Show features support by the firmware
+    #[arg(long)]
+    features: bool,
+
     /// Display the UEFI ESRT table
     #[arg(long)]
     esrt: bool,
@@ -212,6 +216,7 @@ pub fn parse(args: &[String]) -> Cli {
         verbosity: args.verbosity.log_level_filter(),
         versions: args.versions,
         version: args.version,
+        features: args.features,
         esrt: args.esrt,
         device: args.device,
         compare_version: args.compare_version,
