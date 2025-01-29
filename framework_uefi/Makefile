@@ -45,5 +45,4 @@ $(BUILD)/boot.efi: ../Cargo.lock $(SRC_DIR)/Cargo.toml $(SRC_DIR)/src/*
 		--target $(TARGET) \
 		--release \
 		-- \
-		-C soft-float \
 		--emit link=framework_uefi/$@
