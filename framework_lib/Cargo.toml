@@ -52,7 +52,7 @@ clap = { version = "4.0", features = ["derive"], optional = true }
 clap-verbosity-flag = { version = "2.0.1", optional = true }
 nix = { version = "0.25.0", optional = true }
 num = { version = "0.4", default-features = false }
-num-derive = { version = "0.3", default-features = false }
+num-derive = { version = "0.4", default-features = false }
 num-traits = { version = "0.2", default-features = false }
 env_logger = { version = "0.10.0", optional = true }
 log = { version = "0.4", default-features = true }
