@@ -547,11 +547,7 @@ impl CrosEc {
     pub fn read_ec_flash_chunk(&self, offset: u32, size: u32) -> EcResult<Vec<u8>> {
         // TODO: Windows asserts
         //assert!(size <= 0x80); // TODO: I think this is EC_LPC_HOST_PACKET_SIZE - size_of::<EcHostResponse>()
-        let data = EcRequestFlashRead { offset, size }.send_command_vec(self);
-        let data = match data {
-            Ok(data) => data,
-            Err(err) => return Err(err),
-        };
+        let data = EcRequestFlashRead { offset, size }.send_command_vec(self)?;
 
         // TODO: Windows asserts because it returns more data
         //debug_assert!(data.len() == size as usize); // Make sure we get back what was requested

@@ -220,11 +220,7 @@ impl PdController {
         buffer[params_len..params_len + msgs_len].copy_from_slice(msgs_buffer);
         buffer[params_len + msgs_len..].copy_from_slice(&addr_bytes);
 
-        let data = self.send_ec_command(EcCommands::I2cPassthrough as u16, 0, &buffer);
-        let data = match data {
-            Ok(data) => data,
-            Err(err) => return Err(err),
-        };
+        let data = self.send_ec_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
         let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
         let res_data = &data[size_of::<_EcI2cPassthruResponse>()..];
         // TODO: Seems to be either one, non-deterministically
