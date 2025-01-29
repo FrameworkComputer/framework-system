@@ -165,7 +165,7 @@ impl From<PowerInfo> for ReducedPowerInfo {
 
 fn read_string(ec: &CrosEc, address: u16) -> String {
     let bytes = ec.read_memory(address, EC_MEMMAP_TEXT_MAX).unwrap();
-    String::from_utf8_lossy(bytes.as_slice()).replace(|c: char| c == '\0', "")
+    String::from_utf8_lossy(bytes.as_slice()).replace(['\0'], "")
 }
 
 fn read_u32(ec: &CrosEc, address: u16) -> u32 {

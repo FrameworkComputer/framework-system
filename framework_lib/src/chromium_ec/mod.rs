@@ -769,7 +769,7 @@ impl CrosEc {
                     let utf8 = std::str::from_utf8(&data).unwrap();
                     let ascii = utf8
                         .replace(|c: char| !c.is_ascii(), "")
-                        .replace(|c: char| c == '\0', "");
+                        .replace(['\0'], "");
 
                     print!("{}", ascii);
                     console.push_str(ascii.as_str());
@@ -799,7 +799,7 @@ impl CrosEc {
         let utf8 = std::str::from_utf8(&data).unwrap();
         let ascii = utf8
             .replace(|c: char| !c.is_ascii(), "")
-            .replace(|c: char| c == '\0', "");
+            .replace(['\0'], "");
         Ok(ascii)
     }
 
