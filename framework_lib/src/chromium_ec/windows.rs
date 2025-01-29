@@ -4,7 +4,6 @@ use std::sync::{Arc, Mutex};
 #[allow(unused_imports)]
 use windows::{
     core::*,
-    w,
     Win32::Foundation::*,
     Win32::{
         Storage::FileSystem::*,
@@ -30,7 +29,7 @@ fn init() {
         *device = Some(
             CreateFileW(
                 path,
-                FILE_GENERIC_READ | FILE_GENERIC_WRITE,
+                FILE_GENERIC_READ.0 | FILE_GENERIC_WRITE.0,
                 FILE_SHARE_READ | FILE_SHARE_WRITE,
                 None,
                 OPEN_EXISTING,
