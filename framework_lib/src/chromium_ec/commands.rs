@@ -233,6 +233,146 @@ impl EcRequest<()> for EcRequestConsoleRead {
     }
 }
 
+/// Supported features
+#[derive(Debug, FromPrimitive)]
+pub enum EcFeatureCode {
+    /// This image contains a limited set of features. Another image
+    /// in RW partition may support more features.
+    Limited = 0,
+    /// Commands for probing/reading/writing/erasing the flash in the
+    /// EC are present.
+    Flash = 1,
+    /// Can control the fan speed directly.
+    PwmFan = 2,
+    /// Can control the intensity of the keyboard backlight.
+    PwmKeyboardBacklight = 3,
+    /// Support Google lightbar, introduced on Pixel.
+    Lightbar = 4,
+    /// Control of LEDs
+    Led = 5,
+    /// Exposes an interface to control gyro and sensors.
+    /// The host goes through the EC to access these sensors.
+    /// In addition, the EC may provide composite sensors, like lid angle.
+    MotionSense = 6,
+    /// The keyboard is controlled by the EC
+    Keyboard = 7,
+    /// The AP can use part of the EC flash as persistent storage.
+    PersistentStorage = 8,
+    /// The EC monitors BIOS port 80h, and can return POST codes.
+    Port80 = 9,
+    /// Thermal management: include TMP specific commands.
+    /// Higher level than direct fan control.
+    Thermal = 10,
+    /// Can switch the screen backlight on/off
+    BacklightSwitch = 11,
+    /// Can switch the wifi module on/off
+    WifiSwitch = 12,
+    /// Monitor host events, through for example SMI or SCI
+    HostEvents = 13,
+    /// The EC exposes GPIO commands to control/monitor connected devices.
+    Gpio = 14,
+    /// The EC can send i2c messages to downstream devices.
+    I2c = 15,
+    /// Command to control charger are included
+    Charger = 16,
+    /// Simple battery support.
+    Battery = 17,
+    /// Support Smart battery protocol
+    /// (Common Smart Battery System Interface Specification)
+    SmartBattery = 18,
+    /// EC can detect when the host hangs.
+    HangDetect = 19,
+    /// Report power information, for pit only
+    Pmu = 20,
+    /// Another Cros EC device is present downstream of this one
+    SubMcu = 21,
+    /// Support USB Power delivery (PD) commands
+    UsbPd = 22,
+    /// Control USB multiplexer, for audio through USB port for instance.
+    UsbMux = 23,
+    /// Motion Sensor code has an internal software FIFO
+    MotionSenseFifo = 24,
+    /// Support temporary secure vstore
+    SecureVstore = 25,
+    /// EC decides on USB-C SS mux state, muxes configured by host
+    UsbcSsMuxVirtual = 26,
+    /// EC has RTC feature that can be controlled by host commands
+    Rtc = 27,
+    /// The MCU exposes a Fingerprint sensor
+    Fingerprint = 28,
+    /// The MCU exposes a Touchpad
+    Touchpad = 29,
+    /// The MCU has RWSIG task enabled
+    RwSig = 30,
+    /// EC has device events support
+    DeviceEvent = 31,
+    /// EC supports the unified wake masks for LPC/eSPI systems
+    UnifiedWakeMasks = 32,
+    /// EC supports 64-bit host events
+    HostEvent64 = 33,
+    /// EC runs code in RAM (not in place, a.k.a. XIP)
+    ExecInRam = 34,
+    /// EC supports CEC commands
+    Cec = 35,
+    /// EC supports tight sensor timestamping.
+    MotionSenseTightTimesStamps = 36,
+    ///
+    /// EC supports tablet mode detection aligned to Chrome and allows
+    /// setting of threshold by host command using
+    /// MOTIONSENSE_CMD_TABLET_MODE_LID_ANGLE.
+    RefinedTabletModeHysteresis = 37,
+    /// Early Firmware Selection ver.2. Enabled by CONFIG_VBOOT_EFS2.
+    /// Note this is a RO feature. So, a query (EC_CMD_GET_FEATURES) should
+    /// be sent to RO to be precise.
+    Efs2 = 38,
+    /// The MCU is a System Companion Processor (SCP).
+    Scp = 39,
+    /// The MCU is an Integrated Sensor Hub
+    Ish = 40,
+    /// New TCPMv2 TYPEC_ prefaced commands supported
+    TypecCmd = 41,
+    /// The EC will wait for direction from the AP to enter Type-C alternate
+    /// modes or USB4.
+    TypecRequireApModeEntry = 42,
+    /// The EC will wait for an acknowledge from the AP after setting the
+    /// mux.
+    TypeCMuxRequireApAck = 43,
+    /// The EC supports entering and residing in S4.
+    S4Residency = 44,
+    /// The EC supports the AP directing mux sets for the board.
+    TypeCApMuxSet = 45,
+    /// The EC supports the AP composing VDMs for us to send.
+    TypeCApVdmSend = 46,
+    /// The EC supports system safe mode panic recovery.
+    SystemSafeMode = 47,
+    /// The EC will reboot on runtime assertion failures.
+    AssertReboots = 48,
+    /// The EC image is built with tokenized logging enabled.
+    TokenizedLogging = 49,
+    /// The EC supports triggering an STB dump.
+    AmdStbDump = 50,
+    /// The EC supports memory dump commands.
+    MemoryDump = 51,
+    /// The EC supports DP2.1 capability
+    Dp21 = 52,
+    /// The MCU is System Companion Processor Core 1
+    ScpC1 = 53,
+    /// The EC supports UCSI PPM.
+    UcsiPpm = 54,
+}
+
+pub struct EcRequestGetFeatures {}
+
+pub struct EcResponseGetFeatures {
+    pub flags: [u32; 2],
+}
+
+impl EcRequest<EcResponseGetFeatures> for EcRequestGetFeatures {
+    fn command_id() -> EcCommands {
+        EcCommands::GetFeatures
+    }
+}
+
 #[repr(u8)]
 pub enum RebootEcCmd {
     /// Cancel a pending reboot

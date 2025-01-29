@@ -807,6 +807,23 @@ impl CrosEc {
         Ok(ascii)
     }
 
+    /// Check features supported by the firmware
+    pub fn get_features(&self) -> EcResult<()> {
+        let data = EcRequestGetFeatures {}.send_command(self)?;
+        for i in 0..64 {
+            let byte = i / 32;
+            let bit = i % 32;
+            let val = (data.flags[byte] & (1 << bit)) > 0;
+            let feat: Option<EcFeatureCode> = FromPrimitive::from_usize(i);
+
+            if let Some(feat) = feat {
+                println!("{:>2}: {:>5} {:?}", i, val, feat);
+            }
+        }
+
+        Ok(())
+    }
+
     /// Instantly reboot EC and host
     pub fn reboot(&self) -> EcResult<()> {
         EcRequestReboot {}.send_command(self)
