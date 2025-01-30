@@ -174,9 +174,54 @@ pub struct EcResponsePwmGetKeyboardBacklight {
     pub enabled: u8,
 }
 
+#[repr(u8)]
+pub enum PwmType {
+    Generic = 0,
+    KbLight,
+    DisplayLight,
+}
+
 impl EcRequest<EcResponsePwmGetKeyboardBacklight> for EcRequestPwmGetKeyboardBacklight {
     fn command_id() -> EcCommands {
         EcCommands::PwmGetKeyboardBacklight
+    }
+}
+
+pub const PWM_MAX_DUTY: u16 = 0xFFFF;
+
+#[repr(C, packed)]
+pub struct EcRequestPwmSetDuty {
+    /// Duty cycle, min 0, max 0xFFFF
+    pub duty: u16,
+    /// See enum PwmType
+    pub pwm_type: u8,
+    /// Type-specific index, or 0 if unique
+    pub index: u8,
+}
+
+impl EcRequest<()> for EcRequestPwmSetDuty {
+    fn command_id() -> EcCommands {
+        EcCommands::PwmSetDuty
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestPwmGetDuty {
+    /// See enum PwmType
+    pub pwm_type: u8,
+    /// Type-specific index, or 0 if unique
+    pub index: u8,
+}
+
+#[repr(C, packed)]
+pub struct EcResponsePwmGetDuty {
+    /// Duty cycle, min 0, max 0xFFFF
+    pub duty: u16,
+}
+
+impl EcRequest<EcResponsePwmGetDuty> for EcRequestPwmGetDuty {
+    fn command_id() -> EcCommands {
+        EcCommands::PwmGetDuty
     }
 }
 
