@@ -371,22 +371,25 @@ impl CrosEc {
     /// * `percent` - An integer from 0 to 100. 0 being off, 100 being full brightness
     pub fn set_keyboard_backlight(&self, percent: u8) {
         debug_assert!(percent <= 100);
-        let res = EcRequestPwmSetKeyboardBacklight { percent }.send_command(self);
+        let res = EcRequestPwmSetDuty {
+            duty: percent as u16 * (PWM_MAX_DUTY / 100),
+            pwm_type: PwmType::KbLight as u8,
+            index: 0,
+        }
+        .send_command(self);
         debug_assert!(res.is_ok());
     }
 
     /// Check the current brightness of the keyboard backlight
     ///
     pub fn get_keyboard_backlight(&self) -> EcResult<u8> {
-        let kblight = EcRequestPwmGetKeyboardBacklight {}.send_command(self)?;
-
-        // The enabled field is deprecated and must always be 1
-        debug_assert_eq!(kblight.enabled, 1);
-        if !kblight.enabled == 0 {
-            error!("Should always be enabled, even if OFF");
+        let kblight = EcRequestPwmGetDuty {
+            pwm_type: PwmType::KbLight as u8,
+            index: 0,
         }
+        .send_command(self)?;
 
-        Ok(kblight.percent)
+        Ok((kblight.duty / (PWM_MAX_DUTY / 100)) as u8)
     }
 
     /// Overwrite RO and RW regions of EC flash
