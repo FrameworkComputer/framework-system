@@ -181,7 +181,11 @@ impl From<Vec<u8>> for AccelData {
 }
 impl fmt::Display for AccelData {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "X: {:>5} Y: {:>5}, Z: {:>5}", self.x, self.y, self.z)
+        let quarter: f32 = 0xFFFF as f32 / 4.0;
+        let x = (self.x as f32) / quarter;
+        let y = (self.y as f32) / quarter;
+        let z = (self.z as f32) / quarter;
+        write!(f, "X: {:.2}G Y: {:.2}G, Z: {:.2}G", x, y, z)
     }
 }
 
