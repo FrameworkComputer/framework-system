@@ -1,5 +1,6 @@
 //! Interact with Infineon (formerly Cypress) PD controllers (their firmware binaries) in the CCGx series
 
+use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
 #[cfg(feature = "uefi")]
@@ -117,6 +118,14 @@ pub struct BaseVersion {
     /// Build Number part of the version. PP of X.Y.Z.BB
     pub build_number: u16,
 }
+impl BaseVersion {
+    pub fn to_dec_string(&self) -> String {
+        format!(
+            "{}.{}.{}.{:0>3}",
+            self.major, self.minor, self.patch, self.build_number
+        )
+    }
+}
 impl fmt::Display for BaseVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -215,8 +224,9 @@ impl ControllerFirmwares {
     pub fn active_fw_ver(&self) -> String {
         let active = self.active_fw();
         // On 11th Gen we modified base version instead of app version
+        // And it's formatted as decimal instead of hex
         if let Some(Platform::IntelGen11) = smbios::get_platform() {
-            active.base.to_string()
+            active.base.to_dec_string()
         } else {
             active.app.to_string()
         }
