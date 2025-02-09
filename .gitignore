@@ -4,3 +4,4 @@ build/
 *.efi
 *.exe
 *.pdb
+framework_tool_config.toml
