@@ -282,6 +282,389 @@ impl EcRequest<EcResponsePwmGetDuty> for EcRequestPwmGetDuty {
     }
 }
 
+#[repr(C, u8)]
+pub enum EcRequestMotionSense {
+    /// Used for MOTIONSENSE_CMD_DUMP
+    Dump {
+        /*
+            * Maximal number of sensor the host is expecting.
+            * 0 means the host is only interested in the number
+            * of sensors controlled by the EC.
+            */
+        max_sensor_count: u8
+    },
+
+    /// Used for MOTIONSENSE_CMD_KB_WAKE_ANGLE.
+	KbWakeAngle {
+        /* Data to set or EC_MOTION_SENSE_NO_VALUE to read.
+        * kb_wake_angle: angle to wakup AP.
+        */
+        data: u16
+    },
+
+    /// Used for MOTIONSENSE_CMD_INFO, MOTIONSENSE_CMD_DATA
+    InfoData {
+        sensor_num: u8
+    },
+
+    // Used for MOTIONSENSE_CMD_PERFORM_CALIB:
+    // Allow entering/exiting the calibration mode.
+    PerformCalib {
+        sensor_num: u8,
+        enable: u8
+    },
+
+    /// Used for MOTIONSENSE_CMD_EC_RATE, MOTIONSENSE_CMD_SENSOR_ODR
+    /// and MOTIONSENSE_CMD_SENSOR_RANGE.
+    RateOdrRange {
+        sensor_num: u8,
+
+        /* Rounding flag, true for round-up, false for down. */
+        roundup: u8,
+
+        reserved: u16,
+
+        /* Data to set or EC_MOTION_SENSE_NO_VALUE to read. */
+        data: i32,
+    },
+
+    /// Used for MOTIONSENSE_CMD_SENSOR_OFFSET
+    Offset {
+        sensor_num: u8,
+
+        /*
+            * bit 0: If set (MOTION_SENSE_SET_OFFSET), set
+            * the calibration information in the EC.
+            * If unset, just retrieve calibration information.
+            */
+        flags: u16,
+
+        /*
+            * Temperature at calibration, in units of 0.01 C
+            * 0x8000: invalid / unknown.
+            * 0x0: 0C
+            * 0x7fff: +327.67C
+            */
+        temp: i16,
+
+        /*
+            * Offset for calibration.
+            * Unit:
+            * Accelerometer: 1/1024 g
+            * Gyro:          1/1024 deg/s
+            * Compass:       1/16 uT
+            */
+        offset: [i16; 3],
+    },
+
+    /// Used for MOTIONSENSE_CMD_SENSOR_SCALE
+	Scale {
+        sensor_num: u8,
+
+        /*
+            * bit 0: If set (MOTION_SENSE_SET_OFFSET), set
+            * the calibration information in the EC.
+            * If unset, just retrieve calibration information.
+            */
+        flags: u16,
+
+        /*
+            * Temperature at calibration, in units of 0.01 C
+            * 0x8000: invalid / unknown.
+            * 0x0: 0C
+            * 0x7fff: +327.67C
+            */
+        temp: i16,
+
+        /*
+            * Scale for calibration:
+            * By default scale is 1, it is encoded on 16bits:
+            * 1 = BIT(15)
+            * ~2 = 0xFFFF
+            * ~0 = 0.
+            */
+        scale: [u16; 3],
+    },
+
+    /// Used for MOTIONSENSE_CMD_FIFO_INFO
+    FifoInfo,
+
+    /// Used for MOTIONSENSE_CMD_FIFO_READ
+    FifoRead {
+        /*
+        * Number of expected vector to return.
+        * EC may return less or 0 if none available.
+        */
+        max_data_vector: u32,
+    },
+
+    /* Used for MOTIONSENSE_CMD_SET_ACTIVITY */
+    SetActivity,
+    // TODO: struct ec_motion_sense_activity set_activity;
+
+    /// Used for MOTIONSENSE_CMD_LID_ANGLE
+    LidAngle,
+
+    /// Used for MOTIONSENSE_CMD_FIFO_INT_ENABLE
+    FifoIntEnable {
+        /*
+        * 1: enable, 0 disable fifo,
+        * EC_MOTION_SENSE_NO_VALUE return value.
+        */
+        enable: i8,
+    },
+
+    // Used for MOTIONSENSE_CMD_SPOOF */
+    // TODO
+    // Spoof {
+    //     sensor_id: u8,
+
+    //     /* See enum motionsense_spoof_mode. */
+    //     spoof_enable: u8,
+
+    //     /* Ignored, used for alignment. */
+    //     reserved: u8,
+
+    //     union {
+    //         /* Individual component values to spoof. */
+    //         INT16 components[3];
+
+    //         /* Used when spoofing an activity */
+    //         struct {
+    //             /* enum motionsensor_activity */
+    //             UINT8 activity_num;
+
+    //             /* spoof activity state */
+    //             UINT8 activity_state;
+    //         };
+    //     };
+    // },
+
+    /// Used for MOTIONSENSE_CMD_TABLET_MODE_LID_ANGLE.
+    TableModeLidAngle {
+        /*
+            * Lid angle threshold for switching between tablet and
+            * clamshell mode.
+            */
+        lid_angle: i16,
+
+        /*
+            * Hysteresis degree to prevent fluctuations between
+            * clamshell and tablet mode if lid angle keeps
+            * changing around the threshold. Lid motion driver will
+            * use lid_angle + hys_degree to trigger tablet mode and
+            * lid_angle - hys_degree to trigger clamshell mode.
+            */
+        hys_degree: i16,
+    },
+
+    OnlineCalibRead {
+		/*
+		 * Used for MOTIONSENSE_CMD_ONLINE_CALIB_READ:
+		 * Allow reading a single sensor's online calibration value.
+		 */
+        sensor_num: u8
+    },
+
+    /// Used for MOTIONSENSE_CMD_GET_ACTIVITY.
+    GetActivity {
+        sensor_num: u8,
+        activity: u8, /* enum motionsensor_activity */
+    },
+}
+
+//#[repr(C, packed)]
+//pub struct EcRequestMotionSense {
+//    pub cmd: u8;
+//    pub params: MotionSenseParams
+//}
+
+#[repr(C)]
+#[derive(Debug)]
+pub enum EcResponseMotionSense {
+    /* Used for MOTIONSENSE_CMD_DUMP */
+    Dump {
+        /* Flags representing the motion sensor module. */
+        module_flags: u8,
+
+        /* Number of sensors managed directly by the EC. */
+        sensor_count: u8,
+
+        /*
+            * Sensor data is truncated if response_max is too small
+            * for holding all the data.
+            */
+        // struct ec_response_motion_sensor_data sensor[0];
+    },
+
+    /* Used for MOTIONSENSE_CMD_INFO. */
+    Info {
+        /* Should be element of enum motionsensor_type. */
+        sensor_type: u8,
+
+        /* Should be element of enum motionsensor_location. */
+        location: u8,
+
+        /* Should be element of enum motionsensor_chip. */
+        chip: u8,
+    },
+
+		/* Used for MOTIONSENSE_CMD_INFO version 3 */
+    InfoV3 {
+        /* Should be element of enum motionsensor_type. */
+        sensor_type: u8,
+
+        /* Should be element of enum motionsensor_location. */
+        location: u8,
+
+        /* Should be element of enum motionsensor_chip. */
+        chip: u8,
+
+        /* Minimum sensor sampling frequency */
+        min_frequency: u32,
+
+        /* Maximum sensor sampling frequency */
+        max_frequency: u32,
+
+        /* Max number of sensor events that could be in fifo */
+        fifo_max_event_count: u32,
+    },
+
+    /* Used for MOTIONSENSE_CMD_INFO version 4 */
+    InfoV4 {
+        /* Should be element of enum motionsensor_type. */
+        sensor_type: u8,
+
+        /* Should be element of enum motionsensor_location. */
+        location: u8,
+
+        /* Should be element of enum motionsensor_chip. */
+        chip: u8,
+
+        /* Minimum sensor sampling frequency */
+        min_frequency: u32,
+
+        /* Maximum sensor sampling frequency */
+        max_frequency: u32,
+
+        /* Max number of sensor events that could be in fifo */
+        fifo_max_event_count: u32,
+
+        /*
+            * Should be elements of
+            * enum motion_sense_cmd_info_flags
+            */
+        flags: u32,
+    },
+
+    /* Used for MOTIONSENSE_CMD_DATA */
+    // struct ec_response_motion_sensor_data data;
+
+    // /*
+    //     * Used for MOTIONSENSE_CMD_EC_RATE, MOTIONSENSE_CMD_SENSOR_ODR,
+    //     * MOTIONSENSE_CMD_SENSOR_RANGE,
+    //     * MOTIONSENSE_CMD_KB_WAKE_ANGLE,
+    //     * MOTIONSENSE_CMD_FIFO_INT_ENABLE and
+    //     * MOTIONSENSE_CMD_SPOOF.
+    //     */
+    // struct {
+    //     /* Current value of the parameter queried. */
+    //     INT32 ret: i32,
+    // }
+    RateOdrRange(i32),
+    KbWakeAngle(i32),
+    FifoIntEnable(i32),
+    Spoof(i32),
+
+    /*
+        * Used for MOTIONSENSE_CMD_SENSOR_OFFSET,
+        * PERFORM_CALIB.
+        */
+    Offset {
+        temp: i16,
+        offset: [i16; 3],
+    },
+
+    PerformCalib {
+        temp: i16,
+        offset: [i16; 3],
+    },
+
+		/* Used for MOTIONSENSE_CMD_SENSOR_SCALE */
+    SensorScale {
+        temp: u16,
+        scale: [u16; 3],
+    },
+
+    // struct ec_response_motion_sense_fifo_info fifo_info, fifo_flush;
+
+    // struct ec_response_motion_sense_fifo_data fifo_read;
+
+    // struct ec_response_online_calibration_data online_calib_read;
+
+    // struct {
+    //     reserved: u16,
+    //     enabled: u32,
+    //     disabled: u32,
+    // } list_activities;
+
+    /* No params for set activity */
+
+    /* Used for MOTIONSENSE_CMD_LID_ANGLE */
+    LidAngle {
+        /*
+            * Angle between 0 and 360 degree if available,
+            * LID_ANGLE_UNRELIABLE otherwise.
+            */
+        value: u16,
+    },
+
+    /// Used for MOTIONSENSE_CMD_TABLET_MODE_LID_ANGLE. */
+    TableModeLidAngle {
+        /*
+            * Lid angle threshold for switching between tablet and
+            * clamshell mode.
+            */
+        lid_angle: u16,
+
+        /* Hysteresis degree. */
+        hys_degree: u16,
+    },
+
+    /// USED for MOTIONSENSE_CMD_GET_ACTIVITY. */
+    GetActivity {
+        state: u8,
+    },
+}
+//pub struct EcResponseMotionSense {
+//    /* Flags for each sensor. */
+//	flags: u8,
+//	/* Sensor number the data comes from. */
+//	sensor_num: u8,
+//	/* Each sensor is up to 3-axis. */
+//    udata: [u16; 3],
+//    // TODO:
+//	// union {
+//	// 	data: [i16; 3];
+//	// 	/* for sensors using unsigned data */
+//	// 	udata: [u16; 3];
+//	// 	struct {
+//	// 		reserved: u16;
+//	// 		timestamp: u32;
+//	// 	};
+//	// 	struct {
+//	// 		struct ec_response_activity_data activity_data;
+//	// 		add_info: [i16; 2];
+//	// 	};
+//	// };
+//}
+
+impl EcRequest<EcResponseMotionSense> for EcRequestMotionSense {
+    fn command_id() -> EcCommands {
+        EcCommands::MotionSense
+    }
+}
+
 pub enum TabletModeOverride {
     Default = 0,
     ForceTablet = 1,

@@ -10,8 +10,8 @@ use log::Level;
 
 use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, MainPdVersions};
 use crate::chromium_ec::command::EcRequestRaw;
-use crate::chromium_ec::commands::{EcRequestReadPdVersion, EcRequestUsbPdPowerInfo};
-use crate::chromium_ec::{print_err_ref, CrosEc, CrosEcDriver, EcResult};
+use crate::chromium_ec::commands::{EcRequestReadPdVersion, EcRequestUsbPdPowerInfo, EcRequestMotionSense};
+use crate::chromium_ec::{print_err_ref, CrosEc, CrosEcDriver, EcResult, EcResponseStatus, EcError};
 use crate::smbios;
 use crate::smbios::get_platform;
 use crate::util::Platform;
@@ -274,6 +274,13 @@ pub fn get_accel_data(ec: &CrosEc) -> (AccelData, AccelData, LidAngle) {
 }
 
 pub fn print_sensors(ec: &CrosEc) {
+    let info = EcRequestMotionSense::Dump { max_sensor_count: 0 }.send_command(ec);
+    match info {
+            Ok(info) => println!("MotionSense::Dump: {:?}", info),
+            Err(EcError::Response(EcResponseStatus::InvalidCommand)) => println!("MotionSense not supported"),
+            Err(err) =>  println!("Other error: {:?}", err),
+    }
+
     let als_int = get_als_reading(ec).unwrap();
     println!("ALS: {:>4} Lux", als_int);
 

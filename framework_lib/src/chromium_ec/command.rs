@@ -34,6 +34,7 @@ pub enum EcCommands {
     PwmSetFanDuty = 0x0024,
     PwmSetDuty = 0x0025,
     PwmGetDuty = 0x0026,
+    MotionSense = 0x002B,
     SetTabletMode = 0x0031,
     AutoFanCtrl = 0x0052,
     GpioGet = 0x0093,
