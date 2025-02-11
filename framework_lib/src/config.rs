@@ -42,7 +42,7 @@ pub fn load_config() -> Option<util::Platform> {
 
     let decoded = decoded.platform.unwrap();
     let first_pd = (decoded.pd_addrs[0], decoded.pd_ports[0]);
-    let second_pd = if decoded.pd_addrs.is_empty() || decoded.pd_ports.is_empty() {
+    let second_pd = if decoded.pd_addrs.len() == 1 || decoded.pd_ports.len() == 1 {
         first_pd
     } else {
         (decoded.pd_addrs[1], decoded.pd_ports[1])
