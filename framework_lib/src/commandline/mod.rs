@@ -128,6 +128,7 @@ pub struct Cli {
     pub power: bool,
     pub thermal: bool,
     pub sensors: bool,
+    pub expansion_bay: bool,
     pub pdports: bool,
     pub privacy: bool,
     pub pd_info: bool,
@@ -790,6 +791,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         power::print_thermal(&ec);
     } else if args.sensors {
         power::print_sensors(&ec);
+    } else if args.expansion_bay {
+        power::print_expansion_bay_info(&ec);
     } else if args.pdports {
         power::get_and_print_pd_info(&ec);
     } else if args.info {
@@ -973,6 +976,7 @@ Options:
       --power                Show current power status (battery and AC)
       --thermal              Print thermal information (Temperatures and Fan speed)
       --sensors              Print sensor information (ALS, G-Sensor)
+      --expansion-bay        Print expansion bay information
       --pdports              Show information about USB-C PD ports
       --info                 Show info from SMBIOS (Only on UEFI)
       --pd-info              Show details about the PD controllers
