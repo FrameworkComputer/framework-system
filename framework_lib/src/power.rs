@@ -230,6 +230,14 @@ pub fn print_thermal(ec: &CrosEc) {
             println!("  PECI:         {:>4}", TempSensor::from(temps[4]));
         }
 
+        Some(Platform::Framework12IntelGen13) => {
+            println!("  F75303_CPU:   {:>4}", TempSensor::from(temps[0]));
+            println!("  F75303_Skin:  {:>4}", TempSensor::from(temps[1]));
+            println!("  F75303_Local: {:>4}", TempSensor::from(temps[2]));
+            println!("  Battery:      {:>4}", TempSensor::from(temps[3]));
+            println!("  PECI:         {:>4}", TempSensor::from(temps[4]));
+        }
+
         Some(
             Platform::Framework13Amd7080
             | Platform::Framework13AmdAi300
