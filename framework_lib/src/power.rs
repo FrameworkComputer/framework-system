@@ -246,6 +246,14 @@ pub fn print_thermal(ec: &CrosEc) {
                 println!("  dGPU temp:    {:>4}", TempSensor::from(temps[7]));
             }
         }
+
+        Some(Platform::FrameworkDesktopAmdAiMax300) => {
+            println!("  F75303_APU:   {:>4}", TempSensor::from(temps[0]));
+            println!("  F75303_DDR:   {:>4}", TempSensor::from(temps[1]));
+            println!("  F75303_AMB:   {:>4}", TempSensor::from(temps[2]));
+            println!("  APU:          {:>4}", TempSensor::from(temps[3]));
+        }
+
         _ => {
             println!("  Temp 0:       {:>4}", TempSensor::from(temps[0]));
             println!("  Temp 1:       {:>4}", TempSensor::from(temps[1]));
