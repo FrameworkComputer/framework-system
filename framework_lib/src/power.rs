@@ -221,6 +221,15 @@ pub fn print_thermal(ec: &CrosEc) {
                 println!("  F57397_VCCGT: {:>4}", TempSensor::from(temps[5]));
             }
         }
+
+        Some(Platform::IntelCoreUltra1) => {
+            println!("  F75303_Local: {:>4}", TempSensor::from(temps[0]));
+            println!("  F75303_CPU:   {:>4}", TempSensor::from(temps[1]));
+            println!("  Battery:      {:>4}", TempSensor::from(temps[2]));
+            println!("  F75303_DDR:   {:>4}", TempSensor::from(temps[3]));
+            println!("  PECI:         {:>4}", TempSensor::from(temps[4]));
+        }
+
         Some(Platform::Framework13Amd7080 | Platform::Framework16Amd7080) => {
             println!("  F75303_Local: {:>4}", TempSensor::from(temps[0]));
             println!("  F75303_CPU:   {:>4}", TempSensor::from(temps[1]));
