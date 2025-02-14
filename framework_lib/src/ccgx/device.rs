@@ -56,6 +56,8 @@ impl PdPort {
                 | Platform::Framework16Amd7080,
                 PdPort::Right23,
             ) => 0x40,
+            // TODO: It only has a single PD controller
+            (Platform::FrameworkDesktopAmdAiMax300, _) => 0x08,
             // Framework Intel Platforms (CCG5 and CCG6)
             (_, PdPort::Left01) => 0x08,
             (_, PdPort::Right23) => 0x40,
@@ -87,6 +89,8 @@ impl PdPort {
                 | Platform::Framework13AmdAi300
                 PdPort::Right23,
             ) => 2,
+            // TODO: It only has a single PD controller
+            (Platform::FrameworkDesktopAmdAiMax300, _) => 1,
             // (_, _) => Err(EcError::DeviceError(format!(
             //     "Unsupported platform: {:?} {:?}",
             //     platform, self
