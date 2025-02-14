@@ -38,6 +38,7 @@ use crate::chromium_ec::commands::RebootEcCmd;
 use crate::chromium_ec::EcResponseStatus;
 use crate::chromium_ec::{print_err, EcFlashType};
 use crate::chromium_ec::{EcError, EcResult};
+use crate::config;
 #[cfg(feature = "linux")]
 use crate::csme;
 use crate::ec_binary;
@@ -642,6 +643,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             .format_target(false)
             .format_timestamp(None)
             .init();
+    }
+
+    if let Some(loaded_config) = config::load_config() {
+        println!("{:?}", loaded_config);
+        Config::set(loaded_config);
     }
 
     // Must be run before any application code to set the config
