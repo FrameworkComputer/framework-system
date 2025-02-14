@@ -17,25 +17,25 @@ struct Platform {
 const CONFIG_FILE: &str = "framework_tool_config.toml";
 
 #[cfg(feature = "uefi")]
-fn read_config_file() -> String {
-    crate::uefi::fs::shell_read_file(CONFIG_FILE)
+fn read_config_file() -> Option<String> {
+    Some(crate::uefi::fs::shell_read_file(CONFIG_FILE))
 }
 #[cfg(not(feature = "uefi"))]
-fn read_config_file() -> String {
-    let mut path = std::env::current_exe().unwrap();
+fn read_config_file() -> Option<String> {
+    let mut path = std::env::current_exe().ok()?;
     path.pop();
     path.push(CONFIG_FILE);
 
     if let Ok(str) = std::fs::read_to_string(path) {
-        str
+        Some(str)
     } else {
         path = CONFIG_FILE.into();
-        std::fs::read_to_string(path).unwrap()
+        Some(std::fs::read_to_string(path).ok()?)
     }
 }
 
 pub fn load_config() -> Option<util::Platform> {
-    let toml_str = read_config_file();
+    let toml_str = read_config_file()?;
 
     let decoded: Config = toml::from_str(&toml_str).unwrap();
     println!("{:?}", decoded);
