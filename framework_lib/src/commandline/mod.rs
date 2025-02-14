@@ -94,6 +94,7 @@ pub enum FpBrightnessArg {
     Medium,
     Low,
     UltraLow,
+    Auto,
 }
 impl From<FpBrightnessArg> for FpLedBrightnessLevel {
     fn from(w: FpBrightnessArg) -> FpLedBrightnessLevel {
@@ -102,6 +103,7 @@ impl From<FpBrightnessArg> for FpLedBrightnessLevel {
             FpBrightnessArg::Medium => FpLedBrightnessLevel::Medium,
             FpBrightnessArg::Low => FpLedBrightnessLevel::Low,
             FpBrightnessArg::UltraLow => FpLedBrightnessLevel::UltraLow,
+            FpBrightnessArg::Auto => FpLedBrightnessLevel::Auto,
         }
     }
 }
