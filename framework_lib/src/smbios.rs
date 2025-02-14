@@ -5,7 +5,8 @@ use std::prelude::v1::*;
 #[cfg(all(not(feature = "uefi"), not(target_os = "freebsd")))]
 use std::io::ErrorKind;
 
-use crate::util::{Config, Platform};
+use crate::util::Config;
+pub use crate::util::Platform;
 use num_derive::FromPrimitive;
 use smbioslib::*;
 #[cfg(feature = "uefi")]
