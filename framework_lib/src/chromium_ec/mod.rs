@@ -132,6 +132,7 @@ pub fn has_mec() -> bool {
             | Platform::Framework16Amd7080
             | Platform::IntelCoreUltra1
             | Platform::Framework13AmdAi300
+            | Platform::Framework12IntelGen13
             | Platform::FrameworkDesktopAmdAiMax300
     )
 }

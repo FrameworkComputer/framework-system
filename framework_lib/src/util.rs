@@ -17,6 +17,8 @@ use crate::smbios;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Platform {
+    /// Framework 12
+    Framework12IntelGen13,
     /// Framework 13 - Intel 11th Gen, Codenamed TigerLake
     IntelGen11,
     /// Framework 13 - Intel 11th Gen, Codenamed AlderLake

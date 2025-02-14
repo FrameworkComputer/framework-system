@@ -265,6 +265,7 @@ pub fn get_platform() -> Option<Platform> {
         "Laptop 13 (AMD Ryzen 7040Series)" => Some(Platform::Framework13Amd7080),
         "Laptop 13 (AMD Ryzen 7040 Series)" => Some(Platform::Framework13Amd7080),
         "Laptop 13 (AMD Ryzen AI 300 Series)" => Some(Platform::Framework13AmdAi300),
+        "Laptop 12 (13th Gen Intel Core)" => Some(Platform::Framework12IntelGen13),
         "Laptop 13 (Intel Core Ultra Series 1)" => Some(Platform::IntelCoreUltra1),
         "Laptop 16 (AMD Ryzen 7040 Series)" => Some(Platform::Framework16Amd7080),
         "Desktop (AMD Ryzen AI Max 300 Series)" => Some(Platform::FrameworkDesktopAmdAiMax300),

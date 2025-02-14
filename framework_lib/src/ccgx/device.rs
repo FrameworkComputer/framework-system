@@ -80,6 +80,7 @@ impl PdPort {
                 | Platform::Framework16Amd7080
                 | Platform::IntelCoreUltra1
                 | Platform::Framework13AmdAi300
+                | Platform::Framework12IntelGen13,
                 PdPort::Left01,
             ) => 1,
             (
@@ -87,6 +88,7 @@ impl PdPort {
                 | Platform::Framework16Amd7080
                 | Platform::IntelCoreUltra1
                 | Platform::Framework13AmdAi300
+                | Platform::Framework12IntelGen13,
                 PdPort::Right23,
             ) => 2,
             // TODO: It only has a single PD controller
