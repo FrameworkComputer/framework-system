@@ -25,10 +25,12 @@ pub enum Platform {
     IntelGen13,
     /// Framework 13 - Intel Core Ultra Series 1, Codenamed MeteorLake
     IntelCoreUltra1,
-    /// Framework 13 - AMD Ryzen
-    Framework13Amd,
-    /// Framework 16
-    Framework16,
+    /// Framework 13 - AMD Ryzen 7080 Series
+    Framework13Amd7080,
+    /// Framework 13 - AMD Ryzen AI 300 Series
+    Framework13AmdAi300,
+    /// Framework 16 - AMD Ryzen 7080 Series
+    Framework16Amd7080,
     /// Generic Framework device
     /// pd_addrs, pd_ports, has_mec
     GenericFramework((u16, u16), (u8, u8), bool),

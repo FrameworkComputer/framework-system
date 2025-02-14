@@ -216,12 +216,12 @@ pub fn print_thermal(ec: &CrosEc) {
             println!("  PECI:         {:>4}", TempSensor::from(temps[4]));
             println!("  F57397_VCCGT: {:>4}", TempSensor::from(temps[5]));
         }
-        Some(Platform::Framework13Amd | Platform::Framework16) => {
+        Some(Platform::Framework13Amd7080 | Platform::Framework16Amd7080) => {
             println!("  F75303_Local: {:>4}", TempSensor::from(temps[0]));
             println!("  F75303_CPU:   {:>4}", TempSensor::from(temps[1]));
             println!("  F75303_DDR:   {:>4}", TempSensor::from(temps[2]));
             println!("  APU:          {:>4}", TempSensor::from(temps[3]));
-            if matches!(platform, Some(Platform::Framework16)) {
+            if matches!(platform, Some(Platform::Framework16Amd7080)) {
                 println!("  dGPU VR:      {:>4}", TempSensor::from(temps[4]));
                 println!("  dGPU VRAM:    {:>4}", TempSensor::from(temps[5]));
                 println!("  dGPU AMB:     {:>4}", TempSensor::from(temps[6]));
@@ -495,7 +495,7 @@ pub fn get_pd_info(ec: &CrosEc, ports: u8) -> Vec<EcResult<UsbPdPowerInfo>> {
 }
 
 pub fn get_and_print_pd_info(ec: &CrosEc) {
-    let fl16 = Some(crate::util::Platform::Framework16) == get_platform();
+    let fl16 = Some(crate::util::Platform::Framework16Amd7080) == get_platform();
     let ports = 4; // All our platforms have 4 PD ports so far
     let infos = get_pd_info(ec, ports);
     for (port, info) in infos.iter().enumerate().take(ports.into()) {
