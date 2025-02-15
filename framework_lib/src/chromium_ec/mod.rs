@@ -911,7 +911,7 @@ impl CrosEcDriver for CrosEc {
         }
 
         debug!("read_memory(offset={:#X}, size={:#X})", offset, length);
-        if offset + length > EC_MEMMAP_SIZE {
+        if offset + length > (EC_MEMMAP_SIZE * 2) {
             return None;
         }
 
