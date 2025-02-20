@@ -518,6 +518,37 @@ impl EcRequest<EcResponseUsbPdPowerInfo> for EcRequestUsbPdPowerInfo {
     }
 }
 
+// TODO: Actually 128, but if we go above ~80 EC returns REQUEST_TRUNCATED
+// At least when I use the portio driver
+pub const EC_RGBKBD_MAX_KEY_COUNT: usize = 64;
+
+#[repr(C, packed)]
+#[derive(Default, Clone, Copy, Debug)]
+pub struct RgbS {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestRgbKbdSetColor {
+    /// Specifies the starting key ID whose color is being changed
+    pub start_key: u8,
+    /// Specifies # of elements in color
+    pub length: u8,
+    /// RGB color data array of length up to MAX_KEY_COUNT
+    pub color: [RgbS; EC_RGBKBD_MAX_KEY_COUNT],
+}
+
+#[repr(C, packed)]
+pub struct EcResponseRgbKbdSetColor {}
+
+impl EcRequest<EcResponseRgbKbdSetColor> for EcRequestRgbKbdSetColor {
+    fn command_id() -> EcCommands {
+        EcCommands::RgbKbdSetColor
+    }
+}
+
 // --- Framework Specific commands ---
 
 #[repr(C, packed)]

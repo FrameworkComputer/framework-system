@@ -46,6 +46,8 @@ pub enum EcCommands {
     RebootEc = 0x00D2,
     /// Get information about PD controller power
     UsbPdPowerInfo = 0x0103,
+    RgbKbdSetColor = 0x013A,
+    RgbKbd = 0x013B,
 
     // Framework specific commands
     /// Configure the behavior of the flash notify
