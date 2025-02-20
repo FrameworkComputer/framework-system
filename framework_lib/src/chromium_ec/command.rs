@@ -34,18 +34,18 @@ pub enum EcCommands {
     PwmSetDuty = 0x0025,
     PwmGetDuty = 0x0026,
     SetTabletMode = 0x0031,
-    GpioGet = 0x93,
-    I2cPassthrough = 0x9e,
-    ConsoleSnapshot = 0x97,
-    ConsoleRead = 0x98,
+    GpioGet = 0x0093,
+    I2cPassthrough = 0x009e,
+    ConsoleSnapshot = 0x0097,
+    ConsoleRead = 0x0098,
     /// List the features supported by the firmware
-    GetFeatures = 0x0D,
+    GetFeatures = 0x000D,
     /// Force reboot, causes host reboot as well
-    Reboot = 0xD1,
+    Reboot = 0x00D1,
     /// Control EC boot
-    RebootEc = 0xD2,
+    RebootEc = 0x00D2,
     /// Get information about PD controller power
-    UsbPdPowerInfo = 0x103,
+    UsbPdPowerInfo = 0x0103,
 
     // Framework specific commands
     /// Configure the behavior of the flash notify
