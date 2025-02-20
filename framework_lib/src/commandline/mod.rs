@@ -35,6 +35,7 @@ use crate::chromium_ec;
 use crate::chromium_ec::commands::DeckStateMode;
 use crate::chromium_ec::commands::FpLedBrightnessLevel;
 use crate::chromium_ec::commands::RebootEcCmd;
+use crate::chromium_ec::commands::RgbS;
 use crate::chromium_ec::commands::TabletModeOverride;
 use crate::chromium_ec::EcResponseStatus;
 use crate::chromium_ec::{print_err, EcFlashType};
@@ -166,6 +167,7 @@ pub struct Cli {
     pub fp_led_level: Option<Option<FpBrightnessArg>>,
     pub fp_brightness: Option<Option<u8>>,
     pub kblight: Option<Option<u8>>,
+    pub rgbkbd: Vec<u64>,
     pub tablet_mode: Option<TabletModeArg>,
     pub console: Option<ConsoleArg>,
     pub reboot_ec: Option<RebootEcArg>,
@@ -753,6 +755,21 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(Some(kblight)) = args.kblight {
         assert!(kblight <= 100);
         ec.set_keyboard_backlight(kblight);
+    } else if !args.rgbkbd.is_empty() {
+        if args.rgbkbd.len() < 2 {
+            println!(
+                "Must provide at least 2 arguments. Provided only: {}",
+                args.rgbkbd.len()
+            );
+        } else {
+            let start_key = args.rgbkbd[0] as u8;
+            let colors = args.rgbkbd[1..].iter().map(|color| RgbS {
+                r: ((color & 0x00FF0000) >> 16) as u8,
+                g: ((color & 0x0000FF00) >> 8) as u8,
+                b: (color & 0x000000FF) as u8,
+            });
+            ec.rgbkbd_set_color(start_key, colors.collect()).unwrap();
+        }
     } else if let Some(None) = args.kblight {
         print!("Keyboard backlight: ");
         if let Some(percentage) = print_err(ec.get_keyboard_backlight()) {
