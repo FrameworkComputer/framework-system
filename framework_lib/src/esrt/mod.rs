@@ -144,7 +144,7 @@ pub fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
     }
 }
 
-#[repr(packed)]
+#[repr(C, packed)]
 struct _Esrt {
     resource_count: u32,
     resource_count_max: u32,

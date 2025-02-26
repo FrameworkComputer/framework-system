@@ -15,7 +15,7 @@ enum CapeCommand {
     GetVersion = 0x0103,
 }
 
-#[repr(packed)]
+#[repr(C, packed)]
 #[derive(Clone, Copy)]
 struct CapeMessage {
     _len: i16,
@@ -25,7 +25,7 @@ struct CapeMessage {
     data: [u32; CAPE_DATA_LEN],
 }
 
-#[repr(packed)]
+#[repr(C, packed)]
 #[derive(Clone, Copy)]
 struct HidCapeMessage {
     _report_id: u16,

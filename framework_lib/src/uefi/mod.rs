@@ -99,7 +99,7 @@ pub fn enable_page_break() {
     }
 }
 
-#[repr(packed)]
+#[repr(C, packed)]
 pub struct Smbios {
     pub anchor: [u8; 4],
     pub checksum: u8,

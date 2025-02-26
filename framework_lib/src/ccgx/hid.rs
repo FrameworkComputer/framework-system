@@ -25,7 +25,7 @@ const FW2_START: usize = 0x0200;
 const FW1_METADATA: usize = 0x03FF;
 const FW2_METADATA: usize = 0x03FE;
 
-#[repr(packed)]
+#[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
 struct HidFirmwareInfo {
     report_id: u8,
