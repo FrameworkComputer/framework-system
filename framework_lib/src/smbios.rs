@@ -107,7 +107,7 @@ pub struct Smbios3 {
 }
 
 #[cfg(target_os = "freebsd")]
-#[repr(packed)]
+#[repr(C, packed)]
 pub struct Smbios {
     pub anchor: [u8; 4],
     pub checksum: u8,
@@ -263,10 +263,13 @@ pub fn get_platform() -> Option<Platform> {
         "Laptop" => Some(Platform::IntelGen11),
         "Laptop (12th Gen Intel Core)" => Some(Platform::IntelGen12),
         "Laptop (13th Gen Intel Core)" => Some(Platform::IntelGen13),
-        "Laptop 13 (AMD Ryzen 7040Series)" => Some(Platform::Framework13Amd),
-        "Laptop 13 (AMD Ryzen 7040 Series)" => Some(Platform::Framework13Amd),
+        "Laptop 13 (AMD Ryzen 7040Series)" => Some(Platform::Framework13Amd7080),
+        "Laptop 13 (AMD Ryzen 7040 Series)" => Some(Platform::Framework13Amd7080),
+        "Laptop 13 (AMD Ryzen AI 300 Series)" => Some(Platform::Framework13AmdAi300),
+        "Laptop 12 (13th Gen Intel Core)" => Some(Platform::Framework12IntelGen13),
         "Laptop 13 (Intel Core Ultra Series 1)" => Some(Platform::IntelCoreUltra1),
-        "Laptop 16 (AMD Ryzen 7040 Series)" => Some(Platform::Framework16),
+        "Laptop 16 (AMD Ryzen 7040 Series)" => Some(Platform::Framework16Amd7080),
+        "Desktop (AMD Ryzen AI Max 300 Series)" => Some(Platform::FrameworkDesktopAmdAiMax300),
         _ => None,
     };
 

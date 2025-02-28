@@ -30,7 +30,7 @@ const CCG3_METADATA_OFFSET: usize = 0x40;
 const METADATA_MAGIC: u16 = u16::from_le_bytes([b'Y', b'C']); // CY (Cypress)
 const CCG8_METADATA_MAGIC: u16 = u16::from_le_bytes([b'F', b'I']); // IF (Infineon)
 
-#[repr(packed)]
+#[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
 struct CyAcdMetadata {
     /// Offset 00: Single Byte FW Checksum
@@ -64,7 +64,7 @@ struct CyAcdMetadata {
 }
 
 // TODO: Would be nice to check the checksums
-#[repr(packed)]
+#[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
 struct CyAcd2Metadata {
     /// Offset 00: App Firmware Start

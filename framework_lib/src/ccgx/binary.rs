@@ -44,7 +44,7 @@ const FW_VERSION_OFFSET: usize = 0xE0;
 const SMALL_ROW: usize = 0x80;
 const LARGE_ROW: usize = 0x100;
 
-#[repr(packed)]
+#[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
 struct VersionInfo {
     base_version: u32,

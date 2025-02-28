@@ -125,9 +125,15 @@ pub fn has_mec() -> bool {
         return has_mec;
     }
 
+    // TODO: Should turn this around
     !matches!(
         smbios::get_platform().unwrap(),
-        Platform::Framework13Amd | Platform::Framework16 | Platform::IntelCoreUltra1
+        Platform::Framework13Amd7080
+            | Platform::Framework16Amd7080
+            | Platform::IntelCoreUltra1
+            | Platform::Framework13AmdAi300
+            | Platform::Framework12IntelGen13
+            | Platform::FrameworkDesktopAmdAiMax300
     )
 }
 

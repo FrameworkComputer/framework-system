@@ -44,8 +44,20 @@ impl PdPort {
             (Platform::GenericFramework((left, _), _, _), PdPort::Left01) => *left,
             (Platform::GenericFramework((_, right), _, _), PdPort::Right23) => *right,
             // Framework AMD Platforms (CCG8)
-            (Platform::Framework13Amd | Platform::Framework16, PdPort::Left01) => 0x42,
-            (Platform::Framework13Amd | Platform::Framework16, PdPort::Right23) => 0x40,
+            (
+                Platform::Framework13Amd7080
+                | Platform::Framework13AmdAi300
+                | Platform::Framework16Amd7080,
+                PdPort::Left01,
+            ) => 0x42,
+            (
+                Platform::Framework13Amd7080
+                | Platform::Framework13AmdAi300
+                | Platform::Framework16Amd7080,
+                PdPort::Right23,
+            ) => 0x40,
+            // TODO: It only has a single PD controller
+            (Platform::FrameworkDesktopAmdAiMax300, _) => 0x08,
             // Framework Intel Platforms (CCG5 and CCG6)
             (_, PdPort::Left01) => 0x08,
             (_, PdPort::Right23) => 0x40,
@@ -64,13 +76,23 @@ impl PdPort {
             (Platform::IntelGen12 | Platform::IntelGen13, PdPort::Left01) => 6,
             (Platform::IntelGen12 | Platform::IntelGen13, PdPort::Right23) => 7,
             (
-                Platform::Framework13Amd | Platform::Framework16 | Platform::IntelCoreUltra1,
+                Platform::Framework13Amd7080
+                | Platform::Framework16Amd7080
+                | Platform::IntelCoreUltra1
+                | Platform::Framework13AmdAi300
+                | Platform::Framework12IntelGen13,
                 PdPort::Left01,
             ) => 1,
             (
-                Platform::Framework13Amd | Platform::Framework16 | Platform::IntelCoreUltra1,
+                Platform::Framework13Amd7080
+                | Platform::Framework16Amd7080
+                | Platform::IntelCoreUltra1
+                | Platform::Framework13AmdAi300
+                | Platform::Framework12IntelGen13,
                 PdPort::Right23,
             ) => 2,
+            // TODO: It only has a single PD controller
+            (Platform::FrameworkDesktopAmdAiMax300, _) => 1,
             // (_, _) => Err(EcError::DeviceError(format!(
             //     "Unsupported platform: {:?} {:?}",
             //     platform, self

@@ -82,12 +82,16 @@ All of these need EC communication support in order to work.
 
 ###### Communication with Embedded Controller
 
+- [x] Framework Laptop 12 (Intel 13th Gen)
 - [x] Framework Laptop 13 (Intel 11-13th Gen)
-- [x] Framework Laptop 13 (AMD Ryzen)
-- [x] Framework Laptop 16 (AMD Ryzen)
+- [x] Framework Laptop 13 (AMD Ryzen 7080)
+- [x] Framework Laptop 13 (AMD Ryzen AI 300)
+- [x] Framework Laptop 16 (AMD Ryzen 7080)
+- [x] Framework Desktop (AMD Ryzen AI Max 300)
 - [x] Port I/O communication on Linux
-- [x] Port I/O communication on UEFI
+- [x] Port I/O communication in UEFI
 - [x] Using `cros_ec` driver in Linux kernel
+- [x] Using [Framework EC Windows driver](https://github.com/FrameworkComputer/crosecbus) based on [coolstar's](https://github.com/coolstar/crosecbus)
 - [x] Using [DHowett's Windows CrosEC driver](https://github.com/DHowett/FrameworkWindowsUtils)
 
 ## Prerequisites
@@ -99,8 +103,8 @@ will install the right toolchain and version for this project.
 
 MSRV (Minimum Supported Rust Version):
 
-- 1.61 for Linux/Windows
-- 1.68 for UEFI
+- 1.74 for Linux/Windows
+- 1.74 for UEFI
 
 ```sh
 # Running linter
@@ -131,10 +135,6 @@ ls -l framework_uefi/build/x86_64-unknown-uefi/boot.efi
 Building on Windows or in general with fewer features:
 
 ```ps1
-# Because we're fetching a private dependency from git, it might be necessary
-# to force cargo to use the git commandline. In powershell run:
-$env:CARGO_NET_GIT_FETCH_WITH_CLI='true'
-
 # Build the library and tool
 cargo build --no-default-features --features "windows"
 
