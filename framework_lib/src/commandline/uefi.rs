@@ -246,6 +246,8 @@ pub fn parse(args: &[String]) -> Cli {
                     Some(Some(FpBrightnessArg::Medium))
                 } else if fp_brightness_arg == "low" {
                     Some(Some(FpBrightnessArg::Low))
+                } else if fp_brightness_arg == "ultra-low" {
+                    Some(Some(FpBrightnessArg::UltraLow))
                 } else {
                     println!("Invalid value for --fp-brightness: {}", fp_brightness_arg);
                     None
