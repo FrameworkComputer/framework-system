@@ -387,7 +387,6 @@ impl CrosEc {
     }
 
     /// Check the current brightness of the keyboard backlight
-    ///
     pub fn get_keyboard_backlight(&self) -> EcResult<u8> {
         let kblight = EcRequestPwmGetDuty {
             pwm_type: PwmType::KbLight as u8,
@@ -396,6 +395,13 @@ impl CrosEc {
         .send_command(self)?;
 
         Ok((kblight.duty / (PWM_MAX_DUTY / 100)) as u8)
+    }
+
+    /// Set tablet mode
+    pub fn set_tablet_mode(&self, mode: TabletModeOverride) {
+        let mode = mode as u8;
+        let res = EcRequestSetTabletMode { mode }.send_command(self);
+        print_err(res);
     }
 
     /// Overwrite RO and RW regions of EC flash

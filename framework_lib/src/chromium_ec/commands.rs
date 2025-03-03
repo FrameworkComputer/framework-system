@@ -225,6 +225,24 @@ impl EcRequest<EcResponsePwmGetDuty> for EcRequestPwmGetDuty {
     }
 }
 
+pub enum TabletModeOverride {
+    Default = 0,
+    ForceTablet = 1,
+    ForceClamshell = 2,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestSetTabletMode {
+    /// See TabletModeOverride
+    pub mode: u8,
+}
+
+impl EcRequest<()> for EcRequestSetTabletMode {
+    fn command_id() -> EcCommands {
+        EcCommands::SetTabletMode
+    }
+}
+
 #[repr(C, packed)]
 pub struct EcRequestGpioGetV0 {
     pub name: [u8; 32],
