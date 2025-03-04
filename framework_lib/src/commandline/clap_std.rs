@@ -2,6 +2,7 @@
 //! This way we can use it in the regular OS commandline tool on Linux and Windows,
 //! as well as on the UEFI shell tool.
 use clap::Parser;
+use clap_num::maybe_hex;
 
 use crate::chromium_ec::commands::EC_RGBKBD_MAX_KEY_COUNT;
 use crate::chromium_ec::CrosEcDriverType;
@@ -154,7 +155,7 @@ struct ClapCli {
     /// <key> <RGB> [<RGB> ...]
     /// Example: 0 0xFF000 0x00FF00 0x0000FF
     #[clap(num_args = 2..EC_RGBKBD_MAX_KEY_COUNT)]
-    #[arg(long)]
+    #[arg(long, value_parser=maybe_hex::<u64>)]
     rgbkbd: Vec<u64>,
 
     /// Set tablet mode override
