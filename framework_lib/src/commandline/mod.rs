@@ -1364,8 +1364,13 @@ fn handle_fp_brightness(ec: &CrosEc, maybe_brightness: Option<FpBrightnessArg>) 
         ec.set_fp_led_level(brightness.into())?;
     }
 
-    let level = ec.get_fp_led_level()?;
-    println!("Fingerprint LED Brightness: {:?}%", level);
+    let (brightness, level) = ec.get_fp_led_level()?;
+    // TODO: Rename to power button
+    println!("Fingerprint LED Brightness");
+    if let Some(level) = level {
+        println!("  Requested:  {:?}", level);
+    }
+    println!("  Brightness: {}%", brightness);
 
     Ok(())
 }

@@ -849,7 +849,7 @@ pub enum FpLedBrightnessLevel {
 }
 
 #[repr(C, packed)]
-pub struct EcRequestFpLedLevelControl {
+pub struct EcRequestFpLedLevelControlV0 {
     /// See enum FpLedBrightnessLevel
     pub set_level: u8,
     /// Boolean. >1 to get the level
@@ -858,12 +858,42 @@ pub struct EcRequestFpLedLevelControl {
 
 #[repr(C, packed)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct EcResponseFpLedLevelControl {
+pub struct EcResponseFpLedLevelControlV0 {
+    /// Current brightness, 1-100%
+    pub percentage: u8,
+}
+
+impl EcRequest<EcResponseFpLedLevelControlV0> for EcRequestFpLedLevelControlV0 {
+    fn command_id() -> EcCommands {
+        EcCommands::FpLedLevelControl
+    }
+    fn command_version() -> u8 {
+        0
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestFpLedLevelControlV1 {
+    /// Percentage 1-100
+    pub set_percentage: u8,
+    /// Boolean. >1 to get the level
+    pub get_level: u8,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseFpLedLevelControlV1 {
+    /// Current brightness, 1-100%
+    pub percentage: u8,
+    /// Requested level. See enum FpLedBrightnessLevel
     pub level: u8,
 }
 
-impl EcRequest<EcResponseFpLedLevelControl> for EcRequestFpLedLevelControl {
+impl EcRequest<EcResponseFpLedLevelControlV1> for EcRequestFpLedLevelControlV1 {
     fn command_id() -> EcCommands {
         EcCommands::FpLedLevelControl
+    }
+    fn command_version() -> u8 {
+        1
     }
 }
