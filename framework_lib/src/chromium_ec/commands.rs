@@ -845,6 +845,8 @@ pub enum FpLedBrightnessLevel {
     Medium = 1,
     Low = 2,
     UltraLow = 3,
+    /// Custom: Only get, never set
+    Custom = 0xFE,
     Auto = 0xFF,
 }
 
