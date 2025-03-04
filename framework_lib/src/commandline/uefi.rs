@@ -86,6 +86,7 @@ pub fn parse(args: &[String]) -> Cli {
         get_gpio: None,
         fp_brightness: None,
         kblight: None,
+        rgbkbd: vec![],
         tablet_mode: None,
         console: None,
         reboot_ec: None,
@@ -215,6 +216,18 @@ pub fn parse(args: &[String]) -> Cli {
                 Some(None)
             };
             found_an_option = true;
+        } else if arg == "--rgbkbd" {
+            cli.rgbkbd = if args.len() > i + 2 {
+                let mut colors = Vec::<u64>::new();
+                for color_i in i + 1..args.len() {
+                    // TODO: Fail parsing instead of unwrap()
+                    colors.push(args[color_i].parse::<u64>().unwrap());
+                }
+                colors
+            } else {
+                println!("--rgbkbd requires at least arguments, the start key and an RGB value");
+                vec![]
+            }
         } else if arg == "--tablet-mode" {
             cli.tablet_mode = if args.len() > i + 1 {
                 let tablet_mode_arg = &args[i + 1];
