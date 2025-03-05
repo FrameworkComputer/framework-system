@@ -84,6 +84,7 @@ pub fn parse(args: &[String]) -> Cli {
         input_deck_mode: None,
         charge_limit: None,
         get_gpio: None,
+        fp_led_level: None,
         fp_brightness: None,
         kblight: None,
         tablet_mode: None,
@@ -237,17 +238,41 @@ pub fn parse(args: &[String]) -> Cli {
                 None
             };
             found_an_option = true;
+        } else if arg == "--fp-led-level" {
+            cli.fp_led_level = if args.len() > i + 1 {
+                let fp_led_level_arg = &args[i + 1];
+                if fp_led_level_arg == "high" {
+                    Some(Some(FpBrightnessArg::High))
+                } else if fp_led_level_arg == "medium" {
+                    Some(Some(FpBrightnessArg::Medium))
+                } else if fp_led_level_arg == "low" {
+                    Some(Some(FpBrightnessArg::Low))
+                } else if fp_led_level_arg == "ultra-low" {
+                    Some(Some(FpBrightnessArg::UltraLow))
+                } else if fp_led_level_arg == "auto" {
+                    Some(Some(FpBrightnessArg::Auto))
+                } else {
+                    println!("Invalid value for --fp-led-level: {}", fp_led_level_arg);
+                    None
+                }
+            } else {
+                Some(None)
+            };
+            found_an_option = true;
         } else if arg == "--fp-brightness" {
             cli.fp_brightness = if args.len() > i + 1 {
-                let fp_brightness_arg = &args[i + 1];
-                if fp_brightness_arg == "high" {
-                    Some(Some(FpBrightnessArg::High))
-                } else if fp_brightness_arg == "medium" {
-                    Some(Some(FpBrightnessArg::Medium))
-                } else if fp_brightness_arg == "low" {
-                    Some(Some(FpBrightnessArg::Low))
+                if let Ok(fp_brightness_arg) = args[i + 1].parse::<u8>() {
+                    if fp_brightness_arg == 0 || fp_brightness_arg > 100 {
+                        println!(
+                            "Invalid value for --fp-brightness: {}. Must be in the range of 1-100",
+                            fp_brightness_arg
+                        );
+                        None
+                    } else {
+                        Some(Some(fp_brightness_arg))
+                    }
                 } else {
-                    println!("Invalid value for --fp-brightness: {}", fp_brightness_arg);
+                    println!("Invalid value for --fp-brightness. Must be in the range of 1-100");
                     None
                 }
             } else {

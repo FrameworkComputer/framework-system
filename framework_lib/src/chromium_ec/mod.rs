@@ -313,6 +313,17 @@ impl CrosEc {
         Ok((limits.min_percentage, limits.max_percentage))
     }
 
+    pub fn set_fp_led_percentage(&self, percentage: u8) -> EcResult<()> {
+        // Sending bytes manually because the Set command, as opposed to the Get command,
+        // does not return any data
+        let limits = &[percentage, 0x00];
+        let data = self.send_command(EcCommands::FpLedLevelControl as u16, 1, limits)?;
+
+        util::assert_win_len(data.len(), 0);
+
+        Ok(())
+    }
+
     pub fn set_fp_led_level(&self, level: FpLedBrightnessLevel) -> EcResult<()> {
         // Sending bytes manually because the Set command, as opposed to the Get command,
         // does not return any data
@@ -325,16 +336,33 @@ impl CrosEc {
     }
 
     /// Get fingerprint led brightness level
-    pub fn get_fp_led_level(&self) -> EcResult<u8> {
-        let res = EcRequestFpLedLevelControl {
-            set_level: 0xFF,
+    pub fn get_fp_led_level(&self) -> EcResult<(u8, Option<FpLedBrightnessLevel>)> {
+        let res = EcRequestFpLedLevelControlV1 {
+            set_percentage: 0xFF,
             get_level: 0xFF,
         }
-        .send_command(self)?;
+        .send_command(self);
 
-        debug!("Level Raw: {}", res.level);
+        // If V1 does not exist, fall back
+        if let Err(EcError::Response(EcResponseStatus::InvalidVersion)) = res {
+            let res = EcRequestFpLedLevelControlV0 {
+                set_level: 0xFF,
+                get_level: 0xFF,
+            }
+            .send_command(self)?;
+            debug!("Current Brightness: {}%", res.percentage);
+            return Ok((res.percentage, None));
+        }
 
-        Ok(res.level)
+        let res = res?;
+
+        debug!("Current Brightness: {}%", res.percentage);
+        debug!("Level Raw:          {}", res.level);
+
+        // TODO: can turn this into None and log
+        let level = FromPrimitive::from_u8(res.level)
+            .ok_or(EcError::DeviceError(format!("Invalid level {}", res.level)))?;
+        Ok((res.percentage, Some(level)))
     }
 
     /// Get the intrusion switch status (whether the chassis is open or not)

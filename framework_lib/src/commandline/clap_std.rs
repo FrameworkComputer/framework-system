@@ -137,9 +137,13 @@ struct ClapCli {
     #[arg(long)]
     get_gpio: Option<String>,
 
-    /// Get or set fingerprint LED brightness
+    /// Get or set fingerprint LED brightness level
     #[arg(long)]
-    fp_brightness: Option<Option<FpBrightnessArg>>,
+    fp_led_level: Option<Option<FpBrightnessArg>>,
+
+    /// Get or set fingerprint LED brightness percentage
+    #[arg(long)]
+    fp_brightness: Option<Option<u8>>,
 
     /// Set keyboard backlight percentage or get, if no value provided
     #[arg(long)]
@@ -267,6 +271,7 @@ pub fn parse(args: &[String]) -> Cli {
         input_deck_mode: args.input_deck_mode,
         charge_limit: args.charge_limit,
         get_gpio: args.get_gpio,
+        fp_led_level: args.fp_led_level,
         fp_brightness: args.fp_brightness,
         kblight: args.kblight,
         tablet_mode: args.tablet_mode,
