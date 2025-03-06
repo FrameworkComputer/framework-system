@@ -93,6 +93,8 @@ pub enum FpBrightnessArg {
     High,
     Medium,
     Low,
+    UltraLow,
+    Auto,
 }
 impl From<FpBrightnessArg> for FpLedBrightnessLevel {
     fn from(w: FpBrightnessArg) -> FpLedBrightnessLevel {
@@ -100,6 +102,8 @@ impl From<FpBrightnessArg> for FpLedBrightnessLevel {
             FpBrightnessArg::High => FpLedBrightnessLevel::High,
             FpBrightnessArg::Medium => FpLedBrightnessLevel::Medium,
             FpBrightnessArg::Low => FpLedBrightnessLevel::Low,
+            FpBrightnessArg::UltraLow => FpLedBrightnessLevel::UltraLow,
+            FpBrightnessArg::Auto => FpLedBrightnessLevel::Auto,
         }
     }
 }
@@ -159,7 +163,8 @@ pub struct Cli {
     pub input_deck_mode: Option<InputDeckModeArg>,
     pub charge_limit: Option<Option<u8>>,
     pub get_gpio: Option<String>,
-    pub fp_brightness: Option<Option<FpBrightnessArg>>,
+    pub fp_led_level: Option<Option<FpBrightnessArg>>,
+    pub fp_brightness: Option<Option<u8>>,
     pub kblight: Option<Option<u8>>,
     pub tablet_mode: Option<TabletModeArg>,
     pub console: Option<ConsoleArg>,
@@ -741,6 +746,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         } else {
             println!("Not found");
         }
+    } else if let Some(maybe_led_level) = &args.fp_led_level {
+        print_err(handle_fp_led_level(&ec, *maybe_led_level));
     } else if let Some(maybe_brightness) = &args.fp_brightness {
         print_err(handle_fp_brightness(&ec, *maybe_brightness));
     } else if let Some(Some(kblight)) = args.kblight {
@@ -1009,7 +1016,8 @@ Options:
       --input-deck-mode      Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
       --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')
       --get-gpio <GET_GPIO>  Get GPIO value by name
-      --fp-brightness [<VAL>]Get or set fingerprint LED brightness level [possible values: high, medium, low]
+      --fp-led-level [<VAL>] Get or set fingerprint LED brightness level [possible values: high, medium, low]
+      --fp-brightness [<VAL>]Get or set fingerprint LED brightness percentage
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
       --hash <HASH>          Hash a file of arbitrary data
@@ -1355,13 +1363,34 @@ fn handle_charge_limit(ec: &CrosEc, maybe_limit: Option<u8>) -> EcResult<()> {
     Ok(())
 }
 
-fn handle_fp_brightness(ec: &CrosEc, maybe_brightness: Option<FpBrightnessArg>) -> EcResult<()> {
-    if let Some(brightness) = maybe_brightness {
-        ec.set_fp_led_level(brightness.into())?;
+fn handle_fp_led_level(ec: &CrosEc, maybe_led_level: Option<FpBrightnessArg>) -> EcResult<()> {
+    if let Some(led_level) = maybe_led_level {
+        ec.set_fp_led_level(led_level.into())?;
     }
 
-    let level = ec.get_fp_led_level()?;
-    println!("Fingerprint LED Brightness: {:?}%", level);
+    let (brightness, level) = ec.get_fp_led_level()?;
+    // TODO: Rename to power button
+    println!("Fingerprint LED Brightness");
+    if let Some(level) = level {
+        println!("  Requested:  {:?}", level);
+    }
+    println!("  Brightness: {}%", brightness);
+
+    Ok(())
+}
+
+fn handle_fp_brightness(ec: &CrosEc, maybe_brightness: Option<u8>) -> EcResult<()> {
+    if let Some(brightness) = maybe_brightness {
+        ec.set_fp_led_percentage(brightness)?;
+    }
+
+    let (brightness, level) = ec.get_fp_led_level()?;
+    // TODO: Rename to power button
+    println!("Fingerprint LED Brightness");
+    if let Some(level) = level {
+        println!("  Requested:  {:?}", level);
+    }
+    println!("  Brightness: {}%", brightness);
 
     Ok(())
 }
