@@ -7,11 +7,8 @@ edition = "2021"
 default = ["linux"]
 linux = ["framework_lib/linux"]
 freebsd = ["framework_lib/freebsd"]
-windows = ["framework_lib/windows", "dep:static_vcruntime"]
+windows = ["framework_lib/windows"]
 
 [dependencies.framework_lib]
 path = "../framework_lib"
 default-features = false
-
-[build-dependencies]
-static_vcruntime = { version = "2.0", optional = true }
