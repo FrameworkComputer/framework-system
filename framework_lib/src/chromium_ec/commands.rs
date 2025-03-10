@@ -772,6 +772,7 @@ pub struct EcRequestGetHwDiag {}
 pub struct EcResponseGetHwDiag {
     pub hw_diag: u32,
     pub bios_complete: u8,
+    pub device_complete: u8,
 }
 
 impl EcResponseGetHwDiag {
