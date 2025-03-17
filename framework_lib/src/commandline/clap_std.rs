@@ -4,7 +4,6 @@
 use clap::Parser;
 use clap_num::maybe_hex;
 
-use crate::chromium_ec::commands::EC_RGBKBD_MAX_KEY_COUNT;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::{
     Cli, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg, RebootEcArg,
@@ -154,7 +153,7 @@ struct ClapCli {
     /// Set the color of <key> to <RGB>. Multiple colors for adjacent keys can be set at once.
     /// <key> <RGB> [<RGB> ...]
     /// Example: 0 0xFF000 0x00FF00 0x0000FF
-    #[clap(num_args = 2..EC_RGBKBD_MAX_KEY_COUNT)]
+    #[clap(num_args = 2..)]
     #[arg(long, value_parser=maybe_hex::<u64>)]
     rgbkbd: Vec<u64>,
 
