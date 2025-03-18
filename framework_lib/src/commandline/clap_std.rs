@@ -2,6 +2,7 @@
 //! This way we can use it in the regular OS commandline tool on Linux and Windows,
 //! as well as on the UEFI shell tool.
 use clap::Parser;
+use clap_num::maybe_hex;
 
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::{
@@ -149,6 +150,13 @@ struct ClapCli {
     #[arg(long)]
     kblight: Option<Option<u8>>,
 
+    /// Set the color of <key> to <RGB>. Multiple colors for adjacent keys can be set at once.
+    /// <key> <RGB> [<RGB> ...]
+    /// Example: 0 0xFF000 0x00FF00 0x0000FF
+    #[clap(num_args = 2..)]
+    #[arg(long, value_parser=maybe_hex::<u64>)]
+    rgbkbd: Vec<u64>,
+
     /// Set tablet mode override
     #[clap(value_enum)]
     #[arg(long)]
@@ -274,6 +282,7 @@ pub fn parse(args: &[String]) -> Cli {
         fp_led_level: args.fp_led_level,
         fp_brightness: args.fp_brightness,
         kblight: args.kblight,
+        rgbkbd: args.rgbkbd,
         tablet_mode: args.tablet_mode,
         console: args.console,
         reboot_ec: args.reboot_ec,

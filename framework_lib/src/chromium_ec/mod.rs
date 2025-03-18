@@ -921,6 +921,23 @@ impl CrosEc {
         let res = request.send_command(self)?;
         Ok(res.val == 1)
     }
+
+    pub fn rgbkbd_set_color(&self, start_key: u8, colors: Vec<RgbS>) -> EcResult<()> {
+        for (chunk, colors) in colors.chunks(EC_RGBKBD_MAX_KEY_COUNT).enumerate() {
+            let mut request = EcRequestRgbKbdSetColor {
+                start_key: start_key + ((chunk * EC_RGBKBD_MAX_KEY_COUNT) as u8),
+                length: colors.len() as u8,
+                color: [(); EC_RGBKBD_MAX_KEY_COUNT].map(|()| Default::default()),
+            };
+
+            for (i, color) in colors.iter().enumerate() {
+                request.color[i] = *color;
+            }
+
+            let _res = request.send_command(self)?;
+        }
+        Ok(())
+    }
 }
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
