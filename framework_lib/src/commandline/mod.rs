@@ -50,6 +50,8 @@ use crate::power;
 use crate::smbios;
 use crate::smbios::ConfigDigit0;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
+#[cfg(feature = "hidapi")]
+use crate::touchpad::print_touchpad_fw_ver;
 #[cfg(feature = "uefi")]
 use crate::uefi::enable_page_break;
 use crate::util;
@@ -474,6 +476,9 @@ fn print_versions(ec: &CrosEc) {
     }
     #[cfg(feature = "rusb")]
     let _ignore_err = check_camera_version();
+
+    #[cfg(feature = "hidapi")]
+    let _ignore_err = print_touchpad_fw_ver();
 }
 
 fn print_esrt() {
