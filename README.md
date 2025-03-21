@@ -44,6 +44,7 @@ see the [Support Matrices](support-matrices.md).
     - [x] ME (Only on Linux)
     - [x] Retimer
     - [x] Touchpad (Linux and Windows)
+    - [x] Touchscreen (Only on Linux)
   - [x] Get Expansion Card Firmware (Not on UEFI so far)
     - [x] HDMI Expansion Card (`--dp-hdmi-info`)
     - [x] DisplayPort Expansion Card (`--dp-hdmi-info`)
