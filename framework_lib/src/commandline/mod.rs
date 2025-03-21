@@ -23,6 +23,8 @@ use std::io::prelude::*;
 #[cfg(feature = "rusb")]
 use crate::audio_card::check_synaptics_fw_version;
 use crate::built_info;
+#[cfg(feature = "rusb")]
+use crate::camera::check_camera_version;
 use crate::capsule;
 use crate::capsule_content::{
     find_bios_version, find_ec_in_bios_cap, find_pd_in_bios_cap, find_retimer_version,
@@ -470,6 +472,8 @@ fn print_versions(ec: &CrosEc) {
             println!("  Unknown");
         }
     }
+    #[cfg(feature = "rusb")]
+    check_camera_version();
 }
 
 fn print_esrt() {

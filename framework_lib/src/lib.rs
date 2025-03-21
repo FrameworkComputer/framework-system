@@ -14,6 +14,8 @@ extern crate log;
 
 #[cfg(feature = "rusb")]
 pub mod audio_card;
+#[cfg(feature = "rusb")]
+pub mod camera;
 
 #[cfg(feature = "uefi")]
 #[macro_use]
