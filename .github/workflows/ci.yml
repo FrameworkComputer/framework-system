@@ -19,7 +19,7 @@ jobs:
     - name: Setup Rust toolchain
       run: |
         rm rust-toolchain.toml
-        rustup toolchain install 1.75.0-x86_64-unknown-freebsd
+        rustup target add x86_64-unknown-freebsd
         rustup show
 
     - name: Install cross compilation tool
