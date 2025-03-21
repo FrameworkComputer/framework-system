@@ -43,7 +43,8 @@ see the [Support Matrices](support-matrices.md).
     - [x] PD
     - [x] ME (Only on Linux)
     - [x] Retimer
-    - [x] Touchpad (Linux and Windows)
+    - [x] Touchpad (Linux, Windows, FreeBSD, not UEFI)
+    - [x] Touchscreen (Linux, Windows, FreeBSD, not UEFI)
   - [x] Get Expansion Card Firmware (Not on UEFI so far)
     - [x] HDMI Expansion Card (`--dp-hdmi-info`)
     - [x] DisplayPort Expansion Card (`--dp-hdmi-info`)
@@ -69,6 +70,7 @@ All of these need EC communication support in order to work.
 - [x] Get and set keyboard brightness (`--kblight`)
 - [x] Get and set battery charge limit (`--charge-limit`)
 - [x] Get and set fingerprint LED brightness (`--fp-brightness`)
+- [x] Disable/Enable touchscreen (`--touchscreen-enable`)
 
 ###### Communication with Embedded Controller
 
@@ -177,6 +179,8 @@ Options:
       --intrusion                   Show status of intrusion switch
       --inputmodules                Show status of the input modules (Framework 16 only)
       --kblight [<KBLIGHT>]         Set keyboard backlight percentage or get, if no value provided
+      --touchscreen-enable <TOUCHSCREEN_ENABLE>
+          Enable/disable touchscreen [possible values: true, false]
       --console <CONSOLE>           Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
       --driver <DRIVER>             Select which driver is used. By default portio is used [possible values: portio, cros-ec, windows]
   -t, --test                        Run self-test to check if interaction with EC is possible

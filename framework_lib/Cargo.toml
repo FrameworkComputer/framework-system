@@ -63,7 +63,7 @@ uefi = { version = "0.20", features = ["alloc"], optional = true }
 uefi-services = { version = "0.17", optional = true }
 plain = { version = "0.2.3", optional = true }
 spin = { version = "0.9.8", optional = false }
-hidapi = { version = "2.6.3", optional = true }
+hidapi = { version = "2.6.3", optional = true, features = [ "windows-native" ] }
 rusb = { version = "0.9.4", optional = true }
 no-std-compat = { version = "0.4.1", features = [ "alloc" ] }
 guid_macros = { path = "../guid_macros" }
@@ -89,5 +89,12 @@ features = [
     "Win32_System_IO",
     "Win32_System_Ioctl",
     "Win32_System_SystemServices",
+    # For HID devices
+    "Win32_Devices_DeviceAndDriverInstallation",
+    "Win32_Devices_HumanInterfaceDevice",
+    "Win32_Devices_Properties",
+    "Win32_Storage_EnhancedStorage",
+    "Win32_System_Threading",
+    "Win32_UI_Shell_PropertiesSystem"
 ]
 
