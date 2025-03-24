@@ -29,13 +29,14 @@ pub fn find_bios_version(data: &[u8]) -> Option<BiosCapsule> {
     let needle = b"$BVDT";
     let found = util::find_sequence(data, needle)?;
 
+    // One of: GFW30, HFW3T, HFW30, IFR30, KFM30, JFP30, LFK30, IFGA3, IFGP6, LFR20, LFSP0
     let platform_offset = found + 0xA + needle.len() - 1;
-    let platform = std::str::from_utf8(&data[platform_offset..platform_offset + 4])
+    let platform = std::str::from_utf8(&data[platform_offset..platform_offset + 5])
         .map(|x| x.to_string())
         .ok()?;
 
-    let ver_offset = found + 0xE + needle.len() - 1;
-    let version = std::str::from_utf8(&data[ver_offset..ver_offset + 4])
+    let ver_offset = found + 0x10 + needle.len() - 1;
+    let version = std::str::from_utf8(&data[ver_offset..ver_offset + 5])
         .map(|x| x.to_string())
         .ok()?;
 
