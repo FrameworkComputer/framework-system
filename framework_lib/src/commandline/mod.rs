@@ -473,7 +473,7 @@ fn print_versions(ec: &CrosEc) {
         }
     }
     #[cfg(feature = "rusb")]
-    check_camera_version();
+    let _ignore_err = check_camera_version();
 }
 
 fn print_esrt() {
