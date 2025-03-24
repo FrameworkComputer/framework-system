@@ -16,6 +16,8 @@ extern crate log;
 pub mod audio_card;
 #[cfg(feature = "rusb")]
 pub mod camera;
+#[cfg(target_os = "freebsd")]
+pub mod freebsd_hid;
 #[cfg(feature = "hidapi")]
 pub mod touchpad;
 
