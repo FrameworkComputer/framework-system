@@ -8,7 +8,7 @@ use crate::alloc::string::ToString;
 use alloc::string::String;
 use core::convert::TryInto;
 
-use crate::ccgx::binary::{CCG5_PD_LEN, CCG6_PD_LEN};
+use crate::ccgx::binary::{CCG5_PD_LEN, CCG6_PD_LEN, CCG8_PD_LEN};
 use crate::ec_binary::EC_LEN;
 use crate::util;
 
@@ -57,10 +57,13 @@ pub fn find_pd_in_bios_cap(data: &[u8]) -> Option<&[u8]> {
     // they're the same version
     let ccg5_needle = &[0x00, 0x20, 0x00, 0x20, 0x11, 0x00];
     let ccg6_needle = &[0x00, 0x40, 0x00, 0x20, 0x11, 0x00];
+    let ccg8_needle = &[0x00, 0x80, 0x00, 0x20, 0xAD, 0x0C];
     if let Some(found_pd1) = util::find_sequence(data, ccg5_needle) {
         Some(&data[found_pd1..found_pd1 + CCG5_PD_LEN])
     } else if let Some(found_pd1) = util::find_sequence(data, ccg6_needle) {
         Some(&data[found_pd1..found_pd1 + CCG6_PD_LEN])
+    } else if let Some(found_pd1) = util::find_sequence(data, ccg8_needle) {
+        Some(&data[found_pd1..found_pd1 + CCG8_PD_LEN])
     } else {
         None
     }

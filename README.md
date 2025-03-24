@@ -33,7 +33,7 @@ see the [Support Matrices](support-matrices.md).
     - [x] HO2 BIOS Capsule (`--ho2-capsule`)
       - [x] BIOS Version
       - [x] EC Version
-      - [x] CCG5/CCG6 PD Version
+      - [x] CCG5/CCG6/CCG8 PD Version
     - [x] UEFI Capsule (`--capsule`)
   - [x] Parse metadata from capsule binary
     - [x] Determine type (GUID) of capsule binary

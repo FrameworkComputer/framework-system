@@ -957,7 +957,10 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 analyze_ec_fw(ec_bin);
             }
             if let Some(pd_bin) = find_pd_in_bios_cap(&data) {
+                debug!("Found PD binary in BIOS capsule");
                 analyze_ccgx_pd_fw(pd_bin);
+            } else {
+                debug!("Didn't find PD binary in BIOS capsule");
             }
         }
     } else if let Some(dump_path) = &args.dump_ec_flash {
@@ -1280,7 +1283,7 @@ fn analyze_ccgx_pd_fw(data: &[u8]) {
         ccgx::binary::print_fw(&versions.main_fw);
         return;
     } else {
-        println!("Failed to read versions")
+        println!("Failed to read PD versions")
     }
 }
 
