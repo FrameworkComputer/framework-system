@@ -16,6 +16,8 @@ extern crate log;
 pub mod audio_card;
 #[cfg(feature = "rusb")]
 pub mod camera;
+#[cfg(feature = "hidapi")]
+pub mod touchpad;
 
 #[cfg(feature = "uefi")]
 #[macro_use]
