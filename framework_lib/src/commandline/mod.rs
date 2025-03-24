@@ -152,7 +152,7 @@ pub struct Cli {
     pub ec_bin: Option<String>,
     pub capsule: Option<String>,
     pub dump: Option<String>,
-    pub ho2_capsule: Option<String>,
+    pub h2o_capsule: Option<String>,
     pub dump_ec_flash: Option<String>,
     pub flash_ec: Option<String>,
     pub flash_ro_ec: Option<String>,
@@ -932,7 +932,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 println!("Capsule is invalid.");
             }
         }
-    } else if let Some(capsule_path) = &args.ho2_capsule {
+    } else if let Some(capsule_path) = &args.h2o_capsule {
         #[cfg(feature = "uefi")]
         let data = crate::uefi::fs::shell_read_file(capsule_path);
         #[cfg(not(feature = "uefi"))]
@@ -954,7 +954,10 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 println!("  BIOS Version: {:>18}", cap.version);
             }
             if let Some(ec_bin) = find_ec_in_bios_cap(&data) {
+                debug!("Found EC binary in BIOS capsule");
                 analyze_ec_fw(ec_bin);
+            } else {
+                debug!("Didn't find EC binary in BIOS capsule");
             }
             if let Some(pd_bin) = find_pd_in_bios_cap(&data) {
                 debug!("Found PD binary in BIOS capsule");
@@ -1025,7 +1028,7 @@ Options:
       --ec-bin <EC_BIN>      Parse versions from EC firmware binary file
       --capsule <CAPSULE>    Parse UEFI Capsule information from binary file
       --dump <DUMP>          Dump extracted UX capsule bitmap image to a file
-      --ho2-capsule <HO2_CAPSULE>      Parse UEFI Capsule information from binary file
+      --h2o-capsule <H2O_CAPSULE>      Parse UEFI Capsule information from binary file
       --dump-ec-flash <DUMP_EC_FLASH>  Dump EC flash contents
       --flash-ec <FLASH_EC>            Flash EC with new firmware from file
       --flash-ro-ec <FLASH_EC>         Flash EC with new firmware from file
@@ -1292,13 +1295,13 @@ pub fn analyze_ec_fw(data: &[u8]) {
     if let Some(ver) = ec_binary::read_ec_version(data, true) {
         ec_binary::print_ec_version(&ver, true);
     } else {
-        println!("Failed to read version")
+        println!("Failed to read EC version")
     }
     // Readwrite firmware
     if let Some(ver) = ec_binary::read_ec_version(data, false) {
         ec_binary::print_ec_version(&ver, false);
     } else {
-        println!("Failed to read version")
+        println!("Failed to read EC version")
     }
 }
 

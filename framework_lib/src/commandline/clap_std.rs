@@ -100,7 +100,7 @@ struct ClapCli {
 
     /// Parse UEFI Capsule information from binary file
     #[arg(long)]
-    ho2_capsule: Option<std::path::PathBuf>,
+    h2o_capsule: Option<std::path::PathBuf>,
 
     /// Dump EC flash contents
     #[arg(long)]
@@ -259,8 +259,8 @@ pub fn parse(args: &[String]) -> Cli {
             .capsule
             .map(|x| x.into_os_string().into_string().unwrap()),
         dump: args.dump.map(|x| x.into_os_string().into_string().unwrap()),
-        ho2_capsule: args
-            .ho2_capsule
+        h2o_capsule: args
+            .h2o_capsule
             .map(|x| x.into_os_string().into_string().unwrap()),
         dump_ec_flash: args
             .dump_ec_flash

@@ -30,7 +30,7 @@ see the [Support Matrices](support-matrices.md).
     - [x] CCG5 PD (11th Gen TigerLake) (`--pd-bin`)
     - [x] CCG6 PD (12th Gen AlderLake) (`--pd-bin`)
     - [x] CCG8 PD (Framework 16) (`--pd-bin`)
-    - [x] HO2 BIOS Capsule (`--ho2-capsule`)
+    - [x] H2O BIOS Capsule (`--h2o-capsule`)
       - [x] BIOS Version
       - [x] EC Version
       - [x] CCG5/CCG6/CCG8 PD Version
@@ -182,7 +182,7 @@ Options:
       --ec-bin <EC_BIN>             Parse versions from EC firmware binary file
       --capsule <CAPSULE>           Parse UEFI Capsule information from binary file
       --dump <DUMP>                 Dump extracted UX capsule bitmap image to a file
-      --ho2-capsule <HO2_CAPSULE>   Parse UEFI Capsule information from binary file
+      --h2o-capsule <H2O_CAPSULE>   Parse UEFI Capsule information from binary file
       --intrusion                   Show status of intrusion switch
       --inputmodules                Show status of the input modules (Framework 16 only)
       --kblight [<KBLIGHT>]         Set keyboard backlight percentage or get, if no value provided
