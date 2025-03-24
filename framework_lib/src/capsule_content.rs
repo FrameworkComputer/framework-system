@@ -44,12 +44,10 @@ pub fn find_bios_version(data: &[u8]) -> Option<BiosCapsule> {
 }
 
 pub fn find_ec_in_bios_cap(data: &[u8]) -> Option<&[u8]> {
-    let needle = b"_IFLASH_EC_IMG_";
-    let found_iflash = util::find_sequence(data, needle)?;
-    // The actual EC binary is a few bytes after `_IFLASH_EC_IMG_`.
-    // Just earch for the first 4 bytes that seem to appear in all EC images.
-    let found = util::find_sequence(&data[found_iflash..], &[0x10, 0x00, 0x00, 0xf7])?;
-    Some(&data[found_iflash + found..found_iflash + found + EC_LEN])
+    let needle = b"$_IFLASH_EC_IMG_";
+    let found = util::find_sequence(data, needle)?;
+    let ec_offset = found + 0x9 + needle.len() - 1;
+    Some(&data[ec_offset..ec_offset + EC_LEN])
 }
 
 pub fn find_pd_in_bios_cap(data: &[u8]) -> Option<&[u8]> {
