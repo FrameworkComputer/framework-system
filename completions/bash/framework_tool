@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+
+# Bash completion for framework_tool
+
+_framework_tool() {
+    local options
+    options=(
+        "-v" "--verbose"
+        "-q" "--quiet"
+        "--versions"
+        "--version"
+        "--features"
+        "--esrt"
+        "--device"
+        "--compare-version"
+        "--power"
+        "--thermal"
+        "--sensors"
+        "--pdports"
+        "--info"
+        "--pd-info"
+        "--dp-hdmi-info"
+        "--dp-hdmi-update"
+        "--audio-card-info"
+        "--privacy"
+        "--pd-bin"
+        "--ec-bin"
+        "--capsule"
+        "--dump"
+        "--ho2-capsule"
+        "--dump-ec-flash"
+        "--flash-ec"
+        "--flash-ro-ec"
+        "--flash-rw-ec"
+        "--intrusion"
+        "--inputmodules"
+        "--input-deck-mode"
+        "--charge-limit"
+        "--get-gpio"
+        "--fp-brightness"
+        "--kblight"
+        "--console"
+        "--reboot-ec"
+        "--hash"
+        "--driver"
+        "--pd-addrs"
+        "--pd-ports"
+        "--has-mec"
+        "-t" "--test"
+        "-h" "--help"
+    )
+
+    local devices=("bios" "ec" "pd0" "pd1" "rtm01" "rtm23" "ac-left" "ac-right")
+    local input_deck_modes=("auto" "off" "on")
+    local console_modes=("recent" "follow")
+    local drivers=("portio" "cros-ec" "windows")
+    local has_mec_options=("true" "false")
+    local brightness_options=("high" "medium" "low")
+
+    local current_word prev_word
+    current_word="${COMP_WORDS[COMP_CWORD]}"
+    prev_word="${COMP_WORDS[COMP_CWORD-1]}"
+
+    # Handle options
+    if [[ $COMP_CWORD -eq 1 ]]; then
+        COMPREPLY=( $(compgen -W "${options[*]}" -- "$current_word") )
+    elif [[ $prev_word == "--device" ]]; then
+        COMPREPLY=( $(compgen -W "${devices[*]}" -- "$current_word") )
+    elif [[ $prev_word == "--input-deck-mode" ]]; then
+        COMPREPLY=( $(compgen -W "${input_deck_modes[*]}" -- "$current_word") )
+    elif [[ $prev_word == "--console" ]]; then
+        COMPREPLY=( $(compgen -W "${console_modes[*]}" -- "$current_word") )
+    elif [[ $prev_word == "--driver" ]]; then
+        COMPREPLY=( $(compgen -W "${drivers[*]}" -- "$current_word") )
+    elif [[ $prev_word == "--has-mec" ]]; then
+        COMPREPLY=( $(compgen -W "${has_mec_options[*]}" -- "$current_word") )
+    elif [[ $prev_word == "--fp-brightness" ]]; then
+        COMPREPLY=( $(compgen -W "${brightness_options[*]}" -- "$current_word") )
+    fi
+
+    return 0
+}
+
+complete -F _framework_tool framework_tool
