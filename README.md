@@ -25,15 +25,14 @@ see the [Support Matrices](support-matrices.md).
     - [x] ESRT table (UEFI, Linux, FreeBSD only) (`--esrt`)
     - [x] SMBIOS
   - [x] Get firmware version from binary file
-    - [x] Legacy EC (Intel 13th Gen and earlier) (`--ec-bin`)
-    - [x] Zephyr EC (AMD) (`--ec-bin`)
+    - [x] EC (Legacy and Zephyr based) (`--ec-bin`)
     - [x] CCG5 PD (11th Gen TigerLake) (`--pd-bin`)
-    - [x] CCG6 PD (12th Gen AlderLake) (`--pd-bin`)
-    - [x] CCG8 PD (Framework 16) (`--pd-bin`)
-    - [x] HO2 BIOS Capsule (`--ho2-capsule`)
+    - [x] CCG6 PD (Intel systems, Framework Desktop) (`--pd-bin`)
+    - [x] CCG8 PD (AMD Laptops) (`--pd-bin`)
+    - [x] H2O BIOS Capsule (`--h2o-capsule`)
       - [x] BIOS Version
       - [x] EC Version
-      - [x] CCG5/CCG6 PD Version
+      - [x] CCG5/CCG6/CCG8 PD Version
     - [x] UEFI Capsule (`--capsule`)
   - [x] Parse metadata from capsule binary
     - [x] Determine type (GUID) of capsule binary
@@ -53,16 +52,6 @@ see the [Support Matrices](support-matrices.md).
     - [x] HDMI Expansion Card (`--dp-hdmi-update`)
     - [x] DisplayPort Expansion Card (`--dp-hdmi-update`)
     - [ ] Audio Expansion Card
-
-###### Firmware Update
-
-Note: Use fwupd.
-
-- [ ] Flash firmware
-  - [ ] BIOS
-  - [ ] EC
-  - [ ] PD
-  - [ ] Expansion Cards
 
 ###### System Status
 
@@ -91,6 +80,7 @@ All of these need EC communication support in order to work.
 - [x] Framework Desktop (AMD Ryzen AI Max 300)
 - [x] Port I/O communication on Linux
 - [x] Port I/O communication in UEFI
+- [x] Port I/O communication on FreeBSD
 - [x] Using `cros_ec` driver in Linux kernel
 - [x] Using [Framework EC Windows driver](https://github.com/FrameworkComputer/crosecbus) based on [coolstar's](https://github.com/coolstar/crosecbus)
 - [x] Using [DHowett's Windows CrosEC driver](https://github.com/DHowett/FrameworkWindowsUtils)
@@ -183,7 +173,7 @@ Options:
       --ec-bin <EC_BIN>             Parse versions from EC firmware binary file
       --capsule <CAPSULE>           Parse UEFI Capsule information from binary file
       --dump <DUMP>                 Dump extracted UX capsule bitmap image to a file
-      --ho2-capsule <HO2_CAPSULE>   Parse UEFI Capsule information from binary file
+      --h2o-capsule <H2O_CAPSULE>   Parse UEFI Capsule information from binary file
       --intrusion                   Show status of intrusion switch
       --inputmodules                Show status of the input modules (Framework 16 only)
       --kblight [<KBLIGHT>]         Set keyboard backlight percentage or get, if no value provided

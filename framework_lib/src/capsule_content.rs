@@ -8,7 +8,7 @@ use crate::alloc::string::ToString;
 use alloc::string::String;
 use core::convert::TryInto;
 
-use crate::ccgx::binary::{CCG5_PD_LEN, CCG6_PD_LEN};
+use crate::ccgx::binary::{CCG5_PD_LEN, CCG6_PD_LEN, CCG8_PD_LEN};
 use crate::ec_binary::EC_LEN;
 use crate::util;
 
@@ -29,13 +29,14 @@ pub fn find_bios_version(data: &[u8]) -> Option<BiosCapsule> {
     let needle = b"$BVDT";
     let found = util::find_sequence(data, needle)?;
 
+    // One of: GFW30, HFW3T, HFW30, IFR30, KFM30, JFP30, LFK30, IFGA3, IFGP6, LFR20, LFSP0
     let platform_offset = found + 0xA + needle.len() - 1;
-    let platform = std::str::from_utf8(&data[platform_offset..platform_offset + 4])
+    let platform = std::str::from_utf8(&data[platform_offset..platform_offset + 5])
         .map(|x| x.to_string())
         .ok()?;
 
-    let ver_offset = found + 0xE + needle.len() - 1;
-    let version = std::str::from_utf8(&data[ver_offset..ver_offset + 4])
+    let ver_offset = found + 0x10 + needle.len() - 1;
+    let version = std::str::from_utf8(&data[ver_offset..ver_offset + 5])
         .map(|x| x.to_string())
         .ok()?;
 
@@ -43,12 +44,10 @@ pub fn find_bios_version(data: &[u8]) -> Option<BiosCapsule> {
 }
 
 pub fn find_ec_in_bios_cap(data: &[u8]) -> Option<&[u8]> {
-    let needle = b"_IFLASH_EC_IMG_";
-    let found_iflash = util::find_sequence(data, needle)?;
-    // The actual EC binary is a few bytes after `_IFLASH_EC_IMG_`.
-    // Just earch for the first 4 bytes that seem to appear in all EC images.
-    let found = util::find_sequence(&data[found_iflash..], &[0x10, 0x00, 0x00, 0xf7])?;
-    Some(&data[found_iflash + found..found_iflash + found + EC_LEN])
+    let needle = b"$_IFLASH_EC_IMG_";
+    let found = util::find_sequence(data, needle)?;
+    let ec_offset = found + 0x9 + needle.len() - 1;
+    Some(&data[ec_offset..ec_offset + EC_LEN])
 }
 
 pub fn find_pd_in_bios_cap(data: &[u8]) -> Option<&[u8]> {
@@ -57,10 +56,13 @@ pub fn find_pd_in_bios_cap(data: &[u8]) -> Option<&[u8]> {
     // they're the same version
     let ccg5_needle = &[0x00, 0x20, 0x00, 0x20, 0x11, 0x00];
     let ccg6_needle = &[0x00, 0x40, 0x00, 0x20, 0x11, 0x00];
+    let ccg8_needle = &[0x00, 0x80, 0x00, 0x20, 0xAD, 0x0C];
     if let Some(found_pd1) = util::find_sequence(data, ccg5_needle) {
         Some(&data[found_pd1..found_pd1 + CCG5_PD_LEN])
     } else if let Some(found_pd1) = util::find_sequence(data, ccg6_needle) {
         Some(&data[found_pd1..found_pd1 + CCG6_PD_LEN])
+    } else if let Some(found_pd1) = util::find_sequence(data, ccg8_needle) {
+        Some(&data[found_pd1..found_pd1 + CCG8_PD_LEN])
     } else {
         None
     }
