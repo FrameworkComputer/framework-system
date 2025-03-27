@@ -1743,6 +1743,22 @@ impl CrosEc {
         Ok(())
     }
 
+    pub fn read_board_id_hc(&self, board_id_type: BoardIdType) -> EcResult<Option<u8>> {
+        let res = EcRequestReadBoardId {
+            board_id_type: board_id_type as u8,
+        }
+        .send_command(self)?;
+        match res.board_id {
+            -1 => Err(EcError::DeviceError(format!(
+                "Failed to read Board ID {:?}",
+                board_id_type
+            ))),
+            15 => Ok(None),
+            0..=14 => Ok(Some(res.board_id as u8)),
+            n => Err(EcError::DeviceError(format!("Invalid Board ID {}", n))),
+        }
+    }
+
     pub fn get_uptime_info(&self) -> EcResult<()> {
         let res = EcRequestGetUptimeInfo {}.send_command(self)?;
         let t_since_boot = Duration::from_millis(res.time_since_ec_boot.into());
