@@ -1468,3 +1468,22 @@ impl EcRequest<EcResponseSetGpuSerial> for EcRequestSetGpuSerial {
         EcCommands::ProgramGpuEeprom
     }
 }
+
+#[repr(C, packed)]
+pub struct EcRequestReadBoardId {
+    /// ADC Channel, specific to each mainboard schematic
+    pub adc_channel: u8,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseReadBoardId {
+    /// Board ID (-1 invalid, 15 not present)
+    pub board_id: i8,
+}
+
+impl EcRequest<EcResponseReadBoardId> for EcRequestReadBoardId {
+    fn command_id() -> EcCommands {
+        EcCommands::ReadBoardId
+    }
+}

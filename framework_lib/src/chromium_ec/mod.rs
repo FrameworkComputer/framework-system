@@ -1587,6 +1587,22 @@ impl CrosEc {
         }
         Ok(())
     }
+
+    pub fn read_board_id_hc(&self, adc_channel: u8) -> EcResult<Option<u8>> {
+        let res = EcRequestReadBoardId { adc_channel }.send_command(self)?;
+        match res.board_id {
+            -1 => Err(EcError::DeviceError(format!(
+                "Failed to read ADC channel {}",
+                adc_channel
+            ))),
+            15 => Ok(None),
+            0..=14 => Ok(Some(res.board_id as u8)),
+            n => Err(EcError::DeviceError(format!(
+                "Invalid ID to read ADC channel {}",
+                n
+            ))),
+        }
+    }
 }
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
