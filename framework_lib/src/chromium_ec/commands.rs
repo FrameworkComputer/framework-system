@@ -931,3 +931,21 @@ impl EcRequest<EcResponseFpLedLevelControlV1> for EcRequestFpLedLevelControlV1 {
         1
     }
 }
+
+#[repr(C, packed)]
+pub struct EcRequestAdcRead {
+    /// ADC Channel, specific to each mainboard schematic
+    pub adc_channel: u8,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseAdcRead {
+    pub adc_value: i32,
+}
+
+impl EcRequest<EcResponseAdcRead> for EcRequestAdcRead {
+    fn command_id() -> EcCommands {
+        EcCommands::AdcRead
+    }
+}

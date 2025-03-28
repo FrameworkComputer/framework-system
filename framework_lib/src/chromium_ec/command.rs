@@ -46,6 +46,7 @@ pub enum EcCommands {
     RebootEc = 0x00D2,
     /// Get information about PD controller power
     UsbPdPowerInfo = 0x0103,
+    AdcRead = 0x0123,
     RgbKbdSetColor = 0x013A,
     RgbKbd = 0x013B,
 
