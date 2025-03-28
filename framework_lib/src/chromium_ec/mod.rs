@@ -953,6 +953,11 @@ impl CrosEc {
         Ok(res.val == 1)
     }
 
+    pub fn adc_read(&self, adc_channel: u8) -> EcResult<i32> {
+        let res = EcRequestAdcRead { adc_channel }.send_command(self)?;
+        Ok(res.adc_value)
+    }
+
     pub fn rgbkbd_set_color(&self, start_key: u8, colors: Vec<RgbS>) -> EcResult<()> {
         for (chunk, colors) in colors.chunks(EC_RGBKBD_MAX_KEY_COUNT).enumerate() {
             let mut request = EcRequestRgbKbdSetColor {

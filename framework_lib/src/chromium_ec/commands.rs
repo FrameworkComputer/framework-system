@@ -518,6 +518,22 @@ impl EcRequest<EcResponseUsbPdPowerInfo> for EcRequestUsbPdPowerInfo {
     }
 }
 
+#[repr(C, packed)]
+pub struct EcRequestAdcRead {
+    /// ADC Channel, specific to each mainboard schematic
+    pub adc_channel: u8,
+}
+
+pub struct EcResponseAdcRead {
+    pub adc_value: i32,
+}
+
+impl EcRequest<EcResponseAdcRead> for EcRequestAdcRead {
+    fn command_id() -> EcCommands {
+        EcCommands::AdcRead
+    }
+}
+
 // TODO: Actually 128, but if we go above ~80 EC returns REQUEST_TRUNCATED
 // At least when I use the portio driver
 pub const EC_RGBKBD_MAX_KEY_COUNT: usize = 64;
