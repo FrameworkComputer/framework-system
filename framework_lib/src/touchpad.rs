@@ -73,7 +73,7 @@ pub fn print_touchpad_fw_ver() -> Result<(), HidError> {
                 for y in 0..16 {
                     print!("{:X}0 ", y);
                     for x in 0..16 {
-                        print!("{:02X} ", read_byte(&device, 0x42, x+16*y)?);
+                        print!("{:02X} ", read_byte(&device, 0x42, x + 16 * y)?);
                     }
                     println!("");
                 }
@@ -86,7 +86,7 @@ pub fn print_touchpad_fw_ver() -> Result<(), HidError> {
                 for y in 0..16 {
                     print!("{:X}0 ", y);
                     for x in 0..16 {
-                        print!("{:02X} ", read_byte(&device, 0x43, x+16*y)?);
+                        print!("{:02X} ", read_byte(&device, 0x43, x + 16 * y)?);
                     }
                     println!("");
                 }
