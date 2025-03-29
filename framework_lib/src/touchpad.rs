@@ -64,6 +64,32 @@ pub fn print_touchpad_fw_ver() -> Result<(), HidError> {
                     _ => "Unsupported".to_string(),
                 };
                 println!("  Firmware Version: v{}", ver);
+                println!("  Config space 1");
+                print!("   ");
+                for x in 0..16 {
+                    print!("0{:X} ", x);
+                }
+                println!("");
+                for y in 0..16 {
+                    print!("{:X}0 ", y);
+                    for x in 0..16 {
+                        print!("{:02X} ", read_byte(&device, 0x42, x+16*y)?);
+                    }
+                    println!("");
+                }
+                println!("  Config space 2");
+                print!("   ");
+                for x in 0..16 {
+                    print!("0{:X} ", x);
+                }
+                println!("");
+                for y in 0..16 {
+                    print!("{:X}0 ", y);
+                    for x in 0..16 {
+                        print!("{:02X} ", read_byte(&device, 0x43, x+16*y)?);
+                    }
+                    println!("");
+                }
 
                 // If we found one, there's no need to look for more
                 return Ok(());
