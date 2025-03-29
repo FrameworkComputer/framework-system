@@ -91,20 +91,24 @@ jobs:
     - name: Setup Rust toolchain
       run: rustup show
 
+    # Build debug library first to fail fast
     - name: Build library (Windows)
       run: cargo build -p framework_lib --no-default-features --features "windows"
 
     - name: Build Windows tool
-      run: cargo build -p framework_tool --no-default-features --features "windows"
+      run: |
+        cargo build -p framework_tool --no-default-features --features "windows"
+        cargo build -p framework_tool --no-default-features --features "windows" --release
 
     - name: Check if Windows tool can start
-      run: cargo run --no-default-features --features "windows" -- --help
+      run: cargo run --no-default-features --features "windows" -- --help --release
 
+    # Upload release build so that vcruntime is statically linked
     - name: Upload Windows App
       uses: actions/upload-artifact@v4
       with:
         name: framework_tool.exe
-        path: target/debug/framework_tool.exe
+        path: target/release/framework_tool.exe
 
 
   test:
