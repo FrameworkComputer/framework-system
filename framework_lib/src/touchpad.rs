@@ -36,6 +36,7 @@ pub fn print_touchpad_fw_ver() -> Result<(), HidError> {
                 let vid = dev_info.vendor_id();
                 let pid = dev_info.product_id();
                 let usage_page = dev_info.usage_page();
+                let hid_ver = dev_info.release_number();
 
                 debug!(
                     "  Found {:04X}:{:04X} (Usage Page {:04X})",
@@ -58,6 +59,13 @@ pub fn print_touchpad_fw_ver() -> Result<(), HidError> {
 
                 println!("Touchpad");
                 println!("  IC Type:           {:04X}", pid);
+
+                // Linux does not expose a useful version number for I2C HID devices
+                #[cfg(target_os = "linux")]
+                println!("  HID Version        {:04X}", hid_ver);
+                #[cfg(not(target_os = "linux"))]
+                debug!("  HID Version        {:04X}", hid_ver);
+
                 let ver = match pid {
                     0x0239 => format!("{:04X}", read_239_ver(&device)?),
                     0x0274 => format!("{:04X}", read_274_ver(&device)?),
