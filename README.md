@@ -349,7 +349,8 @@ Keyboard backlight: 0%
 ## FreeBSD
 
 ```
-sudo pkg install hidapi
+# Install pre-requisites
+sudo pkg install rust hidapi
 
 # Build the library and tool
 cargo build --no-default-features --features freebsd
