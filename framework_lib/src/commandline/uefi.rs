@@ -99,6 +99,7 @@ pub fn parse(args: &[String]) -> Cli {
         has_mec: None,
         test: false,
         help: false,
+        flash_gpu_descriptor: None,
         allupdate: false,
         info: false,
         raw_command: vec![],
@@ -513,6 +514,25 @@ pub fn parse(args: &[String]) -> Cli {
                 println!("Need to provide a value for --console. Possible values: bios, ec, pd0, pd1, rtm01, rtm23, ac-left, ac-right");
                 None
             };
+        } else if arg == "--flash_gpu_descriptor" {
+            cli.flash_gpu_descriptor = if args.len() > i + 2 {
+                let left = args[i + 1].parse::<u8>();
+                let right = args[i + 2].clone();
+                if left.is_ok() {
+                    Some((left.unwrap(), right.clone()))
+                } else {
+                    println!(
+                        "Invalid values for --flash_gpu_descriptor: '{} {}'. Must be u8, 18 character string.",
+                        args[i + 1],
+                        args[i + 2]
+                    );
+                    None
+                }
+            } else {
+                println!("Need to provide a value for --flash_gpu_descriptor. TYPE_MAGIC SERIAL");
+                None
+            };
+            found_an_option = true;
         }
     }
 
