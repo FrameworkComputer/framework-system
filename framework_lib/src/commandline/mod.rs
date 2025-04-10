@@ -1056,7 +1056,7 @@ Options:
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
       --hash <HASH>          Hash a file of arbitrary data
-      --flash_gpu_descriptor <MAGIC> <18 DIGIT SN> Overwrite the GPU bay descriptor SN and type.
+      --flash-gpu-descriptor <MAGIC> <18 DIGIT SN> Overwrite the GPU bay descriptor SN and type.
   -t, --test                 Run self-test to check if interaction with EC is possible
   -h, --help                 Print help information
   -b                         Print output one screen at a time
