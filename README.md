@@ -52,6 +52,7 @@ see the [Support Matrices](support-matrices.md).
     - [x] HDMI Expansion Card (`--dp-hdmi-update`)
     - [x] DisplayPort Expansion Card (`--dp-hdmi-update`)
     - [ ] Audio Expansion Card
+  - [x] Get driver version for all devices (Windows only) (`--drivers`)
 
 ###### System Status
 
@@ -176,8 +177,12 @@ Options:
       --h2o-capsule <H2O_CAPSULE>   Parse UEFI Capsule information from binary file
       --intrusion                   Show status of intrusion switch
       --inputmodules                Show status of the input modules (Framework 16 only)
+      --fp-brightness [<FP_BRIGHTNESS>] Get or set fingerprint LED brightness [possible values: high, medium, low]
       --kblight [<KBLIGHT>]         Set keyboard backlight percentage or get, if no value provided
       --console <CONSOLE>           Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
+      --reboot-ec <REBOOT_EC>       Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
+      --drivers                     Display Windows Driver versions
+      --hash <HASH>                 Hash a file of arbitrary data
       --driver <DRIVER>             Select which driver is used. By default portio is used [possible values: portio, cros-ec, windows]
   -t, --test                        Run self-test to check if interaction with EC is possible
   -h, --help                        Print help information

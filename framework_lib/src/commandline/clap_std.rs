@@ -172,6 +172,10 @@ struct ClapCli {
     #[arg(long)]
     reboot_ec: Option<RebootEcArg>,
 
+    /// Display Windows Driver versions
+    #[arg(long)]
+    drivers: bool,
+
     /// Hash a file of arbitrary data
     #[arg(long)]
     hash: Option<std::path::PathBuf>,
@@ -286,6 +290,7 @@ pub fn parse(args: &[String]) -> Cli {
         tablet_mode: args.tablet_mode,
         console: args.console,
         reboot_ec: args.reboot_ec,
+        drivers: args.drivers,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         pd_addrs,
