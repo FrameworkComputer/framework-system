@@ -916,7 +916,7 @@ impl CrosEc {
         let mut request = EcRequestGpioGetV0 { name: [0; MAX_LEN] };
 
         let end = MAX_LEN.min(name.len());
-        request.name[..end].copy_from_slice(name[..end].as_bytes());
+        request.name[..end].copy_from_slice(&name.as_bytes()[..end]);
 
         let res = request.send_command(self)?;
         Ok(res.val == 1)
