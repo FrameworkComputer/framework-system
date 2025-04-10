@@ -1006,7 +1006,12 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             hash(&data);
         }
     } else if let Some(gpu_descriptor) = &args.flash_gpu_descriptor {
-        ec.set_gpu_serial(gpu_descriptor.0, gpu_descriptor.1.to_ascii_uppercase());
+        let res = ec.set_gpu_serial(gpu_descriptor.0, gpu_descriptor.1.to_ascii_uppercase());
+        match res {
+            Ok(1) => println!("GPU Descriptor successfully written"),
+            Ok(x) => println!("GPU Descriptor write failed with status code:  {}", x),
+            Err(err) => println!("GPU Descriptor write failed with error:  {:?}", err),
+        }
     }
 
     0

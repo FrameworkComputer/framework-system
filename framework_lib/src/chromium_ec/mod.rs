@@ -808,15 +808,16 @@ impl CrosEc {
     ///
     /// # Arguments
     /// `newserial` - a string that is 18 characters long
-    pub fn set_gpu_serial(&self, magic: u8, newserial: String) {
+    pub fn set_gpu_serial(&self, magic: u8, newserial: String) -> EcResult<u8> {
         let mut array_tmp: [u8; 20] = [0; 20];
         array_tmp[..18].copy_from_slice(newserial.as_bytes());
-        let response = EcRequestSetGpuSerial {
+        let result = EcRequestSetGpuSerial {
             magic: magic,
             idx: 0,
             serial: array_tmp,
         }
-        .send_command(self);
+        .send_command(self)?;
+        Ok(result.valid)
     }
 
     /// Requests recent console output from EC and constantly asks for more
