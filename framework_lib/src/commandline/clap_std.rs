@@ -6,6 +6,7 @@ use clap::Parser;
 use clap::{arg, command, Arg, Args, FromArgMatches};
 use clap_num::maybe_hex;
 
+use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::{
     Cli, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg, RebootEcArg,
@@ -222,10 +223,14 @@ pub fn parse(args: &[String]) -> Cli {
     let flash_gpu_descriptor = if !fgd.is_empty() {
         let magic = if let Ok(magic) = fgd[0].parse::<u8>() {
             magic
+        } else if fgd[0].to_uppercase() == "GPU" {
+            SetGpuSerialMagic::WriteGPUConfig as u8
+        } else if fgd[0].to_uppercase() == "SSD" {
+            SetGpuSerialMagic::WriteSSDConfig as u8
         } else {
             cli.error(
                 ErrorKind::InvalidValue,
-                "First argument of --flash-gpu-descriptor must be an integer",
+                "First argument of --flash-gpu-descriptor must be an integer or one of: 'GPU', 'SSD'",
             )
             .exit();
         };

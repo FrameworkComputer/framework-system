@@ -9,6 +9,7 @@ use uefi::proto::shell_params::*;
 use uefi::table::boot::{OpenProtocolAttributes, OpenProtocolParams, SearchType};
 use uefi::Identify;
 
+use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::{CrosEcDriverType, HardwareDeviceType};
 use crate::commandline::Cli;
 
@@ -517,9 +518,13 @@ pub fn parse(args: &[String]) -> Cli {
         } else if arg == "--flash-gpu-descriptor" {
             cli.flash_gpu_descriptor = if args.len() > i + 2 {
                 let left = args[i + 1].parse::<u8>();
-                let right = args[i + 2];
+                let sn = args[i + 2].to_string();
                 if let Ok(magic) = left {
-                    Some((left, right.to_string()))
+                    Some((magic, sn))
+                } else if left.to_uppercase() == "GPU" {
+                    Some((SetGpuSerialMagic::WriteGPUConfig as u8, sn))
+                } else if left.to_uppercase() = "SSD" {
+                    Some((SetGpuSerialMagic::WriteSSDConfig as u8, sn))
                 } else {
                     println!(
                         "Invalid values for --flash_gpu_descriptor: '{} {}'. Must be u8, 18 character string.",
