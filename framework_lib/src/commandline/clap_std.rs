@@ -249,26 +249,14 @@ pub fn parse(args: &[String]) -> Cli {
     let pd_addrs = match args.pd_addrs.len() {
         2 => Some((args.pd_addrs[0], args.pd_addrs[1])),
         0 => None,
-        _ => {
-            // Actually unreachable, checked by clap
-            println!(
-                "Must provide exactly to PD Addresses. Provided: {:?}",
-                args.pd_addrs
-            );
-            std::process::exit(1);
-        }
+        // Checked by clap
+        _ => unreachable!(),
     };
     let pd_ports = match args.pd_ports.len() {
         2 => Some((args.pd_ports[0], args.pd_ports[1])),
         0 => None,
-        _ => {
-            // Actually unreachable, checked by clap
-            println!(
-                "Must provide exactly to PD Ports. Provided: {:?}",
-                args.pd_ports
-            );
-            std::process::exit(1);
-        }
+        // Checked by clap
+        _ => unreachable!(),
     };
 
     Cli {
