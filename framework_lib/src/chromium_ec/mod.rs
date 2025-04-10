@@ -793,7 +793,8 @@ impl CrosEc {
     /// Get the GPU Serial
     ///
     pub fn get_gpu_serial(&self) -> EcResult<String> {
-        let gpuserial: EcResponseGetGpuSerial = EcRequestGetGpuSerial {idx: 0}.send_command(self)?;
+        let gpuserial: EcResponseGetGpuSerial =
+            EcRequestGetGpuSerial { idx: 0 }.send_command(self)?;
         let serial: String = String::from_utf8(gpuserial.serial.to_vec()).unwrap();
 
         if gpuserial.valid == 0 {
