@@ -517,9 +517,9 @@ pub fn parse(args: &[String]) -> Cli {
         } else if arg == "--flash-gpu-descriptor" {
             cli.flash_gpu_descriptor = if args.len() > i + 2 {
                 let left = args[i + 1].parse::<u8>();
-                let right = args[i + 2].clone();
-                if left.is_ok() {
-                    Some((left.unwrap(), right.clone()))
+                let right = args[i + 2];
+                if let Ok(magic) = left {
+                    Some((left, right.to_string()))
                 } else {
                     println!(
                         "Invalid values for --flash_gpu_descriptor: '{} {}'. Must be u8, 18 character string.",
