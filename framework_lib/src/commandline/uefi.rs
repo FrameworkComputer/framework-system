@@ -518,21 +518,22 @@ pub fn parse(args: &[String]) -> Cli {
         } else if arg == "--flash-gpu-descriptor" {
             cli.flash_gpu_descriptor = if args.len() > i + 2 {
                 let sn = args[i + 2].to_string();
+                let magic = args[i + 1];
 
-                let hex_magic = if let Some(hex_magic) = fgd[0].strip_prefix("0x") {
+                let hex_magic = if let Some(hex_magic) = magic.strip_prefix("0x") {
                     u8::from_str_radix(hex_magic, 16)
                 } else {
                     // Force parse error
                     u8::from_str_radix("", 16)
                 };
 
-                if let Ok(magic) = args[i + 1].parse::<u8>() {
+                if let Ok(magic) = magic.parse::<u8>() {
                     Some((magic, sn))
                 } else if let Ok(hex_magic) = hex_magic {
                     Some((hex_magic, sn))
-                } else if left.to_uppercase() == "GPU" {
+                } else if magic.to_uppercase() == "GPU" {
                     Some((SetGpuSerialMagic::WriteGPUConfig as u8, sn))
-                } else if left.to_uppercase() = "SSD" {
+                } else if magic.to_uppercase() = "SSD" {
                     Some((SetGpuSerialMagic::WriteSSDConfig as u8, sn))
                 } else {
                     println!(
