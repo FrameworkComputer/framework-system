@@ -798,10 +798,10 @@ impl CrosEc {
         let serial: String = String::from_utf8(gpuserial.serial.to_vec()).unwrap();
 
         if gpuserial.valid == 0 {
-            println!("no valid gpu serial");
-            return Ok(serial);
+            return Err(EcError::DeviceError("No valid GPU serial".to_string()));
         }
-        return Ok(serial);
+
+        Ok(serial)
     }
 
     /// Set the GPU Serial
@@ -812,7 +812,7 @@ impl CrosEc {
         let mut array_tmp: [u8; 20] = [0; 20];
         array_tmp[..18].copy_from_slice(newserial.as_bytes());
         let result = EcRequestSetGpuSerial {
-            magic: magic,
+            magic,
             idx: 0,
             serial: array_tmp,
         }
