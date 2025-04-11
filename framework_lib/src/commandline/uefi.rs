@@ -1,4 +1,4 @@
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -533,7 +533,7 @@ pub fn parse(args: &[String]) -> Cli {
                     Some((hex_magic, sn))
                 } else if magic.to_uppercase() == "GPU" {
                     Some((SetGpuSerialMagic::WriteGPUConfig as u8, sn))
-                } else if magic.to_uppercase() = "SSD" {
+                } else if magic.to_uppercase() == "SSD" {
                     Some((SetGpuSerialMagic::WriteSSDConfig as u8, sn))
                 } else {
                     println!(
