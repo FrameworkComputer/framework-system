@@ -221,8 +221,17 @@ pub fn parse(args: &[String]) -> Cli {
         .map(|v| v.as_str())
         .collect::<Vec<_>>();
     let flash_gpu_descriptor = if !fgd.is_empty() {
+        let hex_magic = if let Some(hex_magic) = fgd[0].strip_prefix("0x") {
+            u8::from_str_radix(hex_magic, 16)
+        } else {
+            // Force parse error
+            u8::from_str_radix("", 16)
+        };
+
         let magic = if let Ok(magic) = fgd[0].parse::<u8>() {
             magic
+        } else if let Ok(hex_magic) = hex_magic {
+            hex_magic
         } else if fgd[0].to_uppercase() == "GPU" {
             SetGpuSerialMagic::WriteGPUConfig as u8
         } else if fgd[0].to_uppercase() == "SSD" {
