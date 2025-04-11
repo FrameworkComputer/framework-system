@@ -181,6 +181,7 @@ pub struct Cli {
     pub has_mec: Option<bool>,
     pub help: bool,
     pub info: bool,
+    pub flash_gpu_descriptor: Option<(u8, String)>,
     // UEFI only
     pub allupdate: bool,
     pub paginate: bool,
@@ -1004,6 +1005,13 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("  Size:       {:>20} KB", data.len() / 1024);
             hash(&data);
         }
+    } else if let Some(gpu_descriptor) = &args.flash_gpu_descriptor {
+        let res = ec.set_gpu_serial(gpu_descriptor.0, gpu_descriptor.1.to_ascii_uppercase());
+        match res {
+            Ok(1) => println!("GPU Descriptor successfully written"),
+            Ok(x) => println!("GPU Descriptor write failed with status code:  {}", x),
+            Err(err) => println!("GPU Descriptor write failed with error:  {:?}", err),
+        }
     }
 
     0
@@ -1053,6 +1061,7 @@ Options:
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
       --hash <HASH>          Hash a file of arbitrary data
+      --flash-gpu-descriptor <MAGIC> <18 DIGIT SN> Overwrite the GPU bay descriptor SN and type.
   -t, --test                 Run self-test to check if interaction with EC is possible
   -h, --help                 Print help information
   -b                         Print output one screen at a time

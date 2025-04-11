@@ -1,9 +1,12 @@
 //! Module to factor out commandline interaction
 //! This way we can use it in the regular OS commandline tool on Linux and Windows,
 //! as well as on the UEFI shell tool.
+use clap::error::ErrorKind;
 use clap::Parser;
+use clap::{arg, command, Arg, Args, FromArgMatches};
 use clap_num::maybe_hex;
 
+use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::{
     Cli, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg, RebootEcArg,
@@ -203,31 +206,71 @@ struct ClapCli {
 
 /// Parse a list of commandline arguments and return the struct
 pub fn parse(args: &[String]) -> Cli {
-    let args = ClapCli::parse_from(args);
+    // Step 1 - Define args that can't be derived
+    let cli = command!()
+        .arg(Arg::new("fgd").long("flash-gpu-descriptor").num_args(2))
+        .disable_version_flag(true);
+    // Step 2 - Define args from derived struct
+    let mut cli = ClapCli::augment_args(cli);
+
+    // Step 3 - Parse args that can't be derived
+    let matches = cli.clone().get_matches_from(args);
+    let fgd = matches
+        .get_many::<String>("fgd")
+        .unwrap_or_default()
+        .map(|v| v.as_str())
+        .collect::<Vec<_>>();
+    let flash_gpu_descriptor = if !fgd.is_empty() {
+        let hex_magic = if let Some(hex_magic) = fgd[0].strip_prefix("0x") {
+            u8::from_str_radix(hex_magic, 16)
+        } else {
+            // Force parse error
+            u8::from_str_radix("", 16)
+        };
+
+        let magic = if let Ok(magic) = fgd[0].parse::<u8>() {
+            magic
+        } else if let Ok(hex_magic) = hex_magic {
+            hex_magic
+        } else if fgd[0].to_uppercase() == "GPU" {
+            SetGpuSerialMagic::WriteGPUConfig as u8
+        } else if fgd[0].to_uppercase() == "SSD" {
+            SetGpuSerialMagic::WriteSSDConfig as u8
+        } else {
+            cli.error(
+                ErrorKind::InvalidValue,
+                "First argument of --flash-gpu-descriptor must be an integer or one of: 'GPU', 'SSD'",
+            )
+            .exit();
+        };
+        if fgd[1].len() != 18 {
+            cli.error(
+                ErrorKind::InvalidValue,
+                "Second argument of --flash-gpu-descriptor must be an 18 digit serial number",
+            )
+            .exit();
+        }
+        Some((magic, fgd[1].to_string()))
+    } else {
+        None
+    };
+
+    // Step 4 - Parse from derived struct
+    let args = ClapCli::from_arg_matches(&matches)
+        .map_err(|err| err.exit())
+        .unwrap();
 
     let pd_addrs = match args.pd_addrs.len() {
         2 => Some((args.pd_addrs[0], args.pd_addrs[1])),
         0 => None,
-        _ => {
-            // Actually unreachable, checked by clap
-            println!(
-                "Must provide exactly to PD Addresses. Provided: {:?}",
-                args.pd_addrs
-            );
-            std::process::exit(1);
-        }
+        // Checked by clap
+        _ => unreachable!(),
     };
     let pd_ports = match args.pd_ports.len() {
         2 => Some((args.pd_ports[0], args.pd_ports[1])),
         0 => None,
-        _ => {
-            // Actually unreachable, checked by clap
-            println!(
-                "Must provide exactly to PD Ports. Provided: {:?}",
-                args.pd_ports
-            );
-            std::process::exit(1);
-        }
+        // Checked by clap
+        _ => unreachable!(),
     };
 
     Cli {
@@ -299,6 +342,7 @@ pub fn parse(args: &[String]) -> Cli {
         // UEFI only - every command needs to implement a parameter to enable the pager
         paginate: false,
         info: args.info,
+        flash_gpu_descriptor,
         raw_command: vec![],
     }
 }
