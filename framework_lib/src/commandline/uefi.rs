@@ -518,7 +518,7 @@ pub fn parse(args: &[String]) -> Cli {
         } else if arg == "--flash-gpu-descriptor" {
             cli.flash_gpu_descriptor = if args.len() > i + 2 {
                 let sn = args[i + 2].to_string();
-                let magic = args[i + 1];
+                let magic = &args[i + 1];
 
                 let hex_magic = if let Some(hex_magic) = magic.strip_prefix("0x") {
                     u8::from_str_radix(hex_magic, 16)
