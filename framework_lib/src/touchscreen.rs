@@ -130,13 +130,27 @@ pub trait TouchScreen {
 
         Some(())
     }
+
+    fn enable_touch(&self, enable: bool) -> Option<()> {
+        self.send_message(0x38, 0, vec![!enable as u8, 0x00])?;
+        Some(())
+    }
 }
 
-pub fn print_touchscreen_fw_ver() -> Option<()> {
+pub fn print_fw_ver() -> Option<()> {
     #[cfg(target_os = "windows")]
     let device = touchscreen_win::NativeWinTouchScreen::open_device()?;
     #[cfg(not(target_os = "windows"))]
     let device = HidapiTouchScreen::open_device()?;
 
     device.check_fw_version()
+}
+
+pub fn enable_touch(enable: bool) -> Option<()> {
+    #[cfg(target_os = "windows")]
+    let device = touchscreen_win::NativeWinTouchScreen::open_device()?;
+    #[cfg(not(target_os = "windows"))]
+    let device = HidapiTouchScreen::open_device()?;
+
+    device.enable_touch(enable)
 }

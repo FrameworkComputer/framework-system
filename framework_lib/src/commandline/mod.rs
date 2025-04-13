@@ -52,8 +52,8 @@ use crate::smbios::ConfigDigit0;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
 #[cfg(feature = "hidapi")]
 use crate::touchpad::print_touchpad_fw_ver;
-#[cfg(feature = "hidapi")]
-use crate::touchscreen::print_touchscreen_fw_ver;
+#[cfg(any(feature = "hidapi", feature = "windows"))]
+use crate::touchscreen;
 #[cfg(feature = "uefi")]
 use crate::uefi::enable_page_break;
 use crate::util;
@@ -175,6 +175,7 @@ pub struct Cli {
     pub kblight: Option<Option<u8>>,
     pub rgbkbd: Vec<u64>,
     pub tablet_mode: Option<TabletModeArg>,
+    pub touchscreen_enable: Option<bool>,
     pub console: Option<ConsoleArg>,
     pub reboot_ec: Option<RebootEcArg>,
     pub hash: Option<String>,
@@ -483,7 +484,7 @@ fn print_versions(ec: &CrosEc) {
     let _ignore_err = print_touchpad_fw_ver();
 
     #[cfg(feature = "hidapi")]
-    let _ignore_err = print_touchscreen_fw_ver();
+    let _ignore_err = touchscreen::print_fw_ver();
 }
 
 fn print_esrt() {
@@ -798,6 +799,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             TabletModeArg::Laptop => TabletModeOverride::ForceClamshell,
         };
         ec.set_tablet_mode(mode);
+    } else if let Some(_enable) = &args.touchscreen_enable {
+        #[cfg(any(feature = "hidapi", feature = "windows"))]
+        if touchscreen::enable_touch(*_enable).is_none() {
+            error!("Failed to enable/disable touch");
+        }
     } else if let Some(console_arg) = &args.console {
         match console_arg {
             ConsoleArg::Follow => {
