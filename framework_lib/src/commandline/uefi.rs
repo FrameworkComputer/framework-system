@@ -1,4 +1,4 @@
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 
@@ -9,6 +9,7 @@ use uefi::proto::shell_params::*;
 use uefi::table::boot::{OpenProtocolAttributes, OpenProtocolParams, SearchType};
 use uefi::Identify;
 
+use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::{CrosEcDriverType, HardwareDeviceType};
 use crate::commandline::Cli;
 
@@ -100,6 +101,7 @@ pub fn parse(args: &[String]) -> Cli {
         has_mec: None,
         test: false,
         help: false,
+        flash_gpu_descriptor: None,
         allupdate: false,
         info: false,
         raw_command: vec![],
@@ -514,6 +516,39 @@ pub fn parse(args: &[String]) -> Cli {
                 println!("Need to provide a value for --console. Possible values: bios, ec, pd0, pd1, rtm01, rtm23, ac-left, ac-right");
                 None
             };
+        } else if arg == "--flash-gpu-descriptor" {
+            cli.flash_gpu_descriptor = if args.len() > i + 2 {
+                let sn = args[i + 2].to_string();
+                let magic = &args[i + 1];
+
+                let hex_magic = if let Some(hex_magic) = magic.strip_prefix("0x") {
+                    u8::from_str_radix(hex_magic, 16)
+                } else {
+                    // Force parse error
+                    u8::from_str_radix("", 16)
+                };
+
+                if let Ok(magic) = magic.parse::<u8>() {
+                    Some((magic, sn))
+                } else if let Ok(hex_magic) = hex_magic {
+                    Some((hex_magic, sn))
+                } else if magic.to_uppercase() == "GPU" {
+                    Some((SetGpuSerialMagic::WriteGPUConfig as u8, sn))
+                } else if magic.to_uppercase() == "SSD" {
+                    Some((SetGpuSerialMagic::WriteSSDConfig as u8, sn))
+                } else {
+                    println!(
+                        "Invalid values for --flash_gpu_descriptor: '{} {}'. Must be u8, 18 character string.",
+                        args[i + 1],
+                        args[i + 2]
+                    );
+                    None
+                }
+            } else {
+                println!("Need to provide a value for --flash_gpu_descriptor. TYPE_MAGIC SERIAL");
+                None
+            };
+            found_an_option = true;
         }
     }
 
