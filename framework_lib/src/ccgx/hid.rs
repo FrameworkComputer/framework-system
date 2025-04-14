@@ -256,6 +256,7 @@ pub fn find_devices(api: &HidApi, filter_devs: &[u16], sn: Option<&str>) -> Vec<
             let usage_page = dev_info.usage_page();
 
             debug!("Found {:X}:{:X} Usage Page: {}", vid, pid, usage_page);
+            #[cfg(not(target_os = "freebsd"))]
             let usage_page_filter = usage_page == CCG_USAGE_PAGE;
             // On FreeBSD it seems we don't get different usage pages
             // There's just one entry overall
