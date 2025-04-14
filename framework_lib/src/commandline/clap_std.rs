@@ -162,6 +162,11 @@ struct ClapCli {
     #[arg(long)]
     tablet_mode: Option<TabletModeArg>,
 
+    /// Enable/disable touchscreen
+    #[clap(value_enum)]
+    #[arg(long)]
+    touchscreen_enable: Option<bool>,
+
     /// Get EC console, choose whether recent or to follow the output
     #[clap(value_enum)]
     #[arg(long)]
@@ -284,6 +289,7 @@ pub fn parse(args: &[String]) -> Cli {
         kblight: args.kblight,
         rgbkbd: args.rgbkbd,
         tablet_mode: args.tablet_mode,
+        touchscreen_enable: args.touchscreen_enable,
         console: args.console,
         reboot_ec: args.reboot_ec,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),

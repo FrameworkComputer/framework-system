@@ -18,6 +18,10 @@ pub mod audio_card;
 pub mod camera;
 #[cfg(feature = "hidapi")]
 pub mod touchpad;
+#[cfg(any(feature = "hidapi", feature = "windows"))]
+pub mod touchscreen;
+#[cfg(feature = "windows")]
+pub mod touchscreen_win;
 
 #[cfg(feature = "uefi")]
 #[macro_use]

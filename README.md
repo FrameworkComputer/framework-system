@@ -40,10 +40,11 @@ see the [Support Matrices](support-matrices.md).
   - [x] Get firmware version from system (`--versions`)
     - [x] BIOS
     - [x] EC
-    - [x] PD
+    - [x] PD Controller
     - [x] ME (Only on Linux)
     - [x] Retimer
-    - [x] Touchpad (Linux and Windows)
+    - [x] Touchpad (Linux, Windows, FreeBSD, not UEFI)
+    - [x] Touchscreen (Linux, Windows, FreeBSD, not UEFI)
   - [x] Get Expansion Card Firmware (Not on UEFI so far)
     - [x] HDMI Expansion Card (`--dp-hdmi-info`)
     - [x] DisplayPort Expansion Card (`--dp-hdmi-info`)
@@ -68,7 +69,9 @@ All of these need EC communication support in order to work.
 
 - [x] Get and set keyboard brightness (`--kblight`)
 - [x] Get and set battery charge limit (`--charge-limit`)
-- [x] Get and set fingerprint LED brightness (`--fp-brightness`)
+- [x] Get and set fingerprint LED brightness (`--fp-brightness`, `--fp-led-level`)
+- [x] Override tablet mode, instead of follow G-Sensor and hall sensor (`--tablet-mode`)
+- [x] Disable/Enable touchscreen (`--touchscreen-enable`)
 
 ###### Communication with Embedded Controller
 
@@ -176,9 +179,30 @@ Options:
       --h2o-capsule <H2O_CAPSULE>   Parse UEFI Capsule information from binary file
       --intrusion                   Show status of intrusion switch
       --inputmodules                Show status of the input modules (Framework 16 only)
+      --input-deck-mode <INPUT_DECK_MODE>
+          Set input deck power mode [possible values: auto, off, on] (Framework 16 only) [possible values: auto, off, on]
+      --charge-limit [<CHARGE_LIMIT>]
+          Get or set max charge limit
+      --get-gpio <GET_GPIO>
+          Get GPIO value by name
+      --fp-led-level [<FP_LED_LEVEL>]
+          Get or set fingerprint LED brightness level [possible values: high, medium, low, ultra-low, auto]
+      --fp-brightness [<FP_BRIGHTNESS>]
+          Get or set fingerprint LED brightness percentage
       --kblight [<KBLIGHT>]         Set keyboard backlight percentage or get, if no value provided
+      --tablet-mode <TABLET_MODE>   Set tablet mode override [possible values: auto, tablet, laptop]
+      --touchscreen-enable <TOUCHSCREEN_ENABLE>
+          Enable/disable touchscreen [possible values: true, false]
       --console <CONSOLE>           Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
+      --reboot-ec <REBOOT_EC>       Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
+      --hash <HASH>                 Hash a file of arbitrary data
       --driver <DRIVER>             Select which driver is used. By default portio is used [possible values: portio, cros-ec, windows]
+      --pd-addrs <PD_ADDRS> <PD_ADDRS>
+          Specify I2C addresses of the PD chips (Advanced)
+      --pd-ports <PD_PORTS> <PD_PORTS>
+          Specify I2C ports of the PD chips (Advanced)
+      --has-mec <HAS_MEC>
+          Specify the type of EC chip (MEC/MCHP or other) [possible values: true, false]
   -t, --test                        Run self-test to check if interaction with EC is possible
   -h, --help                        Print help information
 ```
