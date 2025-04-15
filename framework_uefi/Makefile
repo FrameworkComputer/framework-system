@@ -3,41 +3,35 @@ BUILD=build/$(TARGET)
 
 SRC_DIR=.
 
+# sudo pkg install qemu edk2-qemu-x64
 QEMU?=qemu-system-x86_64
+OVMF_FD?=/usr/local/share/edk2-qemu/QEMU_UEFI-x86_64.fd
 QEMU_FLAGS=\
 	-M q35 \
 	-m 1024 \
 	-net none \
 	-vga std \
-	-bios /usr/share/OVMF/OVMF_CODE.fd
+	-bios /usr/local/share/edk2-qemu/QEMU_UEFI-x86_64.fd
 
 .PHONY: qemu clean
 
 all: $(BUILD)/boot.img
+
+$(BUILD)/boot.img: $(BUILD)/boot.efi
+	mkdir -p temp/EFI/BOOT
+	cp $(BUILD)/boot.efi temp/EFI/BOOT/bootx64.efi
+	makefs -t msdos \
+		-o fat_type=16 \
+		-o sectors_per_cluster=1 \
+		-s 10000k \
+		$(BUILD)/boot.img temp
+	rm -rf temp
 
 clean:
 	rm -r $(BUILD)
 
 qemu: $(BUILD)/boot.img
 	$(QEMU) $(QEMU_FLAGS) $<
-
-# Create ESP partition and filesystem
-$(BUILD)/boot.img: $(BUILD)/efi.img
-	dd if=/dev/zero of=$@.tmp bs=512 count=100352
-	parted $@.tmp -s -a minimal mklabel gpt
-	parted $@.tmp -s -a minimal mkpart EFI FAT16 2048s 93716s
-	parted $@.tmp -s -a minimal toggle 1 boot
-	dd if=$< of=$@.tmp bs=512 count=98304 seek=2048 conv=notrunc
-	mv $@.tmp $@
-
-# Create filesystem with updater (bootx64.efi)
-$(BUILD)/efi.img: $(BUILD)/boot.efi
-	dd if=/dev/zero of=$@.tmp bs=512 count=98304
-	mkfs.vfat $@.tmp
-	mmd -i $@.tmp efi
-	mmd -i $@.tmp efi/boot
-	mcopy -i $@.tmp $< ::efi/boot/bootx64.efi
-	mv $@.tmp $@
 
 $(BUILD)/boot.efi: ../Cargo.lock $(SRC_DIR)/Cargo.toml $(SRC_DIR)/src/*
 	  mkdir -p $(BUILD)
