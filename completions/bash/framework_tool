@@ -5,6 +5,7 @@
 _framework_tool() {
     local options
     options=(
+	"--flash-gpu-descriptor"
         "-v" "--verbose"
         "-q" "--quiet"
         "--versions"
@@ -37,8 +38,12 @@ _framework_tool() {
         "--input-deck-mode"
         "--charge-limit"
         "--get-gpio"
+	"--fp-led-level"
         "--fp-brightness"
         "--kblight"
+	"--rgbkbd"
+	"--tablet-mode"
+	"--touchscreen-enable"
         "--console"
         "--reboot-ec"
         "--hash"
@@ -55,7 +60,7 @@ _framework_tool() {
     local console_modes=("recent" "follow")
     local drivers=("portio" "cros-ec" "windows")
     local has_mec_options=("true" "false")
-    local brightness_options=("high" "medium" "low")
+    local brightness_options=("high" "medium" "low" "ultra-low")
 
     local current_word prev_word
     current_word="${COMP_WORDS[COMP_CWORD]}"

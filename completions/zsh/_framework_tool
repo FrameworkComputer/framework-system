@@ -3,6 +3,7 @@
 local -a options
 
 options=(
+  '--flash-gpu-descriptor[]'
   '-v[Increase logging verbosity]'
   '-q[Decrease logging verbosity]'
   '--versions[Show current firmware versions]'
@@ -35,8 +36,12 @@ options=(
   '--input-deck-mode[Set input deck power mode]:input_deck_mode:(auto off on)'
   '--charge-limit[Get or set max charge limit]:charge_limit'
   '--get-gpio[Get GPIO value by name]:get_gpio'
-  '--fp-brightness[Get or set fingerprint LED brightness]:fp_brightness:(high medium low)'
+  '--fp-led-level-gpio[Get or set fingerprint LED brightness level]:fp_led_level:(high medium low ultra-low auto)'
+  '--fp-brightness[Get or set fingerprint LED brightness]:fp_brightness'
   '--kblight[Set keyboard backlight percentage or get, if no value provided]:kblight'
+  '--rgbkbd[Set the color of <key> to <RGB>.]'
+  '--tablet-mode[Set tablet mode override]:tablet_mode:(auto tablet laptop)'
+  '--touchscreen-enable[Enable/disable touchscreen]:touchscreen_enable:(true false)'
   '--console[Get EC console, choose whether recent or to follow the output]:console:(recent follow)'
   '--reboot-ec[Control EC RO/RW jump]:reboot_ec:(reboot jump-ro jump-rw cancel-jump disable-jump)'
   '--hash[Hash a file of arbitrary data]:hash'
