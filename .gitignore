@@ -1,2 +1,6 @@
 target/
 build/
+# Windows build outputs
+*.efi
+*.exe
+*.pdb
