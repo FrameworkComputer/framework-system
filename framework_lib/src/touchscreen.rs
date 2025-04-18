@@ -8,6 +8,9 @@ pub const ILI_PID: u16 = 0x5539;
 pub const USI_BITMAP: u8 = 1 << 1;
 pub const MPP_BITMAP: u8 = 1 << 2;
 
+const REPORT_ID_FIRMWARE: u8 = 0x27;
+const REPORT_ID_USI_VER: u8 = 0x28;
+
 struct HidapiTouchScreen {
     device: HidDevice,
 }
@@ -97,6 +100,20 @@ impl TouchScreen for HidapiTouchScreen {
         debug!("  Read buf: {:X?}", buf);
         Some(buf[msg_len..msg_len + read_len].to_vec())
     }
+
+    fn get_stylus_fw(&self) -> Option<()> {
+        let mut msg = [0u8; 0x40];
+        msg[0] = REPORT_ID_FIRMWARE;
+        self.device.get_feature_report(&mut msg).ok()?;
+        println!("Stylus firmware: {:X?}", msg);
+
+        let mut msg = [0u8; 0x40];
+        msg[0] = REPORT_ID_USI_VER;
+        self.device.get_feature_report(&mut msg).ok()?;
+        println!("USI Version:     {:X?}", msg);
+
+        None
+    }
 }
 
 pub trait TouchScreen {
@@ -128,6 +145,8 @@ pub trait TouchScreen {
         println!("  USI Protocol:     {:?}", (res[15] & USI_BITMAP) > 0);
         println!("  MPP Protocol:     {:?}", (res[15] & MPP_BITMAP) > 0);
 
+        self.get_stylus_fw();
+
         Some(())
     }
 
@@ -135,6 +154,8 @@ pub trait TouchScreen {
         self.send_message(0x38, 0, vec![!enable as u8, 0x00])?;
         Some(())
     }
+
+    fn get_stylus_fw(&self) -> Option<()>;
 }
 
 pub fn print_fw_ver() -> Option<()> {
