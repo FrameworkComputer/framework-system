@@ -103,14 +103,40 @@ impl TouchScreen for HidapiTouchScreen {
 
     fn get_stylus_fw(&self) -> Option<()> {
         let mut msg = [0u8; 0x40];
-        msg[0] = REPORT_ID_FIRMWARE;
-        self.device.get_feature_report(&mut msg).ok()?;
-        println!("Stylus firmware: {:X?}", msg);
-
-        let mut msg = [0u8; 0x40];
         msg[0] = REPORT_ID_USI_VER;
         self.device.get_feature_report(&mut msg).ok()?;
-        println!("USI Version:     {:X?}", msg);
+        let usi_major = msg[2];
+        let usi_minor = msg[3];
+        debug!("USI version (Major.Minor): {}.{}", usi_major, usi_minor);
+
+        if usi_major != 2 || usi_minor != 0 {
+            // Probably not USI mode
+            return None;
+        }
+
+        let mut msg = [0u8; 0x40];
+        msg[0] = REPORT_ID_FIRMWARE;
+        self.device.get_feature_report(&mut msg).ok()?;
+        let sn_low = u32::from_le_bytes([msg[2], msg[3], msg[4], msg[5]]);
+        let sn_high = u32::from_le_bytes([msg[6], msg[7], msg[8], msg[9]]);
+        let vid = u16::from_le_bytes([msg[14], msg[15]]);
+        let vendor = if vid == 0x32AC {
+            " (Framework Computer)"
+        } else {
+            ""
+        };
+        let pid = u16::from_le_bytes([msg[16], msg[17]]);
+        let product = if pid == 0x002B {
+            " (Framework Stylus)"
+        } else {
+            ""
+        };
+        println!("Stylus");
+        println!("  Transducer SN:    {:X}-{:X}", sn_high, sn_low);
+        debug!("  Redundant SN      {:X?}", &msg[10..14]);
+        println!("  Vendor ID:        {:04X}{}", vid, vendor);
+        println!("  Product ID:       {:04X}{}", pid, product);
+        println!("  Firmware Version: {:02X}.{:02X}", &msg[18], msg[19]);
 
         None
     }

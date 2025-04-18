@@ -103,11 +103,7 @@ impl TouchScreen for NativeWinTouchScreen {
         let mut msg = [0u8; 0x40];
         msg[0] = REPORT_ID_FIRMWARE;
         unsafe {
-            let success = HidD_GetFeature(
-                self.handle,
-                msg.as_mut_ptr() as _,
-                msg.len() as u32,
-            );
+            let success = HidD_GetFeature(self.handle, msg.as_mut_ptr() as _, msg.len() as u32);
             debug!("    Success: {}", success);
         }
         println!("Stylus firmware: {:X?}", msg);
@@ -115,11 +111,7 @@ impl TouchScreen for NativeWinTouchScreen {
         let mut msg = [0u8; 0x40];
         msg[0] = REPORT_ID_USI_VER;
         unsafe {
-            let success = HidD_GetFeature(
-                self.handle,
-                msg.as_mut_ptr() as _,
-                msg.len() as u32,
-            );
+            let success = HidD_GetFeature(self.handle, msg.as_mut_ptr() as _, msg.len() as u32);
             debug!("    Success: {}", success);
         }
         println!("USI Version:     {:X?}", msg);

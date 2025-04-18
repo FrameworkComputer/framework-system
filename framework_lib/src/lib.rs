@@ -22,8 +22,6 @@ pub mod touchpad;
 pub mod touchscreen;
 #[cfg(feature = "windows")]
 pub mod touchscreen_win;
-#[cfg(feature = "hidapi")]
-pub mod usi_stylus;
 
 #[cfg(feature = "uefi")]
 #[macro_use]
