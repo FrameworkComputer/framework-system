@@ -16,13 +16,20 @@ use windows::{
     },
 };
 
+const REPORT_ID_FIRMWARE: u8 = 0x27;
+const REPORT_ID_USI_VER: u8 = 0x28;
+
 pub struct NativeWinTouchScreen {
     handle: HANDLE,
 }
 
 impl TouchScreen for NativeWinTouchScreen {
-    fn open_device() -> Option<Self> {
-        debug!("Looking for touchscreen HID device");
+    fn open_device(target_up: u16, skip: u8) -> Option<Self> {
+        debug!(
+            "Looking for touchscreen HID device {:X} {}",
+            target_up, skip
+        );
+        let mut skip = skip;
         match HidApi::new() {
             Ok(api) => {
                 for dev_info in api.device_list() {
@@ -37,7 +44,7 @@ impl TouchScreen for NativeWinTouchScreen {
                         "  Found {:04X}:{:04X} (Usage Page {:04X})",
                         vid, pid, usage_page
                     );
-                    if usage_page != 0xFF00 {
+                    if usage_page != target_up {
                         debug!("    Skipping usage page. Expected {:04X}", 0xFF00);
                         continue;
                     }
@@ -48,6 +55,10 @@ impl TouchScreen for NativeWinTouchScreen {
                     debug!("  Found matching touchscreen HID device");
                     debug!("  Path:             {:?}", dev_info.path());
                     debug!("  IC Type:          {:04X}", pid);
+                    if skip > 0 {
+                        skip -= 1;
+                        continue;
+                    }
 
                     // TODO: Enumerate with windows
                     // Should enumerate and find the right one
@@ -134,5 +145,25 @@ impl TouchScreen for NativeWinTouchScreen {
         }
 
         Some(buf[msg_len..msg_len + read_len].to_vec())
+    }
+
+    fn get_stylus_fw(&self) -> Option<()> {
+        let mut msg = [0u8; 0x40];
+        msg[0] = REPORT_ID_FIRMWARE;
+        unsafe {
+            let success = HidD_GetFeature(self.handle, msg.as_mut_ptr() as _, msg.len() as u32);
+            debug!("    Success: {}", success);
+        }
+        println!("Stylus firmware: {:X?}", msg);
+
+        let mut msg = [0u8; 0x40];
+        msg[0] = REPORT_ID_USI_VER;
+        unsafe {
+            let success = HidD_GetFeature(self.handle, msg.as_mut_ptr() as _, msg.len() as u32);
+            debug!("    Success: {}", success);
+        }
+        println!("USI Version:     {:X?}", msg);
+
+        None
     }
 }

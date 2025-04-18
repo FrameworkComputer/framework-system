@@ -33,6 +33,19 @@ Touchscreen
   MPP Protocol:     true
 ```
 
+### Stylus (Framework 12)
+
+```
+> sudo framework_tool --versions
+[...]
+Stylus
+  Serial Number:    28C1A00-12E71DAE
+  Vendor ID:        32AC (Framework Computer)
+  Product ID:       002B (Framework Stylus)
+  Firmware Version: FF.FF
+[...]
+```
+
 ### Touchpad (Framework 12, Framework 13, Framework 16)
 
 ```
