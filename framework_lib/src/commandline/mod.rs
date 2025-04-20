@@ -420,50 +420,46 @@ fn print_versions(ec: &CrosEc) {
         println!("  Unknown")
     }
 
-    println!("Retimers");
-    let mut found_retimer = false;
+    let has_retimer = matches!(
+        smbios::get_platform(),
+        Some(Platform::IntelGen11)
+            | Some(Platform::IntelGen12)
+            | Some(Platform::IntelGen13)
+            | Some(Platform::IntelCoreUltra1)
+    );
+    let mut left_retimer: Option<u32> = None;
+    let mut right_retimer: Option<u32> = None;
     if let Some(esrt) = esrt::get_esrt() {
         for entry in &esrt.entries {
-            match entry.fw_class {
-                esrt::TGL_RETIMER01_GUID
-                | esrt::TGL_RETIMER23_GUID
-                | esrt::ADL_RETIMER01_GUID
-                | esrt::ADL_RETIMER23_GUID
-                | esrt::RPL_RETIMER01_GUID
-                | esrt::RPL_RETIMER23_GUID
-                | esrt::MTL_RETIMER01_GUID
-                | esrt::MTL_RETIMER23_GUID => {
-                    if !found_retimer {
-                        found_retimer = true;
-                    }
-                }
-                _ => {}
-            }
             match entry.fw_class {
                 esrt::TGL_RETIMER01_GUID
                 | esrt::ADL_RETIMER01_GUID
                 | esrt::RPL_RETIMER01_GUID
                 | esrt::MTL_RETIMER01_GUID => {
-                    println!(
-                        "  Left:           0x{:X} ({})",
-                        entry.fw_version, entry.fw_version
-                    );
+                    left_retimer = Some(entry.fw_version);
                 }
                 esrt::TGL_RETIMER23_GUID
                 | esrt::ADL_RETIMER23_GUID
                 | esrt::RPL_RETIMER23_GUID
                 | esrt::MTL_RETIMER23_GUID => {
-                    println!(
-                        "  Right:          0x{:X} ({})",
-                        entry.fw_version, entry.fw_version
-                    );
+                    right_retimer = Some(entry.fw_version);
                 }
                 _ => {}
             }
         }
     }
-    if !found_retimer {
-        println!("  Unknown");
+    if has_retimer {
+        println!("Retimers");
+        if let Some(fw_version) = left_retimer {
+            println!("  Left:           0x{:X} ({})", fw_version, fw_version);
+        }
+        if let Some(fw_version) = right_retimer {
+            println!("  Right:          0x{:X} ({})", fw_version, fw_version);
+        }
+        if left_retimer.is_none() && right_retimer.is_none() {
+            // This means there's a bug, we should've found one but didn't
+            println!("  Unknown");
+        }
     }
 
     #[cfg(feature = "linux")]
