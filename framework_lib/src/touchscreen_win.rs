@@ -166,4 +166,8 @@ impl TouchScreen for NativeWinTouchScreen {
 
         None
     }
+    fn get_battery_status(&self) -> Option<u8> {
+        error!("Get stylus battery status not supported on Windows");
+        None
+    }
 }

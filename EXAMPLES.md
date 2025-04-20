@@ -139,7 +139,6 @@ ALS:   76 Lux
   Fan Speed:       0 RPM
 ```
 
-
 ## Check expansion bay (Framework 16)
 
 ```
@@ -257,4 +256,11 @@ Battery Status
 # Set charge rate/current limit only if battery is >80% charged
 > sudo framework_tool --charge-rate-limit 80 0.8
 > sudo framework_tool --charge-current-limit 80 2000
+```
+
+## Stylus (Framework 12)
+
+```
+> sudo framework_tool --stylus-battery
+Stylus Battery Strength: 77%
 ```

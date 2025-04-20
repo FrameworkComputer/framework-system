@@ -184,6 +184,7 @@ pub struct Cli {
     pub rgbkbd: Vec<u64>,
     pub tablet_mode: Option<TabletModeArg>,
     pub touchscreen_enable: Option<bool>,
+    pub stylus_battery: bool,
     pub console: Option<ConsoleArg>,
     pub reboot_ec: Option<RebootEcArg>,
     pub hash: Option<String>,
@@ -333,6 +334,18 @@ fn active_mode(mode: &FwMode, reference: FwMode) -> &'static str {
         " (Active)"
     } else {
         ""
+    }
+}
+
+#[cfg(feature = "hidapi")]
+fn print_stylus_battery_level() {
+    loop {
+        if let Some(level) = touchscreen::get_battery_level() {
+            println!("Stylus Battery Strength: {}%", level);
+            return;
+        } else {
+            debug!("Stylus Battery Strength: Unknown");
+        }
     }
 }
 
@@ -816,6 +829,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         if touchscreen::enable_touch(*_enable).is_none() {
             error!("Failed to enable/disable touch");
         }
+    } else if args.stylus_battery {
+        #[cfg(feature = "hidapi")]
+        print_stylus_battery_level();
+        #[cfg(not(feature = "hidapi"))]
+        error!("Not build with hidapi feature");
     } else if let Some(console_arg) = &args.console {
         match console_arg {
             ConsoleArg::Follow => {

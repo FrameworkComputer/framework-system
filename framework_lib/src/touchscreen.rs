@@ -110,6 +110,35 @@ impl TouchScreen for HidapiTouchScreen {
         Some(buf[msg_len..msg_len + read_len].to_vec())
     }
 
+    fn get_battery_status(&self) -> Option<u8> {
+        let mut msg = [0u8; 0x40];
+        msg[0] = 0x0D;
+        self.device.read(&mut msg).ok()?;
+        // println!("  Tip Switch        {}%", msg[12]);
+        // println!("  Barrell Switch:   {}%", msg[12]);
+        // println!("  Eraser:           {}%", msg[12]);
+        // println!("  Invert:           {}%", msg[12]);
+        // println!("  In Range:         {}%", msg[12]);
+        // println!("  2nd Barrel Switch:{}%", msg[12]);
+        // println!("  X                 {}%", msg[12]);
+        // println!("  Y                 {}%", msg[12]);
+        // println!("  Tip Pressure:     {}%", msg[12]);
+        // println!("  X Tilt:           {}%", msg[12]);
+        // println!("  Y Tilt:           {}%", msg[12]);
+        debug!("  Battery Strength: {}%", msg[12]);
+        debug!(
+            "  Barrel Pressure:  {}",
+            u16::from_le_bytes([msg[13], msg[14]])
+        );
+        debug!("  Transducer Index: {}", msg[15]);
+
+        if msg[12] == 0 {
+            None
+        } else {
+            Some(msg[12])
+        }
+    }
+
     fn get_stylus_fw(&self) -> Option<()> {
         let mut msg = [0u8; 0x40];
         msg[0] = REPORT_ID_USI_VER;
@@ -190,6 +219,18 @@ pub trait TouchScreen {
     }
 
     fn get_stylus_fw(&self) -> Option<()>;
+    fn get_battery_status(&self) -> Option<u8>;
+}
+
+pub fn get_battery_level() -> Option<u8> {
+    for skip in 0..5 {
+        if let Some(device) = HidapiTouchScreen::open_device(0x000D, skip) {
+            if let Some(level) = device.get_battery_status() {
+                return Some(level);
+            }
+        }
+    }
+    None
 }
 
 pub fn print_fw_ver() -> Option<()> {
