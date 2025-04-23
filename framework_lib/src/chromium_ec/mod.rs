@@ -822,22 +822,23 @@ impl CrosEc {
 
     /// Requests recent console output from EC and constantly asks for more
     /// Prints the output and returns it when an error is encountered
-    pub fn console_read(&self) -> EcResult<String> {
-        let mut console = String::new();
-        let mut cmd = EcRequestConsoleRead {
-            subcmd: ConsoleReadSubCommand::ConsoleReadRecent as u8,
-        };
-
+    pub fn console_read(&self) -> EcResult<()> {
         EcRequestConsoleSnapshot {}.send_command(self)?;
+
+        let mut cmd = EcRequestConsoleRead {
+            subcmd: ConsoleReadSubCommand::ConsoleReadNext as u8,
+        };
         loop {
             match cmd.send_command_vec(self) {
                 Ok(data) => {
-                    // EC Buffer is empty. We can wait a bit and see if there's more
-                    // Can't run it too quickly, otherwise the commands might fail
+                    // EC Buffer is empty. That means we've read everything from the snapshot
                     if data.is_empty() {
-                        trace!("Empty EC response");
-                        println!("---");
-                        os_specific::sleep(1_000_000); // 1s
+                        debug!("Empty EC response. Stopping console read");
+                        // Don't read too fast, wait a second before reading more
+                        os_specific::sleep(1_000_000);
+                        EcRequestConsoleSnapshot {}.send_command(self)?;
+                        cmd.subcmd = ConsoleReadSubCommand::ConsoleReadRecent as u8;
+                        continue;
                     }
 
                     let utf8 = std::str::from_utf8(&data).unwrap();
@@ -846,35 +847,51 @@ impl CrosEc {
                         .replace(['\0'], "");
 
                     print!("{}", ascii);
-                    console.push_str(ascii.as_str());
                 }
                 Err(err) => {
                     error!("Err: {:?}", err);
-                    return Ok(console);
-                    //return Err(err)
+                    return Err(err);
                 }
             };
-            cmd.subcmd = ConsoleReadSubCommand::ConsoleReadNext as u8;
 
             // Need to explicitly handle CTRL-C termination on UEFI Shell
             #[cfg(feature = "uefi")]
             if shell_get_execution_break_flag() {
-                return Ok(console);
+                return Ok(());
             }
         }
     }
 
+    /// Read all of EC console buffer and return it
     pub fn console_read_one(&self) -> EcResult<String> {
         EcRequestConsoleSnapshot {}.send_command(self)?;
-        let data = EcRequestConsoleRead {
-            subcmd: ConsoleReadSubCommand::ConsoleReadRecent as u8,
+
+        let mut console = String::new();
+        let cmd = EcRequestConsoleRead {
+            subcmd: ConsoleReadSubCommand::ConsoleReadNext as u8,
+        };
+        loop {
+            match cmd.send_command_vec(self) {
+                Ok(data) => {
+                    // EC Buffer is empty. That means we've read everything
+                    if data.is_empty() {
+                        debug!("Empty EC response. Stopping console read");
+                        return Ok(console);
+                    }
+
+                    let utf8 = std::str::from_utf8(&data).unwrap();
+                    let ascii = utf8
+                        .replace(|c: char| !c.is_ascii(), "")
+                        .replace(['\0'], "");
+
+                    console.push_str(ascii.as_str());
+                }
+                Err(err) => {
+                    error!("Err: {:?}", err);
+                    return Err(err);
+                }
+            };
         }
-        .send_command_vec(self)?;
-        let utf8 = std::str::from_utf8(&data).unwrap();
-        let ascii = utf8
-            .replace(|c: char| !c.is_ascii(), "")
-            .replace(['\0'], "");
-        Ok(ascii)
     }
 
     /// Check features supported by the firmware
