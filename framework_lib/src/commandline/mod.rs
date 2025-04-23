@@ -481,7 +481,9 @@ fn print_versions(ec: &CrosEc) {
     let _ignore_err = print_touchpad_fw_ver();
 
     #[cfg(feature = "hidapi")]
-    let _ignore_err = touchscreen::print_fw_ver();
+    if let Some(Platform::Framework12IntelGen13) = smbios::get_platform() {
+        let _ignore_err = touchscreen::print_fw_ver();
+    }
 }
 
 fn print_esrt() {
