@@ -820,7 +820,7 @@ impl CrosEc {
         Ok(result.valid)
     }
 
-    /// Requests recent console output from EC and constantly asks for more
+    /// Requests console output from EC and constantly asks for more
     /// Prints the output and returns it when an error is encountered
     pub fn console_read(&self) -> EcResult<()> {
         EcRequestConsoleSnapshot {}.send_command(self)?;
@@ -832,7 +832,8 @@ impl CrosEc {
             match cmd.send_command_vec(self) {
                 Ok(data) => {
                     // EC Buffer is empty. That means we've read everything from the snapshot
-                    if data.is_empty() {
+                    // The windows crosecbus driver returns all NULL instead of empty response
+                    if data.is_empty() || data.iter().all(|x| *x == 0) {
                         debug!("Empty EC response. Stopping console read");
                         // Don't read too fast, wait a second before reading more
                         os_specific::sleep(1_000_000);
@@ -874,7 +875,8 @@ impl CrosEc {
             match cmd.send_command_vec(self) {
                 Ok(data) => {
                     // EC Buffer is empty. That means we've read everything
-                    if data.is_empty() {
+                    // The windows crosecbus driver returns all NULL instead of empty response
+                    if data.is_empty() || data.iter().all(|x| *x == 0) {
                         debug!("Empty EC response. Stopping console read");
                         return Ok(console);
                     }
