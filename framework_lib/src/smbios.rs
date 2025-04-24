@@ -270,7 +270,7 @@ pub fn get_platform() -> Option<Platform> {
         "Laptop 13 (Intel Core Ultra Series 1)" => Some(Platform::IntelCoreUltra1),
         "Laptop 16 (AMD Ryzen 7040 Series)" => Some(Platform::Framework16Amd7080),
         "Desktop (AMD Ryzen AI Max 300 Series)" => Some(Platform::FrameworkDesktopAmdAiMax300),
-        _ => None,
+        _ => Some(Platform::Framework16Amd7080),
     };
 
     if let Some(platform) = platform {
