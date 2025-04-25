@@ -59,7 +59,7 @@ use crate::touchscreen;
 #[cfg(feature = "uefi")]
 use crate::uefi::enable_page_break;
 use crate::util;
-use crate::util::{Config, Platform};
+use crate::util::{Config, Platform, PlatformFamily};
 #[cfg(feature = "hidapi")]
 use hidapi::HidApi;
 use sha2::{Digest, Sha256, Sha384, Sha512};
@@ -746,7 +746,13 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("  Unable to tell");
         }
     } else if args.inputdeck {
-        let _ = print_err(ec.print_fw16_inputdeck_status());
+        let res = match smbios::get_platform().and_then(Platform::which_family) {
+            Some(PlatformFamily::Framework12) => ec.print_fw12_inputdeck_status(),
+            Some(PlatformFamily::Framework13) => Ok(()),
+            Some(PlatformFamily::Framework16) => ec.print_fw16_inputdeck_status(),
+            _ => Ok(()),
+        };
+        print_err(res);
     } else if let Some(mode) = &args.inputdeck_mode {
         println!("Set mode to: {:?}", mode);
         ec.set_input_deck_mode((*mode).into()).unwrap();

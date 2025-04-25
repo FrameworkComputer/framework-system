@@ -435,6 +435,27 @@ impl CrosEc {
         Ok(InputDeckStatus::from(status))
     }
 
+    pub fn print_fw12_inputdeck_status(&self) -> EcResult<()> {
+        let intrusion = self.get_intrusion_status()?;
+        let pwrbtn = self.read_board_id(Framework12Adc::PowerButtonBoard)?;
+        let audio = self.read_board_id(Framework12Adc::AudioBoard)?;
+        let tp = self.read_board_id(Framework12Adc::Touchpad)?;
+
+        let is_present = |p| if p { "Present" } else { "Missing" };
+
+        println!("Input Deck");
+        println!("  Chassis Open:        {}", intrusion.currently_open);
+        println!("  Power Button Board:  {}", is_present(pwrbtn.is_some()));
+        println!("  Audio Daughterboard: {}", is_present(audio.is_some()));
+        println!("  Touchpad:            {}", is_present(tp.is_some()));
+
+        Ok(())
+    }
+
+    pub fn print_fw13_inputdeck_status(&self) -> EcResult<()> {
+        Ok(())
+    }
+
     pub fn print_fw16_inputdeck_status(&self) -> EcResult<()> {
         let status = self.get_input_deck_status()?;
         println!("Input Deck State: {:?}", status.state);
