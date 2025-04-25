@@ -85,7 +85,7 @@ pub fn parse(args: &[String]) -> Cli {
         h2o_capsule: None,
         intrusion: false,
         inputdeck: false,
-        input_deck_mode: None,
+        inputdeck_mode: None,
         expansion_bay: false,
         charge_limit: None,
         get_gpio: None,
@@ -228,22 +228,22 @@ pub fn parse(args: &[String]) -> Cli {
         } else if arg == "--inputdeck" {
             cli.inputdeck = true;
             found_an_option = true;
-        } else if arg == "--input-deck-mode" {
-            cli.input_deck_mode = if args.len() > i + 1 {
-                let input_deck_mode = &args[i + 1];
-                if input_deck_mode == "auto" {
+        } else if arg == "--inputdeck-mode" {
+            cli.inputdeck_mode = if args.len() > i + 1 {
+                let inputdeck_mode = &args[i + 1];
+                if inputdeck_mode == "auto" {
                     Some(InputDeckModeArg::Auto)
-                } else if input_deck_mode == "off" {
+                } else if inputdeck_mode == "off" {
                     Some(InputDeckModeArg::Off)
-                } else if input_deck_mode == "on" {
+                } else if inputdeck_mode == "on" {
                     Some(InputDeckModeArg::On)
                 } else {
-                    println!("Invalid value for --input-deck-mode: {}", input_deck_mode);
+                    println!("Invalid value for --inputdeck-mode: {}", inputdeck_mode);
                     None
                 }
             } else {
                 println!(
-                    "Need to provide a value for --input-deck-mode. Either `auto`, `off`, or `on`"
+                    "Need to provide a value for --inputdeck-mode. Either `auto`, `off`, or `on`"
                 );
                 None
             };

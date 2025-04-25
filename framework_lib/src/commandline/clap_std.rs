@@ -145,7 +145,7 @@ struct ClapCli {
 
     /// Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
     #[arg(long)]
-    input_deck_mode: Option<InputDeckModeArg>,
+    inputdeck_mode: Option<InputDeckModeArg>,
 
     /// Show status of the expansion bay (Framework 16 only)
     #[arg(long)]
@@ -355,7 +355,7 @@ pub fn parse(args: &[String]) -> Cli {
             .map(|x| x.into_os_string().into_string().unwrap()),
         intrusion: args.intrusion,
         inputdeck: args.inputdeck,
-        input_deck_mode: args.input_deck_mode,
+        inputdeck_mode: args.inputdeck_mode,
         expansion_bay: args.expansion_bay,
         charge_limit: args.charge_limit,
         get_gpio: args.get_gpio,

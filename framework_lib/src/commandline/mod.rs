@@ -172,7 +172,7 @@ pub struct Cli {
     pub test: bool,
     pub intrusion: bool,
     pub inputdeck: bool,
-    pub input_deck_mode: Option<InputDeckModeArg>,
+    pub inputdeck_mode: Option<InputDeckModeArg>,
     pub expansion_bay: bool,
     pub charge_limit: Option<Option<u8>>,
     pub get_gpio: Option<String>,
@@ -759,7 +759,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         } else {
             println!("  Unable to tell");
         }
-    } else if let Some(mode) = &args.input_deck_mode {
+    } else if let Some(mode) = &args.inputdeck_mode {
         println!("Set mode to: {:?}", mode);
         ec.set_input_deck_mode((*mode).into()).unwrap();
     } else if args.expansion_bay {
@@ -1084,7 +1084,7 @@ Options:
       --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
       --intrusion            Show status of intrusion switch
       --inputdeck            Show status of the input deck
-      --input-deck-mode      Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
+      --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
       --expansion-bay        Show status of the expansion bay (Framework 16 only)
       --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')
       --get-gpio <GET_GPIO>  Get GPIO value by name
