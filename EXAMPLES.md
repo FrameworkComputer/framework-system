@@ -64,3 +64,15 @@ ALS:   76 Lux
   APU:          42 C
   Fan Speed:       0 RPM
 ```
+
+## Check expansion bay (Framework 16)
+
+```
+> sudo framework_tool --expansion-bay
+Expansion Bay
+  Enabled:       true
+  Has fault:     false
+  Hatch closed:  true
+  Board:         DualInterposer
+  Serial Number: FRAXXXXXXXXXXXXXXX
+```

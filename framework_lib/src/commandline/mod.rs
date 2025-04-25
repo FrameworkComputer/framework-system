@@ -763,11 +763,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         println!("Set mode to: {:?}", mode);
         ec.set_input_deck_mode((*mode).into()).unwrap();
     } else if args.expansion_bay {
-        println!("Expansion Bay");
-        if let Ok(sn) = ec.get_gpu_serial() {
-            println!("  Serial Number: {}", sn);
-        } else {
-            println!("  Serial Number: Unknown");
+        if let Err(err) = ec.check_bay_status() {
+            error!("{:?}", err);
         }
     } else if let Some(maybe_limit) = args.charge_limit {
         print_err(handle_charge_limit(&ec, maybe_limit));
