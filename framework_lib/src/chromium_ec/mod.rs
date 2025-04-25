@@ -394,6 +394,19 @@ impl CrosEc {
         Ok(InputDeckStatus::from(status))
     }
 
+    pub fn print_fw16_inputdeck_status(&self) -> EcResult<()> {
+        let status = self.get_input_deck_status()?;
+        println!("Input Deck State: {:?}", status.state);
+        println!("Touchpad present: {:?}", status.touchpad_present);
+        println!("Positions:");
+        println!("  Pos 0: {:?}", status.top_row.pos0);
+        println!("  Pos 1: {:?}", status.top_row.pos1);
+        println!("  Pos 2: {:?}", status.top_row.pos2);
+        println!("  Pos 3: {:?}", status.top_row.pos3);
+        println!("  Pos 4: {:?}", status.top_row.pos4);
+        Ok(())
+    }
+
     pub fn set_input_deck_mode(&self, mode: DeckStateMode) -> EcResult<InputDeckStatus> {
         let status = EcRequestDeckState { mode }.send_command(self)?;
 

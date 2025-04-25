@@ -746,19 +746,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("  Unable to tell");
         }
     } else if args.inputdeck {
-        println!("Input Module Status:");
-        if let Some(status) = print_err(ec.get_input_deck_status()) {
-            println!("Input Deck State: {:?}", status.state);
-            println!("Touchpad present: {:?}", status.touchpad_present);
-            println!("Positions:");
-            println!("  Pos 0: {:?}", status.top_row.pos0);
-            println!("  Pos 1: {:?}", status.top_row.pos1);
-            println!("  Pos 2: {:?}", status.top_row.pos2);
-            println!("  Pos 3: {:?}", status.top_row.pos3);
-            println!("  Pos 4: {:?}", status.top_row.pos4);
-        } else {
-            println!("  Unable to tell");
-        }
+        let _ = print_err(ec.print_fw16_inputdeck_status());
     } else if let Some(mode) = &args.inputdeck_mode {
         println!("Set mode to: {:?}", mode);
         ec.set_input_deck_mode((*mode).into()).unwrap();
