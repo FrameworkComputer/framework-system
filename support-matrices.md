@@ -37,6 +37,6 @@
 | `--pd-info`      | PD Communication | All              |
 | `--privacy`      | EC Communication | All              |
 | `--intrusion`    | EC Communication | All              |
-| `--inputmodules` | EC Communication | Framework 16     |
+| `--inputdeck`    | EC Communication | Framework 16     |
 | `--console`      | EC Communication | All              |
 | `--kblight`      | EC Communication | All, except FL16 |

@@ -171,7 +171,7 @@ pub struct Cli {
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
     pub intrusion: bool,
-    pub inputmodules: bool,
+    pub inputdeck: bool,
     pub input_deck_mode: Option<InputDeckModeArg>,
     pub expansion_bay: bool,
     pub charge_limit: Option<Option<u8>>,
@@ -745,7 +745,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         } else {
             println!("  Unable to tell");
         }
-    } else if args.inputmodules {
+    } else if args.inputdeck {
         println!("Input Module Status:");
         if let Some(status) = print_err(ec.get_input_deck_status()) {
             println!("Input Deck State: {:?}", status.state);
@@ -1083,7 +1083,7 @@ Options:
       --flash-rw-ec <FLASH_EC>         Flash EC with new firmware from file
       --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
       --intrusion            Show status of intrusion switch
-      --inputmodules         Show status of the input modules (Framework 16 only)
+      --inputdeck            Show status of the input deck
       --input-deck-mode      Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
       --expansion-bay        Show status of the expansion bay (Framework 16 only)
       --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')

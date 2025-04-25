@@ -32,7 +32,7 @@ options=(
   '--flash-ro-ec[Flash EC with new RO firmware from file]:flash_ro_ec'
   '--flash-rw-ec[Flash EC with new RW firmware from file]:flash_rw_ec'
   '--intrusion[Show status of intrusion switch]'
-  '--inputmodules[Show status of the input modules (Framework 16 only)]'
+  '--inputdeck[Show status of the input deck]'
   '--input-deck-mode[Set input deck power mode]:input_deck_mode:(auto off on)'
   '--charge-limit[Get or set max charge limit]:charge_limit'
   '--get-gpio[Get GPIO value by name]:get_gpio'

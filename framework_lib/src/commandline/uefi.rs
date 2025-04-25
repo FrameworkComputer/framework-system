@@ -84,7 +84,7 @@ pub fn parse(args: &[String]) -> Cli {
         dump: None,
         h2o_capsule: None,
         intrusion: false,
-        inputmodules: false,
+        inputdeck: false,
         input_deck_mode: None,
         expansion_bay: false,
         charge_limit: None,
@@ -225,8 +225,8 @@ pub fn parse(args: &[String]) -> Cli {
         } else if arg == "--intrusion" {
             cli.intrusion = true;
             found_an_option = true;
-        } else if arg == "--inputmodules" {
-            cli.inputmodules = true;
+        } else if arg == "--inputdeck" {
+            cli.inputdeck = true;
             found_an_option = true;
         } else if arg == "--input-deck-mode" {
             cli.input_deck_mode = if args.len() > i + 1 {

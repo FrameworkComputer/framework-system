@@ -34,7 +34,7 @@ _framework_tool() {
         "--flash-ro-ec"
         "--flash-rw-ec"
         "--intrusion"
-        "--inputmodules"
+        "--inputdeck"
         "--input-deck-mode"
         "--charge-limit"
         "--get-gpio"
