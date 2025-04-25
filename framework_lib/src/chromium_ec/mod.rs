@@ -120,6 +120,47 @@ pub enum EcResponseStatus {
     Busy = 16,
 }
 
+#[repr(u8)]
+#[derive(Copy, Clone, Debug)]
+pub enum Framework12Adc {
+    MainboardBoard,
+    PowerButtonBoard,
+    Psys,
+    AdapterCurrent,
+    Touchpad,
+    AudioBoard,
+}
+
+/*
+ * PLATFORM_EC_ADC_RESOLUTION default 10 bit
+ *
+ * +------------------+-----------+--------------+---------+----------------------+
+ * |  BOARD VERSION   |  voltage  |  main board  |   GPU   |     Input module     |
+ * +------------------+-----------+--------------+---------+----------------------+
+ * | BOARD_VERSION_0  |  0    mv  |    Unused    |         |       Reserved       |
+ * | BOARD_VERSION_1  |  173  mv  |    Unused    |         |       Reserved       |
+ * | BOARD_VERSION_2  |  300  mv  |    Unused    |         |       Reserved       |
+ * | BOARD_VERSION_3  |  430  mv  |    Unused    |         |       Reserved       |
+ * | BOARD_VERSION_4  |  588  mv  |    EVT1      |         |       Reserved       |
+ * | BOARD_VERSION_5  |  783  mv  |    Unused    |         |       Reserved       |
+ * | BOARD_VERSION_6  |  905  mv  |    Unused    |         |       Reserved       |
+ * | BOARD_VERSION_7  |  1033 mv  |    DVT1      |         |       Reserved       |
+ * | BOARD_VERSION_8  |  1320 mv  |    DVT2      |         |    Generic A size    |
+ * | BOARD_VERSION_9  |  1500 mv  |    PVT       |         |    Generic B size    |
+ * | BOARD_VERSION_10 |  1650 mv  |    MP        |         |    Generic C size    |
+ * | BOARD_VERSION_11 |  1980 mv  |    Unused    | RID_0   |    10 Key B size     |
+ * | BOARD_VERSION_12 |  2135 mv  |    Unused    | RID_0,1 |       Keyboard       |
+ * | BOARD_VERSION_13 |  2500 mv  |    Unused    | RID_0   |       Touchpad       |
+ * | BOARD_VERSION_14 |  2706 mv  |    Unused    |         |       Reserved       |
+ * | BOARD_VERSION_15 |  2813 mv  |    Unused    |         |    Not installed     |
+ * +------------------+-----------+--------------+---------+----------------------+
+ */
+
+const BOARD_VERSION_COUNT: usize = 16;
+const BOARD_VERSION: [i32; BOARD_VERSION_COUNT] = [
+    85, 233, 360, 492, 649, 844, 965, 1094, 1380, 1562, 1710, 2040, 2197, 2557, 2766, 2814,
+];
+
 pub fn has_mec() -> bool {
     let platform = smbios::get_platform().unwrap();
     if let Platform::GenericFramework(_, _, has_mec) = platform {
@@ -1036,6 +1077,31 @@ impl CrosEc {
     pub fn adc_read(&self, adc_channel: u8) -> EcResult<i32> {
         let res = EcRequestAdcRead { adc_channel }.send_command(self)?;
         Ok(res.adc_value)
+    }
+
+    pub fn read_board_id(&self, channel: Framework12Adc) -> EcResult<Option<u8>> {
+        let mv = self.adc_read(channel as u8)?;
+        if mv < 0 {
+            return Err(EcError::DeviceError(format!(
+                "Failed to read ADC channel {}",
+                channel as u8
+            )));
+        }
+
+        for (board_id, board_id_res) in BOARD_VERSION.iter().enumerate() {
+            if mv < *board_id_res {
+                return Ok(if board_id == 15 {
+                    None
+                } else {
+                    Some(board_id as u8)
+                });
+            }
+        }
+
+        Err(EcError::DeviceError(format!(
+            "Unknown board id. ADC mv: {}",
+            mv
+        )))
     }
 
     pub fn rgbkbd_set_color(&self, start_key: u8, colors: Vec<RgbS>) -> EcResult<()> {
