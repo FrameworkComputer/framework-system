@@ -86,6 +86,7 @@ pub fn parse(args: &[String]) -> Cli {
         intrusion: false,
         inputmodules: false,
         input_deck_mode: None,
+        expansion_bay: false,
         charge_limit: None,
         get_gpio: None,
         fp_led_level: None,
@@ -246,6 +247,9 @@ pub fn parse(args: &[String]) -> Cli {
                 );
                 None
             };
+            found_an_option = true;
+        } else if arg == "--expansion-bay" {
+            cli.expansion_bay = true;
             found_an_option = true;
         } else if arg == "--charge-limit" {
             cli.charge_limit = if args.len() > i + 1 {

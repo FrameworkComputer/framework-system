@@ -147,6 +147,10 @@ struct ClapCli {
     #[arg(long)]
     input_deck_mode: Option<InputDeckModeArg>,
 
+    /// Show status of the expansion bay (Framework 16 only)
+    #[arg(long)]
+    expansion_bay: bool,
+
     /// Get or set max charge limit
     #[arg(long)]
     charge_limit: Option<Option<u8>>,
@@ -352,6 +356,7 @@ pub fn parse(args: &[String]) -> Cli {
         intrusion: args.intrusion,
         inputmodules: args.inputmodules,
         input_deck_mode: args.input_deck_mode,
+        expansion_bay: args.expansion_bay,
         charge_limit: args.charge_limit,
         get_gpio: args.get_gpio,
         fp_led_level: args.fp_led_level,

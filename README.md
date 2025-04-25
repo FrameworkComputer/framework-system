@@ -181,6 +181,7 @@ Options:
       --inputmodules                Show status of the input modules (Framework 16 only)
       --input-deck-mode <INPUT_DECK_MODE>
           Set input deck power mode [possible values: auto, off, on] (Framework 16 only) [possible values: auto, off, on]
+      --expansion-bay               Show status of the expansion bay (Framework 16 only)
       --charge-limit [<CHARGE_LIMIT>]
           Get or set max charge limit
       --get-gpio <GET_GPIO>
