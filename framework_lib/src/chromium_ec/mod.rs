@@ -123,12 +123,47 @@ pub enum EcResponseStatus {
 #[repr(u8)]
 #[derive(Copy, Clone, Debug)]
 pub enum Framework12Adc {
-    MainboardBoard,
-    PowerButtonBoard,
+    MainboardBoardId,
+    PowerButtonBoardId,
     Psys,
     AdapterCurrent,
-    Touchpad,
-    AudioBoard,
+    TouchpadBoardId,
+    AudioBoardId,
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, Debug)]
+pub enum FrameworkHx20Hx30Adc {
+    AdapterCurrent,
+    Psys,
+    BattTemp,
+    TouchpadBoardId,
+    MainboardBoardId,
+    AudioBoardId,
+}
+
+/// So far on all Nuvoton/Zephyr EC based platforms
+/// Until at least Framework 13 AMD Ryzen AI 300
+#[repr(u8)]
+#[derive(Copy, Clone, Debug)]
+pub enum Framework13Adc {
+    MainboardBoardId,
+    Psys,
+    AdapterCurrent,
+    TouchpadBoardId,
+    AudioBoardId,
+    BattTemp,
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, Debug)]
+pub enum Framework16Adc {
+    MainboardBoardId,
+    HubBoardId,
+    GpuBoardId0,
+    GpuBoardId1,
+    AdapterCurrent,
+    Psys,
 }
 
 /*
@@ -437,9 +472,9 @@ impl CrosEc {
 
     pub fn print_fw12_inputdeck_status(&self) -> EcResult<()> {
         let intrusion = self.get_intrusion_status()?;
-        let pwrbtn = self.read_board_id(Framework12Adc::PowerButtonBoard)?;
-        let audio = self.read_board_id(Framework12Adc::AudioBoard)?;
-        let tp = self.read_board_id(Framework12Adc::Touchpad)?;
+        let pwrbtn = self.read_board_id(Framework12Adc::PowerButtonBoardId as u8)?;
+        let audio = self.read_board_id(Framework12Adc::AudioBoardId as u8)?;
+        let tp = self.read_board_id(Framework12Adc::TouchpadBoardId as u8)?;
 
         let is_present = |p| if p { "Present" } else { "Missing" };
 
@@ -1100,12 +1135,12 @@ impl CrosEc {
         Ok(res.adc_value)
     }
 
-    pub fn read_board_id(&self, channel: Framework12Adc) -> EcResult<Option<u8>> {
-        let mv = self.adc_read(channel as u8)?;
+    pub fn read_board_id(&self, channel: u8) -> EcResult<Option<u8>> {
+        let mv = self.adc_read(channel)?;
         if mv < 0 {
             return Err(EcError::DeviceError(format!(
                 "Failed to read ADC channel {}",
-                channel as u8
+                channel
             )));
         }
 
