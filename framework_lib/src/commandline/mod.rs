@@ -748,7 +748,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.inputdeck {
         let res = match smbios::get_platform().and_then(Platform::which_family) {
             Some(PlatformFamily::Framework12) => ec.print_fw12_inputdeck_status(),
-            Some(PlatformFamily::Framework13) => Ok(()),
+            Some(PlatformFamily::Framework13) => ec.print_fw13_inputdeck_status(),
             Some(PlatformFamily::Framework16) => ec.print_fw16_inputdeck_status(),
             _ => Ok(()),
         };
