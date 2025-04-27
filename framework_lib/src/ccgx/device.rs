@@ -3,22 +3,16 @@
 //! The current implementation talks to them by tunneling I2C through EC host commands.
 
 use alloc::format;
-use alloc::string::ToString;
-use alloc::vec;
 use alloc::vec::Vec;
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
 use crate::ccgx::{AppVersion, BaseVersion, ControllerVersion};
-use crate::chromium_ec::command::EcCommands;
-use crate::chromium_ec::{CrosEc, CrosEcDriver, EcError, EcResult};
-use crate::util::{self, assert_win_len, Config, Platform};
-use std::mem::size_of;
+use crate::chromium_ec::i2c_passthrough::*;
+use crate::chromium_ec::{CrosEc, EcError, EcResult};
+use crate::util::{assert_win_len, Config, Platform};
 
 use super::*;
-
-/// Maximum transfer size for one I2C transaction supported by the chip
-const MAX_I2C_CHUNK: usize = 128;
 
 enum ControlRegisters {
     DeviceMode = 0,
@@ -106,58 +100,6 @@ pub struct PdController {
     ec: CrosEc,
 }
 
-fn passthrough_offset(dev_index: u16) -> u16 {
-    dev_index * 0x4000
-}
-
-#[repr(C, packed)]
-struct EcParamsI2cPassthruMsg {
-    /// Slave address and flags
-    addr_and_flags: u16,
-    transfer_len: u16,
-}
-
-#[repr(C, packed)]
-struct EcParamsI2cPassthru {
-    port: u8,
-    /// How many messages
-    messages: u8,
-    msg: [EcParamsI2cPassthruMsg; 0],
-}
-
-#[repr(C, packed)]
-struct _EcI2cPassthruResponse {
-    i2c_status: u8,
-    /// How many messages
-    messages: u8,
-    data: [u8; 0],
-}
-
-struct EcI2cPassthruResponse {
-    i2c_status: u8, // TODO: Can probably use enum
-    data: Vec<u8>,
-}
-
-impl EcI2cPassthruResponse {
-    fn is_successful(&self) -> EcResult<()> {
-        if self.i2c_status & 1 > 0 {
-            return Err(EcError::DeviceError(
-                "I2C Transfer not acknowledged".to_string(),
-            ));
-        }
-        if self.i2c_status & (1 << 1) > 0 {
-            return Err(EcError::DeviceError("I2C Transfer timeout".to_string()));
-        }
-        // I'm not aware of any other errors, but there might be.
-        // But I don't think multiple errors can be indicated at the same time
-        assert_eq!(self.i2c_status, 0);
-        Ok(())
-    }
-}
-
-/// Indicate that it's a read, not a write
-const I2C_READ_FLAG: u16 = 1 << 15;
-
 #[derive(Debug, PartialEq)]
 pub enum FwMode {
     BootLoader = 0,
@@ -194,13 +136,6 @@ impl PdController {
     pub fn new(port: PdPort, ec: CrosEc) -> Self {
         PdController { port, ec }
     }
-    /// Wrapped with support for dev id
-    /// TODO: Should move into chromium_ec module
-    /// TODO: Must not call CrosEc::new() otherwise the driver isn't configurable!
-    fn send_ec_command(&self, code: u16, dev_index: u16, data: &[u8]) -> EcResult<Vec<u8>> {
-        let command_id = code + passthrough_offset(dev_index);
-        self.ec.send_command(command_id, 0, data)
-    }
 
     fn i2c_read(&self, addr: u16, len: u16) -> EcResult<EcI2cPassthruResponse> {
         trace!(
@@ -208,49 +143,13 @@ impl PdController {
             self.port.i2c_port().unwrap(),
             self.port.i2c_address()
         );
-        trace!("i2c_read(addr: {}, len: {})", addr, len);
-        if usize::from(len) > MAX_I2C_CHUNK {
-            return EcResult::Err(EcError::DeviceError(format!(
-                "i2c_read too long. Must be <128, is: {}",
-                len
-            )));
-        }
-        let addr_bytes = u16::to_le_bytes(addr);
-        let messages = vec![
-            EcParamsI2cPassthruMsg {
-                addr_and_flags: self.port.i2c_address(),
-                transfer_len: addr_bytes.len() as u16,
-            },
-            EcParamsI2cPassthruMsg {
-                addr_and_flags: self.port.i2c_address() + I2C_READ_FLAG,
-                transfer_len: len, // How much to read
-            },
-        ];
-        let msgs_len = size_of::<EcParamsI2cPassthruMsg>() * messages.len();
-        let msgs_buffer: &[u8] = unsafe { util::any_vec_as_u8_slice(&messages) };
-
-        let params = EcParamsI2cPassthru {
-            port: self.port.i2c_port()?,
-            messages: messages.len() as u8,
-            msg: [], // Messages are copied right after this struct
-        };
-        let params_len = size_of::<EcParamsI2cPassthru>();
-        let params_buffer: &[u8] = unsafe { util::any_as_u8_slice(&params) };
-
-        let mut buffer: Vec<u8> = vec![0; params_len + msgs_len + addr_bytes.len()];
-        buffer[0..params_len].copy_from_slice(params_buffer);
-        buffer[params_len..params_len + msgs_len].copy_from_slice(msgs_buffer);
-        buffer[params_len + msgs_len..].copy_from_slice(&addr_bytes);
-
-        let data = self.send_ec_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
-        let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
-        let res_data = &data[size_of::<_EcI2cPassthruResponse>()..];
-        // TODO: Seems to be either one, non-deterministically
-        debug_assert!(res.messages as usize == messages.len() || res.messages == 0);
-        Ok(EcI2cPassthruResponse {
-            i2c_status: res.i2c_status,
-            data: res_data.to_vec(),
-        })
+        i2c_read(
+            &self.ec,
+            self.port.i2c_port().unwrap(),
+            self.port.i2c_address(),
+            addr,
+            len,
+        )
     }
 
     fn ccgx_read(&self, reg: ControlRegisters, len: u16) -> EcResult<Vec<u8>> {

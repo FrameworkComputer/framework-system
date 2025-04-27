@@ -22,6 +22,7 @@ pub mod command;
 pub mod commands;
 #[cfg(feature = "cros_ec_driver")]
 mod cros_ec;
+pub mod i2c_passthrough;
 pub mod input_deck;
 mod portio;
 mod portio_mec;
