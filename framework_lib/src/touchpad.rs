@@ -101,9 +101,7 @@ pub fn print_touchpad_fw_ver() -> Result<(), HidError> {
                 #[cfg(target_os = "linux")]
                 debug!("  HID Version        {:04X}", hid_ver);
                 #[cfg(not(target_os = "linux"))]
-                if ver != format!("{:04X}", hid_ver) {
-                    println!("  HID Version       v{:04X}", hid_ver);
-                } else if log_enabled!(Level::Debug) {
+                if ver != format!("{:04X}", hid_ver) || log_enabled!(Level::Debug) {
                     println!("  HID Version       v{:04X}", hid_ver);
                 }
 
