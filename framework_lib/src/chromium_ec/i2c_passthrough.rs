@@ -116,3 +116,49 @@ pub fn i2c_read(
         data: res_data.to_vec(),
     })
 }
+
+pub fn i2c_write(
+    ec: &CrosEc,
+    i2c_port: u8,
+    i2c_addr: u16,
+    addr: u16,
+    data: &[u8],
+) -> EcResult<EcI2cPassthruResponse> {
+    trace!(
+        "  i2c_write(addr: {}, len: {}, data: {:?})",
+        addr,
+        data.len(),
+        data
+    );
+    let addr_bytes = [addr as u8, (addr >> 8) as u8];
+    let messages = vec![EcParamsI2cPassthruMsg {
+        addr_and_flags: i2c_addr,
+        transfer_len: (addr_bytes.len() + data.len()) as u16,
+    }];
+    let msgs_len = size_of::<EcParamsI2cPassthruMsg>() * messages.len();
+    let msgs_buffer: &[u8] = unsafe { util::any_vec_as_u8_slice(&messages) };
+
+    let params = EcParamsI2cPassthru {
+        port: i2c_port,
+        messages: messages.len() as u8,
+        msg: [], // Messages are copied right after this struct
+    };
+    let params_len = size_of::<EcParamsI2cPassthru>();
+    let params_buffer: &[u8] = unsafe { util::any_as_u8_slice(&params) };
+
+    let mut buffer: Vec<u8> = vec![0; params_len + msgs_len + addr_bytes.len() + data.len()];
+    buffer[0..params_len].copy_from_slice(params_buffer);
+    buffer[params_len..params_len + msgs_len].copy_from_slice(msgs_buffer);
+    buffer[params_len + msgs_len..params_len + msgs_len + addr_bytes.len()]
+        .copy_from_slice(&addr_bytes);
+    buffer[params_len + msgs_len + addr_bytes.len()..].copy_from_slice(data);
+
+    let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
+    let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
+    assert_eq!(data.len(), size_of::<_EcI2cPassthruResponse>()); // No extra data other than the header
+    debug_assert_eq!(res.messages as usize, messages.len());
+    Ok(EcI2cPassthruResponse {
+        i2c_status: res.i2c_status,
+        data: vec![], // Writing doesn't return any data
+    })
+}
