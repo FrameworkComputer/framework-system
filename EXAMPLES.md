@@ -1,5 +1,79 @@
 # Example usage
 
+## Check firmware versions
+
+### Camera (Framework 12, Framework 13, Framework 16)
+
+Example on Framework 12:
+
+```
+> framework_tool --versions
+[...]
+Framework Laptop 12 Webcam Module
+  Firmware Version: 0.1.6
+```
+
+Example on Framework 13:
+
+```
+> framework_tool --versions
+[...]
+Laptop Webcam Module (2nd Gen)
+  Firmware Version: 1.1.1
+```
+
+### Touchscreen (Framework 12)
+
+```
+> framework_tool --versions
+[...]
+Touchscreen
+  Firmware Version: v7.0.0.5.0.0.0.0
+  USI Protocol:     false
+  MPP Protocol:     true
+```
+
+### Touchpad (Framework 12, Framework 13, Framework 16)
+
+```
+> framework_tool --versions
+[...]
+Touchpad
+  IC Type:           0239
+  Firmware Version: v0E07
+```
+
+### Input modules (Framework 16)
+
+Shows firmware version and location of the modules.
+
+```
+> framework_tool --versions
+[...]
+Laptop 16 Numpad
+  Firmware Version: 0.2.9
+  Location: [X] [ ] [ ]       [ ] [ ]
+Laptop 16 ANSI Keyboard
+  Firmware Version: 0.2.9
+  Location: [ ] [ ] [X]       [ ] [ ]
+[...]
+```
+
+```
+> framework_tool --versions
+[...]
+LED Matrix
+  Firmware Version: 0.2.0
+  Location: [X] [ ] [ ]       [ ] [ ]
+Laptop 16 ANSI Keyboard
+  Firmware Version: 0.2.9
+  Location: [ ] [x] [ ]       [ ] [ ]
+LED Matrix
+  Firmware Version: 0.2.0
+  Location: [ ] [ ] [ ]       [ ] [x]
+[...]
+```
+
 
 ## Check temperatures and fan speed
 
