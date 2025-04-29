@@ -1083,6 +1083,29 @@ impl CrosEc {
         }
     }
 
+    pub fn get_charge_state(&self) -> EcResult<()> {
+        let res = EcRequestChargeStateGetV0 {
+            cmd: ChargeStateCmd::GetState as u8,
+            param: 0,
+        }
+        .send_command(self)?;
+        println!("Charger Status");
+        println!(
+            "  AC is:            {}",
+            if res.ac == 1 {
+                "connected"
+            } else {
+                "not connected"
+            }
+        );
+        println!("  Charger Voltage:  {}mV", { res.chg_voltage });
+        println!("  Charger Current:  {}mA", { res.chg_current });
+        println!("  Chg Input Current:{}mA", { res.chg_input_current });
+        println!("  Battery SoC:      {}%", { res.batt_state_of_charge });
+
+        Ok(())
+    }
+
     /// Check features supported by the firmware
     pub fn get_features(&self) -> EcResult<()> {
         let data = EcRequestGetFeatures {}.send_command(self)?;

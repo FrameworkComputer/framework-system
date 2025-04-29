@@ -377,6 +377,38 @@ impl EcRequest<()> for EcRequestConsoleRead {
     }
 }
 
+#[repr(u8)]
+pub enum ChargeStateCmd {
+    GetState = 0,
+    GetParam,
+    SetParam,
+    NumCmds,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestChargeStateGetV0 {
+    pub cmd: u8,
+    pub param: u32,
+}
+
+#[repr(C, packed)]
+pub struct EcResponseChargeStateGetV0 {
+    pub ac: u32,
+    pub chg_voltage: u32,
+    pub chg_current: u32,
+    pub chg_input_current: u32,
+    pub batt_state_of_charge: u32,
+}
+
+impl EcRequest<EcResponseChargeStateGetV0> for EcRequestChargeStateGetV0 {
+    fn command_id() -> EcCommands {
+        EcCommands::ChargeState
+    }
+    fn command_version() -> u8 {
+        0
+    }
+}
+
 /// Supported features
 #[derive(Debug, FromPrimitive)]
 pub enum EcFeatureCode {

@@ -139,6 +139,7 @@ ALS:   76 Lux
   Fan Speed:       0 RPM
 ```
 
+
 ## Check expansion bay (Framework 16)
 
 ```
@@ -149,4 +150,23 @@ Expansion Bay
   Hatch closed:  true
   Board:         DualInterposer
   Serial Number: FRAXXXXXXXXXXXXXXX
+
+## Check charger and battery status (Framework 12/13/16)
+
+```
+> sudo framework_tool --power
+Charger Status
+  AC is:            not connected
+  Charger Voltage:  17048mV
+  Charger Current:  0mA
+  Chg Input Current:384mA
+  Battery SoC:      93%
+Battery Status
+  AC is:            not connected
+  Battery is:       connected
+  Battery LFCC:     3693 mAh (Last Full Charge Capacity)
+  Battery Capacity: 3409 mAh
+                    58.96 Wh
+  Charge level:     92%
+  Battery discharging
 ```
