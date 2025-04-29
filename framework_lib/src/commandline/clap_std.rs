@@ -57,6 +57,20 @@ struct ClapCli {
     #[arg(long)]
     sensors: bool,
 
+    /// Set fan duty cycle (0-100%)
+    #[clap(num_args=..=2)]
+    #[arg(long)]
+    fansetduty: Vec<u32>,
+
+    /// Set fan RPM (limited by EC fan table max RPM)
+    #[clap(num_args=..=2)]
+    #[arg(long)]
+    fansetrpm: Vec<u32>,
+
+    /// Turn on automatic fan speed control
+    #[arg(long)]
+    autofanctrl: bool,
+
     /// Show information about USB-C PD ports
     #[arg(long)]
     pdports: bool,
@@ -277,6 +291,16 @@ pub fn parse(args: &[String]) -> Cli {
         // Checked by clap
         _ => unreachable!(),
     };
+    let fansetduty = match args.fansetduty.len() {
+        2 => Some((Some(args.fansetduty[0]), args.fansetduty[1])),
+        1 => Some((None, args.fansetduty[0])),
+        _ => None,
+    };
+    let fansetrpm = match args.fansetrpm.len() {
+        2 => Some((Some(args.fansetrpm[0]), args.fansetrpm[1])),
+        1 => Some((None, args.fansetrpm[0])),
+        _ => None,
+    };
 
     Cli {
         verbosity: args.verbosity.log_level_filter(),
@@ -289,6 +313,9 @@ pub fn parse(args: &[String]) -> Cli {
         power: args.power,
         thermal: args.thermal,
         sensors: args.sensors,
+        fansetduty,
+        fansetrpm,
+        autofanctrl: args.autofanctrl,
         pdports: args.pdports,
         pd_info: args.pd_info,
         dp_hdmi_info: args.dp_hdmi_info,

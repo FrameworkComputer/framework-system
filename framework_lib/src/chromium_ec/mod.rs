@@ -426,6 +426,33 @@ impl CrosEc {
         Ok((kblight.duty / (PWM_MAX_DUTY / 100)) as u8)
     }
 
+    pub fn fan_set_rpm(&self, fan: Option<u32>, rpm: u32) -> EcResult<()> {
+        if let Some(fan_idx) = fan {
+            EcRequestPwmSetFanTargetRpmV1 { rpm, fan_idx }.send_command(self)
+        } else {
+            EcRequestPwmSetFanTargetRpmV0 { rpm }.send_command(self)
+        }
+    }
+
+    pub fn fan_set_duty(&self, fan: Option<u32>, percent: u32) -> EcResult<()> {
+        if percent > 100 {
+            return Err(EcError::DeviceError("Fan duty must be <= 100".to_string()));
+        }
+        if let Some(fan_idx) = fan {
+            EcRequestPwmSetFanDutyV1 { fan_idx, percent }.send_command(self)
+        } else {
+            EcRequestPwmSetFanDutyV0 { percent }.send_command(self)
+        }
+    }
+
+    pub fn autofanctrl(&self, fan: Option<u8>) -> EcResult<()> {
+        if let Some(fan_idx) = fan {
+            EcRequestAutoFanCtrlV1 { fan_idx }.send_command(self)
+        } else {
+            EcRequestAutoFanCtrlV0 {}.send_command(self)
+        }
+    }
+
     /// Set tablet mode
     pub fn set_tablet_mode(&self, mode: TabletModeOverride) {
         let mode = mode as u8;

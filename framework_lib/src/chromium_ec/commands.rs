@@ -187,6 +187,63 @@ impl EcRequest<EcResponsePwmGetKeyboardBacklight> for EcRequestPwmGetKeyboardBac
     }
 }
 
+#[repr(C, packed)]
+pub struct EcRequestPwmSetFanTargetRpmV0 {
+    /// Duty cycle in percent
+    pub rpm: u32,
+}
+
+impl EcRequest<()> for EcRequestPwmSetFanTargetRpmV0 {
+    fn command_id() -> EcCommands {
+        EcCommands::PwmSetFanTargetRpm
+    }
+}
+
+pub struct EcRequestPwmSetFanTargetRpmV1 {
+    /// Fan RPM
+    pub rpm: u32,
+    /// Fan index
+    pub fan_idx: u32,
+}
+
+impl EcRequest<()> for EcRequestPwmSetFanTargetRpmV1 {
+    fn command_id() -> EcCommands {
+        EcCommands::PwmSetFanTargetRpm
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestPwmSetFanDutyV0 {
+    /// Duty cycle in percent
+    pub percent: u32,
+}
+
+impl EcRequest<()> for EcRequestPwmSetFanDutyV0 {
+    fn command_id() -> EcCommands {
+        EcCommands::PwmSetFanDuty
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestPwmSetFanDutyV1 {
+    /// Duty cycle in percent
+    pub percent: u32,
+    /// Fan index
+    pub fan_idx: u32,
+}
+
+impl EcRequest<()> for EcRequestPwmSetFanDutyV1 {
+    fn command_id() -> EcCommands {
+        EcCommands::PwmSetFanDuty
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+
 pub const PWM_MAX_DUTY: u16 = 0xFFFF;
 
 #[repr(C, packed)]
@@ -240,6 +297,30 @@ pub struct EcRequestSetTabletMode {
 impl EcRequest<()> for EcRequestSetTabletMode {
     fn command_id() -> EcCommands {
         EcCommands::SetTabletMode
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestAutoFanCtrlV0 {}
+
+impl EcRequest<()> for EcRequestAutoFanCtrlV0 {
+    fn command_id() -> EcCommands {
+        EcCommands::AutoFanCtrl
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestAutoFanCtrlV1 {
+    /// Fan id
+    pub fan_idx: u8,
+}
+
+impl EcRequest<()> for EcRequestAutoFanCtrlV1 {
+    fn command_id() -> EcCommands {
+        EcCommands::AutoFanCtrl
+    }
+    fn command_version() -> u8 {
+        1
     }
 }
 

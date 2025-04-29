@@ -65,6 +65,9 @@ pub fn parse(args: &[String]) -> Cli {
         power: false,
         thermal: false,
         sensors: false,
+        fansetduty: None,
+        fansetrpm: None,
+        autofanctrl: false,
         pdports: false,
         pd_info: false,
         dp_hdmi_info: false,
@@ -147,6 +150,67 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--sensors" {
             cli.sensors = true;
+            found_an_option = true;
+        } else if arg == "--fansetduty" {
+            cli.fansetduty = if args.len() > i + 2 {
+                let fan_idx = args[i + 1].parse::<u32>();
+                let duty = args[i + 2].parse::<u32>();
+                if let (Ok(fan_idx), Ok(duty)) = (fan_idx, duty) {
+                    Some((Some(fan_idx), duty))
+                } else {
+                    println!(
+                        "Invalid values for --fansetduty: '{} {}'. Must be u32 integers.",
+                        args[i + 1],
+                        args[i + 2]
+                    );
+                    None
+                }
+            } else if args.len() > i + 1 {
+                if let Ok(duty) = args[i + 1].parse::<u32>() {
+                    Some((None, duty))
+                } else {
+                    println!(
+                        "Invalid values for --fansetduty: '{}'. Must be 0-100.",
+                        args[i + 1],
+                    );
+                    None
+                }
+            } else {
+                println!("--fansetduty requires one or two. [fan id] [duty] or [duty]");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--fansetrpm" {
+            cli.fansetrpm = if args.len() > i + 2 {
+                let fan_idx = args[i + 1].parse::<u32>();
+                let rpm = args[i + 2].parse::<u32>();
+                if let (Ok(fan_idx), Ok(rpm)) = (fan_idx, rpm) {
+                    Some((Some(fan_idx), rpm))
+                } else {
+                    println!(
+                        "Invalid values for --fansetrpm: '{} {}'. Must be u32 integers.",
+                        args[i + 1],
+                        args[i + 2]
+                    );
+                    None
+                }
+            } else if args.len() > i + 1 {
+                if let Ok(rpm) = args[i + 1].parse::<u32>() {
+                    Some((None, rpm))
+                } else {
+                    println!(
+                        "Invalid values for --fansetrpm: '{}'. Must be an integer.",
+                        args[i + 1],
+                    );
+                    None
+                }
+            } else {
+                println!("--fansetrpm requires one or two. [fan id] [rpm] or [rpm]");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--autofanctrol" {
+            cli.autofanctrl = true;
             found_an_option = true;
         } else if arg == "--pdports" {
             cli.pdports = true;
