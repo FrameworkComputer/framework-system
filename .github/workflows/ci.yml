@@ -4,9 +4,6 @@ on:
 
 jobs:
   freebsd-cross-build:
-    # Not building currently, container seems to have issues
-    if: false
-
     name: Cross-Build for FreeBSD
     runs-on: 'ubuntu-24.04'
     env:
