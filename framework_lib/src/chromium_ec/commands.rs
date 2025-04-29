@@ -409,6 +409,35 @@ impl EcRequest<EcResponseChargeStateGetV0> for EcRequestChargeStateGetV0 {
     }
 }
 
+pub struct EcRequestCurrentLimitV0 {
+    /// Current limit in mA
+    pub current: u32,
+}
+
+impl EcRequest<()> for EcRequestCurrentLimitV0 {
+    fn command_id() -> EcCommands {
+        EcCommands::ChargeCurrentLimit
+    }
+}
+
+pub struct EcRequestCurrentLimitV1 {
+    /// Current limit in mA
+    pub current: u32,
+    /// Battery state of charge is the minimum charge percentage at which
+    /// the battery charge current limit will apply.
+    /// When not set, the limit will apply regardless of state of charge.
+    pub battery_soc: u8,
+}
+
+impl EcRequest<()> for EcRequestCurrentLimitV1 {
+    fn command_id() -> EcCommands {
+        EcCommands::ChargeCurrentLimit
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+
 /// Supported features
 #[derive(Debug, FromPrimitive)]
 pub enum EcFeatureCode {

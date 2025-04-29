@@ -170,3 +170,46 @@ Battery Status
   Charge level:     92%
   Battery discharging
 ```
+
+### Setting a custom charger current limit
+
+```
+# Set limit to 2A
+> sudo framework_tool --charge-current-limit 2000
+
+# And then plug in a power adapter
+> sudo framework_tool --power
+Charger Status
+  AC is:            connected
+  Charger Voltage:  17800mV
+  Charger Current:  2000mA
+  Chg Input Current:3084mA
+  Battery SoC:      87%
+Battery Status
+  AC is:            connected
+  Battery is:       connected
+  Battery LFCC:     3713 mAh (Last Full Charge Capacity)
+  Battery Capacity: 3215 mAh
+                    56.953 Wh
+  Charge level:     86%
+  Battery charging
+
+# Remove limit (highest USB-PD current is 5A)
+> sudo framework_tool --charge-current-limit 5000
+
+> sudo framework_tool --power
+Charger Status
+  AC is:            connected
+  Charger Voltage:  17800mV
+  Charger Current:  2740mA
+  Chg Input Current:3084mA
+  Battery SoC:      92%
+Battery Status
+  AC is:            connected
+  Battery is:       connected
+  Battery LFCC:     3713 mAh (Last Full Charge Capacity)
+  Battery Capacity: 3387 mAh
+                    60.146 Wh
+  Charge level:     91%
+  Battery charging
+```

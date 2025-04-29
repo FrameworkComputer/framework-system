@@ -88,6 +88,7 @@ pub fn parse(args: &[String]) -> Cli {
         inputdeck_mode: None,
         expansion_bay: false,
         charge_limit: None,
+        charge_current_limit: None,
         get_gpio: None,
         fp_led_level: None,
         fp_brightness: None,
@@ -264,6 +265,35 @@ pub fn parse(args: &[String]) -> Cli {
                 }
             } else {
                 Some(None)
+            };
+            found_an_option = true;
+        } else if arg == "--charge-current-limit" {
+            cli.charge_current_limit = if args.len() > i + 2 {
+                let limit = args[i + 1].parse::<u32>();
+                let soc = args[i + 2].parse::<u32>();
+                if let (Ok(limit), Ok(soc)) = (limit, soc) {
+                    Some((limit, Some(soc)))
+                } else {
+                    println!(
+                        "Invalid values for --charge-current-limit: '{} {}'. Must be u32 integers.",
+                        args[i + 1],
+                        args[i + 2]
+                    );
+                    None
+                }
+            } else if args.len() > i + 1 {
+                if let Ok(limit) = args[i + 1].parse::<u32>() {
+                    Some((limit, None))
+                } else {
+                    println!(
+                        "Invalid values for --charge-current-limit: '{}'. Must be an integer.",
+                        args[i + 1],
+                    );
+                    None
+                }
+            } else {
+                println!("--charge-current-limit requires one or two. [limit] [soc] or [limit]");
+                None
             };
             found_an_option = true;
         } else if arg == "--get-gpio" {

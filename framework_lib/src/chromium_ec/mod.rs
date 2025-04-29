@@ -394,6 +394,19 @@ impl CrosEc {
         Ok((limits.min_percentage, limits.max_percentage))
     }
 
+    pub fn set_charge_current_limit(&self, current: u32, battery_soc: Option<u32>) -> EcResult<()> {
+        if let Some(battery_soc) = battery_soc {
+            let battery_soc = battery_soc as u8;
+            EcRequestCurrentLimitV1 {
+                current,
+                battery_soc,
+            }
+            .send_command(self)
+        } else {
+            EcRequestCurrentLimitV0 { current }.send_command(self)
+        }
+    }
+
     pub fn set_fp_led_percentage(&self, percentage: u8) -> EcResult<()> {
         // Sending bytes manually because the Set command, as opposed to the Get command,
         // does not return any data
