@@ -46,6 +46,8 @@ use crate::chromium_ec::{EcError, EcResult};
 use crate::csme;
 use crate::ec_binary;
 use crate::esrt;
+#[cfg(feature = "rusb")]
+use crate::inputmodule::check_inputmodule_version;
 use crate::power;
 use crate::smbios;
 use crate::smbios::ConfigDigit0;
@@ -479,6 +481,9 @@ fn print_versions(ec: &CrosEc) {
     }
     #[cfg(feature = "rusb")]
     let _ignore_err = check_camera_version();
+
+    #[cfg(feature = "rusb")]
+    let _ignore_err = check_inputmodule_version();
 
     #[cfg(feature = "hidapi")]
     let _ignore_err = print_touchpad_fw_ver();
