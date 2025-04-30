@@ -34,8 +34,8 @@ _framework_tool() {
         "--flash-ro-ec"
         "--flash-rw-ec"
         "--intrusion"
-        "--inputmodules"
-        "--input-deck-mode"
+        "--inputdeck"
+        "--inputdeck-mode"
         "--charge-limit"
         "--get-gpio"
 	"--fp-led-level"
@@ -56,7 +56,7 @@ _framework_tool() {
     )
 
     local devices=("bios" "ec" "pd0" "pd1" "rtm01" "rtm23" "ac-left" "ac-right")
-    local input_deck_modes=("auto" "off" "on")
+    local inputdeck_modes=("auto" "off" "on")
     local console_modes=("recent" "follow")
     local drivers=("portio" "cros-ec" "windows")
     local has_mec_options=("true" "false")
@@ -71,8 +71,8 @@ _framework_tool() {
         COMPREPLY=( $(compgen -W "${options[*]}" -- "$current_word") )
     elif [[ $prev_word == "--device" ]]; then
         COMPREPLY=( $(compgen -W "${devices[*]}" -- "$current_word") )
-    elif [[ $prev_word == "--input-deck-mode" ]]; then
-        COMPREPLY=( $(compgen -W "${input_deck_modes[*]}" -- "$current_word") )
+    elif [[ $prev_word == "--inputdeck-mode" ]]; then
+        COMPREPLY=( $(compgen -W "${inputdeck_modes[*]}" -- "$current_word") )
     elif [[ $prev_word == "--console" ]]; then
         COMPREPLY=( $(compgen -W "${console_modes[*]}" -- "$current_word") )
     elif [[ $prev_word == "--driver" ]]; then

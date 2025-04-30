@@ -120,6 +120,86 @@ pub enum EcResponseStatus {
     Busy = 16,
 }
 
+#[repr(u8)]
+#[derive(Copy, Clone, Debug)]
+pub enum Framework12Adc {
+    MainboardBoardId,
+    PowerButtonBoardId,
+    Psys,
+    AdapterCurrent,
+    TouchpadBoardId,
+    AudioBoardId,
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, Debug)]
+pub enum FrameworkHx20Hx30Adc {
+    AdapterCurrent,
+    Psys,
+    BattTemp,
+    TouchpadBoardId,
+    MainboardBoardId,
+    AudioBoardId,
+}
+
+/// So far on all Nuvoton/Zephyr EC based platforms
+/// Until at least Framework 13 AMD Ryzen AI 300
+#[repr(u8)]
+#[derive(Copy, Clone, Debug)]
+pub enum Framework13Adc {
+    MainboardBoardId,
+    Psys,
+    AdapterCurrent,
+    TouchpadBoardId,
+    AudioBoardId,
+    BattTemp,
+}
+
+#[repr(u8)]
+#[derive(Copy, Clone, Debug)]
+pub enum Framework16Adc {
+    MainboardBoardId,
+    HubBoardId,
+    GpuBoardId0,
+    GpuBoardId1,
+    AdapterCurrent,
+    Psys,
+}
+
+/*
+ * PLATFORM_EC_ADC_RESOLUTION default 10 bit
+ *
+ * +------------------+-----------+----------+-------------+---------+----------------------+
+ * |  BOARD VERSION   |  voltage  | NPC DB V | main board  |   GPU   |     Input module     |
+ * +------------------+-----------+----------|-------------+---------+----------------------+
+ * | BOARD_VERSION_0  |  0    mV  | 100  mV  |  Unused     |         |       Reserved       |
+ * | BOARD_VERSION_1  |  173  mV  | 310  mV  |  Unused     |         |       Reserved       |
+ * | BOARD_VERSION_2  |  300  mV  | 520  mV  |  Unused     |         |       Reserved       |
+ * | BOARD_VERSION_3  |  430  mV  | 720  mV  |  Unused     |         |       Reserved       |
+ * | BOARD_VERSION_4  |  588  mV  | 930  mV  |  EVT1       |         |       Reserved       |
+ * | BOARD_VERSION_5  |  783  mV  | 1130 mV  |  Unused     |         |       Reserved       |
+ * | BOARD_VERSION_6  |  905  mV  | 1340 mV  |  Unused     |         |       Reserved       |
+ * | BOARD_VERSION_7  |  1033 mV  | 1550 mV  |  DVT1       |         |       Reserved       |
+ * | BOARD_VERSION_8  |  1320 mV  | 1750 mV  |  DVT2       |         |    Generic A size    |
+ * | BOARD_VERSION_9  |  1500 mV  | 1960 mV  |  PVT        |         |    Generic B size    |
+ * | BOARD_VERSION_10 |  1650 mV  | 2170 mV  |  MP         |         |    Generic C size    |
+ * | BOARD_VERSION_11 |  1980 mV  | 2370 mV  |  Unused     | RID_0   |    10 Key B size     |
+ * | BOARD_VERSION_12 |  2135 mV  | 2580 mV  |  Unused     | RID_0,1 |       Keyboard       |
+ * | BOARD_VERSION_13 |  2500 mV  | 2780 mV  |  Unused     | RID_0   |       Touchpad       |
+ * | BOARD_VERSION_14 |  2706 mV  | 2990 mV  |  Unused     |         |       Reserved       |
+ * | BOARD_VERSION_15 |  2813 mV  | 3200 mV  |  Unused     |         |    Not installed     |
+ * +------------------+-----------+----------+-------------+---------+----------------------+
+ */
+
+const BOARD_VERSION_COUNT: usize = 16;
+const BOARD_VERSION: [i32; BOARD_VERSION_COUNT] = [
+    85, 233, 360, 492, 649, 844, 965, 1094, 1380, 1562, 1710, 2040, 2197, 2557, 2766, 2814,
+];
+
+const BOARD_VERSION_NPC_DB: [i32; BOARD_VERSION_COUNT] = [
+    100, 311, 521, 721, 931, 1131, 1341, 1551, 1751, 1961, 2171, 2370, 2580, 2780, 2990, 3200,
+];
+
 pub fn has_mec() -> bool {
     let platform = smbios::get_platform().unwrap();
     if let Platform::GenericFramework(_, _, has_mec) = platform {
@@ -392,6 +472,65 @@ impl CrosEc {
         .send_command(self)?;
 
         Ok(InputDeckStatus::from(status))
+    }
+
+    pub fn print_fw12_inputdeck_status(&self) -> EcResult<()> {
+        let intrusion = self.get_intrusion_status()?;
+        let pwrbtn = self.read_board_id(Framework12Adc::PowerButtonBoardId as u8)?;
+        let audio = self.read_board_id(Framework12Adc::AudioBoardId as u8)?;
+        let tp = self.read_board_id(Framework12Adc::TouchpadBoardId as u8)?;
+
+        let is_present = |p| if p { "Present" } else { "Missing" };
+
+        println!("Input Deck");
+        println!("  Chassis Open:        {}", intrusion.currently_open);
+        println!("  Power Button Board:  {}", is_present(pwrbtn.is_some()));
+        println!("  Audio Daughterboard: {}", is_present(audio.is_some()));
+        println!("  Touchpad:            {}", is_present(tp.is_some()));
+
+        Ok(())
+    }
+
+    pub fn print_fw13_inputdeck_status(&self) -> EcResult<()> {
+        let intrusion = self.get_intrusion_status()?;
+
+        let (audio, tp) = match smbios::get_platform() {
+            Some(Platform::IntelGen11)
+            | Some(Platform::IntelGen12)
+            | Some(Platform::IntelGen13) => (
+                self.read_board_id(FrameworkHx20Hx30Adc::AudioBoardId as u8)?,
+                self.read_board_id(FrameworkHx20Hx30Adc::TouchpadBoardId as u8)?,
+            ),
+
+            _ => (
+                self.read_board_id_npc_db(Framework13Adc::AudioBoardId as u8)?,
+                self.read_board_id_npc_db(Framework13Adc::TouchpadBoardId as u8)?,
+            ),
+        };
+
+        let is_present = |p| if p { "Present" } else { "Missing" };
+
+        println!("Input Deck");
+        println!("  Chassis Open:        {}", intrusion.currently_open);
+        println!("  Audio Daughterboard: {}", is_present(audio.is_some()));
+        println!("  Touchpad:            {}", is_present(tp.is_some()));
+
+        Ok(())
+    }
+
+    pub fn print_fw16_inputdeck_status(&self) -> EcResult<()> {
+        let intrusion = self.get_intrusion_status()?;
+        let status = self.get_input_deck_status()?;
+        println!("Chassis Open:     {}", intrusion.currently_open);
+        println!("Input Deck State: {:?}", status.state);
+        println!("Touchpad present: {}", status.touchpad_present);
+        println!("Positions:");
+        println!("  Pos 0: {:?}", status.top_row.pos0);
+        println!("  Pos 1: {:?}", status.top_row.pos1);
+        println!("  Pos 2: {:?}", status.top_row.pos2);
+        println!("  Pos 3: {:?}", status.top_row.pos3);
+        println!("  Pos 4: {:?}", status.top_row.pos4);
+        Ok(())
     }
 
     pub fn set_input_deck_mode(&self, mode: DeckStateMode) -> EcResult<InputDeckStatus> {
@@ -1023,6 +1162,45 @@ impl CrosEc {
     pub fn adc_read(&self, adc_channel: u8) -> EcResult<i32> {
         let res = EcRequestAdcRead { adc_channel }.send_command(self)?;
         Ok(res.adc_value)
+    }
+
+    fn read_board_id(&self, channel: u8) -> EcResult<Option<u8>> {
+        self.read_board_id_raw(channel, BOARD_VERSION)
+    }
+    fn read_board_id_npc_db(&self, channel: u8) -> EcResult<Option<u8>> {
+        self.read_board_id_raw(channel, BOARD_VERSION_NPC_DB)
+    }
+
+    fn read_board_id_raw(
+        &self,
+        channel: u8,
+        table: [i32; BOARD_VERSION_COUNT],
+    ) -> EcResult<Option<u8>> {
+        let mv = self.adc_read(channel)?;
+        if mv < 0 {
+            return Err(EcError::DeviceError(format!(
+                "Failed to read ADC channel {}",
+                channel
+            )));
+        }
+
+        debug!("ADC Channel {} - Measured {}mv", channel, mv);
+        for (board_id, board_id_res) in table.iter().enumerate() {
+            if mv < *board_id_res {
+                debug!("ADC Channel {} - Board ID {}", channel, board_id);
+                // 15 is not present, less than 2 is undefined
+                return Ok(if board_id == 15 || board_id < 2 {
+                    None
+                } else {
+                    Some(board_id as u8)
+                });
+            }
+        }
+
+        Err(EcError::DeviceError(format!(
+            "Unknown board id. ADC mv: {}",
+            mv
+        )))
     }
 
     pub fn rgbkbd_set_color(&self, start_key: u8, colors: Vec<RgbS>) -> EcResult<()> {

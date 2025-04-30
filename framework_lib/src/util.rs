@@ -40,6 +40,31 @@ pub enum Platform {
     GenericFramework((u16, u16), (u8, u8), bool),
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum PlatformFamily {
+    Framework12,
+    Framework13,
+    Framework16,
+    FrameworkDesktop,
+}
+
+impl Platform {
+    pub fn which_family(self) -> Option<PlatformFamily> {
+        match self {
+            Platform::Framework12IntelGen13 => Some(PlatformFamily::Framework12),
+            Platform::IntelGen11
+            | Platform::IntelGen12
+            | Platform::IntelGen13
+            | Platform::IntelCoreUltra1
+            | Platform::Framework13Amd7080
+            | Platform::Framework13AmdAi300 => Some(PlatformFamily::Framework13),
+            Platform::Framework16Amd7080 => Some(PlatformFamily::Framework16),
+            Platform::FrameworkDesktopAmdAiMax300 => Some(PlatformFamily::FrameworkDesktop),
+            Platform::GenericFramework(..) => None,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Config {
     // TODO: Actually set and read this

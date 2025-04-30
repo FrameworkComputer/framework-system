@@ -178,7 +178,7 @@ Options:
       --dump <DUMP>                 Dump extracted UX capsule bitmap image to a file
       --h2o-capsule <H2O_CAPSULE>   Parse UEFI Capsule information from binary file
       --intrusion                   Show status of intrusion switch
-      --inputmodules                Show status of the input modules (Framework 16 only)
+      --inputdeck                   Show status of the input deck
       --input-deck-mode <INPUT_DECK_MODE>
           Set input deck power mode [possible values: auto, off, on] (Framework 16 only) [possible values: auto, off, on]
       --expansion-bay               Show status of the expansion bay (Framework 16 only)
