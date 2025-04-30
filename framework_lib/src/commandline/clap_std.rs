@@ -160,6 +160,11 @@ struct ClapCli {
     #[clap(num_args = ..2)]
     charge_current_limit: Vec<u32>,
 
+    /// Get or set max charge current limit
+    #[arg(long)]
+    #[clap(num_args = ..2)]
+    charge_rate_limit: Vec<f32>,
+
     /// Get GPIO value by name
     #[arg(long)]
     get_gpio: Option<String>,
@@ -318,6 +323,11 @@ pub fn parse(args: &[String]) -> Cli {
         1 => Some((args.charge_current_limit[0], None)),
         _ => None,
     };
+    let charge_rate_limit = match args.charge_rate_limit.len() {
+        2 => Some((args.charge_rate_limit[0], Some(args.charge_rate_limit[1]))),
+        1 => Some((args.charge_rate_limit[0], None)),
+        _ => None,
+    };
 
     Cli {
         verbosity: args.verbosity.log_level_filter(),
@@ -372,6 +382,7 @@ pub fn parse(args: &[String]) -> Cli {
         expansion_bay: args.expansion_bay,
         charge_limit: args.charge_limit,
         charge_current_limit,
+        charge_rate_limit,
         get_gpio: args.get_gpio,
         fp_led_level: args.fp_led_level,
         fp_brightness: args.fp_brightness,

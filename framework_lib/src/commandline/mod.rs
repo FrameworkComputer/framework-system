@@ -176,6 +176,7 @@ pub struct Cli {
     pub expansion_bay: bool,
     pub charge_limit: Option<Option<u8>>,
     pub charge_current_limit: Option<(u32, Option<u32>)>,
+    pub charge_rate_limit: Option<(f32, Option<f32>)>,
     pub get_gpio: Option<String>,
     pub fp_led_level: Option<Option<FpBrightnessArg>>,
     pub fp_brightness: Option<Option<u8>>,
@@ -765,6 +766,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_err(handle_charge_limit(&ec, maybe_limit));
     } else if let Some((limit, soc)) = args.charge_current_limit {
         print_err(ec.set_charge_current_limit(limit, soc));
+    } else if let Some((limit, soc)) = args.charge_rate_limit {
+        print_err(ec.set_charge_rate_limit(limit, soc));
     } else if let Some(gpio_name) = &args.get_gpio {
         print!("Getting GPIO value {}: ", gpio_name);
         if let Ok(value) = ec.get_gpio(gpio_name) {
