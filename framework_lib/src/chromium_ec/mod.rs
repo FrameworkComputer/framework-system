@@ -817,6 +817,27 @@ impl CrosEc {
         res
     }
 
+    pub fn check_bay_status(&self) -> EcResult<()> {
+        println!("Expansion Bay");
+
+        let info = EcRequestExpansionBayStatus {}.send_command(self)?;
+        println!("  Enabled:       {}", info.module_enabled());
+        println!("  Has fault:     {}", info.module_fault());
+        println!("  Hatch closed:  {}", info.hatch_switch_closed());
+        match info.expansion_bay_board() {
+            Ok(board) => println!("  Board:         {:?}", board),
+            Err(err) => println!("  Board:         {:?}", err),
+        }
+
+        if let Ok(sn) = self.get_gpu_serial() {
+            println!("  Serial Number: {}", sn);
+        } else {
+            println!("  Serial Number: Unknown");
+        }
+
+        Ok(())
+    }
+
     /// Get the GPU Serial
     ///
     pub fn get_gpu_serial(&self) -> EcResult<String> {

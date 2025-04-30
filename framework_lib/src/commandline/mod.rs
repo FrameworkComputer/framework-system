@@ -173,6 +173,7 @@ pub struct Cli {
     pub intrusion: bool,
     pub inputmodules: bool,
     pub input_deck_mode: Option<InputDeckModeArg>,
+    pub expansion_bay: bool,
     pub charge_limit: Option<Option<u8>>,
     pub get_gpio: Option<String>,
     pub fp_led_level: Option<Option<FpBrightnessArg>>,
@@ -761,6 +762,10 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(mode) = &args.input_deck_mode {
         println!("Set mode to: {:?}", mode);
         ec.set_input_deck_mode((*mode).into()).unwrap();
+    } else if args.expansion_bay {
+        if let Err(err) = ec.check_bay_status() {
+            error!("{:?}", err);
+        }
     } else if let Some(maybe_limit) = args.charge_limit {
         print_err(handle_charge_limit(&ec, maybe_limit));
     } else if let Some(gpio_name) = &args.get_gpio {
@@ -1080,6 +1085,7 @@ Options:
       --intrusion            Show status of intrusion switch
       --inputmodules         Show status of the input modules (Framework 16 only)
       --input-deck-mode      Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
+      --expansion-bay        Show status of the expansion bay (Framework 16 only)
       --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')
       --get-gpio <GET_GPIO>  Get GPIO value by name
       --fp-led-level [<VAL>] Get or set fingerprint LED brightness level [possible values: high, medium, low]
