@@ -1,4 +1,7 @@
-use crate::touchscreen::TouchScreen;
+use hidapi::HidApi;
+use std::path::Path;
+
+use crate::touchscreen::{TouchScreen, ILI_PID, ILI_VID};
 #[allow(unused_imports)]
 use windows::{
     core::*,
@@ -19,35 +22,69 @@ pub struct NativeWinTouchScreen {
 
 impl TouchScreen for NativeWinTouchScreen {
     fn open_device() -> Option<Self> {
-        // TODO: I don't know if this might be different on other systems
-        // Should enumerate and find the right one
-        // See: https://learn.microsoft.com/en-us/windows-hardware/drivers/hid/finding-and-opening-a-hid-collection
-        let path =
-            w!(r"\\?\HID#ILIT2901&Col03#5&357cbf85&0&0002#{4d1e55b2-f16f-11cf-88cb-001111000030}");
+        debug!("Looking for touchscreen HID device");
+        match HidApi::new() {
+            Ok(api) => {
+                for dev_info in api.device_list() {
+                    let vid = dev_info.vendor_id();
+                    let pid = dev_info.product_id();
+                    let usage_page = dev_info.usage_page();
+                    if vid != ILI_VID {
+                        trace!("    Skipping VID:PID. Expected {:04X}:*", ILI_VID);
+                        continue;
+                    }
+                    debug!(
+                        "  Found {:04X}:{:04X} (Usage Page {:04X})",
+                        vid, pid, usage_page
+                    );
+                    if usage_page != 0xFF00 {
+                        debug!("    Skipping usage page. Expected {:04X}", 0xFF00);
+                        continue;
+                    }
+                    if pid != ILI_PID {
+                        debug!("  Warning: PID is {:04X}, expected {:04X}", pid, ILI_PID);
+                    }
 
-        let res = unsafe {
-            CreateFileW(
-                path,
-                FILE_GENERIC_WRITE.0 | FILE_GENERIC_READ.0,
-                FILE_SHARE_READ | FILE_SHARE_WRITE,
-                None,
-                OPEN_EXISTING,
-                // hidapi-rs is using FILE_FLAG_OVERLAPPED but it doesn't look like we need that
-                FILE_FLAGS_AND_ATTRIBUTES(0),
-                None,
-            )
-        };
-        let handle = match res {
-            Ok(h) => h,
-            Err(err) => {
-                error!("Failed to open device {:?}", err);
-                return None;
+                    debug!("  Found matching touchscreen HID device");
+                    debug!("  Path:             {:?}", dev_info.path());
+                    debug!("  IC Type:          {:04X}", pid);
+
+                    // TODO: Enumerate with windows
+                    // Should enumerate and find the right one
+                    // See: https://learn.microsoft.com/en-us/windows-hardware/drivers/hid/finding-and-opening-a-hid-collection
+                    let path = dev_info.path().to_str().unwrap();
+
+                    let res = unsafe {
+                        CreateFileW(
+                            &HSTRING::from(Path::new(path)),
+                            FILE_GENERIC_WRITE.0 | FILE_GENERIC_READ.0,
+                            FILE_SHARE_READ | FILE_SHARE_WRITE,
+                            None,
+                            OPEN_EXISTING,
+                            // hidapi-rs is using FILE_FLAG_OVERLAPPED but it doesn't look like we need that
+                            FILE_FLAGS_AND_ATTRIBUTES(0),
+                            None,
+                        )
+                    };
+                    let handle = match res {
+                        Ok(h) => h,
+                        Err(err) => {
+                            error!("Failed to open device {:?}", err);
+                            return None;
+                        }
+                    };
+
+                    debug!("Opened {:?}", path);
+
+                    return Some(NativeWinTouchScreen { handle });
+                }
+            }
+            Err(e) => {
+                error!("Failed to open hidapi. Error: {e}");
             }
         };
 
-        debug!("Opened {:?}", path);
-
-        Some(NativeWinTouchScreen { handle })
+        None
     }
 
     fn send_message(&self, message_id: u8, read_len: usize, data: Vec<u8>) -> Option<Vec<u8>> {
