@@ -10,6 +10,7 @@
 
 use crate::ec_binary;
 use crate::os_specific;
+use crate::power;
 use crate::smbios;
 #[cfg(feature = "uefi")]
 use crate::uefi::shell_get_execution_break_flag;
@@ -392,6 +393,42 @@ impl CrosEc {
         );
 
         Ok((limits.min_percentage, limits.max_percentage))
+    }
+
+    pub fn set_charge_current_limit(&self, current: u32, battery_soc: Option<u32>) -> EcResult<()> {
+        if let Some(battery_soc) = battery_soc {
+            let battery_soc = battery_soc as u8;
+            EcRequestCurrentLimitV1 {
+                current,
+                battery_soc,
+            }
+            .send_command(self)
+        } else {
+            EcRequestCurrentLimitV0 { current }.send_command(self)
+        }
+    }
+
+    pub fn set_charge_rate_limit(&self, rate: f32, battery_soc: Option<f32>) -> EcResult<()> {
+        let power_info = power::power_info(self).ok_or(EcError::DeviceError(
+            "Failed to get battery info".to_string(),
+        ))?;
+        let battery = power_info
+            .battery
+            .ok_or(EcError::DeviceError("No battery present".to_string()))?;
+        println!("Requested Rate:      {}C", rate);
+        println!("Design Current:      {}mA", battery.design_capacity);
+        let current = (rate * (battery.design_capacity as f32)) as u32;
+        println!("Limiting Current to: {}mA", current);
+        if let Some(battery_soc) = battery_soc {
+            let battery_soc = battery_soc as u8;
+            EcRequestCurrentLimitV1 {
+                current,
+                battery_soc,
+            }
+            .send_command(self)
+        } else {
+            EcRequestCurrentLimitV0 { current }.send_command(self)
+        }
     }
 
     pub fn set_fp_led_percentage(&self, percentage: u8) -> EcResult<()> {
@@ -1081,6 +1118,33 @@ impl CrosEc {
                 }
             };
         }
+    }
+
+    pub fn get_charge_state(&self, power_info: &power::PowerInfo) -> EcResult<()> {
+        let res = EcRequestChargeStateGetV0 {
+            cmd: ChargeStateCmd::GetState as u8,
+            param: 0,
+        }
+        .send_command(self)?;
+        println!("Charger Status");
+        println!(
+            "  AC is:            {}",
+            if res.ac == 1 {
+                "connected"
+            } else {
+                "not connected"
+            }
+        );
+        println!("  Charger Voltage:  {}mV", { res.chg_voltage });
+        println!("  Charger Current:  {}mA", { res.chg_current });
+        if let Some(battery) = &power_info.battery {
+            let charge_rate = (res.chg_current as f32) / (battery.design_capacity as f32);
+            println!("                    {:.2}C", charge_rate);
+        }
+        println!("  Chg Input Current:{}mA", { res.chg_input_current });
+        println!("  Battery SoC:      {}%", { res.batt_state_of_charge });
+
+        Ok(())
     }
 
     /// Check features supported by the firmware
