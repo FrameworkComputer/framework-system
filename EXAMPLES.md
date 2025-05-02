@@ -186,6 +186,7 @@ Expansion Bay
   Door  closed:  true
   Board:         DualInterposer
   Serial Number: FRAXXXXXXXXXXXXXXX
+```
 
 ## Check charger and battery status (Framework 12/13/16)
 
