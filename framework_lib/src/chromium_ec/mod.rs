@@ -1147,6 +1147,19 @@ impl CrosEc {
         Ok(())
     }
 
+    pub fn set_ec_hib_delay(&self, seconds: u32) -> EcResult<()> {
+        EcRequesetHibernationDelay { seconds }.send_command(self)?;
+        Ok(())
+    }
+
+    pub fn get_ec_hib_delay(&self) -> EcResult<u32> {
+        let res = EcRequesetHibernationDelay { seconds: 0 }.send_command(self)?;
+        debug!("Time in G3:        {:?}", { res.time_g3 });
+        debug!("Time remaining:    {:?}", { res.time_remaining });
+        println!("EC Hibernation Delay: {:?}s", { res.hibernation_delay });
+        Ok(res.hibernation_delay)
+    }
+
     /// Check features supported by the firmware
     pub fn get_features(&self) -> EcResult<()> {
         let data = EcRequestGetFeatures {}.send_command(self)?;
