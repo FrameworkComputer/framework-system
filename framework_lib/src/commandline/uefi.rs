@@ -97,6 +97,7 @@ pub fn parse(args: &[String]) -> Cli {
         rgbkbd: vec![],
         tablet_mode: None,
         touchscreen_enable: None,
+        stylus_battery: false,
         console: None,
         reboot_ec: None,
         hash: None,

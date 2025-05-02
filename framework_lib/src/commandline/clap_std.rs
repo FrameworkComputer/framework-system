@@ -198,6 +198,11 @@ struct ClapCli {
     #[arg(long)]
     touchscreen_enable: Option<bool>,
 
+    /// Check stylus battery level (USI 2.0 stylus only)
+    #[clap(value_enum)]
+    #[arg(long)]
+    stylus_battery: bool,
+
     /// Get EC console, choose whether recent or to follow the output
     #[clap(value_enum)]
     #[arg(long)]
@@ -390,6 +395,7 @@ pub fn parse(args: &[String]) -> Cli {
         rgbkbd: args.rgbkbd,
         tablet_mode: args.tablet_mode,
         touchscreen_enable: args.touchscreen_enable,
+        stylus_battery: args.stylus_battery,
         console: args.console,
         reboot_ec: args.reboot_ec,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),

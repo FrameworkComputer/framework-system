@@ -33,6 +33,19 @@ Touchscreen
   MPP Protocol:     true
 ```
 
+### Stylus (Framework 12)
+
+```
+> sudo framework_tool --versions
+[...]
+Stylus
+  Serial Number:    28C1A00-12E71DAE
+  Vendor ID:        32AC (Framework Computer)
+  Product ID:       002B (Framework Stylus)
+  Firmware Version: FF.FF
+[...]
+```
+
 ### Touchpad (Framework 12, Framework 13, Framework 16)
 
 ```
@@ -163,7 +176,6 @@ ALS:   76 Lux
   Fan Speed:       0 RPM
 ```
 
-
 ## Check expansion bay (Framework 16)
 
 ```
@@ -281,4 +293,11 @@ Battery Status
 # Set charge rate/current limit only if battery is >80% charged
 > sudo framework_tool --charge-rate-limit 80 0.8
 > sudo framework_tool --charge-current-limit 80 2000
+```
+
+## Stylus (Framework 12)
+
+```
+> sudo framework_tool --stylus-battery
+Stylus Battery Strength: 77%
 ```
