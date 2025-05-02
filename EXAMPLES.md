@@ -291,8 +291,8 @@ Battery Status
   Battery charging
 
 # Set charge rate/current limit only if battery is >80% charged
-> sudo framework_tool --charge-rate-limit 80 0.8
-> sudo framework_tool --charge-current-limit 80 2000
+> sudo framework_tool --charge-rate-limit 0.8 80
+> sudo framework_tool --charge-current-limit 2000 80
 ```
 
 ## Stylus (Framework 12)
