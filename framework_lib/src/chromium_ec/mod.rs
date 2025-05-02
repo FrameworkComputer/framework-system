@@ -483,7 +483,7 @@ impl CrosEc {
         let is_present = |p| if p { "Present" } else { "Missing" };
 
         println!("Input Deck");
-        println!("  Chassis Open:        {}", intrusion.currently_open);
+        println!("  Chassis Closed:      {}", intrusion.currently_open);
         println!("  Power Button Board:  {}", is_present(pwrbtn.is_some()));
         println!("  Audio Daughterboard: {}", is_present(audio.is_some()));
         println!("  Touchpad:            {}", is_present(tp.is_some()));
@@ -511,7 +511,7 @@ impl CrosEc {
         let is_present = |p| if p { "Present" } else { "Missing" };
 
         println!("Input Deck");
-        println!("  Chassis Open:        {}", intrusion.currently_open);
+        println!("  Chassis Closed:      {}", intrusion.currently_open);
         println!("  Audio Daughterboard: {}", is_present(audio.is_some()));
         println!("  Touchpad:            {}", is_present(tp.is_some()));
 
@@ -521,7 +521,7 @@ impl CrosEc {
     pub fn print_fw16_inputdeck_status(&self) -> EcResult<()> {
         let intrusion = self.get_intrusion_status()?;
         let status = self.get_input_deck_status()?;
-        println!("Chassis Open:     {}", intrusion.currently_open);
+        println!("Chassis Closed:   {}", intrusion.currently_open);
         println!("Input Deck State: {:?}", status.state);
         println!("Touchpad present: {}", status.touchpad_present);
         println!("Positions:");
