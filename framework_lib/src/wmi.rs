@@ -96,7 +96,8 @@ const PNP_DRIVERS: &[&str] = &[
     // Don't need, already in system_drivers
     // Intel Corporation         Intel(R) Wireless Bluetooth(R)                             USB\VID_8087&PID_0032&REV_0000                          23.60.0.1
     // "Intel(R) Wireless Bluetooth(R)",
-
+    // Intel Corporation         Intel(R) Wi-Fi 6E AX211 160MHz                        PCI\VEN_8086&DEV_51F1&SUBSYS_00948086&REV_01
+    "Intel(R) Wi-Fi 6E AX211 160MHz",
     // Intel(R) Platform Monito… Intel(R) Platform Monitoring Technology (PMT) Driver       PCI\VEN_8086&DEV_7D0D&SUBSYS_0009F111&REV_01            3.1.2.2
     "Intel(R) Platform Monitoring Technology (PMT) Driver",
     // Also in system_drivers
@@ -119,6 +120,12 @@ const PNP_DRIVERS: &[&str] = &[
     "Framework NE160QDM-NZ6",
     // Advanced Micro Devices, Inc  AMD DRTM Boot Driver                            ACPI\VEN_DRTM&DEV_0001                                       1.0.18.4
     "AMD DRTM Boot Driver",
+    // Framework                 Framework EC                                          ACPI\VEN_FRMW&DEV_C004
+    "Framework EC",
+    // Framework Computer Inc    Framework Sensors                                     ACPI\VEN_FRMW&DEV_C006
+    "Framework Sensors",
+    // ILITEK                    ILITEK Wake On Touch Device                           ACPI\VEN_ILIT&DEV_2901
+    "ILITEK Wake On Touch Device",
 ];
 
 const PRODUCTS: &[&str] = &[
