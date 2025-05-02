@@ -85,6 +85,9 @@ pub fn print_yellow_bangs() {
 const PNP_DRIVERS: &[&str] = &[
     // Manufacturer              DeviceName                                                 HardWareID                                              DriverVersion
     // ------------              ----------                                                 ----------                                              -------------
+    // Intel Chipset Raptor Lake Framework 12
+    // INTEL                     Intel(R) LPC Controller - 519D                        10.1.36.7
+    "Intel(R) LPC Controller - 519D",
     // Goodix                    Framework Fingerprint Reader                               USB\VID_27C6&PID_609C&REV_0100                          3.12804.0.240
     "Framework Fingerprint Reader",
     // TODO: Wrong version
