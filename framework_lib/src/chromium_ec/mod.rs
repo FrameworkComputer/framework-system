@@ -1086,6 +1086,8 @@ impl CrosEc {
     /// Check features supported by the firmware
     pub fn get_features(&self) -> EcResult<()> {
         let data = EcRequestGetFeatures {}.send_command(self)?;
+        println!(" ID | Name                        | Enabled?");
+        println!(" -- | --------------------------- | --------");
         for i in 0..64 {
             let byte = i / 32;
             let bit = i % 32;
@@ -1093,7 +1095,8 @@ impl CrosEc {
             let feat: Option<EcFeatureCode> = FromPrimitive::from_usize(i);
 
             if let Some(feat) = feat {
-                println!("{:>2}: {:>5} {:?}", i, val, feat);
+                let name = format!("{:?}", feat);
+                println!(" {:>2} | {:<27} | {:>5}", i, name, val);
             }
         }
 
