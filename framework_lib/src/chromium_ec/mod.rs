@@ -268,6 +268,7 @@ impl CrosEc {
             return None;
         }
         debug!("Chromium EC Driver: {:?}", driver);
+
         Some(CrosEc { driver })
     }
 
