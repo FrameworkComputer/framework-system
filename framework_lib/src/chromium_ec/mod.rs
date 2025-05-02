@@ -961,8 +961,8 @@ impl CrosEc {
 
         let info = EcRequestExpansionBayStatus {}.send_command(self)?;
         println!("  Enabled:       {}", info.module_enabled());
-        println!("  Has fault:     {}", info.module_fault());
-        println!("  Hatch closed:  {}", info.hatch_switch_closed());
+        println!("  No fault:      {}", !info.module_fault());
+        println!("  Door closed:   {}", info.hatch_switch_closed());
         match info.expansion_bay_board() {
             Ok(board) => println!("  Board:         {:?}", board),
             Err(err) => println!("  Board:         {:?}", err),

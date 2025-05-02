@@ -145,8 +145,8 @@ ALS:   76 Lux
 > sudo framework_tool --expansion-bay
 Expansion Bay
   Enabled:       true
-  Has fault:     false
-  Hatch closed:  true
+  No fault:      true
+  Door  closed:  true
   Board:         DualInterposer
   Serial Number: FRAXXXXXXXXXXXXXXX
 ```
