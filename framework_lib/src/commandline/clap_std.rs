@@ -213,6 +213,11 @@ struct ClapCli {
     #[arg(long)]
     reboot_ec: Option<RebootEcArg>,
 
+    /// Get or set EC hibernate delay (S5 to G3)
+    #[clap(value_enum)]
+    #[arg(long)]
+    ec_hib_delay: Option<Option<u32>>,
+
     /// Hash a file of arbitrary data
     #[arg(long)]
     hash: Option<std::path::PathBuf>,
@@ -398,6 +403,7 @@ pub fn parse(args: &[String]) -> Cli {
         stylus_battery: args.stylus_battery,
         console: args.console,
         reboot_ec: args.reboot_ec,
+        ec_hib_delay: args.ec_hib_delay,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         pd_addrs,

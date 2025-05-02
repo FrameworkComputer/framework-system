@@ -42,6 +42,7 @@ pub enum EcCommands {
     ConsoleRead = 0x0098,
     ChargeState = 0x00A0,
     ChargeCurrentLimit = 0x00A1,
+    HibernationDelay = 0x00A8,
     /// List the features supported by the firmware
     GetFeatures = 0x000D,
     /// Force reboot, causes host reboot as well

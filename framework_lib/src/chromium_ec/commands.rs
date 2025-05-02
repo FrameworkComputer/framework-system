@@ -438,6 +438,26 @@ impl EcRequest<()> for EcRequestCurrentLimitV1 {
     }
 }
 
+#[repr(C, packed)]
+pub struct EcRequesetHibernationDelay {
+    /// Seconds in G3 after EC turns off, 0 to read current
+    pub seconds: u32,
+}
+
+#[repr(C, packed)]
+pub struct EcResponseHibernationDelay {
+    pub time_g3: u32,
+    pub time_remaining: u32,
+    /// How long to wait in G3 until turn off
+    pub hibernation_delay: u32,
+}
+
+impl EcRequest<EcResponseHibernationDelay> for EcRequesetHibernationDelay {
+    fn command_id() -> EcCommands {
+        EcCommands::HibernationDelay
+    }
+}
+
 /// Supported features
 #[derive(Debug, FromPrimitive)]
 pub enum EcFeatureCode {

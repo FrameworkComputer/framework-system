@@ -100,6 +100,7 @@ pub fn parse(args: &[String]) -> Cli {
         stylus_battery: false,
         console: None,
         reboot_ec: None,
+        ec_hib_delay: None,
         hash: None,
         // This is the only driver that works on UEFI
         driver: Some(CrosEcDriverType::Portio),
@@ -460,6 +461,23 @@ pub fn parse(args: &[String]) -> Cli {
             } else {
                 println!("Need to provide a value for --reboot-ec. Either `reboot`, `jump-ro`, `jump-rw`, `cancel-jump` or `disable-jump`");
                 None
+            };
+            found_an_option = true;
+        } else if arg == "--reboot-ec" {
+            cli.ec_hib_delay = if args.len() > i + 1 {
+                if let Ok(delay) = args[i + 1].parse::<u32>() {
+                    if delay == 0 {
+                        println!("Invalid value for --ec-hib-delay: {}. Must be >0", delay);
+                        None
+                    } else {
+                        Some(Some(delay))
+                    }
+                } else {
+                    println!("Invalid value for --fp-brightness. Must be amount in seconds >0");
+                    None
+                }
+            } else {
+                Some(None)
             };
             found_an_option = true;
         } else if arg == "-t" || arg == "--test" {
