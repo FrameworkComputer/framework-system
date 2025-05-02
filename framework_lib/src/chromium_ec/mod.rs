@@ -520,7 +520,7 @@ impl CrosEc {
         let is_present = |p| if p { "Present" } else { "Missing" };
 
         println!("Input Deck");
-        println!("  Chassis Open:        {}", intrusion.currently_open);
+        println!("  Chassis Closed:      {}", intrusion.currently_open);
         println!("  Power Button Board:  {}", is_present(pwrbtn.is_some()));
         println!("  Audio Daughterboard: {}", is_present(audio.is_some()));
         println!("  Touchpad:            {}", is_present(tp.is_some()));
@@ -548,7 +548,7 @@ impl CrosEc {
         let is_present = |p| if p { "Present" } else { "Missing" };
 
         println!("Input Deck");
-        println!("  Chassis Open:        {}", intrusion.currently_open);
+        println!("  Chassis Closed:      {}", intrusion.currently_open);
         println!("  Audio Daughterboard: {}", is_present(audio.is_some()));
         println!("  Touchpad:            {}", is_present(tp.is_some()));
 
@@ -558,7 +558,7 @@ impl CrosEc {
     pub fn print_fw16_inputdeck_status(&self) -> EcResult<()> {
         let intrusion = self.get_intrusion_status()?;
         let status = self.get_input_deck_status()?;
-        println!("Chassis Open:     {}", intrusion.currently_open);
+        println!("Chassis Closed:   {}", intrusion.currently_open);
         println!("Input Deck State: {:?}", status.state);
         println!("Touchpad present: {}", status.touchpad_present);
         println!("Positions:");
@@ -998,8 +998,8 @@ impl CrosEc {
 
         let info = EcRequestExpansionBayStatus {}.send_command(self)?;
         println!("  Enabled:       {}", info.module_enabled());
-        println!("  Has fault:     {}", info.module_fault());
-        println!("  Hatch closed:  {}", info.hatch_switch_closed());
+        println!("  No fault:      {}", !info.module_fault());
+        println!("  Door closed:   {}", info.hatch_switch_closed());
         match info.expansion_bay_board() {
             Ok(board) => println!("  Board:         {:?}", board),
             Err(err) => println!("  Board:         {:?}", err),
@@ -1150,6 +1150,8 @@ impl CrosEc {
     /// Check features supported by the firmware
     pub fn get_features(&self) -> EcResult<()> {
         let data = EcRequestGetFeatures {}.send_command(self)?;
+        println!(" ID | Name                        | Enabled?");
+        println!(" -- | --------------------------- | --------");
         for i in 0..64 {
             let byte = i / 32;
             let bit = i % 32;
@@ -1157,7 +1159,8 @@ impl CrosEc {
             let feat: Option<EcFeatureCode> = FromPrimitive::from_usize(i);
 
             if let Some(feat) = feat {
-                println!("{:>2}: {:>5} {:?}", i, val, feat);
+                let name = format!("{:?}", feat);
+                println!(" {:>2} | {:<27} | {:>5}", i, name, val);
             }
         }
 

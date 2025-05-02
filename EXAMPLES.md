@@ -74,6 +74,43 @@ LED Matrix
 [...]
 ```
 
+## Check input deck status
+
+### On Framework 12
+
+```
+> framework_tool --inputdeck
+Input Deck
+  Chassis Closed:      true
+  Power Button Board:  Present
+  Audio Daughterboard: Present
+  Touchpad:            Present
+```
+
+### On Framework 13
+
+```
+> framework_tool --inputdeck
+Input Deck
+  Chassis Closed:      true
+  Audio Daughterboard: Present
+  Touchpad:            Present
+```
+
+### On Framework 16
+
+```
+> framework_tool --inputdeck
+Chassis Closed:   true
+Input Deck State: On
+Touchpad present: true
+Positions:
+  Pos 0: GenericC
+  Pos 1: KeyboardA
+  Pos 2: Disconnected
+  Pos 3: Disconnected
+  Pos 4: GenericC
+```
 
 ## Check temperatures and fan speed
 
@@ -133,8 +170,8 @@ ALS:   76 Lux
 > sudo framework_tool --expansion-bay
 Expansion Bay
   Enabled:       true
-  Has fault:     false
-  Hatch closed:  true
+  No fault:      true
+  Door  closed:  true
   Board:         DualInterposer
   Serial Number: FRAXXXXXXXXXXXXXXX
 
