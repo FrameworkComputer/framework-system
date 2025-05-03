@@ -34,6 +34,7 @@ pub mod capsule_content;
 pub mod ccgx;
 pub mod chromium_ec;
 pub mod commandline;
+mod config;
 pub mod csme;
 pub mod ec_binary;
 pub mod esrt;
