@@ -157,12 +157,12 @@ struct ClapCli {
 
     /// Get or set max charge current limit
     #[arg(long)]
-    #[clap(num_args = ..2)]
+    #[clap(num_args = ..=2)]
     charge_current_limit: Vec<u32>,
 
     /// Get or set max charge current limit
     #[arg(long)]
-    #[clap(num_args = ..2)]
+    #[clap(num_args = ..=2)]
     charge_rate_limit: Vec<f32>,
 
     /// Get GPIO value by name
