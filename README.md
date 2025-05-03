@@ -202,8 +202,6 @@ Options:
           Specify I2C addresses of the PD chips (Advanced)
       --pd-ports <PD_PORTS> <PD_PORTS>
           Specify I2C ports of the PD chips (Advanced)
-      --has-mec <HAS_MEC>
-          Specify the type of EC chip (MEC/MCHP or other) [possible values: true, false]
   -t, --test                        Run self-test to check if interaction with EC is possible
   -h, --help                        Print help information
 ```

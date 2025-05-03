@@ -201,24 +201,6 @@ const BOARD_VERSION_NPC_DB: [i32; BOARD_VERSION_COUNT] = [
     100, 311, 521, 721, 931, 1131, 1341, 1551, 1751, 1961, 2171, 2370, 2580, 2780, 2990, 3200,
 ];
 
-pub fn has_mec() -> bool {
-    let platform = smbios::get_platform().unwrap();
-    if let Platform::GenericFramework(_, _, has_mec) = platform {
-        return has_mec;
-    }
-
-    // TODO: Should turn this around
-    !matches!(
-        smbios::get_platform().unwrap(),
-        Platform::Framework13Amd7080
-            | Platform::Framework16Amd7080
-            | Platform::IntelCoreUltra1
-            | Platform::Framework13AmdAi300
-            | Platform::Framework12IntelGen13
-            | Platform::FrameworkDesktopAmdAiMax300
-    )
-}
-
 pub trait CrosEcDriver {
     fn read_memory(&self, offset: u16, length: u16) -> Option<Vec<u8>>;
     fn send_command(&self, command: u16, command_version: u8, data: &[u8]) -> EcResult<Vec<u8>>;
@@ -953,30 +935,25 @@ impl CrosEc {
         // Everything before is probably a header.
         // TODO: I don't think there are magic bytes on zephyr firmware
         //
-        if has_mec() {
-            println!("    Check MCHP magic byte at start of firmware code.");
-            // Make sure we can read at an offset and with arbitrary length
-            let data = self.read_ec_flash(FLASH_PROGRAM_OFFSET, 16).unwrap();
-            debug!("Expecting beginning with 50 48 43 4D ('PHCM' in ASCII)");
-            debug!("{:02X?}", data);
-            println!(
-                "      {:02X?} ASCII:{:?}",
-                &data[..4],
-                core::str::from_utf8(&data[..4])
-            );
+        debug!("    Check MCHP magic bytes at start of firmware code.");
+        // Make sure we can read at an offset and with arbitrary length
+        let data = self.read_ec_flash(FLASH_PROGRAM_OFFSET, 16).unwrap();
+        debug!("Expecting beginning with 50 48 43 4D ('PHCM' in ASCII)");
+        debug!("{:02X?}", data);
+        debug!(
+            "      {:02X?} ASCII:{:?}",
+            &data[..4],
+            core::str::from_utf8(&data[..4])
+        );
 
-            if data[0..4] != [0x50, 0x48, 0x43, 0x4D] {
-                println!("      INVALID: {:02X?}", &data[0..3]);
-                res = Err(EcError::DeviceError(format!(
-                    "INVALID: {:02X?}",
-                    &data[0..3]
-                )));
-            }
+        let has_mec = data[0..4] == [0x50, 0x48, 0x43, 0x4D];
+        if has_mec {
+            debug!("    Found MCHP magic bytes at start of firmware code.");
         }
 
         // ===== Test 4 =====
         println!("    Read flash flags");
-        let data = if has_mec() {
+        let data = if has_mec {
             self.read_ec_flash(MEC_FLASH_FLAGS, 0x80).unwrap()
         } else {
             self.read_ec_flash(NPC_FLASH_FLAGS, 0x80).unwrap()

@@ -48,7 +48,6 @@ options=(
   '--driver[Select which driver is used]:driver:(portio cros-ec windows)'
   '--pd-addrs[Specify I2C addresses of the PD chips (Advanced)]:pd_addrs'
   '--pd-ports[Specify I2C ports of the PD chips (Advanced)]:pd_ports'
-  '--has-mec[Specify the type of EC chip (MEC/MCHP or other)]:has_mec:(true false)'
   '-t[Run self-test to check if interaction with EC is possible]'
   '-h[Print help]'
 )

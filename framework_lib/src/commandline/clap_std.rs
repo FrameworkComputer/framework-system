@@ -228,19 +228,14 @@ struct ClapCli {
     driver: Option<CrosEcDriverType>,
 
     /// Specify I2C addresses of the PD chips (Advanced)
-    #[clap(number_of_values = 2, requires("pd_ports"), requires("has_mec"))]
+    #[clap(number_of_values = 2, requires("pd_ports"))]
     #[arg(long)]
     pd_addrs: Vec<u16>,
 
     /// Specify I2C ports of the PD chips (Advanced)
-    #[clap(number_of_values = 2, requires("pd_addrs"), requires("has_mec"))]
+    #[clap(number_of_values = 2, requires("pd_addrs"))]
     #[arg(long)]
     pd_ports: Vec<u8>,
-
-    /// Specify the type of EC chip (MEC/MCHP or other)
-    #[clap(requires("pd_addrs"), requires("pd_ports"))]
-    #[arg(long)]
-    has_mec: Option<bool>,
 
     /// Run self-test to check if interaction with EC is possible
     #[arg(long, short)]
@@ -408,7 +403,6 @@ pub fn parse(args: &[String]) -> Cli {
         driver: args.driver,
         pd_addrs,
         pd_ports,
-        has_mec: args.has_mec,
         test: args.test,
         // TODO: Set help. Not very important because Clap handles this by itself
         help: false,

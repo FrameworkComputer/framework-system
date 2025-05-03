@@ -106,7 +106,6 @@ pub fn parse(args: &[String]) -> Cli {
         driver: Some(CrosEcDriverType::Portio),
         pd_addrs: None,
         pd_ports: None,
-        has_mec: None,
         test: false,
         help: false,
         flash_gpu_descriptor: None,
@@ -610,22 +609,6 @@ pub fn parse(args: &[String]) -> Cli {
                 None
             };
             found_an_option = true;
-        } else if arg == "--has-mec" {
-            cli.has_mec = if args.len() > i + 1 {
-                if let Ok(b) = args[i + 1].parse::<bool>() {
-                    Some(b)
-                } else {
-                    println!(
-                        "Invalid value for --has-mec: '{}'. Must be 'true' or 'false'.",
-                        args[i + 1]
-                    );
-                    None
-                }
-            } else {
-                println!("--has-mec requires extra boolean argument.");
-                None
-            };
-            found_an_option = true;
         } else if arg == "--raw-command" {
             cli.raw_command = args[1..].to_vec();
         } else if arg == "--compare-version" {
@@ -699,11 +682,10 @@ pub fn parse(args: &[String]) -> Cli {
         }
     }
 
-    let custom_platform = cli.pd_addrs.is_some() && cli.pd_ports.is_some() && cli.has_mec.is_some();
-    let no_customization =
-        cli.pd_addrs.is_none() && cli.pd_ports.is_none() && cli.has_mec.is_none();
+    let custom_platform = cli.pd_addrs.is_some() && cli.pd_ports.is_some();
+    let no_customization = cli.pd_addrs.is_none() && cli.pd_ports.is_none();
     if !(custom_platform || no_customization) {
-        println!("To customize the platform you need to provide all of --pd-addrs, --pd-ports and --has-mec");
+        println!("To customize the platform you need to provide all of --pd-addrs, and --pd-ports");
     }
 
     if args.len() == 1 && cli.paginate {

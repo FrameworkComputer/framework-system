@@ -191,7 +191,6 @@ pub struct Cli {
     pub hash: Option<String>,
     pub pd_addrs: Option<(u16, u16)>,
     pub pd_ports: Option<(u8, u8)>,
-    pub has_mec: Option<bool>,
     pub help: bool,
     pub info: bool,
     pub flash_gpu_descriptor: Option<(u8, String)>,
@@ -701,12 +700,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     }
 
     // Must be run before any application code to set the config
-    if args.pd_addrs.is_some() && args.pd_ports.is_some() && args.has_mec.is_some() {
-        let platform = Platform::GenericFramework(
-            args.pd_addrs.unwrap(),
-            args.pd_ports.unwrap(),
-            args.has_mec.unwrap(),
-        );
+    if args.pd_addrs.is_some() && args.pd_ports.is_some() {
+        let platform = Platform::GenericFramework(args.pd_addrs.unwrap(), args.pd_ports.unwrap());
         Config::set(platform);
     }
 
@@ -1169,7 +1164,7 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     } else {
         println!("  SMBIOS Platform:     Unknown");
         println!();
-        println!("Specify custom platform parameters with --pd-ports --pd-addrs --has-mec");
+        println!("Specify custom platform parameters with --pd-ports --pd-addrs");
         return None;
     };
 
