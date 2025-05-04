@@ -22,10 +22,12 @@ const _MEC_LPC_DATA_REGISTER1: u16 = 0x0805;
 const MEC_LPC_DATA_REGISTER2: u16 = 0x0806;
 const _MEC_LPC_DATA_REGISTER3: u16 = 0x0807;
 
-#[cfg(feature = "linux_pio")]
-pub unsafe fn mec_init() {
-    ioperm(EC_LPC_ADDR_HOST_DATA as u64, 8, 1);
-    ioperm(MEC_LPC_ADDRESS_REGISTER0 as u64, 10, 1);
+pub fn init() {
+    #[cfg(feature = "linux_pio")]
+    unsafe {
+        ioperm(EC_LPC_ADDR_HOST_DATA as u64, 8, 1);
+        ioperm(MEC_LPC_ADDRESS_REGISTER0 as u64, 10, 1);
+    }
 }
 
 // TODO: Create a wrapper

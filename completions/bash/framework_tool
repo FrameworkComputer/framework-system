@@ -50,7 +50,6 @@ _framework_tool() {
         "--driver"
         "--pd-addrs"
         "--pd-ports"
-        "--has-mec"
         "-t" "--test"
         "-h" "--help"
     )
@@ -59,7 +58,6 @@ _framework_tool() {
     local inputdeck_modes=("auto" "off" "on")
     local console_modes=("recent" "follow")
     local drivers=("portio" "cros-ec" "windows")
-    local has_mec_options=("true" "false")
     local brightness_options=("high" "medium" "low" "ultra-low")
 
     local current_word prev_word
@@ -77,8 +75,6 @@ _framework_tool() {
         COMPREPLY=( $(compgen -W "${console_modes[*]}" -- "$current_word") )
     elif [[ $prev_word == "--driver" ]]; then
         COMPREPLY=( $(compgen -W "${drivers[*]}" -- "$current_word") )
-    elif [[ $prev_word == "--has-mec" ]]; then
-        COMPREPLY=( $(compgen -W "${has_mec_options[*]}" -- "$current_word") )
     elif [[ $prev_word == "--fp-brightness" ]]; then
         COMPREPLY=( $(compgen -W "${brightness_options[*]}" -- "$current_word") )
     fi

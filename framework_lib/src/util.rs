@@ -36,8 +36,8 @@ pub enum Platform {
     /// Framework Desktop - AMD Ryzen AI Max 300
     FrameworkDesktopAmdAiMax300,
     /// Generic Framework device
-    /// pd_addrs, pd_ports, has_mec
-    GenericFramework((u16, u16), (u8, u8), bool),
+    /// pd_addrs, pd_ports
+    GenericFramework((u16, u16), (u8, u8)),
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]

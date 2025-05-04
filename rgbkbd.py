@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Example invocation in fish shell
 # cargo build && sudo ./target/debug/framework_tool \
-#   --driver portio --has-mec false --pd-ports 1 1 --pd-addrs 64 64 \
+#   --driver portio --pd-ports 1 1 --pd-addrs 64 64 \
 #   (./rgbkbd.py | string split ' ')
 
 BRIGHTNESS = 1

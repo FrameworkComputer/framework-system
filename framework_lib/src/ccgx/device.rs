@@ -35,8 +35,8 @@ impl PdPort {
         let platform = &(*config).as_ref().unwrap().platform;
 
         match (platform, self) {
-            (Platform::GenericFramework((left, _), _, _), PdPort::Left01) => *left,
-            (Platform::GenericFramework((_, right), _, _), PdPort::Right23) => *right,
+            (Platform::GenericFramework((left, _), _), PdPort::Left01) => *left,
+            (Platform::GenericFramework((_, right), _), PdPort::Right23) => *right,
             // Framework AMD Platforms (CCG8)
             (
                 Platform::Framework13Amd7080
@@ -64,8 +64,8 @@ impl PdPort {
         let platform = &(*config).as_ref().unwrap().platform;
 
         Ok(match (platform, self) {
-            (Platform::GenericFramework(_, (left, _), _), PdPort::Left01) => *left,
-            (Platform::GenericFramework(_, (_, right), _), PdPort::Right23) => *right,
+            (Platform::GenericFramework(_, (left, _)), PdPort::Left01) => *left,
+            (Platform::GenericFramework(_, (_, right)), PdPort::Right23) => *right,
             (Platform::IntelGen11, _) => 6,
             (Platform::IntelGen12 | Platform::IntelGen13, PdPort::Left01) => 6,
             (Platform::IntelGen12 | Platform::IntelGen13, PdPort::Right23) => 7,

@@ -12,10 +12,9 @@ use log::Level;
 #[cfg(feature = "linux_pio")]
 use nix::unistd::Uid;
 use num::FromPrimitive;
-#[cfg(feature = "linux_pio")]
-use std::sync::{Arc, Mutex};
+use spin::Mutex;
 
-use crate::chromium_ec::{has_mec, portio_mec};
+use crate::chromium_ec::{portio_mec, EC_MEMMAP_ID};
 use crate::os_specific;
 use crate::util;
 
@@ -172,65 +171,68 @@ fn transfer_read(port: u16, address: u16, size: u16) -> Vec<u8> {
     buffer
 }
 
-#[cfg(feature = "linux_pio")]
+#[derive(PartialEq)]
+#[allow(dead_code)]
 enum Initialized {
     NotYet,
+    SucceededMec,
     Succeeded,
     Failed,
 }
 
-#[cfg(feature = "linux_pio")]
 lazy_static! {
-    static ref INITIALIZED: Arc<Mutex<Initialized>> = Arc::new(Mutex::new(Initialized::NotYet));
+    static ref INITIALIZED: Mutex<Initialized> = Mutex::new(Initialized::NotYet);
 }
 
-#[cfg(not(feature = "linux_pio"))]
-fn init() -> bool {
-    // Nothing to do for bare-metal (UEFI) port I/O
-    true
+fn has_mec() -> bool {
+    let init = INITIALIZED.lock();
+    *init != Initialized::Succeeded
 }
 
-// In Linux userspace has to first request access to ioports
-// TODO: Close these again after we're done
-#[cfg(feature = "linux_pio")]
 fn init() -> bool {
-    let mut init = INITIALIZED.lock().unwrap();
+    let mut init = INITIALIZED.lock();
     match *init {
         // Can directly give up, trying again won't help
         Initialized::Failed => return false,
         // Already initialized, no need to do anything.
-        Initialized::Succeeded => return true,
+        Initialized::Succeeded | Initialized::SucceededMec => return true,
         Initialized::NotYet => {}
     }
 
+    // First try on MEC
+    portio_mec::init();
+    let ec_id = portio_mec::transfer_read(MEC_MEMMAP_OFFSET + EC_MEMMAP_ID, 2);
+    if ec_id[0] == b'E' && ec_id[1] == b'C' {
+        *init = Initialized::SucceededMec;
+        return true;
+    }
+
+    // In Linux userspace has to first request access to ioports
+    // TODO: Close these again after we're done
+    #[cfg(feature = "linux_pio")]
     if !Uid::effective().is_root() {
         error!("Must be root to use port based I/O for EC communication.");
         *init = Initialized::Failed;
         return false;
     }
-
+    #[cfg(feature = "linux_pio")]
     unsafe {
-        if has_mec() {
-            portio_mec::mec_init();
-        } else {
-            // 8 for request/response header, 0xFF for response
-            let res = ioperm(EC_LPC_ADDR_HOST_ARGS as u64, 8 + 0xFF, 1);
-            if res != 0 {
-                error!(
-                    "ioperm failed. portio driver is likely block by Linux kernel lockdown mode"
-                );
-                return false;
-            }
-
-            let res = ioperm(EC_LPC_ADDR_HOST_CMD as u64, 1, 1);
-            assert_eq!(res, 0);
-            let res = ioperm(EC_LPC_ADDR_HOST_DATA as u64, 1, 1);
-            assert_eq!(res, 0);
-
-            let res = ioperm(NPC_MEMMAP_OFFSET as u64, super::EC_MEMMAP_SIZE as u64, 1);
-            assert_eq!(res, 0);
+        // 8 for request/response header, 0xFF for response
+        let res = ioperm(EC_LPC_ADDR_HOST_ARGS as u64, 8 + 0xFF, 1);
+        if res != 0 {
+            error!("ioperm failed. portio driver is likely block by Linux kernel lockdown mode");
+            return false;
         }
+
+        let res = ioperm(EC_LPC_ADDR_HOST_CMD as u64, 1, 1);
+        assert_eq!(res, 0);
+        let res = ioperm(EC_LPC_ADDR_HOST_DATA as u64, 1, 1);
+        assert_eq!(res, 0);
+
+        let res = ioperm(NPC_MEMMAP_OFFSET as u64, super::EC_MEMMAP_SIZE as u64, 1);
+        assert_eq!(res, 0);
     }
+
     *init = Initialized::Succeeded;
     true
 }
