@@ -240,14 +240,20 @@ impl Default for CrosEc {
 ///
 /// Depending on the availability we choose the first one as default
 fn available_drivers() -> Vec<CrosEcDriverType> {
-    vec![
-        #[cfg(feature = "win_driver")]
-        CrosEcDriverType::Windows,
-        #[cfg(feature = "cros_ec_driver")]
-        CrosEcDriverType::CrosEc,
-        #[cfg(not(feature = "windows"))]
-        CrosEcDriverType::Portio,
-    ]
+    let mut drivers = vec![];
+
+    #[cfg(feature = "win_driver")]
+    drivers.push(CrosEcDriverType::Windows);
+
+    #[cfg(feature = "cros_ec_driver")]
+    if std::path::Path::new(cros_ec::DEV_PATH).exists() {
+        drivers.push(CrosEcDriverType::CrosEc);
+    }
+
+    #[cfg(not(feature = "windows"))]
+    drivers.push(CrosEcDriverType::Portio);
+
+    drivers
 }
 
 impl CrosEc {
