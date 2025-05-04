@@ -8,38 +8,17 @@ rust-version = "1.74"
 build = "build.rs"
 
 [features]
-default = ["linux"]
-# Linux/FreeBSD
-unix = ["std", "raw_pio", "smbios", "dep:nix", "dep:libc"]
-linux = ["unix", "linux_pio", "cros_ec_driver", "hidapi", "rusb"]
-freebsd = ["unix", "freebsd_pio", "hidapi", "rusb"]
-# hidapi and rusb don't seem to build in the cross container at the moment
-cross_freebsd = ["unix", "freebsd_pio"]
-# Windows does not have the cros_ec driver nor raw port I/O access to userspace
-windows = ["std", "smbios", "dep:windows", "win_driver", "raw_pio", "hidapi", "rusb", "dep:wmi"]
-smbios = ["dep:smbios-lib"]
-std = ["dep:clap", "dep:clap-num", "dep:clap-verbosity-flag", "dep:env_logger", "smbios-lib?/std"]
+default = ["std"]
+std = ["hidapi", "rusb"]
 rusb = ["dep:rusb"]
 hidapi = ["dep:hidapi"]
 uefi = [
-    "dep:plain", "raw_pio", "smbios", "lazy_static/spin_no_std", "dep:uefi", "dep:uefi-services",
+    "lazy_static/spin_no_std",
     # Otherwise I get: `LLVM ERROR: Do not know how to split the result of this operator!`
     # Seems to be a Ruset/LLVM bug when SSE is enabled.
     # See: https://github.com/rust-lang/rust/issues/61721
     "sha2/force-soft"
 ]
-
-# EC communication via Port I/O on FreeBSD
-freebsd_pio = ["redox_hwio/std"]
-# EC communication via Port I/O on Linux
-linux_pio = ["dep:libc", "redox_hwio/std"]
-# EC communication via raw Port I/O (e.g. UEFI or other ring 0 code)
-raw_pio = []
-# EC communication via cros_ec driver on Linux
-cros_ec_driver = []
-
-# Chromium EC driver by DHowett
-win_driver = []
 
 [build-dependencies]
 built = { version = "0.5", features = ["chrono", "git2"] }
@@ -48,39 +27,42 @@ built = { version = "0.5", features = ["chrono", "git2"] }
 lazy_static = "1.4.0"
 sha2 = { version = "0.10.8", default-features = false, features = [ "force-soft" ] }
 regex = { version = "1.11.1", default-features = false }
-redox_hwio = { git = "https://github.com/FrameworkComputer/rust-hwio", branch = "freebsd", default-features = false }
-libc = { version = "0.2.155", optional = true }
-clap = { version = "4.5", features = ["derive", "cargo"], optional = true }
-clap-num = { version = "1.2.0", optional = true }
-clap-verbosity-flag = { version = "2.2.1", optional = true }
-nix = { version = "0.29.0", features = ["ioctl", "user"], optional = true }
 num = { version = "0.4", default-features = false }
 num-derive = { version = "0.4", default-features = false }
 num-traits = { version = "0.2", default-features = false }
-env_logger = { version = "0.11", optional = true }
 log = { version = "0.4", default-features = true }
-uefi = { version = "0.20", features = ["alloc"], optional = true }
-uefi-services = { version = "0.17", optional = true }
-plain = { version = "0.2.3", optional = true }
-spin = { version = "0.9.8", optional = false }
-hidapi = { version = "2.6.3", optional = true, features = [ "windows-native" ] }
-rusb = { version = "0.9.4", optional = true }
+spin = { version = "0.9.8" }
 no-std-compat = { version = "0.4.1", features = [ "alloc" ] }
 guid_macros = { path = "../guid_macros" }
-wmi = { version = "0.15.0", optional = true }
+hidapi = { version = "2.6.3", features = [ "windows-native" ], optional = true }
+rusb = { version = "0.9.4", optional = true }
 
-[dependencies.smbios-lib]
-git = "https://github.com/FrameworkComputer/smbios-lib.git"
-branch = "no-std"
-optional = true
-default-features = false
-# Local development
-#path = "../../smbios-lib"
-# After my changes are upstreamed
-#version = "0.9.0"
+[target.'cfg(target_os = "uefi")'.dependencies]
+uefi = { version = "0.20", features = ["alloc"] }
+uefi-services = "0.17"
+plain = "0.2.3"
+redox_hwio = { git = "https://github.com/FrameworkComputer/rust-hwio", branch = "freebsd", default-features = false }
+smbios-lib = { git = "https://github.com/FrameworkComputer/smbios-lib.git", branch = "no-std", default-features = false }
 
-[dependencies.windows]
-optional = true
+[target.'cfg(windows)'.dependencies]
+wmi = "0.15.0"
+smbios-lib = { git = "https://github.com/FrameworkComputer/smbios-lib.git", branch = "no-std" }
+env_logger = "0.11"
+clap = { version = "4.5", features = ["derive", "cargo"] }
+clap-num = { version = "1.2.0" }
+clap-verbosity-flag = { version = "2.2.1" }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.155"
+nix = { version = "0.29.0", features = ["ioctl", "user"] }
+redox_hwio = { git = "https://github.com/FrameworkComputer/rust-hwio", branch = "freebsd" }
+smbios-lib = { git = "https://github.com/FrameworkComputer/smbios-lib.git", branch = "no-std" }
+env_logger = "0.11"
+clap = { version = "4.5", features = ["derive", "cargo"] }
+clap-num = { version = "1.2.0" }
+clap-verbosity-flag = { version = "2.2.1" }
+
+[target.'cfg(windows)'.dependencies.windows]
 version = "0.59.0"
 features = [
     "Win32_Foundation",

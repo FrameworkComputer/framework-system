@@ -42,7 +42,7 @@ use crate::chromium_ec::commands::TabletModeOverride;
 use crate::chromium_ec::EcResponseStatus;
 use crate::chromium_ec::{print_err, EcFlashType};
 use crate::chromium_ec::{EcError, EcResult};
-#[cfg(feature = "linux")]
+#[cfg(target_os = "linux")]
 use crate::csme;
 use crate::ec_binary;
 use crate::esrt;
@@ -54,7 +54,7 @@ use crate::smbios::ConfigDigit0;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
 #[cfg(feature = "hidapi")]
 use crate::touchpad::print_touchpad_fw_ver;
-#[cfg(any(feature = "hidapi", feature = "windows"))]
+#[cfg(feature = "hidapi")]
 use crate::touchscreen;
 #[cfg(feature = "uefi")]
 use crate::uefi::enable_page_break;
@@ -483,7 +483,7 @@ fn print_versions(ec: &CrosEc) {
         }
     }
 
-    #[cfg(feature = "linux")]
+    #[cfg(target_os = "linux")]
     {
         println!("CSME");
         if let Ok(csme) = csme::csme_from_sysfs() {
@@ -821,7 +821,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         };
         ec.set_tablet_mode(mode);
     } else if let Some(_enable) = &args.touchscreen_enable {
-        #[cfg(any(feature = "hidapi", feature = "windows"))]
+        #[cfg(feature = "hidapi")]
         if touchscreen::enable_touch(*_enable).is_none() {
             error!("Failed to enable/disable touch");
         }
@@ -1151,11 +1151,11 @@ fn hash(data: &[u8]) {
 
     println!("Hashes");
     print!("  SHA256:  ");
-    util::print_buffer_short(sha256);
+    util::print_buffer(sha256);
     print!("  SHA384:  ");
-    util::print_buffer_short(sha384);
+    util::print_buffer(sha384);
     print!("  SHA512:  ");
-    util::print_buffer_short(sha512);
+    util::print_buffer(sha512);
 }
 
 fn selftest(ec: &CrosEc) -> Option<()> {

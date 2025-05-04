@@ -1,6 +1,6 @@
 use hidapi::{HidApi, HidDevice};
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 use crate::touchscreen_win;
 
 pub const ILI_VID: u16 = 0x222A;

@@ -20,9 +20,9 @@ pub mod camera;
 pub mod inputmodule;
 #[cfg(feature = "hidapi")]
 pub mod touchpad;
-#[cfg(any(feature = "hidapi", feature = "windows"))]
+#[cfg(feature = "hidapi")]
 pub mod touchscreen;
-#[cfg(feature = "windows")]
+#[cfg(all(feature = "hidapi", windows))]
 pub mod touchscreen_win;
 
 #[cfg(feature = "uefi")]

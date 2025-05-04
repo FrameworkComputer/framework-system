@@ -130,23 +130,10 @@ Building on Windows or in general with fewer features:
 
 ```ps1
 # Build the library and tool
-cargo build --no-default-features --features "windows"
+cargo build
 
 # Running the tool
-cargo run --no-default-features --features "windows"
-```
-
-Cross compile from Linux to FreeBSD:
-
-```sh
-# One time, install cross tool
-cargo install cross
-
-# Make sure docker is started as well
-sudo systemctl start docker
-
-# Build
-cross build --target=x86_64-unknown-freebsd --no-default-features --features unix
+cargo run
 ```
 
 ## Running
@@ -375,8 +362,8 @@ Keyboard backlight: 0%
 sudo pkg install hidapi
 
 # Build the library and tool
-cargo build --no-default-features --features freebsd
+cargo build
 
 # Running the tool
-cargo run --no-default-features --features freebsd
+cargo run
 ```

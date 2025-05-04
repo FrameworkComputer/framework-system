@@ -157,7 +157,7 @@ pub unsafe fn any_vec_as_u8_slice<T: Sized>(p: &[T]) -> &[u8] {
 /// Print a byte buffer as a series of hex bytes
 pub fn print_buffer(buffer: &[u8]) {
     for byte in buffer {
-        print!("{:#X} ", byte);
+        print!("{:02x}", byte);
     }
     println!();
 }
@@ -232,15 +232,8 @@ pub fn find_sequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
 /// Assert length of an EC response from the windows driver
 /// It's always 20 more than expected. TODO: Figure out why
 pub fn assert_win_len<N: Num + std::fmt::Debug + Ord + NumCast + Copy>(left: N, right: N) {
-    #[cfg(feature = "win_driver")]
+    #[cfg(windows)]
     assert_eq!(left, right + NumCast::from(20).unwrap());
-    #[cfg(not(feature = "win_driver"))]
+    #[cfg(not(windows))]
     assert_eq!(left, right);
-}
-
-pub fn print_buffer_short(buffer: &[u8]) {
-    for byte in buffer {
-        print!("{:02x}", byte);
-    }
-    println!();
 }

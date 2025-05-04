@@ -173,9 +173,9 @@ pub trait EcRequestRaw<R> {
     {
         let response = self.send_command_vec_extra(ec, extra_data)?;
         // TODO: The Windows driver seems to return 20 more bytes than expected
-        #[cfg(feature = "win_driver")]
+        #[cfg(windows)]
         let expected = response.len() != std::mem::size_of::<R>() + 20;
-        #[cfg(not(feature = "win_driver"))]
+        #[cfg(not(windows))]
         let expected = response.len() != std::mem::size_of::<R>();
         if expected {
             return Err(EcError::DeviceError(format!(

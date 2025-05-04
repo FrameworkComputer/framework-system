@@ -22,11 +22,11 @@ use guid_macros::guid;
 #[cfg(feature = "uefi")]
 use uefi::{guid, Guid};
 
-#[cfg(feature = "linux")]
+#[cfg(target_os = "linux")]
 use std::fs;
-#[cfg(feature = "linux")]
+#[cfg(target_os = "linux")]
 use std::io;
-#[cfg(feature = "linux")]
+#[cfg(target_os = "linux")]
 use std::path::Path;
 
 #[cfg(target_os = "freebsd")]
@@ -262,7 +262,7 @@ pub fn print_esrt(esrt: &Esrt) {
     }
 }
 
-#[cfg(all(not(feature = "uefi"), feature = "std", feature = "linux"))]
+#[cfg(target_os = "linux")]
 /// On Linux read the ESRT table from the sysfs
 /// resource_version and resource_count_max are reported by sysfs, so they're defaulted to reaesonable values
 /// capsule_flags in sysfs seems to be 0 always. Not sure why.
@@ -323,7 +323,7 @@ fn esrt_from_sysfs(dir: &Path) -> io::Result<Esrt> {
     Ok(esrt_table)
 }
 
-#[cfg(all(not(feature = "uefi"), feature = "linux", target_os = "linux"))]
+#[cfg(target_os = "linux")]
 pub fn get_esrt() -> Option<Esrt> {
     let res = esrt_from_sysfs(Path::new("/sys/firmware/efi/esrt/entries")).ok();
     if res.is_none() {
@@ -332,7 +332,7 @@ pub fn get_esrt() -> Option<Esrt> {
     res
 }
 
-#[cfg(all(not(feature = "uefi"), feature = "windows"))]
+#[cfg(all(not(feature = "uefi"), windows))]
 pub fn get_esrt() -> Option<Esrt> {
     let mut esrt_table = Esrt {
         resource_count: 0,
