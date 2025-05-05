@@ -1499,6 +1499,12 @@ impl CrosEc {
                     return Err(err);
                 }
             };
+
+            // Need to explicitly handle CTRL-C termination on UEFI Shell
+            #[cfg(feature = "uefi")]
+            if shell_get_execution_break_flag() {
+                return Ok(console);
+            }
         }
     }
 
