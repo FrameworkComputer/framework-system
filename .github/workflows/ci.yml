@@ -80,6 +80,37 @@ jobs:
     - name: Build ESP (Linux)
       run: make -C framework_uefi
 
+  build-msrv:
+    name: Build MSRV for Linux and UEFI
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libudev-dev
+
+    - name: Setup Rust toolchain
+      run: |
+        rm rust-toolchain.toml
+        rustup install 1.74
+        rustup target add x86_64-unknown-uefi
+
+    - name: Build library (Linux)
+      run: cargo build -p framework_lib
+
+    - name: Build Linux tool
+      run: cargo build -p framework_tool
+
+    - name: Check if Linux tool can start
+      run: cargo run -- --help
+
+    - name: Build UEFI application (no ESP)
+      run: make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
+
   build-windows:
     name: Build Windows
     runs-on: windows-2022
