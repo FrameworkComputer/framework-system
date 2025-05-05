@@ -8,6 +8,7 @@ use std::io::ErrorKind;
 use crate::util::Config;
 pub use crate::util::Platform;
 use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 use smbioslib::*;
 #[cfg(feature = "uefi")]
 use spin::Mutex;
@@ -215,7 +216,7 @@ pub fn get_smbios() -> Option<SMBiosData> {
     }
 }
 
-fn get_product_name() -> Option<String> {
+pub fn get_product_name() -> Option<String> {
     // On FreeBSD we can short-circuit and avoid parsing SMBIOS
     #[cfg(target_os = "freebsd")]
     if let Ok(product) = kenv_get("smbios.system.product") {
@@ -225,12 +226,45 @@ fn get_product_name() -> Option<String> {
     let smbios = get_smbios();
     if smbios.is_none() {
         println!("Failed to find SMBIOS");
+        return None;
     }
     let mut smbios = smbios.into_iter().flatten();
     smbios.find_map(|undefined_struct| {
         if let DefinedStruct::SystemInformation(data) = undefined_struct.defined_struct() {
             if let Some(product_name) = dmidecode_string_val(&data.product_name()) {
                 return Some(product_name.as_str().to_string());
+            }
+        }
+        None
+    })
+}
+
+pub fn get_baseboard_version() -> Option<ConfigDigit0> {
+    // TODO: On FreeBSD we can short-circuit and avoid parsing SMBIOS
+    // #[cfg(target_os = "freebsd")]
+    // if let Ok(product) = kenv_get("smbios.system.product") {
+    //     return Some(product);
+    // }
+
+    let smbios = get_smbios();
+    if smbios.is_none() {
+        error!("Failed to find SMBIOS");
+        return None;
+    }
+    let mut smbios = smbios.into_iter().flatten();
+    smbios.find_map(|undefined_struct| {
+        if let DefinedStruct::BaseBoardInformation(data) = undefined_struct.defined_struct() {
+            if let Some(version) = dmidecode_string_val(&data.version()) {
+                // Assumes it's ASCII, which is guaranteed by SMBIOS
+                let config_digit0 = &version[0..1];
+                let config_digit0 = u8::from_str_radix(config_digit0, 16);
+                if let Ok(version_config) =
+                    config_digit0.map(<ConfigDigit0 as FromPrimitive>::from_u8)
+                {
+                    return version_config;
+                } else {
+                    error!("  Invalid BaseBoard Version: {}'", version);
+                }
             }
         }
         None

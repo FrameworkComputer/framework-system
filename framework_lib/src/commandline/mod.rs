@@ -350,12 +350,25 @@ fn print_stylus_battery_level() {
 }
 
 fn print_versions(ec: &CrosEc) {
+    println!("Mainboard Hardware");
+    if let Some(ver) = smbios::get_product_name() {
+        println!("  Type:           {}", ver);
+    } else {
+        println!("  Type:           Unknown");
+    }
+    if let Some(ver) = smbios::get_baseboard_version() {
+        println!("  Revision:       {:?}", ver);
+    } else {
+        println!("  Revision:       Unknown");
+    }
     println!("UEFI BIOS");
     if let Some(smbios) = get_smbios() {
         let bios_entries = smbios.collect::<SMBiosInformation>();
         let bios = bios_entries.first().unwrap();
         println!("  Version:        {}", bios.version());
         println!("  Release Date:   {}", bios.release_date());
+    } else {
+        println!("  Version:        Unknown");
     }
 
     println!("EC Firmware");
