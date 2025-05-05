@@ -17,7 +17,7 @@ pub mod uefi;
 
 #[cfg(not(feature = "uefi"))]
 use std::fs;
-#[cfg(all(not(feature = "uefi"), feature = "std"))]
+#[cfg(not(feature = "uefi"))]
 use std::io::prelude::*;
 
 #[cfg(feature = "rusb")]
@@ -553,7 +553,7 @@ fn flash_ec(ec: &CrosEc, ec_bin_path: &str, flash_type: EcFlashType) {
 fn dump_ec_flash(ec: &CrosEc, dump_path: &str) {
     let flash_bin = ec.get_entire_ec_flash().unwrap();
 
-    #[cfg(all(not(feature = "uefi"), feature = "std"))]
+    #[cfg(not(feature = "uefi"))]
     {
         let mut file = fs::File::create(dump_path).unwrap();
         file.write_all(&flash_bin).unwrap();

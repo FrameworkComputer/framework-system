@@ -6,11 +6,11 @@ use std::prelude::v1::*;
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "uefi")]
 use alloc::sync::Arc;
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "uefi")]
 use spin::{Mutex, MutexGuard};
-#[cfg(feature = "std")]
+#[cfg(not(feature = "uefi"))]
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::smbios;
@@ -74,9 +74,9 @@ pub struct Config {
 
 impl Config {
     pub fn set(platform: Platform) {
-        #[cfg(feature = "std")]
+        #[cfg(not(feature = "uefi"))]
         let mut config = CONFIG.lock().unwrap();
-        #[cfg(not(feature = "std"))]
+        #[cfg(feature = "uefi")]
         let mut config = CONFIG.lock();
 
         if (*config).is_none() {
@@ -87,9 +87,9 @@ impl Config {
         }
     }
     pub fn is_set() -> bool {
-        #[cfg(feature = "std")]
+        #[cfg(not(feature = "uefi"))]
         let config = CONFIG.lock().unwrap();
-        #[cfg(not(feature = "std"))]
+        #[cfg(feature = "uefi")]
         let config = CONFIG.lock();
 
         (*config).is_some()
@@ -98,9 +98,9 @@ impl Config {
     pub fn get() -> MutexGuard<'static, Option<Self>> {
         trace!("Config::get() entry");
         let unset = {
-            #[cfg(feature = "std")]
+            #[cfg(not(feature = "uefi"))]
             let config = CONFIG.lock().unwrap();
-            #[cfg(not(feature = "std"))]
+            #[cfg(feature = "uefi")]
             let config = CONFIG.lock();
             (*config).is_none()
         };
@@ -115,9 +115,9 @@ impl Config {
             None
         };
 
-        #[cfg(feature = "std")]
+        #[cfg(not(feature = "uefi"))]
         let mut config = CONFIG.lock().unwrap();
-        #[cfg(not(feature = "std"))]
+        #[cfg(feature = "uefi")]
         let mut config = CONFIG.lock();
 
         if new_config.is_some() {

@@ -8,8 +8,7 @@ rust-version = "1.74"
 build = "build.rs"
 
 [features]
-default = ["std"]
-std = ["hidapi", "rusb"]
+default = ["hidapi", "rusb"]
 rusb = ["dep:rusb"]
 hidapi = ["dep:hidapi"]
 uefi = [ "lazy_static/spin_no_std" ]
