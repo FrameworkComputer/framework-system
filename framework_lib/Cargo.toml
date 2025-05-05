@@ -12,13 +12,7 @@ default = ["std"]
 std = ["hidapi", "rusb"]
 rusb = ["dep:rusb"]
 hidapi = ["dep:hidapi"]
-uefi = [
-    "lazy_static/spin_no_std",
-    # Otherwise I get: `LLVM ERROR: Do not know how to split the result of this operator!`
-    # Seems to be a Ruset/LLVM bug when SSE is enabled.
-    # See: https://github.com/rust-lang/rust/issues/61721
-    "sha2/force-soft"
-]
+uefi = [ "lazy_static/spin_no_std" ]
 
 [build-dependencies]
 built = { version = "0.5", features = ["chrono", "git2"] }
