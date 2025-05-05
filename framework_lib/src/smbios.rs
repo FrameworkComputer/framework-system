@@ -46,7 +46,7 @@ pub enum ConfigDigit0 {
 pub fn is_framework() -> bool {
     if matches!(
         get_platform(),
-        Some(Platform::GenericFramework((_, _), (_, _)))
+        Some(Platform::GenericFramework((_, _), (_, _))) | Some(Platform::UnknownSystem)
     ) {
         return true;
     }
@@ -252,7 +252,10 @@ pub fn get_platform() -> Option<Platform> {
         // Except if it's a GenericFramework platform
         let config = Config::get();
         let platform = &(*config).as_ref().unwrap().platform;
-        if matches!(platform, Platform::GenericFramework((_, _), (_, _))) {
+        if matches!(
+            platform,
+            Platform::GenericFramework((_, _), (_, _)) | Platform::UnknownSystem
+        ) {
             return Some(*platform);
         }
     }
@@ -270,7 +273,7 @@ pub fn get_platform() -> Option<Platform> {
         "Laptop 13 (Intel Core Ultra Series 1)" => Some(Platform::IntelCoreUltra1),
         "Laptop 16 (AMD Ryzen 7040 Series)" => Some(Platform::Framework16Amd7080),
         "Desktop (AMD Ryzen AI Max 300 Series)" => Some(Platform::FrameworkDesktopAmdAiMax300),
-        _ => None,
+        _ => Some(Platform::UnknownSystem),
     };
 
     if let Some(platform) = platform {

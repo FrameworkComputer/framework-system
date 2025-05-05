@@ -30,11 +30,11 @@ pub enum PdPort {
 
 impl PdPort {
     /// SMBUS/I2C Address
-    fn i2c_address(&self) -> u16 {
+    fn i2c_address(&self) -> EcResult<u16> {
         let config = Config::get();
         let platform = &(*config).as_ref().unwrap().platform;
 
-        match (platform, self) {
+        Ok(match (platform, self) {
             (Platform::GenericFramework((left, _), _), PdPort::Left01) => *left,
             (Platform::GenericFramework((_, right), _), PdPort::Right23) => *right,
             // Framework AMD Platforms (CCG8)
@@ -52,10 +52,13 @@ impl PdPort {
             ) => 0x40,
             // TODO: It only has a single PD controller
             (Platform::FrameworkDesktopAmdAiMax300, _) => 0x08,
+            (Platform::UnknownSystem, _) => {
+                Err(EcError::DeviceError("Unsupported platform".to_string()))?
+            }
             // Framework Intel Platforms (CCG5 and CCG6)
             (_, PdPort::Left01) => 0x08,
             (_, PdPort::Right23) => 0x40,
-        }
+        })
     }
 
     /// I2C port on the EC
@@ -87,10 +90,9 @@ impl PdPort {
             ) => 2,
             // TODO: It only has a single PD controller
             (Platform::FrameworkDesktopAmdAiMax300, _) => 1,
-            // (_, _) => Err(EcError::DeviceError(format!(
-            //     "Unsupported platform: {:?} {:?}",
-            //     platform, self
-            // )))?,
+            (Platform::UnknownSystem, _) => {
+                Err(EcError::DeviceError("Unsupported platform".to_string()))?
+            }
         })
     }
 }
@@ -140,13 +142,13 @@ impl PdController {
     fn i2c_read(&self, addr: u16, len: u16) -> EcResult<EcI2cPassthruResponse> {
         trace!(
             "I2C passthrough from I2C Port {} to I2C Addr {}",
-            self.port.i2c_port().unwrap(),
-            self.port.i2c_address()
+            self.port.i2c_port()?,
+            self.port.i2c_address()?
         );
         i2c_read(
             &self.ec,
-            self.port.i2c_port().unwrap(),
-            self.port.i2c_address(),
+            self.port.i2c_port()?,
+            self.port.i2c_address()?,
             addr,
             len,
         )

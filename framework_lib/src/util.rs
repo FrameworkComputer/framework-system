@@ -38,6 +38,7 @@ pub enum Platform {
     /// Generic Framework device
     /// pd_addrs, pd_ports
     GenericFramework((u16, u16), (u8, u8)),
+    UnknownSystem,
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -61,6 +62,7 @@ impl Platform {
             Platform::Framework16Amd7080 => Some(PlatformFamily::Framework16),
             Platform::FrameworkDesktopAmdAiMax300 => Some(PlatformFamily::FrameworkDesktop),
             Platform::GenericFramework(..) => None,
+            Platform::UnknownSystem => None,
         }
     }
 }
