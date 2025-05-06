@@ -98,6 +98,8 @@ pub enum EcCommands {
     GetGpuSerial = 0x3E1D,
     /// Set gpu bay serial and program structure
     ProgramGpuEeprom = 0x3E1F,
+    /// Enable/disable force on the PSU in standby mode
+    PsuControl = 0x3E28,
 }
 
 pub trait EcRequest<R> {
