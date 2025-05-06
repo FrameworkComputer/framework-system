@@ -53,6 +53,7 @@ see the [Support Matrices](support-matrices.md).
     - [x] HDMI Expansion Card (`--dp-hdmi-update`)
     - [x] DisplayPort Expansion Card (`--dp-hdmi-update`)
     - [ ] Audio Expansion Card
+  - [x] Get driver version for all devices (Windows only) (`--drivers`)
 
 ###### System Status
 
@@ -183,6 +184,7 @@ Options:
           Enable/disable touchscreen [possible values: true, false]
       --console <CONSOLE>           Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
       --reboot-ec <REBOOT_EC>       Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
+      --drivers                     Display Windows Driver versions
       --hash <HASH>                 Hash a file of arbitrary data
       --driver <DRIVER>             Select which driver is used. By default portio is used [possible values: portio, cros-ec, windows]
       --pd-addrs <PD_ADDRS> <PD_ADDRS>

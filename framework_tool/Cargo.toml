@@ -9,3 +9,4 @@ path = "../framework_lib"
 [build-dependencies]
 # Note: Only takes effect in release builds
 static_vcruntime = "2.0"
+winresource = "0.1.17"

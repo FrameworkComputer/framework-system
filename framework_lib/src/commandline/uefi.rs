@@ -101,6 +101,7 @@ pub fn parse(args: &[String]) -> Cli {
         console: None,
         reboot_ec: None,
         ec_hib_delay: None,
+        drivers: false,
         hash: None,
         // This is the only driver that works on UEFI
         driver: Some(CrosEcDriverType::Portio),
