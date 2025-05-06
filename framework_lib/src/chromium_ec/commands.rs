@@ -1803,3 +1803,20 @@ impl EcRequest<EcResponseGetApThrottleStatus> for EcRequestGetApThrottleStatus {
         EcCommands::GetApThrottleStatus
     }
 }
+
+#[repr(C, packed)]
+pub struct EcRequestPsuControl {
+    pub force_enable_in_standby: u8,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponsePsuControl {
+    pub force_enable_in_standby: u8,
+}
+
+impl EcRequest<EcResponsePsuControl> for EcRequestPsuControl {
+    fn command_id() -> EcCommands {
+        EcCommands::PsuControl
+    }
+}

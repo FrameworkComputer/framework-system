@@ -119,6 +119,8 @@ pub enum EcCommands {
     GetPdPortState = 0x3E23,
     /// Read board ID of specific ADC channel
     ReadBoardId = 0x3E26,
+    /// Enable/disable force on the PSU in standby mode
+    PsuControl = 0x3E28,
 }
 
 pub trait EcRequest<R> {
