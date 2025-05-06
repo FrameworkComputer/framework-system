@@ -11,9 +11,9 @@
 use std::prelude::v1::*;
 
 use core::prelude::rust_2021::derive;
-#[cfg(all(not(feature = "uefi"), feature = "std"))]
+#[cfg(not(feature = "uefi"))]
 use std::fs::File;
-#[cfg(all(not(feature = "uefi"), feature = "std"))]
+#[cfg(not(feature = "uefi"))]
 use std::io::prelude::*;
 
 #[cfg(not(feature = "uefi"))]
@@ -180,7 +180,7 @@ pub fn dump_winux_image(data: &[u8], header: &DisplayCapsule, filename: &str) {
 
     let image = &data[header_len..image_size];
 
-    #[cfg(all(not(feature = "uefi"), feature = "std"))]
+    #[cfg(not(feature = "uefi"))]
     {
         let mut file = File::create(filename).unwrap();
         file.write_all(image).unwrap();

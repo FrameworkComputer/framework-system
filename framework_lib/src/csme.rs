@@ -3,11 +3,11 @@
 //! Currently only works on Linux (from sysfs).
 
 use core::fmt;
-#[cfg(feature = "linux")]
+#[cfg(target_os = "linux")]
 use std::fs;
-#[cfg(feature = "linux")]
+#[cfg(target_os = "linux")]
 use std::io;
-#[cfg(feature = "linux")]
+#[cfg(target_os = "linux")]
 use std::path::Path;
 
 pub struct CsmeInfo {
@@ -85,7 +85,7 @@ impl fmt::Display for CsmeVersion {
     }
 }
 
-#[cfg(feature = "linux")]
+#[cfg(target_os = "linux")]
 pub fn csme_from_sysfs() -> io::Result<CsmeInfo> {
     let dir = Path::new("/sys/class/mei");
     let mut csme_info: Option<CsmeInfo> = None;

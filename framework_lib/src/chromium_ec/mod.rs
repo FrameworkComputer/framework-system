@@ -21,13 +21,17 @@ use num_derive::FromPrimitive;
 
 pub mod command;
 pub mod commands;
-#[cfg(feature = "cros_ec_driver")]
+#[cfg(target_os = "linux")]
 mod cros_ec;
 pub mod i2c_passthrough;
 pub mod input_deck;
+#[cfg(not(windows))]
 mod portio;
+#[cfg(not(windows))]
 mod portio_mec;
-#[cfg(feature = "win_driver")]
+#[allow(dead_code)]
+mod protocol;
+#[cfg(windows)]
 mod windows;
 
 use alloc::format;
@@ -224,15 +228,15 @@ impl Default for CrosEc {
 fn available_drivers() -> Vec<CrosEcDriverType> {
     let mut drivers = vec![];
 
-    #[cfg(feature = "win_driver")]
+    #[cfg(windows)]
     drivers.push(CrosEcDriverType::Windows);
 
-    #[cfg(feature = "cros_ec_driver")]
+    #[cfg(target_os = "linux")]
     if std::path::Path::new(cros_ec::DEV_PATH).exists() {
         drivers.push(CrosEcDriverType::CrosEc);
     }
 
-    #[cfg(not(feature = "windows"))]
+    #[cfg(not(windows))]
     drivers.push(CrosEcDriverType::Portio);
 
     drivers
@@ -1320,10 +1324,11 @@ impl CrosEcDriver for CrosEc {
 
         // TODO: Change this function to return EcResult instead and print the error only in UI code
         print_err(match self.driver {
+            #[cfg(not(windows))]
             CrosEcDriverType::Portio => portio::read_memory(offset, length),
-            #[cfg(feature = "win_driver")]
+            #[cfg(windows)]
             CrosEcDriverType::Windows => windows::read_memory(offset, length),
-            #[cfg(feature = "cros_ec_driver")]
+            #[cfg(target_os = "linux")]
             CrosEcDriverType::CrosEc => cros_ec::read_memory(offset, length),
             _ => Err(EcError::DeviceError("No EC driver available".to_string())),
         })
@@ -1341,10 +1346,11 @@ impl CrosEcDriver for CrosEc {
         }
 
         match self.driver {
+            #[cfg(not(windows))]
             CrosEcDriverType::Portio => portio::send_command(command, command_version, data),
-            #[cfg(feature = "win_driver")]
+            #[cfg(windows)]
             CrosEcDriverType::Windows => windows::send_command(command, command_version, data),
-            #[cfg(feature = "cros_ec_driver")]
+            #[cfg(target_os = "linux")]
             CrosEcDriverType::CrosEc => cros_ec::send_command(command, command_version, data),
             _ => Err(EcError::DeviceError("No EC driver available".to_string())),
         }

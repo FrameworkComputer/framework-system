@@ -6,11 +6,11 @@ use std::prelude::v1::*;
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "uefi")]
 use alloc::sync::Arc;
-#[cfg(not(feature = "std"))]
+#[cfg(feature = "uefi")]
 use spin::{Mutex, MutexGuard};
-#[cfg(feature = "std")]
+#[cfg(not(feature = "uefi"))]
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::smbios;
@@ -76,9 +76,9 @@ pub struct Config {
 
 impl Config {
     pub fn set(platform: Platform) {
-        #[cfg(feature = "std")]
+        #[cfg(not(feature = "uefi"))]
         let mut config = CONFIG.lock().unwrap();
-        #[cfg(not(feature = "std"))]
+        #[cfg(feature = "uefi")]
         let mut config = CONFIG.lock();
 
         if (*config).is_none() {
@@ -89,9 +89,9 @@ impl Config {
         }
     }
     pub fn is_set() -> bool {
-        #[cfg(feature = "std")]
+        #[cfg(not(feature = "uefi"))]
         let config = CONFIG.lock().unwrap();
-        #[cfg(not(feature = "std"))]
+        #[cfg(feature = "uefi")]
         let config = CONFIG.lock();
 
         (*config).is_some()
@@ -100,9 +100,9 @@ impl Config {
     pub fn get() -> MutexGuard<'static, Option<Self>> {
         trace!("Config::get() entry");
         let unset = {
-            #[cfg(feature = "std")]
+            #[cfg(not(feature = "uefi"))]
             let config = CONFIG.lock().unwrap();
-            #[cfg(not(feature = "std"))]
+            #[cfg(feature = "uefi")]
             let config = CONFIG.lock();
             (*config).is_none()
         };
@@ -117,9 +117,9 @@ impl Config {
             None
         };
 
-        #[cfg(feature = "std")]
+        #[cfg(not(feature = "uefi"))]
         let mut config = CONFIG.lock().unwrap();
-        #[cfg(not(feature = "std"))]
+        #[cfg(feature = "uefi")]
         let mut config = CONFIG.lock();
 
         if new_config.is_some() {
@@ -159,7 +159,7 @@ pub unsafe fn any_vec_as_u8_slice<T: Sized>(p: &[T]) -> &[u8] {
 /// Print a byte buffer as a series of hex bytes
 pub fn print_buffer(buffer: &[u8]) {
     for byte in buffer {
-        print!("{:#X} ", byte);
+        print!("{:02x}", byte);
     }
     println!();
 }
@@ -234,15 +234,8 @@ pub fn find_sequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
 /// Assert length of an EC response from the windows driver
 /// It's always 20 more than expected. TODO: Figure out why
 pub fn assert_win_len<N: Num + std::fmt::Debug + Ord + NumCast + Copy>(left: N, right: N) {
-    #[cfg(feature = "win_driver")]
+    #[cfg(windows)]
     assert_eq!(left, right + NumCast::from(20).unwrap());
-    #[cfg(not(feature = "win_driver"))]
+    #[cfg(not(windows))]
     assert_eq!(left, right);
-}
-
-pub fn print_buffer_short(buffer: &[u8]) {
-    for byte in buffer {
-        print!("{:02x}", byte);
-    }
-    println!();
 }

@@ -11,7 +11,7 @@ use windows::{
     },
 };
 
-use crate::chromium_ec::portio::HEADER_LEN;
+use crate::chromium_ec::protocol::HEADER_LEN;
 use crate::chromium_ec::EC_MEMMAP_SIZE;
 use crate::chromium_ec::{EcError, EcResponseStatus, EcResult};
 

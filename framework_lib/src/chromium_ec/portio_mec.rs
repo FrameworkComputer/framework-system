@@ -5,11 +5,11 @@ use alloc::vec::Vec;
 use log::Level;
 
 use hwio::{Io, Pio};
-#[cfg(feature = "linux_pio")]
+#[cfg(target_os = "linux")]
 use libc::ioperm;
 
 // I/O addresses for host command
-#[cfg(feature = "linux_pio")]
+#[cfg(target_os = "linux")]
 const EC_LPC_ADDR_HOST_DATA: u16 = 0x200;
 
 const MEC_EC_BYTE_ACCESS: u16 = 0x00;
@@ -23,7 +23,7 @@ const MEC_LPC_DATA_REGISTER2: u16 = 0x0806;
 const _MEC_LPC_DATA_REGISTER3: u16 = 0x0807;
 
 pub fn init() {
-    #[cfg(feature = "linux_pio")]
+    #[cfg(target_os = "linux")]
     unsafe {
         ioperm(EC_LPC_ADDR_HOST_DATA as u64, 8, 1);
         ioperm(MEC_LPC_ADDRESS_REGISTER0 as u64, 10, 1);
