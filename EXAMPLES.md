@@ -2,6 +2,33 @@
 
 ## Check firmware versions
 
+### BIOS (Mainboard, UEFI, EC, PD)
+
+Example on Framework 13 AMD Ryzen AI 300 Series:
+
+```
+> framework_tool --versions
+Mainboard Hardware
+  Type:           Laptop 13 (AMD Ryzen AI 300 Series)
+  Revision:       MassProduction
+UEFI BIOS
+  Version:        03.00
+  Release Date:   03/10/2025
+EC Firmware
+  Build version:  "lilac-3.0.0-1541dc6 2025-05-05 11:31:24 zoid@localhost"
+  RO Version:     "lilac-3.0.0-1541dc6"
+  RW Version:     "lilac-3.0.0-1541dc6"
+  Current image:  RO
+PD Controllers
+  Right (01)
+    Main:       0.0.0E (Active)
+    Backup:     0.0.0E
+  Left  (23)
+    Main:       0.0.0E (Active)
+    Backup:     0.0.0E
+[...]
+```
+
 ### Camera (Framework 12, Framework 13, Framework 16)
 
 Example on Framework 12:
