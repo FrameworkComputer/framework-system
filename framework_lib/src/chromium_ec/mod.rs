@@ -1044,21 +1044,21 @@ impl CrosEc {
         loop {
             match cmd.send_command_vec(self) {
                 Ok(data) => {
-                    // EC Buffer is empty. That means we've read everything from the snapshot
-                    // The windows crosecbus driver returns all NULL instead of empty response
-                    if data.is_empty() || data.iter().all(|x| *x == 0) {
+                    // EC Buffer is empty. That means we've read everything from the snapshot.
+                    // The windows crosecbus driver returns all NULL with a leading 0x01 instead of
+                    // an empty response.
+                    if data.is_empty() || data.iter().all(|x| *x == 0 || *x == 1) {
                         debug!("Empty EC response. Stopping console read");
-                        // Don't read too fast, wait a second before reading more
-                        os_specific::sleep(1_000_000);
+                        // Don't read too fast, wait 100ms before reading more
+                        os_specific::sleep(100_000);
                         EcRequestConsoleSnapshot {}.send_command(self)?;
                         cmd.subcmd = ConsoleReadSubCommand::ConsoleReadRecent as u8;
                         continue;
                     }
 
                     let utf8 = std::str::from_utf8(&data).unwrap();
-                    let ascii = utf8
-                        .replace(|c: char| !c.is_ascii(), "")
-                        .replace(['\0'], "");
+                    let full_ascii = utf8.replace(|c: char| !c.is_ascii(), "");
+                    let ascii = full_ascii.replace(['\0'], "");
 
                     print!("{}", ascii);
                 }
