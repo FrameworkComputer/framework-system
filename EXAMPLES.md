@@ -2,6 +2,33 @@
 
 ## Check firmware versions
 
+### BIOS (Mainboard, UEFI, EC, PD)
+
+Example on Framework 13 AMD Ryzen AI 300 Series:
+
+```
+> framework_tool --versions
+Mainboard Hardware
+  Type:           Laptop 13 (AMD Ryzen AI 300 Series)
+  Revision:       MassProduction
+UEFI BIOS
+  Version:        03.00
+  Release Date:   03/10/2025
+EC Firmware
+  Build version:  "lilac-3.0.0-1541dc6 2025-05-05 11:31:24 zoid@localhost"
+  RO Version:     "lilac-3.0.0-1541dc6"
+  RW Version:     "lilac-3.0.0-1541dc6"
+  Current image:  RO
+PD Controllers
+  Right (01)
+    Main:       0.0.0E (Active)
+    Backup:     0.0.0E
+  Left  (23)
+    Main:       0.0.0E (Active)
+    Backup:     0.0.0E
+[...]
+```
+
 ### Camera (Framework 12, Framework 13, Framework 16)
 
 Example on Framework 12:
@@ -128,7 +155,7 @@ Positions:
 ## Check temperatures and fan speed
 
 ```
-> sudo ./target/debug/framework_tool --thermal
+> sudo framework_tool --thermal
   F75303_Local: 43 C
   F75303_CPU:   44 C
   F75303_DDR:   39 C
@@ -136,11 +163,23 @@ Positions:
   Fan Speed:       0 RPM
 ```
 
-## Check sensors (ALS and G-Sensor)
+## Check sensors
+
+### Ambient Light (Framework 13, Framework 16)
 
 ```
-> sudo ./target/debug/framework_tool --sensors
+> sudo framework_tool --sensors
 ALS:   76 Lux
+```
+
+### Accelerometer (Framework 12)
+```
+> sudo framework_tool --sensors
+ALS:    0 Lux
+Accelerometers:
+  Lid Angle:  122 Deg
+  Sensor 1:   X=+0.00G Y=+0.84G, Z=+0.52G
+  Sensor 2:   X=-0.03G Y=+0.00G, Z=+1.01G
 ```
 
 ## Set custom fan duty/RPM
@@ -294,6 +333,45 @@ Battery Status
 # Set charge rate/current limit only if battery is >80% charged
 > sudo framework_tool --charge-rate-limit 0.8 80
 > sudo framework_tool --charge-current-limit 2000 80
+```
+
+## EC Console
+
+```
+# Get recent EC console logs and watch for more
+> framework_tool.exe --console follow
+[53694.741000 Battery 62% (Display 61.1 %) / 3h:18 to empty]
+[53715.010000 Battery 62% (Display 61.0 %) / 3h:21 to empty]
+[53734.281200 Battery 62% (Display 60.9 %) / 3h:18 to empty]
+[53738.037200 Battery 61% (Display 60.9 %) / 3h:6 to empty]
+[53752.301500 Battery 61% (Display 60.8 %) / 3h:15 to empty]
+```
+
+## Keyboard backlight
+
+```
+# Check current keyboard backlight brightness
+> framework_tool.exe --kblight
+Keyboard backlight: 5%
+
+# Set keyboard backlight brightness
+# Off
+> framework_tool.exe --kblight 0
+# 20%
+> framework_tool.exe --kblight 20
+```
+
+## RGB LED (Framework Desktop)
+
+```
+# To set three LEDs to red, green, blue
+sudo framework_tool --rgbkbd 0 0xFF0000 0x00FF00 0x0000FF
+
+# To clear 8 LEDs
+sudo framework_tool --rgbkbd 0 0 0 0 0 0 0 0 0
+
+# Just turn the 3rd LED red
+sudo framework_tool --rgbkbd 2 0xFF0000
 ```
 
 ## Stylus (Framework 12)
