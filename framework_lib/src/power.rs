@@ -340,6 +340,7 @@ pub fn print_thermal(ec: &CrosEc) {
             println!("  F75303_Local: {:>4}", TempSensor::from(temps[2]));
             println!("  Battery:      {:>4}", TempSensor::from(temps[3]));
             println!("  PECI:         {:>4}", TempSensor::from(temps[4]));
+            println!("  Charger IC    {:>4}", TempSensor::from(temps[5]));
         }
 
         Some(
