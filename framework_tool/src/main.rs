@@ -17,9 +17,16 @@ fn main() -> Result<(), &'static str> {
             // See https://devblogs.microsoft.com/oldnewthing/20160125-00/?p=92922
             let mut plist: winapi::shared::minwindef::DWORD = 0;
             let processes = winapi::um::wincon::GetConsoleProcessList(&mut plist, 1);
+
+            // If we're the only process that means we're in a fresh terminal
+            // without CMD or powershell. This happens in some cases, for example
+            // if the user double-clicks the app from Explorer.
             processes == 1
         };
-        if double_clicked {
+        // But it also happens if launched from the commandline and a UAC prompt is necessary,
+        // for example with sudo set to open "In a new windows", therefore we also have to
+        // check that no commandline arguments were provided.
+        if double_clicked && args.len() == 1 {
             (
                 vec![args[0].clone(), "--versions".to_string()],
                 double_clicked,
