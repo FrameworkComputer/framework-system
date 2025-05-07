@@ -76,7 +76,7 @@ const EC_FAN_SPEED_ENTRIES: usize = 4;
 const EC_FAN_SPEED_STALLED_DEPRECATED: u16 = 0xFFFE;
 const EC_FAN_SPEED_NOT_PRESENT: u16 = 0xFFFF;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum TempSensor {
     Ok(u8),
     NotPresent,
@@ -311,7 +311,7 @@ pub fn print_thermal(ec: &CrosEc) {
     let fans = ec.read_memory(EC_MEMMAP_FAN, 0x08).unwrap();
 
     let platform = smbios::get_platform();
-    match platform {
+    let remaining_sensors = match platform {
         Some(Platform::IntelGen11) | Some(Platform::IntelGen12) | Some(Platform::IntelGen13) => {
             println!("  F75303_Local: {:>4}", TempSensor::from(temps[0]));
             println!("  F75303_CPU:   {:>4}", TempSensor::from(temps[1]));
@@ -324,6 +324,7 @@ pub fn print_thermal(ec: &CrosEc) {
             ) {
                 println!("  F57397_VCCGT: {:>4}", TempSensor::from(temps[5]));
             }
+            2
         }
 
         Some(Platform::IntelCoreUltra1) => {
@@ -332,6 +333,7 @@ pub fn print_thermal(ec: &CrosEc) {
             println!("  Battery:      {:>4}", TempSensor::from(temps[2]));
             println!("  F75303_DDR:   {:>4}", TempSensor::from(temps[3]));
             println!("  PECI:         {:>4}", TempSensor::from(temps[4]));
+            3
         }
 
         Some(Platform::Framework12IntelGen13) => {
@@ -341,6 +343,7 @@ pub fn print_thermal(ec: &CrosEc) {
             println!("  Battery:      {:>4}", TempSensor::from(temps[3]));
             println!("  PECI:         {:>4}", TempSensor::from(temps[4]));
             println!("  Charger IC    {:>4}", TempSensor::from(temps[5]));
+            2
         }
 
         Some(
@@ -357,6 +360,9 @@ pub fn print_thermal(ec: &CrosEc) {
                 println!("  dGPU VRAM:    {:>4}", TempSensor::from(temps[5]));
                 println!("  dGPU AMB:     {:>4}", TempSensor::from(temps[6]));
                 println!("  dGPU temp:    {:>4}", TempSensor::from(temps[7]));
+                0
+            } else {
+                4
             }
         }
 
@@ -365,6 +371,7 @@ pub fn print_thermal(ec: &CrosEc) {
             println!("  F75303_DDR:   {:>4}", TempSensor::from(temps[1]));
             println!("  F75303_AMB:   {:>4}", TempSensor::from(temps[2]));
             println!("  APU:          {:>4}", TempSensor::from(temps[3]));
+            4
         }
 
         _ => {
@@ -376,6 +383,15 @@ pub fn print_thermal(ec: &CrosEc) {
             println!("  Temp 5:       {:>4}", TempSensor::from(temps[5]));
             println!("  Temp 6:       {:>4}", TempSensor::from(temps[6]));
             println!("  Temp 7:       {:>4}", TempSensor::from(temps[7]));
+            0
+        }
+    };
+
+    // Just in case EC has more sensors than we know about, print them
+    for (i, temp) in temps.iter().enumerate().take(8).skip(8 - remaining_sensors) {
+        let temp = TempSensor::from(*temp);
+        if temp != TempSensor::NotPresent {
+            println!("  Temp {}:       {:>4}", i, temp);
         }
     }
 
