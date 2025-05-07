@@ -190,7 +190,7 @@ impl fmt::Display for AccelData {
         let x = (self.x as f32) / quarter;
         let y = (self.y as f32) / quarter;
         let z = (self.z as f32) / quarter;
-        write!(f, "X: {:.2}G Y: {:.2}G, Z: {:.2}G", x, y, z)
+        write!(f, "X={:+.2}G Y={:+.2}G, Z={:+.2}G", x, y, z)
     }
 }
 
@@ -291,17 +291,17 @@ pub fn print_sensors(ec: &CrosEc) {
     let present = (acc_status & 0x80) > 0;
     if present {
         println!("Accelerometers:");
-        println!("  Status Bit: {} 0x{:X}", acc_status, acc_status);
-        println!("  Present:    {}", present);
-        println!("  Busy:       {}", (acc_status & 0x8) > 0);
-        print!("  Lid Angle: ");
+        debug!("  Status Bit: {} 0x{:X}", acc_status, acc_status);
+        debug!("  Present:    {}", present);
+        debug!("  Busy:       {}", (acc_status & 0x8) > 0);
+        print!("  Lid Angle:  ");
         if lid_angle == LID_ANGLE_UNRELIABLE {
             println!("Unreliable");
         } else {
             println!("{} Deg", lid_angle);
         }
-        println!("  Sensor 1:  {}", AccelData::from(accel_1));
-        println!("  Sensor 2:  {}", AccelData::from(accel_2));
+        println!("  Sensor 1:   {}", AccelData::from(accel_1));
+        println!("  Sensor 2:   {}", AccelData::from(accel_2));
         // Accelerometers
         //   Lid Angle: 26 Deg
         //   Sensor 1:  00.00 X 00.00 Y 00.00 Z

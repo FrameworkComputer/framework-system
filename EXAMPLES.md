@@ -150,12 +150,9 @@ ALS:   76 Lux
 > sudo framework_tool --sensors
 ALS:    0 Lux
 Accelerometers:
-  Status Bit: 140 0x8C
-  Present:    true
-  Busy:       true
-  Lid Angle: 122 Deg
-  Sensor 1:  X: 0.00G Y: 0.84G, Z: 0.52G
-  Sensor 2:  X: -0.03G Y: 0.00G, Z: 1.01G
+  Lid Angle:  122 Deg
+  Sensor 1:   X=+0.00G Y=+0.84G, Z=+0.52G
+  Sensor 2:   X=-0.03G Y=+0.00G, Z=+1.01G
 ```
 
 ## Set custom fan duty/RPM
