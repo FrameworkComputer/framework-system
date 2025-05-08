@@ -1000,6 +1000,20 @@ impl CrosEc {
             println!("  Serial Number: Unknown");
         }
 
+        let res = EcRequestGetGpuPcie {}.send_command(self)?;
+        let config: Option<GpuPcieConfig> = FromPrimitive::from_u8(res.gpu_pcie_config);
+        let vendor: Option<GpuVendor> = FromPrimitive::from_u8(res.gpu_vendor);
+        if let Some(config) = config {
+            println!("  Config:        {:?}", config);
+        } else {
+            println!("  Config:        Unknown ({})", res.gpu_pcie_config);
+        }
+        if let Some(vendor) = vendor {
+            println!("  Vendor:        {:?}", vendor);
+        } else {
+            println!("  Vendor:        Unknown ({})", res.gpu_vendor);
+        }
+
         Ok(())
     }
 
