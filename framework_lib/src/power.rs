@@ -84,6 +84,11 @@ enum TempSensor {
     NotPowered,
     NotCalibrated,
 }
+impl From<&u8> for TempSensor {
+    fn from(t: &u8) -> Self {
+        TempSensor::from(*t)
+    }
+}
 impl From<u8> for TempSensor {
     fn from(t: u8) -> Self {
         match t {
@@ -353,6 +358,38 @@ pub fn print_sensors(ec: &CrosEc) {
 }
 
 pub fn print_thermal(ec: &CrosEc) {
+    println!("timestamp, fan0,fan1,temp0,temp1,temp2,temp3,temp4,temp5,temp6,temp7,");
+    loop {
+        let temps = ec.read_memory(EC_MEMMAP_TEMP_SENSOR, 0x0F).unwrap();
+        let fans = ec.read_memory(EC_MEMMAP_FAN, 0x08).unwrap();
+        let now = std::time::SystemTime::now();
+        let timestamp = now.duration_since(std::time::SystemTime::UNIX_EPOCH);
+
+        print!("{},", timestamp.unwrap().as_secs());
+
+        for i in 0..2 {
+            let fan = u16::from_le_bytes([fans[i * 2], fans[1 + i * 2]]);
+            if fan == EC_FAN_SPEED_STALLED_DEPRECATED || fan == EC_FAN_SPEED_NOT_PRESENT {
+                print!("    ,");
+            } else {
+                print!("{:>4},", fan);
+            }
+        }
+
+        for temp in temps.iter().take(8) {
+            if let TempSensor::Ok(c) = TempSensor::from(temp) {
+                print!(" {:>4?},", c);
+            } else {
+                print!("     ,");
+            }
+        }
+        println!();
+
+        crate::os_specific::sleep(1000_000)
+    }
+}
+
+pub fn foo_thermal(ec: &CrosEc) {
     let temps = ec.read_memory(EC_MEMMAP_TEMP_SENSOR, 0x0F).unwrap();
     let fans = ec.read_memory(EC_MEMMAP_FAN, 0x08).unwrap();
 
