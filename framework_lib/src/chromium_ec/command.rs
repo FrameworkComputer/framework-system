@@ -60,6 +60,7 @@ pub enum EcCommands {
     FlashNotified = 0x3E01,
     /// Change charge limit
     ChargeLimitControl = 0x3E03,
+    DisablePs2Emulation = 0x3E08,
     /// Get/Set Fingerprint LED brightness
     FpLedLevelControl = 0x3E0E,
     /// Get information about the current chassis open/close status

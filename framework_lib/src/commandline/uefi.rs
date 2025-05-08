@@ -95,6 +95,7 @@ pub fn parse(args: &[String]) -> Cli {
         fp_brightness: None,
         kblight: None,
         rgbkbd: vec![],
+        ps2_enable: None,
         tablet_mode: None,
         touchscreen_enable: None,
         stylus_battery: false,
@@ -361,6 +362,26 @@ pub fn parse(args: &[String]) -> Cli {
                 println!("--rgbkbd requires at least 2 arguments, the start key and an RGB value");
                 vec![]
             }
+        } else if arg == "--ps2-enable" {
+            cli.ps2_enable = if args.len() > i + 1 {
+                let enable_arg = &args[i + 1];
+                if enable_arg == "true" {
+                    Some(true)
+                } else if enable_arg == "false" {
+                    Some(false)
+                } else {
+                    println!(
+                        "Need to provide a value for --ps2-enable: '{}'. {}",
+                        args[i + 1],
+                        "Must be `true` or `false`",
+                    );
+                    None
+                }
+            } else {
+                println!("Need to provide a value for --tablet-mode. One of: `auto`, `tablet` or `laptop`");
+                None
+            };
+            found_an_option = true;
         } else if arg == "--tablet-mode" {
             cli.tablet_mode = if args.len() > i + 1 {
                 let tablet_mode_arg = &args[i + 1];
