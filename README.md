@@ -121,6 +121,8 @@ cargo build -p framework_tool
 ls -l target/debug/framework_tool
 
 # Build the UEFI application
+# Needs mtools installed via your OS package manager
+# See in FreeBSD section for building on FreeBSD
 # Can't be built with cargo! That's why we need to exclude it in the other commands.
 make -C framework_uefi
 ls -l framework_uefi/build/x86_64-unknown-uefi/boot.efi
@@ -366,4 +368,15 @@ cargo build
 
 # Running the tool
 cargo run
+```
+
+Build UEFI tool
+
+```
+# Build just tool
+gmake -C framework_uefi build/x86_64-unknown-uefi/boot.efi
+
+# Build QEMU image
+# TODO: Does not work yet, need a replacement for GNU parted
+gmake -C framework_uefi MKFS=newfs_msdos
 ```
