@@ -745,6 +745,51 @@ impl EcRequest<EcResponseFlashNotify> for EcRequestFlashNotify {
 }
 
 #[repr(C, packed)]
+pub struct EcRequestSetApRebootDelay {
+    /// Range 1 - 180 seconds
+    pub delay: u8,
+}
+
+impl EcRequest<()> for EcRequestSetApRebootDelay {
+    fn command_id() -> EcCommands {
+        EcCommands::SetApRebootDelay
+    }
+}
+
+#[repr(C, packed)]
+pub struct KeyboardMatrixMap {
+    pub row: u8,
+    pub col: u8,
+    pub scanset: u16,
+}
+#[repr(C, packed)]
+pub struct EcRequestUpdateKeyboardMatrix {
+    pub num_items: u32,
+    pub write: u32,
+    pub scan_update: [KeyboardMatrixMap; 32],
+}
+
+impl EcRequest<()> for EcRequestUpdateKeyboardMatrix {
+    fn command_id() -> EcCommands {
+        EcCommands::UpdateKeyboardMatrix
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestVProControl {}
+
+#[repr(C, packed)]
+pub struct EcResponseVProControl {
+    pub vpro_on: u8,
+}
+
+impl EcRequest<EcResponseVProControl> for EcRequestVProControl {
+    fn command_id() -> EcCommands {
+        EcCommands::VProControl
+    }
+}
+
+#[repr(C, packed)]
 pub struct EcRequestChassisOpenCheck {}
 
 #[repr(C, packed)]
@@ -1153,5 +1198,45 @@ pub struct EcResponseSetGpuSerial {
 impl EcRequest<EcResponseSetGpuSerial> for EcRequestSetGpuSerial {
     fn command_id() -> EcCommands {
         EcCommands::ProgramGpuEeprom
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestFingerprintControl {
+    pub enable: u8,
+}
+
+impl EcRequest<()> for EcRequestFingerprintControl {
+    fn command_id() -> EcCommands {
+        EcCommands::FpControl
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestGetCutoffStatus {}
+
+#[repr(C, packed)]
+pub struct EcResponseGetCutoffStatus {
+    pub status: u8,
+}
+
+impl EcRequest<EcResponseGetCutoffStatus> for EcRequestGetCutoffStatus {
+    fn command_id() -> EcCommands {
+        EcCommands::GetCutoffStatus
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestGetApThrottleStatus {}
+
+#[repr(C, packed)]
+pub struct EcResponseGetApThrottleStatus {
+    pub soft_ap_throttle: u8,
+    pub hard_ap_throttle: u8,
+}
+
+impl EcRequest<EcResponseGetApThrottleStatus> for EcRequestGetApThrottleStatus {
+    fn command_id() -> EcCommands {
+        EcCommands::GetApThrottleStatus
     }
 }

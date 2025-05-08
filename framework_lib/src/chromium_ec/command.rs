@@ -58,22 +58,27 @@ pub enum EcCommands {
     // Framework specific commands
     /// Configure the behavior of the flash notify
     FlashNotified = 0x3E01,
+    FactoryMode = 0x3E02,
     /// Change charge limit
     ChargeLimitControl = 0x3E03,
+    SetApRebootDelay = 0x30E4,
+    PwmGetFanActualRpm = 0x30E5,
+    NonAcpiNotify = 0x3E07,
+    DisablePs2Emulation = 0x30E8,
+    /// Get information about historical chassis open/close (intrusion) information
+    ChassisIntrusion = 0x3E09,
+    BbRetimerControl = 0x3E0A,
+    /// See GetHwDiag for a more powerful version
+    Diagnosis = 0x3E0B,
+    UpdateKeyboardMatrix = 0x3E0C,
+    VProControl = 0x3E0D,
     /// Get/Set Fingerprint LED brightness
     FpLedLevelControl = 0x3E0E,
     /// Get information about the current chassis open/close status
     ChassisOpenCheck = 0x3E0F,
-    /// Get information about historical chassis open/close (intrusion) information
-    ChassisIntrusion = 0x3E09,
-
-    /// Not used by this library
-    AcpiNotify = 0xE10,
-
+    AcpiNotify = 0x3E10,
     /// Get information about PD controller version
     ReadPdVersion = 0x3E11,
-
-    /// Not used by this library
     StandaloneMode = 0x3E13,
     /// Get information about current state of privacy switches
     PriavcySwitchesCheckMode = 0x3E14,
@@ -85,7 +90,6 @@ pub enum EcCommands {
     GetSimpleVersion = 0x3E17,
     /// GetActiveChargePdChip
     GetActiveChargePdChip = 0x3E18,
-
     /// Set UEFI App mode
     UefiAppMode = 0x3E19,
     /// Get UEFI APP Button status
@@ -98,6 +102,12 @@ pub enum EcCommands {
     GetGpuSerial = 0x3E1D,
     /// Set gpu bay serial and program structure
     ProgramGpuEeprom = 0x3E1F,
+    FpControl = 0x3E20,
+    GetCutoffStatus = 0x3E21,
+    GetApThrottleStatus = 0x3E22,
+    PdPortState = 0x3E23,
+    BatteryExtender = 0x3E24,
+    WakeOnLan = 0x3E25,
 }
 
 pub trait EcRequest<R> {
