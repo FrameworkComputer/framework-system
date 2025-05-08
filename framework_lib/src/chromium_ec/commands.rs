@@ -1129,6 +1129,43 @@ impl EcRequest<EcResponseGetGpuSerial> for EcRequestGetGpuSerial {
     }
 }
 
+#[repr(C, packed)]
+pub struct EcRequestGetGpuPcie {}
+
+#[repr(u8)]
+#[derive(Debug, FromPrimitive)]
+pub enum GpuPcieConfig {
+    /// PCIe 8x1
+    Pcie8x1 = 0,
+    /// PCIe 4x1
+    Pcie4x1 = 1,
+    /// PCIe 4x2
+    Pcie4x2 = 2,
+}
+
+#[repr(u8)]
+#[derive(Debug, FromPrimitive)]
+pub enum GpuVendor {
+    Initializing = 0x00,
+    FanOnly = 0x01,
+    GpuAmdR23M = 0x02,
+    SsdHolder = 0x03,
+    PcieAccessory = 0x4,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseGetGpuPcie {
+    pub gpu_pcie_config: u8,
+    pub gpu_vendor: u8,
+}
+
+impl EcRequest<EcResponseGetGpuPcie> for EcRequestGetGpuPcie {
+    fn command_id() -> EcCommands {
+        EcCommands::GetGpuPcie
+    }
+}
+
 #[repr(u8)]
 pub enum SetGpuSerialMagic {
     /// 7700S config magic value

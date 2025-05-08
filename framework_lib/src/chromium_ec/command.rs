@@ -96,6 +96,7 @@ pub enum EcCommands {
     GetHwDiag = 0x3E1C,
     /// Get gpu bay serial
     GetGpuSerial = 0x3E1D,
+    GetGpuPcie = 0x3E1E,
     /// Set gpu bay serial and program structure
     ProgramGpuEeprom = 0x3E1F,
 }
