@@ -188,6 +188,11 @@ struct ClapCli {
     #[arg(long, value_parser=maybe_hex::<u64>)]
     rgbkbd: Vec<u64>,
 
+    /// Enable/disable PS2 touchpad emulation
+    #[clap(value_enum)]
+    #[arg(long)]
+    ps2_enable: Option<bool>,
+
     /// Set tablet mode override
     #[clap(value_enum)]
     #[arg(long)]
@@ -393,6 +398,7 @@ pub fn parse(args: &[String]) -> Cli {
         fp_brightness: args.fp_brightness,
         kblight: args.kblight,
         rgbkbd: args.rgbkbd,
+        ps2_enable: args.ps2_enable,
         tablet_mode: args.tablet_mode,
         touchscreen_enable: args.touchscreen_enable,
         stylus_battery: args.stylus_battery,
