@@ -734,6 +734,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         enable_page_break();
     }
 
+    print_err(ec.remap_mac());
+    return 0;
+
     if args.help {
         // Only print with uefi feature here because without clap will already
         // have printed the help by itself.
