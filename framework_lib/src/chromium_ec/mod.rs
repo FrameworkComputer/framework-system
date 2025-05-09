@@ -357,6 +357,21 @@ impl CrosEc {
         self.remap_key(6, 15, 0x0014)
     }
 
+    pub fn remap_mac(&self) -> EcResult<()> {
+        // CTRL => FN
+        // self.remap_key()
+        // FN => ALT
+        // self.remap_key(, 0x0011)
+        // WIN => WIN
+        // No Op
+
+        // CTRL => ALT
+        self.remap_key(1, 12, 0x0011)?;
+        // ALT => CTRL
+        self.remap_key(1, 3, 0x0014)?;
+        Ok(())
+    }
+
     pub fn remap_key(&self, row: u8, col: u8, scanset: u16) -> EcResult<()> {
         let _current_matrix = EcRequestUpdateKeyboardMatrix {
             num_items: 1,
