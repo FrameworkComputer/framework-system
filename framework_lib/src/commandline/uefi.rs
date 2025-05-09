@@ -94,6 +94,7 @@ pub fn parse(args: &[String]) -> Cli {
         fp_led_level: None,
         fp_brightness: None,
         kblight: None,
+        remap_key: None,
         rgbkbd: vec![],
         ps2_enable: None,
         tablet_mode: None,

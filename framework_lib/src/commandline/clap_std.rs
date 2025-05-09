@@ -181,6 +181,11 @@ struct ClapCli {
     #[arg(long)]
     kblight: Option<Option<u8>>,
 
+    /// Set keyboard backlight percentage or get, if no value provided
+    #[arg(long, value_parser=maybe_hex::<u16>)]
+    #[clap(num_args = 3)]
+    remap_key: Vec<u16>,
+
     /// Set the color of <key> to <RGB>. Multiple colors for adjacent keys can be set at once.
     /// <key> <RGB> [<RGB> ...]
     /// Example: 0 0xFF000 0x00FF00 0x0000FF
@@ -338,6 +343,14 @@ pub fn parse(args: &[String]) -> Cli {
         1 => Some((args.charge_rate_limit[0], None)),
         _ => None,
     };
+    let remap_key = match args.remap_key.len() {
+        3 => Some((
+            args.remap_key[0] as u8,
+            args.remap_key[1] as u8,
+            args.remap_key[2],
+        )),
+        _ => None,
+    };
 
     Cli {
         verbosity: args.verbosity.log_level_filter(),
@@ -397,6 +410,7 @@ pub fn parse(args: &[String]) -> Cli {
         fp_led_level: args.fp_led_level,
         fp_brightness: args.fp_brightness,
         kblight: args.kblight,
+        remap_key,
         rgbkbd: args.rgbkbd,
         ps2_enable: args.ps2_enable,
         tablet_mode: args.tablet_mode,
