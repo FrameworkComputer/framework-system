@@ -353,6 +353,20 @@ impl CrosEc {
         ))
     }
 
+    pub fn remap_caps_to_ctrl(&self) -> EcResult<()> {
+        self.remap_key(6, 15, 0x0014)
+    }
+
+    pub fn remap_key(&self, row: u8, col: u8, scanset: u16) -> EcResult<()> {
+        let _current_matrix = EcRequestUpdateKeyboardMatrix {
+            num_items: 1,
+            write: 1,
+            scan_update: [KeyboardMatrixMap { row, col, scanset }],
+        }
+        .send_command(self)?;
+        Ok(())
+    }
+
     /// Get current status of Framework Laptop's microphone and camera privacy switches
     /// [true = device enabled/connected, false = device disabled]
     pub fn get_privacy_info(&self) -> EcResult<(bool, bool)> {
