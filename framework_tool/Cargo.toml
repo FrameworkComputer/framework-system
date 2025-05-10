@@ -3,6 +3,10 @@ name = "framework_tool"
 version = "0.4.1"
 edition = "2021"
 
+[features]
+default = [ ]
+readonly = [ "framework_lib/readonly" ]
+
 [dependencies.framework_lib]
 path = "../framework_lib"
 
