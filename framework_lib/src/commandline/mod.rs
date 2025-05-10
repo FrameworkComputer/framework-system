@@ -134,13 +134,22 @@ impl From<InputDeckModeArg> for DeckStateMode {
     }
 }
 
+#[derive(Debug)]
+pub struct LogLevel(log::LevelFilter);
+
+impl Default for LogLevel {
+    fn default() -> Self {
+        LogLevel(log::LevelFilter::Error)
+    }
+}
+
 /// Shadows `clap_std::ClapCli` with extras for UEFI
 ///
 /// The UEFI commandline currently doesn't use clap, so we need to shadow the struct.
 /// Also it has extra options.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Cli {
-    pub verbosity: log::LevelFilter,
+    pub verbosity: LogLevel,
     pub versions: bool,
     pub version: bool,
     pub features: bool,
@@ -815,7 +824,7 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
 pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     #[cfg(feature = "uefi")]
     {
-        log::set_max_level(args.verbosity);
+        log::set_max_level(args.verbosity.0);
     }
     #[cfg(not(feature = "uefi"))]
     {
@@ -824,7 +833,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         //     .filter("FRAMEWORK_COMPUTER_LOG")
         //     .write_style("FRAMEWORK_COMPUTER_LOG_STYLE");
 
-        let level = args.verbosity.as_str();
+        let level = args.verbosity.0.as_str();
         env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(level))
             .format_target(false)
             .format_timestamp(None)
