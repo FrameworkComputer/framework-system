@@ -221,9 +221,73 @@ pub struct Cli {
 
 pub fn parse(args: &[String]) -> Cli {
     #[cfg(feature = "uefi")]
-    return uefi::parse(args);
+    let cli = uefi::parse(args);
     #[cfg(not(feature = "uefi"))]
-    return clap_std::parse(args);
+    let cli = clap_std::parse(args);
+
+    if cfg!(feature = "readonly") {
+        // Initialize a new Cli with no arguments
+        // Set all arguments that are readonly/safe
+        // We explicitly only cope the safe ones so that if we add new arguments in the future,
+        // which might be unsafe, we can't forget to exclude them from the safe set.
+        // TODO: Instead of silently ignoring blocked command, we should remind the user
+        Cli {
+            verbosity: cli.verbosity,
+            versions: cli.versions,
+            version: cli.version,
+            esrt: cli.esrt,
+            device: cli.device,
+            power: cli.power,
+            thermal: cli.thermal,
+            sensors: cli.sensors,
+            // fansetduty
+            // fansetrpm
+            // autofanctrl
+            privacy: cli.privacy,
+            pd_info: cli.version,
+            dp_hdmi_info: cli.dp_hdmi_info,
+            // dp_hdmi_update
+            audio_card_info: cli.audio_card_info,
+            pd_bin: cli.pd_bin,
+            ec_bin: cli.ec_bin,
+            capsule: cli.capsule,
+            dump: cli.dump,
+            h2o_capsule: cli.h2o_capsule,
+            // dump_ec_flash
+            // flash_ec
+            // flash_ro_ec
+            driver: cli.driver,
+            test: cli.test,
+            intrusion: cli.intrusion,
+            inputdeck: cli.inputdeck,
+            inputdeck_mode: cli.inputdeck_mode,
+            expansion_bay: cli.expansion_bay,
+            // charge_limit
+            // charge_current_limit
+            get_gpio: cli.get_gpio,
+            fp_led_level: cli.fp_led_level,
+            fp_brightness: cli.fp_brightness,
+            kblight: cli.kblight,
+            rgbkbd: cli.rgbkbd,
+            // tablet_mode
+            // touchscreen_enable
+            stylus_battery: cli.stylus_battery,
+            console: cli.console,
+            reboot_ec: cli.reboot_ec,
+            // ec_hib_delay
+            hash: cli.hash,
+            pd_addrs: cli.pd_addrs,
+            pd_ports: cli.pd_ports,
+            help: cli.help,
+            info: cli.info,
+            // allupdate
+            paginate: cli.paginate,
+            // raw_command
+            ..Default::default()
+        }
+    } else {
+        cli
+    }
 }
 
 fn print_single_pd_details(pd: &PdController) {
