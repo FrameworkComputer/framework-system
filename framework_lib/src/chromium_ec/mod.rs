@@ -1228,6 +1228,41 @@ impl CrosEc {
         Ok(res.val == 1)
     }
 
+    pub fn get_all_gpios(&self) -> EcResult<u8> {
+        let res = EcRequestGpioGetV1Count {
+            subcmd: GpioGetSubCommand::Count as u8,
+        }
+        .send_command(self)?;
+        let gpio_count = res.val;
+
+        debug!("Found {} GPIOs", gpio_count);
+
+        for index in 0..res.val {
+            let res = EcRequestGpioGetV1Info {
+                subcmd: GpioGetSubCommand::Info as u8,
+                index,
+            }
+            .send_command(self)?;
+
+            let name = std::str::from_utf8(&res.name)
+                .map_err(|utf8_err| {
+                    EcError::DeviceError(format!("Failed to decode GPIO name: {:?}", utf8_err))
+                })?
+                .trim_end_matches(char::from(0))
+                .to_string();
+
+            if log_enabled!(Level::Info) {
+                // Same output as ectool
+                println!("{:>32}: {:>2} 0x{:04X}", res.val, name, { res.flags });
+            } else {
+                // Simple output, just name and level high/low
+                println!("{:<32} {}", name, res.val);
+            }
+        }
+
+        Ok(gpio_count)
+    }
+
     pub fn adc_read(&self, adc_channel: u8) -> EcResult<i32> {
         let res = EcRequestAdcRead { adc_channel }.send_command(self)?;
         Ok(res.adc_value)
