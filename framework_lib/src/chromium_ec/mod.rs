@@ -353,6 +353,43 @@ impl CrosEc {
         ))
     }
 
+    pub fn motionsense_sensor_count(&self) -> EcResult<u8> {
+        EcRequestMotionSenseDump {
+            cmd: MotionSenseCmd::Dump as u8,
+            max_sensor_count: 0,
+        }
+        .send_command(self)
+        .map(|res| res.sensor_count)
+    }
+
+    pub fn motionsense_sensor_info(&self) -> EcResult<Vec<MotionSenseInfo>> {
+        let count = self.motionsense_sensor_count()?;
+
+        let mut sensors = vec![];
+        for sensor_num in 0..count {
+            let info = EcRequestMotionSenseInfo {
+                cmd: MotionSenseCmd::Info as u8,
+                sensor_num,
+            }
+            .send_command(self)?;
+            sensors.push(MotionSenseInfo {
+                sensor_type: FromPrimitive::from_u8(info.sensor_type).unwrap(),
+                location: FromPrimitive::from_u8(info.location).unwrap(),
+                chip: FromPrimitive::from_u8(info.chip).unwrap(),
+            });
+        }
+        Ok(sensors)
+    }
+
+    pub fn motionsense_sensor_list(&self) -> EcResult<u8> {
+        EcRequestMotionSenseDump {
+            cmd: MotionSenseCmd::Dump as u8,
+            max_sensor_count: 0,
+        }
+        .send_command(self)
+        .map(|res| res.sensor_count)
+    }
+
     /// Get current status of Framework Laptop's microphone and camera privacy switches
     /// [true = device enabled/connected, false = device disabled]
     pub fn get_privacy_info(&self) -> EcResult<(bool, bool)> {
