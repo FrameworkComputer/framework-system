@@ -171,8 +171,8 @@ Options:
       --expansion-bay               Show status of the expansion bay (Framework 16 only)
       --charge-limit [<CHARGE_LIMIT>]
           Get or set max charge limit
-      --get-gpio <GET_GPIO>
-          Get GPIO value by name
+      --get-gpio [<GET_GPIO>]
+          Get GPIO value by name or all, if no name provided
       --fp-led-level [<FP_LED_LEVEL>]
           Get or set fingerprint LED brightness level [possible values: high, medium, low, ultra-low, auto]
       --fp-brightness [<FP_BRIGHTNESS>]

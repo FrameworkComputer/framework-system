@@ -343,6 +343,61 @@ impl EcRequest<EcResponseGpioGetV0> for EcRequestGpioGetV0 {
     }
 }
 
+pub enum GpioGetSubCommand {
+    ByName = 0,
+    Count = 1,
+    Info = 2,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestGpioGetV1Count {
+    pub subcmd: u8,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestGpioGetV1ByName {
+    pub subcmd: u8,
+    pub name: [u8; 32],
+}
+
+#[repr(C, packed)]
+pub struct EcRequestGpioGetV1Info {
+    pub subcmd: u8,
+    pub index: u8,
+}
+
+#[repr(C)]
+pub struct EcResponseGpioGetV1Info {
+    pub val: u8,
+    pub name: [u8; 32],
+    pub flags: u32,
+}
+
+impl EcRequest<EcResponseGpioGetV0> for EcRequestGpioGetV1Count {
+    fn command_id() -> EcCommands {
+        EcCommands::GpioGet
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+impl EcRequest<EcResponseGpioGetV0> for EcRequestGpioGetV1ByName {
+    fn command_id() -> EcCommands {
+        EcCommands::GpioGet
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+impl EcRequest<EcResponseGpioGetV1Info> for EcRequestGpioGetV1Info {
+    fn command_id() -> EcCommands {
+        EcCommands::GpioGet
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+
 #[repr(C, packed)]
 pub struct EcRequestReboot {}
 

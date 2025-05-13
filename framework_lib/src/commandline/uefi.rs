@@ -329,9 +329,9 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--get-gpio" {
             cli.get_gpio = if args.len() > i + 1 {
-                Some(args[i + 1].clone())
+                Some(Some(args[i + 1].clone()))
             } else {
-                None
+                Some(None)
             };
             found_an_option = true;
         } else if arg == "--kblight" {

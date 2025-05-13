@@ -165,9 +165,9 @@ struct ClapCli {
     #[clap(num_args = ..=2)]
     charge_rate_limit: Vec<f32>,
 
-    /// Get GPIO value by name
+    /// Get GPIO value by name or all, if no name provided
     #[arg(long)]
-    get_gpio: Option<String>,
+    get_gpio: Option<Option<String>>,
 
     /// Get or set fingerprint LED brightness level
     #[arg(long)]
