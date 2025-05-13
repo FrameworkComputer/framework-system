@@ -18,12 +18,8 @@ EC Firmware
   Build version:  lilac-3.0.0-1541dc6 2025-05-05 11:31:24 zoid@localhost
   Current image:  RO
 PD Controllers
-  Right (01)
-    Main:       0.0.0E (Active)
-    Backup:     0.0.0E
-  Left  (23)
-    Main:       0.0.0E (Active)
-    Backup:     0.0.0E
+  Right (01):       0.0.0E (MainFw)
+  Left  (23):       0.0.0E (MainFw)
 [...]
 ```
 

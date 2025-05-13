@@ -399,53 +399,78 @@ fn print_versions(ec: &CrosEc) {
     if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
         let right = &pd_versions.controller01;
         let left = &pd_versions.controller23;
-        println!("  Right (01)");
         // let active_mode =
         if let Some(Platform::IntelGen11) = smbios::get_platform() {
+            if right.main_fw.base != right.backup_fw.base {
+                println!("  Right (01)");
+                println!(
+                    "    Main:           {}{}",
+                    right.main_fw.base,
+                    active_mode(&right.active_fw, FwMode::MainFw)
+                );
+                println!(
+                    "    Backup:         {}{}",
+                    right.backup_fw.base,
+                    active_mode(&right.active_fw, FwMode::BackupFw)
+                );
+            } else {
+                println!(
+                    "  Right (01):       {} ({:?})",
+                    right.main_fw.base, right.active_fw
+                );
+            }
+        } else if right.main_fw.app != right.backup_fw.app {
             println!(
-                "    Main:       {}{}",
-                right.main_fw.base,
-                active_mode(&right.active_fw, FwMode::MainFw)
-            );
-            println!(
-                "    Backup:     {}{}",
-                right.backup_fw.base,
-                active_mode(&right.active_fw, FwMode::BackupFw)
-            );
-        } else {
-            println!(
-                "    Main:       {}{}",
+                "    Main:           {}{}",
                 right.main_fw.app,
                 active_mode(&right.active_fw, FwMode::MainFw)
             );
             println!(
-                "    Backup:     {}{}",
+                "    Backup:         {}{}",
                 right.backup_fw.app,
                 active_mode(&right.active_fw, FwMode::BackupFw)
             );
-        }
-        println!("  Left  (23)");
-        if let Some(Platform::IntelGen11) = smbios::get_platform() {
-            println!(
-                "    Main:       {}{}",
-                left.main_fw.base,
-                active_mode(&left.active_fw, FwMode::MainFw)
-            );
-            println!(
-                "    Backup:     {}{}",
-                left.backup_fw.base,
-                active_mode(&left.active_fw, FwMode::BackupFw)
-            );
         } else {
             println!(
-                "    Main:       {}{}",
+                "  Right (01):       {} ({:?})",
+                right.main_fw.app, right.active_fw
+            );
+        }
+        if let Some(Platform::IntelGen11) = smbios::get_platform() {
+            if left.main_fw.base != left.backup_fw.base {
+                println!("  Left  (23)");
+                println!(
+                    "    Main:           {}{}",
+                    left.main_fw.base,
+                    active_mode(&left.active_fw, FwMode::MainFw)
+                );
+                println!(
+                    "    Backup:         {}{}",
+                    left.backup_fw.base,
+                    active_mode(&left.active_fw, FwMode::BackupFw)
+                );
+            } else {
+                println!(
+                    "  Left  (23):       {} ({:?})",
+                    left.main_fw.base, left.active_fw
+                );
+            }
+        } else if left.main_fw.app != left.backup_fw.app {
+            println!("  Left  (23)");
+            println!(
+                "    Main:           {}{}",
                 left.main_fw.app,
                 active_mode(&left.active_fw, FwMode::MainFw)
             );
             println!(
-                "    Backup:     {}{}",
+                "    Backup:         {}{}",
                 left.backup_fw.app,
                 active_mode(&left.active_fw, FwMode::BackupFw)
+            );
+        } else {
+            println!(
+                "  Left  (23):       {} ({:?})",
+                left.main_fw.app, left.active_fw
             );
         }
     } else if let Ok(pd_versions) = power::read_pd_version(ec) {
