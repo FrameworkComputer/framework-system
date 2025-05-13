@@ -114,6 +114,17 @@ LED Matrix
 [...]
 ```
 
+### DisplayPort or HDMI Expansion Card
+
+```
+> framework_tool --dp-hdmi-info
+DisplayPort Expansion Card
+  Serial Number:        11AD1D0030123F17142C0B00
+  Active Firmware:      101 (3.0.11.065)
+  Inactive Firmware:    008 (3.0.11.008)
+  Operating Mode:       MainFw (#2)
+```
+
 ## Check input deck status
 
 ### On Framework 12
