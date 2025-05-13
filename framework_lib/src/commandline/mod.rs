@@ -373,11 +373,13 @@ fn print_versions(ec: &CrosEc) {
 
     println!("EC Firmware");
     let ver = print_err(ec.version_info()).unwrap_or_else(|| "UNKNOWN".to_string());
-    println!("  Build version:  {:?}", ver);
+    println!("  Build version:  {}", ver);
 
     if let Some((ro, rw, curr)) = ec.flash_version() {
-        println!("  RO Version:     {:?}", ro);
-        println!("  RW Version:     {:?}", rw);
+        if ro != rw || log_enabled!(Level::Info) {
+            println!("  RO Version:     {}", ro);
+            println!("  RW Version:     {}", rw);
+        }
         print!("  Current image:  ");
         if curr == chromium_ec::EcCurrentImage::RO {
             println!("RO");

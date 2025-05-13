@@ -15,9 +15,7 @@ UEFI BIOS
   Version:        03.00
   Release Date:   03/10/2025
 EC Firmware
-  Build version:  "lilac-3.0.0-1541dc6 2025-05-05 11:31:24 zoid@localhost"
-  RO Version:     "lilac-3.0.0-1541dc6"
-  RW Version:     "lilac-3.0.0-1541dc6"
+  Build version:  lilac-3.0.0-1541dc6 2025-05-05 11:31:24 zoid@localhost
   Current image:  RO
 PD Controllers
   Right (01)
