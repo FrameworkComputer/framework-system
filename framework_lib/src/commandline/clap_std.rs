@@ -188,8 +188,8 @@ struct ClapCli {
     #[arg(long, value_parser=maybe_hex::<u64>)]
     rgbkbd: Vec<u64>,
 
-    /// Enable/disable PS2 touchpad emulation
-    #[clap(value_enum)]
+    /// Control PS2 touchpad emulation (DEBUG COMMAND, if touchpad not working, reboot system)
+    #[clap(value_enum, hide(true))]
     #[arg(long)]
     ps2_enable: Option<bool>,
 
