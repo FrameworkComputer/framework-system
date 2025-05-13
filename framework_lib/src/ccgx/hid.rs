@@ -132,10 +132,10 @@ fn get_fw_info(device: &HidDevice) -> HidFirmwareInfo {
     decode_fw_info(&buf)
 }
 
-pub fn check_ccg_fw_version(device: &HidDevice) {
+pub fn check_ccg_fw_version(device: &HidDevice, verbose: bool) {
     magic_unlock(device);
     let info = get_fw_info(device);
-    print_fw_info(&info);
+    print_fw_info(&info, verbose);
 }
 
 fn decode_fw_info(buf: &[u8]) -> HidFirmwareInfo {
@@ -152,13 +152,13 @@ fn decode_fw_info(buf: &[u8]) -> HidFirmwareInfo {
     info
 }
 
-fn print_fw_info(info: &HidFirmwareInfo) {
+fn print_fw_info(info: &HidFirmwareInfo, verbose: bool) {
     assert_eq!(info.report_id, ReportIdCmd::E0Read as u8);
 
     info!("  Signature:            {:X?}", info.signature);
     // Something's totally off if the signature is invalid
     if info.signature != [b'C', b'Y'] {
-        println!("Firmware Signature is invalid.");
+        error!("Firmware Signature is invalid.");
         return;
     }
 
@@ -219,23 +219,33 @@ fn print_fw_info(info: &HidFirmwareInfo) {
         FwMode::BackupFw => (base_version_1, image_1_valid, base_version_2, image_2_valid),
     };
 
-    println!(
-        "  Active Firmware:      {:03} ({}){}",
-        active_ver.build_number,
-        active_ver,
-        if active_valid { "" } else { " - INVALID!" }
-    );
-    println!(
-        "  Inactive Firmware:    {:03} ({}){}",
-        inactive_ver.build_number,
-        inactive_ver,
-        if inactive_valid { "" } else { " - INVALID!" }
-    );
-    println!(
-        "  Operating Mode:       {:?} (#{})",
-        FwMode::try_from(info.operating_mode).unwrap(),
-        info.operating_mode
-    );
+    if verbose || active_ver != inactive_ver {
+        println!(
+            "  Active Firmware:      {:03} ({}){}",
+            active_ver.build_number,
+            active_ver,
+            if active_valid { "" } else { " - INVALID!" }
+        );
+        println!(
+            "  Inactive Firmware:    {:03} ({}){}",
+            inactive_ver.build_number,
+            inactive_ver,
+            if inactive_valid { "" } else { " - INVALID!" }
+        );
+        println!(
+            "  Operating Mode:       {:?} (#{})",
+            FwMode::try_from(info.operating_mode).unwrap(),
+            info.operating_mode
+        );
+    } else {
+        println!(
+            "  Active Firmware:  {:03} ({}, {:?}){}",
+            active_ver.build_number,
+            active_ver,
+            FwMode::try_from(info.operating_mode).unwrap(),
+            if active_valid { "" } else { " - INVALID!" }
+        );
+    }
 }
 
 /// Turn CCG3 Expansion Card VID/PID into their name
@@ -332,7 +342,7 @@ pub fn flash_firmware(fw_binary: &[u8]) {
         magic_unlock(&device);
         let info = get_fw_info(&device);
         println!("Before Updating");
-        print_fw_info(&info);
+        print_fw_info(&info, true);
 
         println!("Updating...");
         match info.operating_mode {
@@ -369,7 +379,7 @@ pub fn flash_firmware(fw_binary: &[u8]) {
             wait_to_reappear(&mut api, &filter_devs, sn).expect("Device did not reappear");
 
         println!("After Updating");
-        print_fw_info(&info);
+        print_fw_info(&info, true);
     }
 }
 

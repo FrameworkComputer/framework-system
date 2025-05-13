@@ -123,6 +123,14 @@ DisplayPort Expansion Card
   Active Firmware:      101 (3.0.11.065)
   Inactive Firmware:    008 (3.0.11.008)
   Operating Mode:       MainFw (#2)
+
+# Or
+> framework_tool --versions
+[...]
+DisplayPort Expansion Card
+  Active Firmware:      101 (3.0.11.065)
+  Inactive Firmware:    008 (3.0.11.008)
+  Operating Mode:       MainFw (#2)
 ```
 
 ## Check input deck status

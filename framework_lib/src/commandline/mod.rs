@@ -246,7 +246,7 @@ fn print_audio_card_details() {
 }
 
 #[cfg(feature = "hidapi")]
-fn print_dp_hdmi_details() {
+fn print_dp_hdmi_details(verbose: bool) {
     match HidApi::new() {
         Ok(api) => {
             for dev_info in find_devices(&api, &[HDMI_CARD_PID, DP_CARD_PID], None) {
@@ -264,11 +264,11 @@ fn print_dp_hdmi_details() {
                     dev_info.product_string().unwrap_or(NOT_SET)
                 );
 
-                println!(
+                debug!(
                     "  Serial Number:        {}",
                     dev_info.serial_number().unwrap_or(NOT_SET)
                 );
-                check_ccg_fw_version(&device);
+                check_ccg_fw_version(&device, verbose);
             }
         }
         Err(e) => {
@@ -521,6 +521,8 @@ fn print_versions(ec: &CrosEc) {
     if let Some(Platform::Framework12IntelGen13) = smbios::get_platform() {
         let _ignore_err = touchscreen::print_fw_ver();
     }
+    #[cfg(feature = "hidapi")]
+    print_dp_hdmi_details(false);
 }
 
 fn print_esrt() {
@@ -913,7 +915,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_pd_details(&ec);
     } else if args.dp_hdmi_info {
         #[cfg(feature = "hidapi")]
-        print_dp_hdmi_details();
+        print_dp_hdmi_details(true);
     } else if let Some(pd_bin_path) = &args.dp_hdmi_update {
         #[cfg(feature = "hidapi")]
         flash_dp_hdmi_card(pd_bin_path);
