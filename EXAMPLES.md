@@ -76,7 +76,6 @@ Stylus
 > framework_tool --versions
 [...]
 Touchpad
-  IC Type:           0239
   Firmware Version: v0E07
 ```
 
