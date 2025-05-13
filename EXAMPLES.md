@@ -173,13 +173,13 @@ ALS:   76 Lux
 ```
 
 ### Accelerometer (Framework 12)
+
 ```
 > sudo framework_tool --sensors
-ALS:    0 Lux
 Accelerometers:
-  Lid Angle:  122 Deg
-  Sensor 1:   X=+0.00G Y=+0.84G, Z=+0.52G
-  Sensor 2:   X=-0.03G Y=+0.00G, Z=+1.01G
+  Lid Angle:   118 Deg
+  Lid Sensor:  X=+0.00G Y=+0.86G, Z=+0.53G
+  Base Sensor: X=-0.03G Y=-0.07G, Z=+1.02G
 ```
 
 ## Set custom fan duty/RPM

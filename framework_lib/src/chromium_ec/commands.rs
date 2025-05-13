@@ -282,6 +282,134 @@ impl EcRequest<EcResponsePwmGetDuty> for EcRequestPwmGetDuty {
     }
 }
 
+#[repr(u8)]
+pub enum MotionSenseCmd {
+    Dump = 0,
+    Info = 1,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestMotionSenseDump {
+    /// MotionSenseCmd::Dump
+    pub cmd: u8,
+    /// Maximal number of sensor the host is expecting.
+    /// 0 means the host is only interested in the number
+    /// of sensors controlled by the EC.
+    pub max_sensor_count: u8,
+}
+
+#[repr(C, packed)]
+pub struct EcResponseMotionSenseDump {
+    /// Flags representing the motion sensor module
+    pub module_flags: u8,
+
+    /// Number of sensors managed directly by the EC
+    pub sensor_count: u8,
+
+    /// Sensor data is truncated if response_max is too small
+    /// for holding all the data.
+    pub sensor: [u8; 0],
+}
+
+impl EcRequest<EcResponseMotionSenseDump> for EcRequestMotionSenseDump {
+    fn command_id() -> EcCommands {
+        EcCommands::MotionSense
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+
+#[derive(Debug, FromPrimitive, PartialEq)]
+pub enum MotionSenseType {
+    Accel = 0,
+    Gyro = 1,
+    Mag = 2,
+    Prox = 3,
+    Light = 4,
+    Activity = 5,
+    Baro = 6,
+    Sync = 7,
+    LightRgb = 8,
+}
+
+#[derive(Debug, FromPrimitive)]
+pub enum MotionSenseLocation {
+    Base = 0,
+    Lid = 1,
+    Camera = 2,
+}
+
+#[derive(Debug, FromPrimitive)]
+pub enum MotionSenseChip {
+    Kxcj9 = 0,
+    Lsm6ds0 = 1,
+    Bmi160 = 2,
+    Si1141 = 3,
+    Si1142 = 4,
+    Si1143 = 5,
+    Kx022 = 6,
+    L3gd20h = 7,
+    Bma255 = 8,
+    Bmp280 = 9,
+    Opt3001 = 10,
+    Bh1730 = 11,
+    Gpio = 12,
+    Lis2dh = 13,
+    Lsm6dsm = 14,
+    Lis2de = 15,
+    Lis2mdl = 16,
+    Lsm6ds3 = 17,
+    Lsm6dso = 18,
+    Lng2dm = 19,
+    Tcs3400 = 20,
+    Lis2dw12 = 21,
+    Lis2dwl = 22,
+    Lis2ds = 23,
+    Bmi260 = 24,
+    Icm426xx = 25,
+    Icm42607 = 26,
+    Bma422 = 27,
+    Bmi323 = 28,
+    Bmi220 = 29,
+    Cm32183 = 30,
+    Veml3328 = 31,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestMotionSenseInfo {
+    /// MotionSenseCmd::Info
+    pub cmd: u8,
+    /// Sensor index
+    pub sensor_num: u8,
+}
+
+#[repr(C)]
+pub struct EcResponseMotionSenseInfo {
+    /// See enum MotionSenseInfo
+    pub sensor_type: u8,
+    /// See enum MotionSenseLocation
+    pub location: u8,
+    /// See enum MotionSenseChip
+    pub chip: u8,
+}
+
+#[derive(Debug)]
+pub struct MotionSenseInfo {
+    pub sensor_type: MotionSenseType,
+    pub location: MotionSenseLocation,
+    pub chip: MotionSenseChip,
+}
+
+impl EcRequest<EcResponseMotionSenseInfo> for EcRequestMotionSenseInfo {
+    fn command_id() -> EcCommands {
+        EcCommands::MotionSense
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+
 pub enum TabletModeOverride {
     Default = 0,
     ForceTablet = 1,

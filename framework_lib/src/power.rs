@@ -1,5 +1,6 @@
 //! Get information about system power (battery, AC, PD ports)
 
+use alloc::format;
 use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
@@ -10,11 +11,11 @@ use log::Level;
 
 use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, MainPdVersions};
 use crate::chromium_ec::command::EcRequestRaw;
-use crate::chromium_ec::commands::{EcRequestReadPdVersion, EcRequestUsbPdPowerInfo};
-use crate::chromium_ec::{print_err_ref, CrosEc, CrosEcDriver, EcResult};
+use crate::chromium_ec::commands::*;
+use crate::chromium_ec::*;
 use crate::smbios;
 use crate::smbios::get_platform;
-use crate::util::Platform;
+use crate::util::{Platform, PlatformFamily};
 
 /// Maximum length of strings in memmap
 const EC_MEMMAP_TEXT_MAX: u16 = 8;
@@ -245,9 +246,15 @@ pub fn print_memmap_version_info(ec: &CrosEc) {
 }
 
 /// Not supported on TGL EC
-pub fn get_als_reading(ec: &CrosEc) -> Option<u32> {
+pub fn get_als_reading(ec: &CrosEc, index: usize) -> Option<u32> {
     let als = ec.read_memory(EC_MEMMAP_ALS, 0x04)?;
-    Some(u32::from_le_bytes([als[0], als[1], als[2], als[3]]))
+    let offset = index + 4 * index;
+    Some(u32::from_le_bytes([
+        als[offset],
+        als[1 + offset],
+        als[2 + offset],
+        als[3 + offset],
+    ]))
 }
 
 pub fn get_accel_data(ec: &CrosEc) -> (AccelData, AccelData, LidAngle) {
@@ -274,8 +281,40 @@ pub fn get_accel_data(ec: &CrosEc) -> (AccelData, AccelData, LidAngle) {
 }
 
 pub fn print_sensors(ec: &CrosEc) {
-    let als_int = get_als_reading(ec).unwrap();
-    println!("ALS: {:>4} Lux", als_int);
+    let mut has_als = false;
+    let mut accel_locations = vec![];
+
+    match ec.motionsense_sensor_info() {
+        Ok(sensors) => {
+            info!("Sensors: {}", sensors.len());
+            for sensor in sensors {
+                info!("  Type: {:?}", sensor.sensor_type);
+                info!("  Location: {:?}", sensor.location);
+                info!("  Chip:     {:?}", sensor.chip);
+                if sensor.sensor_type == MotionSenseType::Light {
+                    has_als = true;
+                }
+                if sensor.sensor_type == MotionSenseType::Accel {
+                    accel_locations.push(sensor.location);
+                }
+            }
+        }
+        Err(EcError::Response(EcResponseStatus::InvalidCommand)) => {
+            debug!("Motionsense commands not supported")
+        }
+        err => _ = print_err(err),
+    }
+
+    // If we can't detect it based on motionsense
+    let als_family = matches!(
+        smbios::get_family(),
+        Some(PlatformFamily::Framework13) | Some(PlatformFamily::Framework16)
+    );
+
+    if has_als || als_family {
+        let als_int = get_als_reading(ec, 0).unwrap();
+        println!("ALS: {:>4} Lux", als_int);
+    }
 
     // bit 4 = busy
     // bit 7 = present
@@ -294,18 +333,22 @@ pub fn print_sensors(ec: &CrosEc) {
         debug!("  Status Bit: {} 0x{:X}", acc_status, acc_status);
         debug!("  Present:    {}", present);
         debug!("  Busy:       {}", (acc_status & 0x8) > 0);
-        print!("  Lid Angle:  ");
+        print!("  Lid Angle:   ");
         if lid_angle == LID_ANGLE_UNRELIABLE {
             println!("Unreliable");
         } else {
             println!("{} Deg", lid_angle);
         }
-        println!("  Sensor 1:   {}", AccelData::from(accel_1));
-        println!("  Sensor 2:   {}", AccelData::from(accel_2));
-        // Accelerometers
-        //   Lid Angle: 26 Deg
-        //   Sensor 1:  00.00 X 00.00 Y 00.00 Z
-        //   Sensor 2:  00.00 X 00.00 Y 00.00 Z
+        println!(
+            "  {:<12} {}",
+            format!("{:?} Sensor:", accel_locations[0]),
+            AccelData::from(accel_1)
+        );
+        println!(
+            "  {:<12} {}",
+            format!("{:?} Sensor:", accel_locations[1]),
+            AccelData::from(accel_2)
+        );
     }
 }
 

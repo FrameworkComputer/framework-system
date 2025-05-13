@@ -6,7 +6,7 @@ use std::prelude::v1::*;
 use std::io::ErrorKind;
 
 use crate::util::Config;
-pub use crate::util::Platform;
+pub use crate::util::{Platform, PlatformFamily};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use smbioslib::*;
@@ -269,6 +269,10 @@ pub fn get_baseboard_version() -> Option<ConfigDigit0> {
         }
         None
     })
+}
+
+pub fn get_family() -> Option<PlatformFamily> {
+    get_platform().and_then(Platform::which_family)
 }
 
 pub fn get_platform() -> Option<Platform> {
