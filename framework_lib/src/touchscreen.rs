@@ -207,8 +207,14 @@ pub trait TouchScreen {
         println!("  Firmware Version: v{}", ver);
 
         let res = self.send_message(0x20, 16, vec![0])?;
-        println!("  USI Protocol:     {:?}", (res[15] & USI_BITMAP) > 0);
-        println!("  MPP Protocol:     {:?}", (res[15] & MPP_BITMAP) > 0);
+        let mut protocols = vec![];
+        if (res[15] & USI_BITMAP) > 0 {
+            protocols.push("USI");
+        }
+        if (res[15] & MPP_BITMAP) > 0 {
+            protocols.push("MPP");
+        }
+        println!("  Protocols:        {}", protocols.join(", "));
 
         Some(())
     }

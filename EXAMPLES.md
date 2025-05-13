@@ -56,8 +56,7 @@ Laptop Webcam Module (2nd Gen)
 [...]
 Touchscreen
   Firmware Version: v7.0.0.5.0.0.0.0
-  USI Protocol:     false
-  MPP Protocol:     true
+  Protocols:        USI
 ```
 
 ### Stylus (Framework 12)
