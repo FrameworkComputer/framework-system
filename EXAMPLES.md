@@ -129,6 +129,16 @@ DisplayPort Expansion Card
   Operating Mode:       MainFw (#2)
 ```
 
+### CSME Version (Linux on Intel systems)
+
+```
+> framework_tool --versions
+[...]
+CSME
+  Firmware Version: 0:16.1.32.2473
+[...]
+```
+
 ## Check input deck status
 
 ### On Framework 12
