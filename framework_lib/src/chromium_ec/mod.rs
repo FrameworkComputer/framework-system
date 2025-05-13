@@ -633,6 +633,13 @@ impl CrosEc {
         Ok((kblight.duty / (PWM_MAX_DUTY / 100)) as u8)
     }
 
+    pub fn ps2_emulation_enable(&self, enable: bool) -> EcResult<()> {
+        EcRequestDisablePs2Emulation {
+            disable: !enable as u8,
+        }
+        .send_command(self)
+    }
+
     pub fn fan_set_rpm(&self, fan: Option<u32>, rpm: u32) -> EcResult<()> {
         if let Some(fan_idx) = fan {
             EcRequestPwmSetFanTargetRpmV1 { rpm, fan_idx }.send_command(self)

@@ -182,6 +182,7 @@ pub struct Cli {
     pub fp_brightness: Option<Option<u8>>,
     pub kblight: Option<Option<u8>>,
     pub rgbkbd: Vec<u64>,
+    pub ps2_enable: Option<bool>,
     pub tablet_mode: Option<TabletModeArg>,
     pub touchscreen_enable: Option<bool>,
     pub stylus_battery: bool,
@@ -823,6 +824,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             });
             ec.rgbkbd_set_color(start_key, colors.collect()).unwrap();
         }
+    } else if let Some(enable) = args.ps2_enable {
+        print_err(ec.ps2_emulation_enable(enable));
     } else if let Some(None) = args.kblight {
         print!("Keyboard backlight: ");
         if let Some(percentage) = print_err(ec.get_keyboard_backlight()) {

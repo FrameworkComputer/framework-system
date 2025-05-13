@@ -1231,6 +1231,17 @@ impl EcRequest<EcResponseChargeLimitControl> for EcRequestChargeLimitControl {
 /// TODO: Use this
 pub const EC_CHARGE_LIMIT_RESTORE: u8 = 0x7F;
 
+#[repr(C, packed)]
+pub struct EcRequestDisablePs2Emulation {
+    pub disable: u8,
+}
+
+impl EcRequest<()> for EcRequestDisablePs2Emulation {
+    fn command_id() -> EcCommands {
+        EcCommands::DisablePs2Emulation
+    }
+}
+
 #[repr(u8)]
 #[derive(Debug, FromPrimitive)]
 pub enum FpLedBrightnessLevel {
