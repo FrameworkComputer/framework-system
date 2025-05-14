@@ -57,6 +57,12 @@ pub const MTL_BIOS_GUID: GUID = GUID::build_from_components(
     0x5ec2,
     &[0xa9, 0xff, 0xc7, 0x39, 0xaa, 0xba, 0xad, 0xf3],
 );
+pub const FW12_RPL_BIOS_GUID: GUID = GUID::build_from_components(
+    0x6bc0986c,
+    0xd281,
+    0x5ba3,
+    &[0x96, 0x5c, 0x2f, 0x8d, 0x13, 0xe1, 0xee, 0xe8],
+);
 
 pub const TGL_RETIMER01_GUID: GUID = GUID::build_from_components(
     0x832af090,
@@ -125,6 +131,12 @@ pub const RPL_CSME_GUID: GUID = GUID::build_from_components(
     0x4734,
     &[0xb4, 0x3e, 0x55, 0xdb, 0x5a, 0x55, 0x7d, 0x63],
 );
+pub const RPL_U_CSME_GUID: GUID = GUID::build_from_components(
+    0x0f74c56d,
+    0xd5ba,
+    0x4942,
+    &[0x96, 0xfa, 0xd3, 0x75, 0x60, 0xf4, 0x05, 0x54],
+);
 pub const MTL_CSME_GUID: GUID = GUID::build_from_components(
     0x32d8d677,
     0xeebc,
@@ -159,6 +171,7 @@ pub enum FrameworkGuidKind {
     MtlRetimer01,
     MtlRetimer23,
     RplCsme,
+    RplUCsme,
     MtlCsme,
     Fl16Bios,
     Amd13Bios,
@@ -172,6 +185,7 @@ pub fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
         ADL_BIOS_GUID => FrameworkGuidKind::AdlBios,
         RPL_BIOS_GUID => FrameworkGuidKind::RplBios,
         MTL_BIOS_GUID => FrameworkGuidKind::MtlBios,
+        FW12_RPL_BIOS_GUID => FrameworkGuidKind::Fw12RplBios,
         FL16_BIOS_GUID => FrameworkGuidKind::Fl16Bios,
         AMD13_BIOS_GUID => FrameworkGuidKind::Amd13Bios,
         TGL_RETIMER01_GUID => FrameworkGuidKind::TglRetimer01,
@@ -183,6 +197,7 @@ pub fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
         MTL_RETIMER01_GUID => FrameworkGuidKind::MtlRetimer01,
         MTL_RETIMER23_GUID => FrameworkGuidKind::MtlRetimer23,
         RPL_CSME_GUID => FrameworkGuidKind::RplCsme,
+        RPL_U_CSME_GUID => FrameworkGuidKind::RplUCsme,
         MTL_CSME_GUID => FrameworkGuidKind::MtlCsme,
         WINUX_GUID => FrameworkGuidKind::WinUx,
         _ => FrameworkGuidKind::Unknown,
