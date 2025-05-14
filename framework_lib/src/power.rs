@@ -798,6 +798,9 @@ pub fn is_charging(ec: &CrosEc) -> EcResult<(bool, bool)> {
     Ok((port0 || port1, port2 || port3))
 }
 
+fn parse_pd_ver_slice(data: &[u8]) -> ControllerVersion {
+    parse_pd_ver(&[data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]])
+}
 fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
     ControllerVersion {
         base: BaseVersion {
@@ -818,12 +821,28 @@ fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
 // NOTE: Only works on ADL at the moment!
 // TODO: Not on TGL, need to check if RPL and later have it.
 pub fn read_pd_version(ec: &CrosEc) -> EcResult<MainPdVersions> {
-    let info = EcRequestReadPdVersion {}.send_command(ec)?;
+    let info = EcRequestReadPdVersionV1 {}.send_command_vec(ec)?;
+    info!("Info: {:?}", info);
 
-    Ok(MainPdVersions {
-        controller01: parse_pd_ver(&info.controller01),
-        controller23: parse_pd_ver(&info.controller23),
-    })
+    let pd_count = info[0] as usize;
+    println!("PD Controllers: {}", pd_count);
+    for i in 0..pd_count {
+        println!("PD {}:", i+1);
+        // TODO: Is there a safer way to check the range?
+        if info.len() < 1+8*(i+1) {
+            return Err(EcError::DeviceError("Not enough data returned".to_string()))?
+        }
+        println!("  {:X?}", parse_pd_ver_slice(&info[1+8*i..1+8*(i+1)]));
+    }
+
+    unreachable!();
+
+    // let info = EcRequestReadPdVersionV0 {}.send_command(ec)?;
+
+    // Ok(MainPdVersions {
+    //     controller01: parse_pd_ver(&info.controller01),
+    //     controller23: parse_pd_ver(&info.controller23),
+    // })
 }
 
 pub fn standalone_mode(ec: &CrosEc) -> bool {
