@@ -11,7 +11,7 @@ use uefi::Identify;
 
 use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::{CrosEcDriverType, HardwareDeviceType};
-use crate::commandline::Cli;
+use crate::commandline::{Cli, LogLevel};
 
 use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, RebootEcArg, TabletModeArg};
 
@@ -54,7 +54,7 @@ pub fn get_args(boot_services: &BootServices) -> Vec<String> {
 
 pub fn parse(args: &[String]) -> Cli {
     let mut cli = Cli {
-        verbosity: log::LevelFilter::Error,
+        verbosity: LogLevel(log::LevelFilter::Error),
         paginate: false,
         versions: false,
         version: false,
@@ -124,15 +124,15 @@ pub fn parse(args: &[String]) -> Cli {
 
     for (i, arg) in args.iter().enumerate() {
         if arg == "-q" {
-            cli.verbosity = log::LevelFilter::Off;
+            cli.verbosity = LogLevel(log::LevelFilter::Off);
         } else if arg == "-v" {
-            cli.verbosity = log::LevelFilter::Warn;
+            cli.verbosity = LogLevel(log::LevelFilter::Warn);
         } else if arg == "-vv" {
-            cli.verbosity = log::LevelFilter::Info;
+            cli.verbosity = LogLevel(log::LevelFilter::Info);
         } else if arg == "-vvv" {
-            cli.verbosity = log::LevelFilter::Debug;
+            cli.verbosity = LogLevel(log::LevelFilter::Debug);
         } else if arg == "-vvvv" {
-            cli.verbosity = log::LevelFilter::Trace;
+            cli.verbosity = LogLevel(log::LevelFilter::Trace);
         } else if arg == "--versions" {
             cli.versions = true;
             found_an_option = true;
