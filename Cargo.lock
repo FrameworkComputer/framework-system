@@ -415,7 +415,7 @@ dependencies = [
  "clap-num",
  "clap-verbosity-flag",
  "env_logger",
- "guid_macros",
+ "guid-create",
  "hidapi",
  "lazy_static",
  "libc",
@@ -581,12 +581,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "guid_macros"
-version = "0.11.0"
+name = "guid-create"
+version = "0.4.1"
+source = "git+https://github.com/FrameworkComputer/guid-create?branch=no-rand#84c3ad2e8b64a12beebb460804a65da55434cfd9"
 dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.98",
+ "winapi",
 ]
 
 [[package]]

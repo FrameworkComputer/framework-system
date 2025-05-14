@@ -11,9 +11,6 @@ members = [
     "framework_uefi",
     # Catchall library that we'll probably want to split up further
     "framework_lib",
-    # Fork of https://github.com/rust-osdev/uefi-rs/blob/main/uefi-macros
-    # To avoid pulling in UEFI dependencies when building for an OS
-    "guid_macros",
 ]
 
 # Don't build UEFI by default. Needs special cargo invocation

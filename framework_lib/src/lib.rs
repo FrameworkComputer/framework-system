@@ -37,8 +37,6 @@ pub mod commandline;
 pub mod csme;
 pub mod ec_binary;
 pub mod esrt;
-#[cfg(not(feature = "uefi"))]
-pub mod guid;
 mod os_specific;
 pub mod power;
 pub mod smbios;
