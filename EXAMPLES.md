@@ -403,3 +403,39 @@ sudo framework_tool --rgbkbd 2 0xFF0000
 > sudo framework_tool --stylus-battery
 Stylus Battery Strength: 77%
 ```
+
+## Remap keyboard
+
+Note that the keyboard matrix on Framework 12 and Framework 13 are
+different.
+The scancodes are the same.
+
+- Left-Ctrl 0x0014
+- Left-Alt 0x0014
+- Tab 0x0058
+
+### Framework 12
+
+```
+# Remap capslock key as left-ctrl
+> framework_tool --remap-key 6 15 0x0014
+
+# Swap left-ctrl and alt
+> framework_tool --remap-key 1 14 0x0011
+> framework_tool --remap-key 6 13 0x0014
+```
+
+### Framework 13
+
+```
+# Remap capslock key as left-ctrl
+> framework_tool --remap-key 4 4 0x0014
+
+# Swap left-ctrl and alt
+> framework_tool --remap-key 1 12 0x0011
+> framework_tool --remap-key 1 3 0x0014
+```
+
+### Framework 16
+
+It's not controlled by the EC, use https://keyboard.frame.work.

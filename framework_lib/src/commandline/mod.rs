@@ -181,6 +181,7 @@ pub struct Cli {
     pub fp_led_level: Option<Option<FpBrightnessArg>>,
     pub fp_brightness: Option<Option<u8>>,
     pub kblight: Option<Option<u8>>,
+    pub remap_key: Option<(u8, u8, u16)>,
     pub rgbkbd: Vec<u64>,
     pub ps2_enable: Option<bool>,
     pub tablet_mode: Option<TabletModeArg>,
@@ -840,6 +841,15 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(Some(kblight)) = args.kblight {
         assert!(kblight <= 100);
         ec.set_keyboard_backlight(kblight);
+    } else if let Some(None) = args.kblight {
+        print!("Keyboard backlight: ");
+        if let Some(percentage) = print_err(ec.get_keyboard_backlight()) {
+            println!("{}%", percentage);
+        } else {
+            println!("Unable to tell");
+        }
+    } else if let Some((row, col, scanset)) = args.remap_key {
+        print_err(ec.remap_key(row, col, scanset));
     } else if !args.rgbkbd.is_empty() {
         if args.rgbkbd.len() < 2 {
             println!(
@@ -857,13 +867,6 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(enable) = args.ps2_enable {
         print_err(ec.ps2_emulation_enable(enable));
-    } else if let Some(None) = args.kblight {
-        print!("Keyboard backlight: ");
-        if let Some(percentage) = print_err(ec.get_keyboard_backlight()) {
-            println!("{}%", percentage);
-        } else {
-            println!("Unable to tell");
-        }
     } else if let Some(tablet_arg) = &args.tablet_mode {
         let mode = match tablet_arg {
             TabletModeArg::Auto => TabletModeOverride::Default,

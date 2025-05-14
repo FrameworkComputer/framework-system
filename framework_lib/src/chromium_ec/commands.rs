@@ -928,6 +928,31 @@ impl EcRequest<EcResponseFlashNotify> for EcRequestFlashNotify {
 }
 
 #[repr(C, packed)]
+pub struct KeyboardMatrixMap {
+    pub row: u8,
+    pub col: u8,
+    pub scanset: u16,
+}
+#[repr(C, packed)]
+pub struct EcRequestUpdateKeyboardMatrix {
+    pub num_items: u32,
+    pub write: u32,
+    pub scan_update: [KeyboardMatrixMap; 1],
+}
+#[repr(C, packed)]
+pub struct EcResponseUpdateKeyboardMatrix {
+    pub num_items: u32,
+    pub write: u32,
+    pub scan_update: [KeyboardMatrixMap; 32],
+}
+
+impl EcRequest<EcResponseUpdateKeyboardMatrix> for EcRequestUpdateKeyboardMatrix {
+    fn command_id() -> EcCommands {
+        EcCommands::UpdateKeyboardMatrix
+    }
+}
+
+#[repr(C, packed)]
 pub struct EcRequestChassisOpenCheck {}
 
 #[repr(C, packed)]
