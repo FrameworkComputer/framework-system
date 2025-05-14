@@ -126,14 +126,12 @@ make -C framework_uefi
 ls -l framework_uefi/build/x86_64-unknown-uefi/boot.efi
 ```
 
-Building on Windows or in general with fewer features:
+## Install local package
 
-```ps1
-# Build the library and tool
-cargo build
-
-# Running the tool
-cargo run
+```
+> cargo install --path framework_tool
+> which framework_tool
+/home/zoid/.cargo/bin/framework_tool
 ```
 
 ## Running

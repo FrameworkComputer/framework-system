@@ -3,6 +3,10 @@ name = "framework_tool"
 version = "0.4.1"
 edition = "2021"
 
+[[bin]]
+name = "framework_tool"
+path = "src/main.rs"
+
 [dependencies.framework_lib]
 path = "../framework_lib"
 
