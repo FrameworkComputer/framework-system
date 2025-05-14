@@ -247,7 +247,7 @@ fn print_audio_card_details() {
 }
 
 #[cfg(feature = "hidapi")]
-fn print_dp_hdmi_details() {
+fn print_dp_hdmi_details(verbose: bool) {
     match HidApi::new() {
         Ok(api) => {
             for dev_info in find_devices(&api, &[HDMI_CARD_PID, DP_CARD_PID], None) {
@@ -265,11 +265,11 @@ fn print_dp_hdmi_details() {
                     dev_info.product_string().unwrap_or(NOT_SET)
                 );
 
-                println!(
+                debug!(
                     "  Serial Number:        {}",
                     dev_info.serial_number().unwrap_or(NOT_SET)
                 );
-                check_ccg_fw_version(&device);
+                check_ccg_fw_version(&device, verbose);
             }
         }
         Err(e) => {
@@ -374,11 +374,13 @@ fn print_versions(ec: &CrosEc) {
 
     println!("EC Firmware");
     let ver = print_err(ec.version_info()).unwrap_or_else(|| "UNKNOWN".to_string());
-    println!("  Build version:  {:?}", ver);
+    println!("  Build version:  {}", ver);
 
     if let Some((ro, rw, curr)) = ec.flash_version() {
-        println!("  RO Version:     {:?}", ro);
-        println!("  RW Version:     {:?}", rw);
+        if ro != rw || log_enabled!(Level::Info) {
+            println!("  RO Version:     {}", ro);
+            println!("  RW Version:     {}", rw);
+        }
         print!("  Current image:  ");
         if curr == chromium_ec::EcCurrentImage::RO {
             println!("RO");
@@ -398,53 +400,78 @@ fn print_versions(ec: &CrosEc) {
     if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
         let right = &pd_versions.controller01;
         let left = &pd_versions.controller23;
-        println!("  Right (01)");
         // let active_mode =
         if let Some(Platform::IntelGen11) = smbios::get_platform() {
+            if right.main_fw.base != right.backup_fw.base {
+                println!("  Right (01)");
+                println!(
+                    "    Main:           {}{}",
+                    right.main_fw.base,
+                    active_mode(&right.active_fw, FwMode::MainFw)
+                );
+                println!(
+                    "    Backup:         {}{}",
+                    right.backup_fw.base,
+                    active_mode(&right.active_fw, FwMode::BackupFw)
+                );
+            } else {
+                println!(
+                    "  Right (01):       {} ({:?})",
+                    right.main_fw.base, right.active_fw
+                );
+            }
+        } else if right.main_fw.app != right.backup_fw.app {
             println!(
-                "    Main:       {}{}",
-                right.main_fw.base,
-                active_mode(&right.active_fw, FwMode::MainFw)
-            );
-            println!(
-                "    Backup:     {}{}",
-                right.backup_fw.base,
-                active_mode(&right.active_fw, FwMode::BackupFw)
-            );
-        } else {
-            println!(
-                "    Main:       {}{}",
+                "    Main:           {}{}",
                 right.main_fw.app,
                 active_mode(&right.active_fw, FwMode::MainFw)
             );
             println!(
-                "    Backup:     {}{}",
+                "    Backup:         {}{}",
                 right.backup_fw.app,
                 active_mode(&right.active_fw, FwMode::BackupFw)
             );
-        }
-        println!("  Left  (23)");
-        if let Some(Platform::IntelGen11) = smbios::get_platform() {
-            println!(
-                "    Main:       {}{}",
-                left.main_fw.base,
-                active_mode(&left.active_fw, FwMode::MainFw)
-            );
-            println!(
-                "    Backup:     {}{}",
-                left.backup_fw.base,
-                active_mode(&left.active_fw, FwMode::BackupFw)
-            );
         } else {
             println!(
-                "    Main:       {}{}",
+                "  Right (01):       {} ({:?})",
+                right.main_fw.app, right.active_fw
+            );
+        }
+        if let Some(Platform::IntelGen11) = smbios::get_platform() {
+            if left.main_fw.base != left.backup_fw.base {
+                println!("  Left  (23)");
+                println!(
+                    "    Main:           {}{}",
+                    left.main_fw.base,
+                    active_mode(&left.active_fw, FwMode::MainFw)
+                );
+                println!(
+                    "    Backup:         {}{}",
+                    left.backup_fw.base,
+                    active_mode(&left.active_fw, FwMode::BackupFw)
+                );
+            } else {
+                println!(
+                    "  Left  (23):       {} ({:?})",
+                    left.main_fw.base, left.active_fw
+                );
+            }
+        } else if left.main_fw.app != left.backup_fw.app {
+            println!("  Left  (23)");
+            println!(
+                "    Main:           {}{}",
                 left.main_fw.app,
                 active_mode(&left.active_fw, FwMode::MainFw)
             );
             println!(
-                "    Backup:     {}{}",
+                "    Backup:         {}{}",
                 left.backup_fw.app,
                 active_mode(&left.active_fw, FwMode::BackupFw)
+            );
+        } else {
+            println!(
+                "  Left  (23):       {} ({:?})",
+                left.main_fw.app, left.active_fw
             );
         }
     } else if let Ok(pd_versions) = power::read_pd_version(ec) {
@@ -501,10 +528,12 @@ fn print_versions(ec: &CrosEc) {
     {
         println!("CSME");
         if let Ok(csme) = csme::csme_from_sysfs() {
-            println!("  Enabled:        {}", csme.enabled);
-            println!("  Version:        {}", csme.main_ver);
-            println!("  Recovery Ver:   {}", csme.recovery_ver);
-            println!("  Original Ver:   {}", csme.fitc_ver);
+            info!("  Enabled:          {}", csme.enabled);
+            println!("  Firmware Version: {}", csme.main_ver);
+            if csme.main_ver != csme.recovery_ver || csme.main_ver != csme.fitc_ver {
+                println!("  Recovery Ver:     {}", csme.recovery_ver);
+                println!("  Original Ver:     {}", csme.fitc_ver);
+            }
         } else {
             println!("  Unknown");
         }
@@ -522,6 +551,8 @@ fn print_versions(ec: &CrosEc) {
     if let Some(Platform::Framework12IntelGen13) = smbios::get_platform() {
         let _ignore_err = touchscreen::print_fw_ver();
     }
+    #[cfg(feature = "hidapi")]
+    print_dp_hdmi_details(false);
 }
 
 fn print_esrt() {
@@ -916,7 +947,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_pd_details(&ec);
     } else if args.dp_hdmi_info {
         #[cfg(feature = "hidapi")]
-        print_dp_hdmi_details();
+        print_dp_hdmi_details(true);
     } else if let Some(pd_bin_path) = &args.dp_hdmi_update {
         #[cfg(feature = "hidapi")]
         flash_dp_hdmi_card(pd_bin_path);

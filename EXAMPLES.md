@@ -15,17 +15,11 @@ UEFI BIOS
   Version:        03.00
   Release Date:   03/10/2025
 EC Firmware
-  Build version:  "lilac-3.0.0-1541dc6 2025-05-05 11:31:24 zoid@localhost"
-  RO Version:     "lilac-3.0.0-1541dc6"
-  RW Version:     "lilac-3.0.0-1541dc6"
+  Build version:  lilac-3.0.0-1541dc6 2025-05-05 11:31:24 zoid@localhost
   Current image:  RO
 PD Controllers
-  Right (01)
-    Main:       0.0.0E (Active)
-    Backup:     0.0.0E
-  Left  (23)
-    Main:       0.0.0E (Active)
-    Backup:     0.0.0E
+  Right (01):       0.0.0E (MainFw)
+  Left  (23):       0.0.0E (MainFw)
 [...]
 ```
 
@@ -56,8 +50,7 @@ Laptop Webcam Module (2nd Gen)
 [...]
 Touchscreen
   Firmware Version: v7.0.0.5.0.0.0.0
-  USI Protocol:     false
-  MPP Protocol:     true
+  Protocols:        USI
 ```
 
 ### Stylus (Framework 12)
@@ -79,7 +72,6 @@ Stylus
 > framework_tool --versions
 [...]
 Touchpad
-  IC Type:           0239
   Firmware Version: v0E07
 ```
 
@@ -111,6 +103,35 @@ Laptop 16 ANSI Keyboard
 LED Matrix
   Firmware Version: 0.2.0
   Location: [ ] [ ] [ ]       [ ] [x]
+[...]
+```
+
+### DisplayPort or HDMI Expansion Card
+
+```
+> framework_tool --dp-hdmi-info
+DisplayPort Expansion Card
+  Serial Number:        11AD1D0030123F17142C0B00
+  Active Firmware:      101 (3.0.11.065)
+  Inactive Firmware:    008 (3.0.11.008)
+  Operating Mode:       MainFw (#2)
+
+# Or
+> framework_tool --versions
+[...]
+DisplayPort Expansion Card
+  Active Firmware:      101 (3.0.11.065)
+  Inactive Firmware:    008 (3.0.11.008)
+  Operating Mode:       MainFw (#2)
+```
+
+### CSME Version (Linux on Intel systems)
+
+```
+> framework_tool --versions
+[...]
+CSME
+  Firmware Version: 0:16.1.32.2473
 [...]
 ```
 

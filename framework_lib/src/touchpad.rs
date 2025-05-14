@@ -59,7 +59,7 @@ pub fn print_touchpad_fw_ver() -> Result<(), HidError> {
                 let device = dev_info.open_device(&api).unwrap();
 
                 println!("Touchpad");
-                println!("  IC Type:           {:04X}", pid);
+                info!("  IC Type:           {:04X}", pid);
 
                 let ver = match pid {
                     0x0239 => format!("{:04X}", read_239_ver(&device)?),
