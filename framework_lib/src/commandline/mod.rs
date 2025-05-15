@@ -570,19 +570,14 @@ fn flash_ec(ec: &CrosEc, ec_bin_path: &str, flash_type: EcFlashType) {
     let data = crate::uefi::fs::shell_read_file(ec_bin_path);
     #[cfg(not(feature = "uefi"))]
     let data: Option<Vec<u8>> = {
-        let _data = match fs::read(ec_bin_path) {
+        match fs::read(ec_bin_path) {
             Ok(data) => Some(data),
             // TODO: Perhaps a more user-friendly error
             Err(e) => {
                 println!("Error {:?}", e);
                 None
             }
-        };
-
-        // EC communication from OS is not stable enough yet,
-        // it can't be trusted to reliably flash the EC without risk of damage.
-        println!("Sorry, flashing EC from the OS is not supported yet.");
-        None
+        }
     };
 
     if let Some(data) = data {
