@@ -74,11 +74,20 @@ jobs:
         name: framework.efi
         path: framework_uefi/build/x86_64-unknown-uefi/boot.efi
 
-    - name: Install mtools to build ESP (Linux)
-      run: sudo apt-get install -y mtools
+    - name: Install mtools to build ESP and ISO (Linux)
+      run: sudo apt-get install -y mtools genisoimage
 
     - name: Build ESP (Linux)
       run: make -C framework_uefi
+
+    - name: Build ISO (Linux)
+      run: make -C framework_uefi iso
+
+    - name: Upload UEFI App ISO
+      uses: actions/upload-artifact@v4
+      with:
+        name: UEFI-Shell-fwk.iso
+        path: framework_uefi/build/x86_64-unknown-uefi/UEFI-Shell-fwk.iso
 
   build-windows:
     name: Build Windows

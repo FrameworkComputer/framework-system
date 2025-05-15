@@ -15,6 +15,8 @@ QEMU_FLAGS=\
 
 all: $(BUILD)/boot.img
 
+iso: $(BUILD)/UEFI-Shell-fwk.iso
+
 clean:
 	rm -r $(BUILD)
 
@@ -38,6 +40,19 @@ $(BUILD)/efi.img: $(BUILD)/boot.efi
 	mmd -i $@.tmp efi/boot
 	mcopy -i $@.tmp $< ::efi/boot/bootx64.efi
 	mv $@.tmp $@
+
+$(BUILD)/shellx64.efi:
+	wget https://github.com/pbatard/UEFI-Shell/releases/download/24H2/shellx64.efi -O $@
+
+$(BUILD)/UEFI-Shell-fwk.iso: $(BUILD)/boot.efi $(BUILD)/shellx64.efi
+	mkdir -p $(BUILD)/$@.tmp/efi/boot
+	cp $(BUILD)/boot.efi $(BUILD)/$@.tmp/efi/boot/fwk.efi
+	cp $(BUILD)/shellx64.efi $(BUILD)/$@.tmp/efi/boot/bootx64.efi
+	genisoimage -v \
+		-V "UEFI SHELL with fwk.efi" \
+		-JR \
+		-o "$(BUILD)/UEFI-Shell-fwk.iso" \
+		$(BUILD)/$@.tmp
 
 $(BUILD)/boot.efi: ../Cargo.lock $(SRC_DIR)/Cargo.toml $(SRC_DIR)/src/*
 	  mkdir -p $(BUILD)
