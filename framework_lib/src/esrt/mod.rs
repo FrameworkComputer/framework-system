@@ -14,13 +14,8 @@
 use log::{debug, error, info, trace};
 use std::prelude::v1::*;
 
-#[cfg(not(feature = "uefi"))]
-use crate::guid::Guid;
 use core::prelude::v1::derive;
-#[cfg(not(feature = "uefi"))]
-use guid_macros::guid;
-#[cfg(feature = "uefi")]
-use uefi::{guid, Guid};
+use guid_create::{Guid, GUID};
 
 #[cfg(target_os = "linux")]
 use std::fs;
@@ -38,66 +33,133 @@ use std::os::fd::AsRawFd;
 #[cfg(target_os = "freebsd")]
 use std::os::unix::fs::OpenOptionsExt;
 
-/// Decode from GUID string version
-///
-/// # Examples
-/// ```
-/// use framework_lib::esrt::*;
-/// use framework_lib::guid::*;
-///
-/// let valid_guid = Guid::from_values(0xA9C91B0C, 0xC0B8, 0x463D, 0xA7DA, 0xA5D6EC646333);
-/// // Works with lower-case
-/// let guid = guid_from_str("a9c91b0c-c0b8-463d-a7da-a5d6ec646333");
-/// assert_eq!(guid, Some(valid_guid));
-/// // And upper-case
-/// let guid = guid_from_str("A9C91B0C-C0B8-463D-A7DA-A5D6EC646333");
-/// assert_eq!(guid, Some(valid_guid));
-///
-/// let guid = guid_from_str("invalid-guid");
-/// assert_eq!(guid, None);
-/// ```
-pub fn guid_from_str(string: &str) -> Option<Guid> {
-    let string = string.strip_suffix('\n').unwrap_or(string);
-    let sections: Vec<&str> = string.split('-').collect();
-    let time_low = u32::from_str_radix(sections[0], 16).ok()?;
-    let time_mid = u16::from_str_radix(sections[1], 16).ok()?;
-    let time_high_and_version = u16::from_str_radix(sections[2], 16).ok()?;
-    let clock_seq_and_variant = u16::from_str_radix(sections[3], 16).ok()?;
-    let node = u64::from_str_radix(sections[4], 16).ok()?;
+pub const TGL_BIOS_GUID: GUID = GUID::build_from_components(
+    0xb3bdb2e4,
+    0xc5cb,
+    0x5c1b,
+    &[0xbd, 0xc3, 0xe6, 0xfc, 0x13, 0x24, 0x62, 0xff],
+);
+pub const ADL_BIOS_GUID: GUID = GUID::build_from_components(
+    0xa30a8cf3,
+    0x847f,
+    0x5e59,
+    &[0xbd, 0x59, 0xf9, 0xec, 0x14, 0x5c, 0x1a, 0x8c],
+);
+pub const RPL_BIOS_GUID: GUID = GUID::build_from_components(
+    0x13fd4ed2,
+    0xcba9,
+    0x50ba,
+    &[0xbb, 0x91, 0xae, 0xce, 0x0a, 0xcb, 0x4c, 0xc3],
+);
+pub const MTL_BIOS_GUID: GUID = GUID::build_from_components(
+    0x72cecb9b,
+    0x2b37,
+    0x5ec2,
+    &[0xa9, 0xff, 0xc7, 0x39, 0xaa, 0xba, 0xad, 0xf3],
+);
+pub const FW12_RPL_BIOS_GUID: GUID = GUID::build_from_components(
+    0x6bc0986c,
+    0xd281,
+    0x5ba3,
+    &[0x96, 0x5c, 0x2f, 0x8d, 0x13, 0xe1, 0xee, 0xe8],
+);
 
-    Some(Guid::from_values(
-        time_low,
-        time_mid,
-        time_high_and_version,
-        clock_seq_and_variant,
-        node,
-    ))
-}
+pub const TGL_RETIMER01_GUID: GUID = GUID::build_from_components(
+    0x832af090,
+    0x2ef9,
+    0x7c47,
+    &[0x8f, 0x6d, 0xb4, 0x05, 0xc8, 0xc7, 0xf1, 0x56],
+);
+pub const TGL_RETIMER23_GUID: GUID = GUID::build_from_components(
+    0x20ef4108,
+    0x6c64,
+    0xd049,
+    &[0xb6, 0xde, 0x11, 0xee, 0x35, 0x98, 0x0b, 0x8f],
+);
+pub const ADL_RETIMER01_GUID: GUID = GUID::build_from_components(
+    0xa9c91b0c,
+    0xc0b8,
+    0x463d,
+    &[0xa7, 0xda, 0xa5, 0xd6, 0xec, 0x64, 0x63, 0x33],
+);
+pub const ADL_RETIMER23_GUID: GUID = GUID::build_from_components(
+    0xba2e4e6e,
+    0x3b0c,
+    0x4f25,
+    &[0x8a, 0x59, 0x4c, 0x55, 0x3f, 0xc8, 0x6e, 0xa2],
+);
+pub const RPL_RETIMER01_GUID: GUID = GUID::build_from_components(
+    0x0c42b824,
+    0x818f,
+    0x428f,
+    &[0x86, 0x87, 0x5e, 0xfc, 0xaf, 0x05, 0x9b, 0xea],
+);
+pub const RPL_RETIMER23_GUID: GUID = GUID::build_from_components(
+    0x268ccbde,
+    0xe087,
+    0x420b,
+    &[0xbf, 0x82, 0x22, 0x12, 0xbd, 0x3f, 0x9b, 0xfc],
+);
+pub const MTL_RETIMER01_GUID: GUID = GUID::build_from_components(
+    0xc57fd615,
+    0x2ac9,
+    0x4154,
+    &[0xbf, 0x34, 0x4d, 0xc7, 0x15, 0x34, 0x44, 0x08],
+);
+pub const MTL_RETIMER23_GUID: GUID = GUID::build_from_components(
+    0xbdffce36,
+    0x809c,
+    0x4fa6,
+    &[0xae, 0xcc, 0x54, 0x53, 0x69, 0x22, 0xf0, 0xe0],
+);
 
-pub const TGL_BIOS_GUID: Guid = guid!("b3bdb2e4-c5cb-5c1b-bdc3-e6fc132462ff");
-pub const ADL_BIOS_GUID: Guid = guid!("a30a8cf3-847f-5e59-bd59-f9ec145c1a8c");
-pub const RPL_BIOS_GUID: Guid = guid!("13fd4ed2-cba9-50ba-bb91-aece0acb4cc3");
-pub const MTL_BIOS_GUID: Guid = guid!("72cecb9b-2b37-5ec2-a9ff-c739aabaadf3");
-
-pub const TGL_RETIMER01_GUID: Guid = guid!("832af090-2ef9-7c47-8f6d-b405c8c7f156");
-pub const TGL_RETIMER23_GUID: Guid = guid!("20ef4108-6c64-d049-b6de-11ee35980b8f");
-pub const ADL_RETIMER01_GUID: Guid = guid!("a9c91b0c-c0b8-463d-a7da-a5d6ec646333");
-pub const ADL_RETIMER23_GUID: Guid = guid!("ba2e4e6e-3b0c-4f25-8a59-4c553fc86ea2");
-pub const RPL_RETIMER01_GUID: Guid = guid!("0c42b824-818f-428f-8687-5efcaf059bea");
-pub const RPL_RETIMER23_GUID: Guid = guid!("268ccbde-e087-420b-bf82-2212bd3f9bfc");
-pub const MTL_RETIMER01_GUID: Guid = guid!("c57fd615-2ac9-4154-bf34-4dc715344408");
-pub const MTL_RETIMER23_GUID: Guid = guid!("bdffce36-809c-4fa6-aecc-54536922f0e0");
-
-pub const FL16_BIOS_GUID: Guid = guid!("6ae76af1-c002-5d64-8e18-658d205acf34");
-pub const AMD13_BIOS_GUID: Guid = guid!("b5f7dcc1-568c-50f8-a4dd-e39d1f93fda1");
-pub const RPL_CSME_GUID: Guid = guid!("865d322c-6ac7-4734-b43e-55db5a557d63");
-pub const MTL_CSME_GUID: Guid = guid!("32d8d677-eebc-4947-8f8a-0693a45240e5");
+pub const FL16_BIOS_GUID: GUID = GUID::build_from_components(
+    0x6ae76af1,
+    0xc002,
+    0x5d64,
+    &[0x8e, 0x18, 0x65, 0x8d, 0x20, 0x5a, 0xcf, 0x34],
+);
+pub const AMD13_RYZEN7040_BIOS_GUID: GUID = GUID::build_from_components(
+    0xb5f7dcc1,
+    0x568c,
+    0x50f8,
+    &[0xa4, 0xdd, 0xe3, 0x9d, 0x1f, 0x93, 0xfd, 0xa1],
+);
+pub const AMD13_AI300_BIOS_GUID: GUID = GUID::build_from_components(
+    0x9c13b7f1,
+    0xd618,
+    0x5d68,
+    &[0xbe, 0x61, 0x6b, 0x17, 0x88, 0x10, 0x14, 0xa7],
+);
+pub const RPL_CSME_GUID: GUID = GUID::build_from_components(
+    0x865d322c,
+    0x6ac7,
+    0x4734,
+    &[0xb4, 0x3e, 0x55, 0xdb, 0x5a, 0x55, 0x7d, 0x63],
+);
+pub const RPL_U_CSME_GUID: GUID = GUID::build_from_components(
+    0x0f74c56d,
+    0xd5ba,
+    0x4942,
+    &[0x96, 0xfa, 0xd3, 0x75, 0x60, 0xf4, 0x05, 0x54],
+);
+pub const MTL_CSME_GUID: GUID = GUID::build_from_components(
+    0x32d8d677,
+    0xeebc,
+    0x4947,
+    &[0x8f, 0x8a, 0x06, 0x93, 0xa4, 0x52, 0x40, 0xe5],
+);
 
 // In EDK2
 // Handled by MdeModulePkg/Library/DxeCapsuleLibFmp/DxeCapsuleLib.c
 // Defined by MdePkg/Include/IndustryStandard/WindowsUxCapsule.h
 /// gWindowsUxCapsuleGuid from MdePkg/MdePkg.dec
-pub const WINUX_GUID: Guid = guid!("3b8c8162-188c-46a4-aec9-be43f1d65697");
+pub const WINUX_GUID: GUID = GUID::build_from_components(
+    0x3b8c8162,
+    0x188c,
+    0x46a4,
+    &[0xae, 0xc9, 0xbe, 0x43, 0xf1, 0xd6, 0x56, 0x97],
+);
 
 #[derive(Debug)]
 pub enum FrameworkGuidKind {
@@ -105,6 +167,7 @@ pub enum FrameworkGuidKind {
     AdlBios,
     RplBios,
     MtlBios,
+    Fw12RplBios,
     TglRetimer01,
     TglRetimer23,
     AdlRetimer01,
@@ -114,21 +177,25 @@ pub enum FrameworkGuidKind {
     MtlRetimer01,
     MtlRetimer23,
     RplCsme,
+    RplUCsme,
     MtlCsme,
     Fl16Bios,
-    Amd13Bios,
+    Amd13Ryzen7040Bios,
+    Amd13Ai300Bios,
     WinUx,
     Unknown,
 }
 
 pub fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
-    match *guid {
+    match GUID::from(*guid) {
         TGL_BIOS_GUID => FrameworkGuidKind::TglBios,
         ADL_BIOS_GUID => FrameworkGuidKind::AdlBios,
         RPL_BIOS_GUID => FrameworkGuidKind::RplBios,
         MTL_BIOS_GUID => FrameworkGuidKind::MtlBios,
+        FW12_RPL_BIOS_GUID => FrameworkGuidKind::Fw12RplBios,
         FL16_BIOS_GUID => FrameworkGuidKind::Fl16Bios,
-        AMD13_BIOS_GUID => FrameworkGuidKind::Amd13Bios,
+        AMD13_RYZEN7040_BIOS_GUID => FrameworkGuidKind::Amd13Ryzen7040Bios,
+        AMD13_AI300_BIOS_GUID => FrameworkGuidKind::Amd13Ai300Bios,
         TGL_RETIMER01_GUID => FrameworkGuidKind::TglRetimer01,
         TGL_RETIMER23_GUID => FrameworkGuidKind::TglRetimer23,
         ADL_RETIMER01_GUID => FrameworkGuidKind::AdlRetimer01,
@@ -138,6 +205,7 @@ pub fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
         MTL_RETIMER01_GUID => FrameworkGuidKind::MtlRetimer01,
         MTL_RETIMER23_GUID => FrameworkGuidKind::MtlRetimer23,
         RPL_CSME_GUID => FrameworkGuidKind::RplCsme,
+        RPL_U_CSME_GUID => FrameworkGuidKind::RplUCsme,
         MTL_CSME_GUID => FrameworkGuidKind::MtlCsme,
         WINUX_GUID => FrameworkGuidKind::WinUx,
         _ => FrameworkGuidKind::Unknown,
@@ -288,8 +356,9 @@ fn esrt_from_sysfs(dir: &Path) -> io::Result<Esrt> {
                 let last_attempt_version = fs::read_to_string(path.join("last_attempt_version"))?;
                 let last_attempt_status = fs::read_to_string(path.join("last_attempt_status"))?;
                 let esrt = EsrtResourceEntry {
-                    // TODO: Parse GUID
-                    fw_class: guid_from_str(&fw_class).expect("Kernel provided wrong value"),
+                    fw_class: Guid::from(
+                        GUID::parse(fw_class.trim()).expect("Kernel provided wrong value"),
+                    ),
                     fw_type: fw_type
                         .trim()
                         .parse::<u32>()
@@ -358,8 +427,8 @@ pub fn get_esrt() -> Option<Esrt> {
                 let guid_str = caps.get(1).unwrap().as_str().to_string();
                 let ver_str = caps.get(2).unwrap().as_str().to_string();
 
-                let guid = guid_from_str(&guid_str).unwrap();
-                let guid_kind = match_guid_kind(&guid);
+                let guid = GUID::parse(guid_str.trim()).expect("Kernel provided wrong value");
+                let guid_kind = match_guid_kind(&Guid::from(guid));
                 let ver = u32::from_str_radix(&ver_str, 16).unwrap();
                 debug!("ESRT Entry {}", i);
                 debug!("  Name:    {:?}", guid_kind);
@@ -379,7 +448,7 @@ pub fn get_esrt() -> Option<Esrt> {
                 // TODO: The missing fields are present in Device Manager
                 // So there must be a way to get at them
                 let esrt = EsrtResourceEntry {
-                    fw_class: guid,
+                    fw_class: Guid::from(guid),
                     fw_type,
                     fw_version: ver,
                     // TODO: Not exposed by windows
@@ -428,7 +497,7 @@ pub fn get_esrt() -> Option<Esrt> {
     let mut buf: Vec<u8> = Vec::new();
     let mut table = EfiGetTableIoc {
         buf: std::ptr::null_mut(),
-        uuid: SYSTEM_RESOURCE_TABLE_GUID.to_bytes(),
+        uuid: SYSTEM_RESOURCE_TABLE_GUID_BYTES,
         buf_len: 0,
         table_len: 0,
     };
@@ -448,7 +517,15 @@ pub fn get_esrt() -> Option<Esrt> {
 }
 
 /// gEfiSystemResourceTableGuid from MdePkg/MdePkg.dec
-pub const SYSTEM_RESOURCE_TABLE_GUID: Guid = guid!("b122a263-3661-4f68-9929-78f8b0d62180");
+pub const SYSTEM_RESOURCE_TABLE_GUID: GUID = GUID::build_from_components(
+    0xb122a263,
+    0x3661,
+    0x4f68,
+    &[0x99, 0x29, 0x78, 0xf8, 0xb0, 0xd6, 0x21, 0x80],
+);
+pub const SYSTEM_RESOURCE_TABLE_GUID_BYTES: [u8; 16] = [
+    0xb1, 0x22, 0xa2, 0x63, 0x36, 0x61, 0x4f, 0x68, 0x99, 0x29, 0x78, 0xf8, 0xb0, 0xd6, 0x21, 0x80,
+];
 
 #[cfg(feature = "uefi")]
 pub fn get_esrt() -> Option<Esrt> {
@@ -459,6 +536,7 @@ pub fn get_esrt() -> Option<Esrt> {
         // TODO: Why aren't they the same type?
         //debug!("Table: {:?}", table);
         let table_guid: Guid = unsafe { std::mem::transmute(table.guid) };
+        let table_guid = GUID::from(table_guid);
         match table_guid {
             SYSTEM_RESOURCE_TABLE_GUID => unsafe {
                 return esrt_from_buf(table.address as *const u8);

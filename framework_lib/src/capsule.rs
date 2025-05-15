@@ -11,15 +11,11 @@
 use std::prelude::v1::*;
 
 use core::prelude::rust_2021::derive;
+use guid_create::Guid;
 #[cfg(not(feature = "uefi"))]
 use std::fs::File;
 #[cfg(not(feature = "uefi"))]
 use std::io::prelude::*;
-
-#[cfg(not(feature = "uefi"))]
-use crate::guid::Guid;
-#[cfg(feature = "uefi")]
-use uefi::Guid;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[repr(C)]
@@ -209,14 +205,14 @@ mod tests {
         let data = fs::read(capsule_path).unwrap();
         let cap = parse_capsule_header(&data).unwrap();
         let expected_header = EfiCapsuleHeader {
-            capsule_guid: esrt::WINUX_GUID,
+            capsule_guid: Guid::from(esrt::WINUX_GUID),
             header_size: 28,
             flags: 65536,
             capsule_image_size: 676898,
         };
         assert_eq!(cap, expected_header);
 
-        assert_eq!(cap.capsule_guid, esrt::WINUX_GUID);
+        assert_eq!(cap.capsule_guid, Guid::from(esrt::WINUX_GUID));
         let ux_header = parse_ux_header(&data);
         assert_eq!(
             ux_header,

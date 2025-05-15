@@ -7,6 +7,7 @@ use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
+use guid_create::{Guid, GUID};
 use log::Level;
 use num_traits::FromPrimitive;
 
@@ -494,7 +495,7 @@ fn print_versions(ec: &CrosEc) {
     let mut right_retimer: Option<u32> = None;
     if let Some(esrt) = esrt::get_esrt() {
         for entry in &esrt.entries {
-            match entry.fw_class {
+            match GUID::from(entry.fw_class) {
                 esrt::TGL_RETIMER01_GUID
                 | esrt::ADL_RETIMER01_GUID
                 | esrt::RPL_RETIMER01_GUID
@@ -700,7 +701,7 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
 
     if let Some(esrt) = esrt::get_esrt() {
         for entry in &esrt.entries {
-            match entry.fw_class {
+            match GUID::from(entry.fw_class) {
                 esrt::TGL_RETIMER01_GUID | esrt::ADL_RETIMER01_GUID | esrt::RPL_RETIMER01_GUID => {
                     if device == Some(HardwareDeviceType::RTM01) {
                         println!("Comparing RTM01 version {:?}", entry.fw_version.to_string());
@@ -1032,7 +1033,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("  Size:       {:>20} B", data.len());
             println!("  Size:       {:>20} KB", data.len() / 1024);
             if let Some(header) = analyze_capsule(&data) {
-                if header.capsule_guid == esrt::WINUX_GUID {
+                if header.capsule_guid == Guid::from(esrt::WINUX_GUID) {
                     let ux_header = capsule::parse_ux_header(&data);
                     if let Some(dump_path) = &args.dump {
                         // TODO: Better error handling, rather than just panicking
@@ -1434,7 +1435,7 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
     let header = capsule::parse_capsule_header(data)?;
     capsule::print_capsule_header(&header);
 
-    match header.capsule_guid {
+    match GUID::from(header.capsule_guid) {
         esrt::TGL_BIOS_GUID => {
             println!("  Type:         Framework TGL Insyde BIOS");
         }

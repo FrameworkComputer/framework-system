@@ -1,7 +1,16 @@
 [package]
 name = "framework_tool"
-version = "0.4.1"
+version = "0.4.2"
+description = "Tool to control Framework Computer systems"
+homepage = "https://github.com/FrameworkComputer/framework-system"
+repository = "https://github.com/FrameworkComputer/framework-system"
+readme = "README.md"
+license = "BSD-3-Clause"
 edition = "2021"
+
+[[bin]]
+name = "framework_tool"
+path = "src/main.rs"
 
 [dependencies.framework_lib]
 path = "../framework_lib"
