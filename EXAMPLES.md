@@ -439,3 +439,28 @@ The scancodes are the same.
 ### Framework 16
 
 It's not controlled by the EC, use https://keyboard.frame.work.
+
+## Advanced commands
+
+Mostly for debugging firmware.
+
+### Check EFI Resource Table
+
+On Framework Desktop:
+
+```
+> sudo framework_tool --esrt
+ESRT Table
+  ResourceCount:        1
+  ResourceCountMax:     1
+  ResourceVersion:      1
+ESRT Entry 0
+  GUID:                 EB68DBAE-3AEF-5077-92AE-9016D1F0C856
+  GUID:                 DesktopAmdAi300Bios
+  Type:                 SystemFirmware
+  Version:              0x204 (516)
+  Min FW Version:       0x100 (256)
+  Capsule Flags:        0x0
+  Last Attempt Version: 0x108 (264)
+  Last Attempt Status:  Success
+```

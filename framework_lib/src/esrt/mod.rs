@@ -131,6 +131,12 @@ pub const AMD13_AI300_BIOS_GUID: GUID = GUID::build_from_components(
     0x5d68,
     &[0xbe, 0x61, 0x6b, 0x17, 0x88, 0x10, 0x14, 0xa7],
 );
+pub const DESKTOP_AMD_AI300_BIOS_GUID: GUID = GUID::build_from_components(
+    0xeb68dbae,
+    0x3aef,
+    0x5077,
+    &[0x92, 0xae, 0x90, 0x16, 0xd1, 0xf0, 0xc8, 0x56],
+);
 pub const RPL_CSME_GUID: GUID = GUID::build_from_components(
     0x865d322c,
     0x6ac7,
@@ -182,6 +188,7 @@ pub enum FrameworkGuidKind {
     Fl16Bios,
     Amd13Ryzen7040Bios,
     Amd13Ai300Bios,
+    DesktopAmdAi300Bios,
     WinUx,
     Unknown,
 }
@@ -196,6 +203,7 @@ pub fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
         FL16_BIOS_GUID => FrameworkGuidKind::Fl16Bios,
         AMD13_RYZEN7040_BIOS_GUID => FrameworkGuidKind::Amd13Ryzen7040Bios,
         AMD13_AI300_BIOS_GUID => FrameworkGuidKind::Amd13Ai300Bios,
+        DESKTOP_AMD_AI300_BIOS_GUID => FrameworkGuidKind::DesktopAmdAi300Bios,
         TGL_RETIMER01_GUID => FrameworkGuidKind::TglRetimer01,
         TGL_RETIMER23_GUID => FrameworkGuidKind::TglRetimer23,
         ADL_RETIMER01_GUID => FrameworkGuidKind::AdlRetimer01,
