@@ -35,7 +35,7 @@ jobs:
         path: target/x86_64-unknown-freebsd/debug/framework_tool
 
   build:
-    name: Build Linux and UEFI
+    name: Build Linux
     runs-on: ubuntu-24.04
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: true
@@ -64,6 +64,17 @@ jobs:
       with:
         name: framework_tool
         path: target/debug/framework_tool
+
+  build-uefi:
+    name: Build UEFI
+    runs-on: ubuntu-24.04
+    env:
+      CARGO_NET_GIT_FETCH_WITH_CLI: true
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Rust toolchain
+      run: rustup show
 
     - name: Build UEFI application (no ESP)
       run: make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
