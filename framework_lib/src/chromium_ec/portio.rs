@@ -90,14 +90,6 @@ fn init() -> bool {
         Initialized::NotYet => {}
     }
 
-    // First try on MEC
-    portio_mec::init();
-    let ec_id = portio_mec::transfer_read(MEC_MEMMAP_OFFSET + EC_MEMMAP_ID, 2);
-    if ec_id[0] == b'E' && ec_id[1] == b'C' {
-        *init = Initialized::SucceededMec;
-        return true;
-    }
-
     // In Linux userspace has to first request access to ioports
     // TODO: Close these again after we're done
     #[cfg(target_os = "linux")]
@@ -106,6 +98,15 @@ fn init() -> bool {
         *init = Initialized::Failed;
         return false;
     }
+
+    // First try on MEC
+    portio_mec::init();
+    let ec_id = portio_mec::transfer_read(MEC_MEMMAP_OFFSET + EC_MEMMAP_ID, 2);
+    if ec_id[0] == b'E' && ec_id[1] == b'C' {
+        *init = Initialized::SucceededMec;
+        return true;
+    }
+
     #[cfg(target_os = "linux")]
     unsafe {
         // 8 for request/response header, 0xFF for response
