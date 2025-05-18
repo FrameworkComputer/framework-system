@@ -100,7 +100,10 @@ fn init() -> bool {
     }
 
     // First try on MEC
-    portio_mec::init();
+    if !portio_mec::init() {
+        *init = Initialized::Failed;
+        return false;
+    }
     let ec_id = portio_mec::transfer_read(MEC_MEMMAP_OFFSET + EC_MEMMAP_ID, 2);
     if ec_id[0] == b'E' && ec_id[1] == b'C' {
         *init = Initialized::SucceededMec;
@@ -113,6 +116,7 @@ fn init() -> bool {
         let res = ioperm(EC_LPC_ADDR_HOST_ARGS as u64, 8 + 0xFF, 1);
         if res != 0 {
             error!("ioperm failed. portio driver is likely block by Linux kernel lockdown mode");
+            *init = Initialized::Failed;
             return false;
         }
 
