@@ -15,6 +15,7 @@ fn main() -> iced::Result {
         FrameworkGui::view,
     )
     .font(iced_fonts::REQUIRED_FONT_BYTES)
+    .window_size((800.0, 400.0))
     .run()
 }
 
