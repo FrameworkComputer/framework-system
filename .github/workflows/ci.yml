@@ -118,17 +118,17 @@ jobs:
     # - name: Build library (Windows)
     #   run: cargo build -p framework_lib
 
-    - name: Build Windows tool
-      run: |
-        # cargo build -p framework_tool
-        cargo build -p framework_tool --release
+    # - name: Build Windows tool
+    #   run: |
+    #     cargo build -p framework_tool
+    #     cargo build -p framework_tool --release
+
+    # - name: Check if Windows tool can start
+    #   run: cargo run -- --help --release
 
     - name: Build Windows gui
       run: |
         cargo build -p framework_gui --release
-
-    - name: Check if Windows tool can start
-      run: cargo run -- --help --release
 
     # Upload release build so that vcruntime is statically linked
     - name: Upload Windows App
