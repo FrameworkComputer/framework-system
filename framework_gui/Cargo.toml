@@ -10,7 +10,13 @@ edition = "2021"
 
 [[bin]]
 name = "framework_gui"
-path = "src/main.rs"
+#path = "src/main.rs"
+path = "src/color_picker.rs"
+
+[dependencies]
+iced = "0.13.1"
+iced_aw = "0.12.2"
+iced_fonts = "0.2.1"
 
 [dependencies.framework_lib]
 path = "../framework_lib"
