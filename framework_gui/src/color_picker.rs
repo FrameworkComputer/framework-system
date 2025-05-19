@@ -11,6 +11,7 @@ use iced_aw::helpers::color_picker;
 fn main() -> iced::Result {
     iced::application("Framework GUI", FrameworkGui::update, FrameworkGui::view)
         .font(iced_fonts::REQUIRED_FONT_BYTES)
+        .window_size((800.0, 400.0))
         .run()
 }
 
