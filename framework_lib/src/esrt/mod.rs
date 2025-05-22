@@ -15,7 +15,7 @@ use log::{debug, error, info, trace};
 use std::prelude::v1::*;
 
 use core::prelude::v1::derive;
-use guid_create::{Guid, GUID};
+use guid_create::{GUID, Guid};
 
 #[cfg(target_os = "linux")]
 use std::fs;
@@ -506,8 +506,8 @@ pub fn get_esrt() -> Option<Esrt> {
     let mut table = EfiGetTableIoc {
         buf: std::ptr::null_mut(),
         uuid: SYSTEM_RESOURCE_TABLE_GUID_BYTES,
-        buf_len: 0,
         table_len: 0,
+        buf_len: 0,
     };
     unsafe {
         let fd = file.as_raw_fd();
@@ -532,7 +532,7 @@ pub const SYSTEM_RESOURCE_TABLE_GUID: GUID = GUID::build_from_components(
     &[0x99, 0x29, 0x78, 0xf8, 0xb0, 0xd6, 0x21, 0x80],
 );
 pub const SYSTEM_RESOURCE_TABLE_GUID_BYTES: [u8; 16] = [
-    0xb1, 0x22, 0xa2, 0x63, 0x36, 0x61, 0x4f, 0x68, 0x99, 0x29, 0x78, 0xf8, 0xb0, 0xd6, 0x21, 0x80,
+    0x63, 0xa2, 0x22, 0xb1, 0x61, 0x36, 0x68, 0x4f, 0x99, 0x29, 0x78, 0xf8, 0xb0, 0xd6, 0x21, 0x80,
 ];
 
 #[cfg(feature = "uefi")]
