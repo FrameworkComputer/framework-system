@@ -33,7 +33,7 @@ use crate::capsule_content::{
 use crate::ccgx::device::{FwMode, PdController, PdPort};
 #[cfg(feature = "hidapi")]
 use crate::ccgx::hid::{check_ccg_fw_version, find_devices, DP_CARD_PID, HDMI_CARD_PID};
-use crate::ccgx::{self, SiliconId::*};
+use crate::ccgx::{self, MainPdVersions, SiliconId::*};
 use crate::chromium_ec;
 use crate::chromium_ec::commands::DeckStateMode;
 use crate::chromium_ec::commands::FpLedBrightnessLevel;
@@ -478,8 +478,25 @@ fn print_versions(ec: &CrosEc) {
         }
     } else if let Ok(pd_versions) = power::read_pd_version(ec) {
         // As fallback try to get it from the EC. But not all EC versions have this command
-        println!("  Right (01):     {}", pd_versions.controller01.app);
-        println!("  Left  (23):     {}", pd_versions.controller23.app);
+        match pd_versions {
+            MainPdVersions::RightLeft((controller01, controller23)) => {
+                if let Some(Platform::IntelGen11) = smbios::get_platform() {
+                    println!("  Right (01):     {}", controller01.base);
+                    println!("  Left  (23):     {}", controller23.base);
+                } else {
+                    println!("  Right (01):     {}", controller01.app);
+                    println!("  Left  (23):     {}", controller23.app);
+                }
+            }
+            MainPdVersions::Single(version) => {
+                println!("  Version:        {}", version.app);
+            }
+            MainPdVersions::Many(versions) => {
+                for (i, version) in versions.into_iter().enumerate() {
+                    println!("  PD {}:          {}", i, version.app);
+                }
+            }
+        }
     } else {
         println!("  Unknown")
     }

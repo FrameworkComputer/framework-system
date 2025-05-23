@@ -987,17 +987,37 @@ impl EcRequest<EcResponseChassisIntrusionControl> for EcRequestChassisIntrusionC
 }
 
 #[repr(C, packed)]
-pub struct EcRequestReadPdVersion {}
+pub struct EcRequestReadPdVersionV0 {}
 
 #[repr(C, packed)]
-pub struct _EcResponseReadPdVersion {
+pub struct _EcResponseReadPdVersionV0 {
     pub controller01: [u8; 8],
     pub controller23: [u8; 8],
 }
 
-impl EcRequest<_EcResponseReadPdVersion> for EcRequestReadPdVersion {
+impl EcRequest<_EcResponseReadPdVersionV0> for EcRequestReadPdVersionV0 {
     fn command_id() -> EcCommands {
         EcCommands::ReadPdVersion
+    }
+    fn command_version() -> u8 {
+        0
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestReadPdVersionV1 {}
+#[repr(C, packed)]
+pub struct _EcResponseReadPdVersionV1 {
+    pub pd_chip_count: u8,
+    pub pd_controllers: [u8; 0],
+}
+
+impl EcRequest<_EcResponseReadPdVersionV1> for EcRequestReadPdVersionV1 {
+    fn command_id() -> EcCommands {
+        EcCommands::ReadPdVersion
+    }
+    fn command_version() -> u8 {
+        1
     }
 }
 
