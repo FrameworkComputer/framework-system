@@ -3,6 +3,7 @@
 use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
+use alloc::vec::Vec;
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 use num_derive::FromPrimitive;
@@ -241,9 +242,10 @@ pub struct PdVersions {
 
 /// Same as PdVersions but only the main FW
 #[derive(Debug)]
-pub struct MainPdVersions {
-    pub controller01: ControllerVersion,
-    pub controller23: ControllerVersion,
+pub enum MainPdVersions {
+    RightLeft((ControllerVersion, ControllerVersion)),
+    Single(ControllerVersion),
+    Many(Vec<ControllerVersion>),
 }
 
 pub fn get_pd_controller_versions(ec: &CrosEc) -> EcResult<PdVersions> {
