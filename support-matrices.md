@@ -26,17 +26,34 @@
 
 ###### Dependencies
 
-| Command          | Depends on       | Platforms        |
-|------------------|------------------|------------------|
-| `--version`      |                  | All              |
-| `--dp-hdmi...`   |                  | All              |
-| `--power`        | EC Memory Read   | All              |
-| `--pdports`      | EC Communication | All              |
-| `--info`         | SMBIOS           | All              |
-| `--esrt`         | ESRT             | All              |
-| `--pd-info`      | PD Communication | All              |
-| `--privacy`      | EC Communication | All              |
-| `--intrusion`    | EC Communication | All              |
-| `--inputdeck`    | EC Communication | Framework 16     |
-| `--console`      | EC Communication | All              |
-| `--kblight`      | EC Communication | All, except FL16 |
+| Command                  | Depends on       | Platforms         |
+|--------------------------|------------------|-------------------|
+| `--version`              |                  | All               |
+| `--dp-hdmi...`           | USB HID          | All               |
+| `--power`                | EC Memory Read   | All               |
+| `--pdports`              | EC Communication | All               |
+| `--info`                 | SMBIOS           | All               |
+| `--esrt`                 | ESRT             | All               |
+| `--sensors`              | EC Communication | All Laptops       |
+| `--fansetduty`           | EC Communication | All               |
+| `--fansetrpm`            | EC Communication | All               |
+| `--autofanctrl`          | EC Communication | All               |
+| `--pd-info`              | PD Communication | All               |
+| `--privacy`              | EC Communication | All Laptops       |
+| `--intrusion`            | EC Communication | All Laptops       |
+| `--inputdeck`            | EC Communication | All Laptops       |
+| `--inputdeck-mode`       | EC Communication | Framework 16      |
+| `--console`              | EC Communication | All               |
+| `--get-gpio`             | EC Communication | All               |
+| `--kblight`              | EC Communication | Framework 13      |
+| `--charge-limit`         | EC Communication | All Laptops       |
+| `--charge-current-limit` | EC Communication | All Laptops       |
+| `--charge-rate-limit`    | EC Communication | All Laptops       |
+| `--fp-led-level`         | EC Communication | All Laptops       |
+| `--fp-brightness`        | EC Communication | All Laptops       |
+| `--remap-key`            | EC Communication | Framework 12, 13  |
+| `--rgbkbd`               | EC Communication | Framework Desktop |
+| `--tablet-mode`          | EC Communication | Framework 12      |
+| `--touchscreen-enable`   | I2C HID          | Framework 12      |
+| `--stylus-battery        | I2C HID          | Framework 12      |
+| `--kblight`              | EC Communication | Framework 13      |
