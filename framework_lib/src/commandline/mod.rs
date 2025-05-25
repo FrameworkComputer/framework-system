@@ -33,7 +33,7 @@ use crate::capsule_content::{
 use crate::ccgx::device::{FwMode, PdController, PdPort};
 #[cfg(feature = "hidapi")]
 use crate::ccgx::hid::{check_ccg_fw_version, find_devices, DP_CARD_PID, HDMI_CARD_PID};
-use crate::ccgx::{self, MainPdVersions, SiliconId::*};
+use crate::ccgx::{self, MainPdVersions, PdVersions, SiliconId::*};
 use crate::chromium_ec;
 use crate::chromium_ec::commands::DeckStateMode;
 use crate::chromium_ec::commands::FpLedBrightnessLevel;
@@ -398,11 +398,8 @@ fn print_versions(ec: &CrosEc) {
     }
 
     println!("PD Controllers");
-
-    if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
-        let right = &pd_versions.controller01;
-        let left = &pd_versions.controller23;
-        // let active_mode =
+    let ccgx_pd_vers = ccgx::get_pd_controller_versions(ec);
+    if let Ok(PdVersions::RightLeft((right, left))) = ccgx_pd_vers {
         if let Some(Platform::IntelGen11) = smbios::get_platform() {
             if right.main_fw.base != right.backup_fw.base {
                 println!("  Right (01)");
@@ -476,8 +473,24 @@ fn print_versions(ec: &CrosEc) {
                 left.main_fw.app, left.active_fw
             );
         }
+    } else if let Ok(PdVersions::Single(pd)) = ccgx_pd_vers {
+        if pd.main_fw.app != pd.backup_fw.app {
+            println!(
+                "    Main:         {}{}",
+                pd.main_fw.app,
+                active_mode(&pd.active_fw, FwMode::MainFw)
+            );
+            println!(
+                "    Backup:       {}{}",
+                pd.backup_fw.app,
+                active_mode(&pd.active_fw, FwMode::BackupFw)
+            );
+        } else {
+            println!("  Version:        {} ({:?})", pd.main_fw.app, pd.active_fw);
+        }
     } else if let Ok(pd_versions) = power::read_pd_version(ec) {
         // As fallback try to get it from the EC. But not all EC versions have this command
+        debug!("  Fallback to PD Host command");
         match pd_versions {
             MainPdVersions::RightLeft((controller01, controller23)) => {
                 if let Some(Platform::IntelGen11) = smbios::get_platform() {
@@ -655,8 +668,8 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
             }
         }
         Some(HardwareDeviceType::PD0) => {
-            if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
-                let ver = pd_versions.controller01.active_fw_ver();
+            if let Ok(PdVersions::RightLeft((pd01, _pd23))) = ccgx::get_pd_controller_versions(ec) {
+                let ver = pd01.active_fw_ver();
                 println!("Comparing PD0 version {:?}", ver);
 
                 if ver.contains(&version) {
@@ -667,8 +680,8 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
             }
         }
         Some(HardwareDeviceType::PD1) => {
-            if let Ok(pd_versions) = ccgx::get_pd_controller_versions(ec) {
-                let ver = pd_versions.controller23.active_fw_ver();
+            if let Ok(PdVersions::RightLeft((_pd01, pd23))) = ccgx::get_pd_controller_versions(ec) {
+                let ver = pd23.active_fw_ver();
                 println!("Comparing PD1 version {:?}", ver);
 
                 if ver.contains(&version) {
