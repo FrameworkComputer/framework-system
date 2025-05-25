@@ -59,8 +59,7 @@ use crate::touchpad::print_touchpad_fw_ver;
 use crate::touchscreen;
 #[cfg(feature = "uefi")]
 use crate::uefi::enable_page_break;
-use crate::util;
-use crate::util::{Config, Platform, PlatformFamily};
+use crate::util::{self, Config, Platform, PlatformFamily};
 #[cfg(feature = "hidapi")]
 use hidapi::HidApi;
 use sha2::{Digest, Sha256, Sha384, Sha512};
@@ -557,7 +556,7 @@ fn print_versions(ec: &CrosEc) {
     }
 
     #[cfg(target_os = "linux")]
-    {
+    if smbios::get_platform().and_then(Platform::which_cpu_vendor) != Some(util::CpuVendor::Amd) {
         println!("CSME");
         if let Ok(csme) = csme::csme_from_sysfs() {
             info!("  Enabled:          {}", csme.enabled);
