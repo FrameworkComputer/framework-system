@@ -1,7 +1,7 @@
 //! Get information about system power (battery, AC, PD ports)
 
 use alloc::format;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::convert::TryInto;
@@ -798,6 +798,11 @@ pub fn is_charging(ec: &CrosEc) -> EcResult<(bool, bool)> {
     Ok((port0 || port1, port2 || port3))
 }
 
+fn parse_pd_ver_slice(data: &[u8]) -> ControllerVersion {
+    parse_pd_ver(&[
+        data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
+    ])
+}
 fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
     ControllerVersion {
         base: BaseVersion {
@@ -815,15 +820,37 @@ fn parse_pd_ver(data: &[u8; 8]) -> ControllerVersion {
     }
 }
 
-// NOTE: Only works on ADL at the moment!
-// TODO: Not on TGL, need to check if RPL and later have it.
+// NOTE: TGL (hx20) does not have this host command
 pub fn read_pd_version(ec: &CrosEc) -> EcResult<MainPdVersions> {
-    let info = EcRequestReadPdVersion {}.send_command(ec)?;
+    let info = EcRequestReadPdVersionV1 {}.send_command_vec(ec);
 
-    Ok(MainPdVersions {
-        controller01: parse_pd_ver(&info.controller01),
-        controller23: parse_pd_ver(&info.controller23),
-    })
+    // If v1 not available, fall back
+    if let Err(EcError::Response(EcResponseStatus::InvalidVersion)) = info {
+        let info = EcRequestReadPdVersionV0 {}.send_command(ec)?;
+
+        return Ok(if info.controller23 == [0, 0, 0, 0, 0, 0, 0, 0] {
+            MainPdVersions::Single(parse_pd_ver(&info.controller01))
+        } else {
+            MainPdVersions::RightLeft((
+                parse_pd_ver(&info.controller01),
+                parse_pd_ver(&info.controller23),
+            ))
+        });
+    }
+    // If any other error, exit
+    let info = info?;
+
+    let mut versions = vec![];
+    let pd_count = info[0] as usize;
+    for i in 0..pd_count {
+        // TODO: Is there a safer way to check the range?
+        if info.len() < 1 + 8 * (i + 1) {
+            return Err(EcError::DeviceError("Not enough data returned".to_string()));
+        }
+        versions.push(parse_pd_ver_slice(&info[1 + 8 * i..1 + 8 * (i + 1)]));
+    }
+
+    Ok(MainPdVersions::Many(versions))
 }
 
 pub fn standalone_mode(ec: &CrosEc) -> bool {

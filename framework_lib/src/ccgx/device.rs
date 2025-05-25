@@ -26,6 +26,7 @@ enum ControlRegisters {
 pub enum PdPort {
     Left01,
     Right23,
+    Back,
 }
 
 impl PdPort {
@@ -33,6 +34,9 @@ impl PdPort {
     fn i2c_address(&self) -> EcResult<u16> {
         let config = Config::get();
         let platform = &(*config).as_ref().unwrap().platform;
+        let unsupported = Err(EcError::DeviceError(
+            "Controller does not exist on this platform".to_string(),
+        ));
 
         Ok(match (platform, self) {
             (Platform::GenericFramework((left, _), _), PdPort::Left01) => *left,
@@ -50,14 +54,29 @@ impl PdPort {
                 | Platform::Framework16Amd7080,
                 PdPort::Right23,
             ) => 0x40,
-            // TODO: It only has a single PD controller
-            (Platform::FrameworkDesktopAmdAiMax300, _) => 0x08,
+            (Platform::FrameworkDesktopAmdAiMax300, PdPort::Back) => 0x08,
+            (Platform::FrameworkDesktopAmdAiMax300, _) => unsupported?,
+            // Framework Intel Platforms (CCG5 and CCG6)
+            (
+                Platform::Framework12IntelGen13
+                | Platform::IntelGen11
+                | Platform::IntelGen12
+                | Platform::IntelGen13
+                | Platform::IntelCoreUltra1,
+                PdPort::Left01,
+            ) => 0x08,
+            (
+                Platform::Framework12IntelGen13
+                | Platform::IntelGen11
+                | Platform::IntelGen12
+                | Platform::IntelGen13
+                | Platform::IntelCoreUltra1,
+                PdPort::Right23,
+            ) => 0x40,
             (Platform::UnknownSystem, _) => {
                 Err(EcError::DeviceError("Unsupported platform".to_string()))?
             }
-            // Framework Intel Platforms (CCG5 and CCG6)
-            (_, PdPort::Left01) => 0x08,
-            (_, PdPort::Right23) => 0x40,
+            (_, PdPort::Back) => unsupported?,
         })
     }
 
@@ -65,6 +84,10 @@ impl PdPort {
     fn i2c_port(&self) -> EcResult<u8> {
         let config = Config::get();
         let platform = &(*config).as_ref().unwrap().platform;
+        let unsupported = Err(EcError::DeviceError(format!(
+            "Controller {:?}, does not exist on {:?}",
+            self, platform
+        )));
 
         Ok(match (platform, self) {
             (Platform::GenericFramework(_, (left, _)), PdPort::Left01) => *left,
@@ -88,11 +111,12 @@ impl PdPort {
                 | Platform::Framework12IntelGen13,
                 PdPort::Right23,
             ) => 2,
-            // TODO: It only has a single PD controller
-            (Platform::FrameworkDesktopAmdAiMax300, _) => 1,
+            (Platform::FrameworkDesktopAmdAiMax300, PdPort::Back) => 1,
+            (Platform::FrameworkDesktopAmdAiMax300, _) => unsupported?,
             (Platform::UnknownSystem, _) => {
                 Err(EcError::DeviceError("Unsupported platform".to_string()))?
             }
+            (_, PdPort::Back) => unsupported?,
         })
     }
 }

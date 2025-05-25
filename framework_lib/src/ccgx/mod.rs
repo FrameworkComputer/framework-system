@@ -3,6 +3,8 @@
 use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
+use alloc::vec;
+use alloc::vec::Vec;
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 use num_derive::FromPrimitive;
@@ -234,23 +236,32 @@ impl ControllerFirmwares {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct PdVersions {
-    pub controller01: ControllerFirmwares,
-    pub controller23: ControllerFirmwares,
+pub enum PdVersions {
+    RightLeft((ControllerFirmwares, ControllerFirmwares)),
+    Single(ControllerFirmwares),
+    Many(Vec<ControllerFirmwares>),
 }
 
 /// Same as PdVersions but only the main FW
 #[derive(Debug)]
-pub struct MainPdVersions {
-    pub controller01: ControllerVersion,
-    pub controller23: ControllerVersion,
+pub enum MainPdVersions {
+    RightLeft((ControllerVersion, ControllerVersion)),
+    Single(ControllerVersion),
+    Many(Vec<ControllerVersion>),
 }
 
 pub fn get_pd_controller_versions(ec: &CrosEc) -> EcResult<PdVersions> {
-    Ok(PdVersions {
-        controller01: PdController::new(PdPort::Left01, ec.clone()).get_fw_versions()?,
-        controller23: PdController::new(PdPort::Right23, ec.clone()).get_fw_versions()?,
-    })
+    let pd01 = PdController::new(PdPort::Left01, ec.clone()).get_fw_versions();
+    let pd23 = PdController::new(PdPort::Right23, ec.clone()).get_fw_versions();
+    let pd_back = PdController::new(PdPort::Back, ec.clone()).get_fw_versions();
+
+    match (pd01, pd23, pd_back) {
+        (Err(_), Err(_), Ok(pd_back)) => Ok(PdVersions::Single(pd_back)),
+        (Ok(pd01), Ok(pd23), Err(_)) => Ok(PdVersions::RightLeft((pd01, pd23))),
+        (Ok(pd01), Ok(pd23), Ok(pd_back)) => Ok(PdVersions::Many(vec![pd01, pd23, pd_back])),
+        (Err(err), _, _) => Err(err),
+        (_, Err(err), _) => Err(err),
+    }
 }
 
 fn parse_metadata_ccg3(buffer: &[u8]) -> Option<(u32, u32)> {

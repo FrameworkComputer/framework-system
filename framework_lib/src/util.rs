@@ -49,7 +49,28 @@ pub enum PlatformFamily {
     FrameworkDesktop,
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum CpuVendor {
+    Intel,
+    Amd,
+}
+
 impl Platform {
+    pub fn which_cpu_vendor(self) -> Option<CpuVendor> {
+        match self {
+            Platform::Framework12IntelGen13
+            | Platform::IntelGen11
+            | Platform::IntelGen12
+            | Platform::IntelGen13
+            | Platform::IntelCoreUltra1 => Some(CpuVendor::Intel),
+            Platform::Framework13Amd7080
+            | Platform::Framework13AmdAi300
+            | Platform::Framework16Amd7080
+            | Platform::FrameworkDesktopAmdAiMax300 => Some(CpuVendor::Amd),
+            Platform::GenericFramework(..) => None,
+            Platform::UnknownSystem => None,
+        }
+    }
     pub fn which_family(self) -> Option<PlatformFamily> {
         match self {
             Platform::Framework12IntelGen13 => Some(PlatformFamily::Framework12),
