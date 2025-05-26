@@ -145,38 +145,47 @@ pub fn parse_ec_version_str(version: &str) -> Option<ImageVersionDetails> {
 
 /// Parse version information from EC FW image buffer
 pub fn read_ec_version(data: &[u8], ro: bool) -> Option<ImageVersionData> {
+    // First try to find the legacy EC version
     let offset = if ro {
         EC_RO_VER_OFFSET
     } else {
         EC_RW_VER_OFFSET
     };
-    let offset_zephyr = if ro {
-        EC_RO_VER_OFFSET_ZEPHYR
-    } else {
-        EC_RW_VER_OFFSET_ZEPHYR
-    };
-
     if data.len() < offset + core::mem::size_of::<_ImageVersionData>() {
         return None;
     }
     let v: _ImageVersionData = unsafe { std::ptr::read(data[offset..].as_ptr() as *const _) };
     if v.cookie1 != CROS_EC_IMAGE_DATA_COOKIE1 {
-        debug!("Failed to find Cookie 1. Found: {:X?}", { v.cookie1 });
+        debug!("Failed to find legacy Cookie 1. Found: {:X?}", {
+            v.cookie1
+        });
     } else if v.cookie2 != CROS_EC_IMAGE_DATA_COOKIE2 {
-        debug!("Failed to find Cookie 2. Found: {:X?}", { v.cookie2 });
+        debug!("Failed to find legacy Cookie 2. Found: {:X?}", {
+            v.cookie2
+        });
     } else {
         return parse_ec_version(&v);
     }
 
+    // If not present, find Zephyr EC version
+    let offset_zephyr = if ro {
+        EC_RO_VER_OFFSET_ZEPHYR
+    } else {
+        EC_RW_VER_OFFSET_ZEPHYR
+    };
     if data.len() < offset_zephyr + core::mem::size_of::<_ImageVersionData>() {
         return None;
     }
     let v: _ImageVersionData =
         unsafe { std::ptr::read(data[offset_zephyr..].as_ptr() as *const _) };
     if v.cookie1 != CROS_EC_IMAGE_DATA_COOKIE1 {
-        debug!("Failed to find Cookie 1. Found: {:X?}", { v.cookie1 });
+        debug!("Failed to find Zephyr Cookie 1. Found: {:X?}", {
+            v.cookie1
+        });
     } else if v.cookie2 != CROS_EC_IMAGE_DATA_COOKIE2 {
-        debug!("Failed to find Cookie 2. Found: {:X?}", { v.cookie2 });
+        debug!("Failed to find Zephyr Cookie 2. Found: {:X?}", {
+            v.cookie2
+        });
     } else {
         return parse_ec_version(&v);
     }
