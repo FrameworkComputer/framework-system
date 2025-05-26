@@ -15,7 +15,7 @@ use log::{debug, error, info, trace};
 use std::prelude::v1::*;
 
 use core::prelude::v1::derive;
-use guid_create::{GUID, Guid};
+use guid_create::{Guid, GUID};
 
 #[cfg(target_os = "linux")]
 use std::fs;
