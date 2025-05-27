@@ -742,14 +742,16 @@ impl CrosEc {
 
             println!("Erasing RW region");
             self.erase_ec_flash(FLASH_BASE + FLASH_RW_BASE, FLASH_RW_SIZE)?;
+            println!("  Done");
 
             println!("Writing RW region");
             self.write_ec_flash(FLASH_BASE + FLASH_RW_BASE, rw_data)?;
+            println!("  Done");
 
             println!("Verifying RW region");
             let flash_rw_data = self.read_ec_flash(FLASH_BASE + FLASH_RW_BASE, FLASH_RW_SIZE)?;
             if rw_data == flash_rw_data {
-                println!("RW verify success");
+                println!("  RW verify success");
             } else {
                 println!("RW verify fail");
             }
@@ -760,14 +762,16 @@ impl CrosEc {
 
             println!("Erasing RO region");
             self.erase_ec_flash(FLASH_BASE + FLASH_RO_BASE, FLASH_RO_SIZE)?;
+            println!("  Done");
 
             println!("Writing RO region");
             self.write_ec_flash(FLASH_BASE + FLASH_RO_BASE, ro_data)?;
+            println!("  Done");
 
             println!("Verifying RO region");
             let flash_ro_data = self.read_ec_flash(FLASH_BASE + FLASH_RO_BASE, FLASH_RO_SIZE)?;
             if ro_data == flash_ro_data {
-                println!("RO verify success");
+                println!("  RO verify success");
             } else {
                 println!("RO verify fail");
             }
@@ -777,34 +781,39 @@ impl CrosEc {
         self.flash_notify(MecFlashNotify::AccessSpiDone)?;
         self.flash_notify(MecFlashNotify::FirmwareDone)?;
 
-        println!("Flashing EC done. You can reboot the EC now");
-        // TODO: Should we force a reboot if currently running one was reflashed?
+        if res.is_ok() {
+            println!("Flashing EC done. You can reboot the EC now");
+        }
 
         Ok(())
     }
 
     /// Write a big section of EC flash. Must be unlocked already
     fn write_ec_flash(&self, addr: u32, data: &[u8]) -> EcResult<()> {
-        let info = EcRequestFlashInfo {}.send_command(self)?;
-        println!("Flash info: {:?}", info);
+        // TODO: Use flash info to help guide ideal chunk size
+        // let info = EcRequestFlashInfo {}.send_command(self)?;
         //let chunk_size = ((0x80 / info.write_ideal_size) * info.write_ideal_size) as usize;
+
         let chunk_size = 0x80;
 
         let chunks = data.len() / chunk_size;
+        println!(
+            "  Will write flash from 0x{:X} to 0x{:X} in {}*{}B chunks",
+            addr,
+            data.len(),
+            chunks,
+            chunk_size
+        );
         for chunk_no in 0..chunks {
             let offset = chunk_no * chunk_size;
             // Current chunk might be smaller if it's the last
             let cur_chunk_size = std::cmp::min(chunk_size, data.len() - chunk_no * chunk_size);
 
             if chunk_no % 100 == 0 {
-                println!();
-                print!(
-                    "Writing chunk {:>4}/{:>4} ({:>6}/{:>6}): X",
-                    chunk_no,
-                    chunks,
-                    offset,
-                    cur_chunk_size * chunks
-                );
+                if chunk_no != 0 {
+                    println!();
+                }
+                print!("  Chunk {:>4}: X", chunk_no);
             } else {
                 print!("X");
             }
