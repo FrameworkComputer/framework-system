@@ -704,6 +704,7 @@ impl CrosEc {
     /// | 40000 | 3C000 | 39000 | RO Region   |
     /// | 79000 | 79FFF | 01000 | Flash Flags |
     pub fn reflash(&self, data: &[u8], ft: EcFlashType) -> EcResult<()> {
+        let mut res = Ok(());
         if ft == EcFlashType::Full || ft == EcFlashType::Ro {
             if let Some(version) = ec_binary::read_ec_version(data, true) {
                 println!("EC RO Version in File: {:?}", version.version);
@@ -753,7 +754,8 @@ impl CrosEc {
             if rw_data == flash_rw_data {
                 println!("  RW verify success");
             } else {
-                println!("RW verify fail");
+                error!("RW verify fail!");
+                res = Err(EcError::DeviceError("RW verify fail!".to_string()));
             }
         }
 
@@ -773,7 +775,8 @@ impl CrosEc {
             if ro_data == flash_ro_data {
                 println!("  RO verify success");
             } else {
-                println!("RO verify fail");
+                error!("RO verify fail!");
+                res = Err(EcError::DeviceError("RW verify fail!".to_string()));
             }
         }
 
@@ -785,7 +788,7 @@ impl CrosEc {
             println!("Flashing EC done. You can reboot the EC now");
         }
 
-        Ok(())
+        res
     }
 
     /// Write a big section of EC flash. Must be unlocked already
