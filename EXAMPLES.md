@@ -2,7 +2,7 @@
 
 ## Check firmware versions
 
-### BIOS (Mainboard, UEFI, EC, PD)
+### BIOS (Mainboard, UEFI, EC, PD, Retimer)
 
 Example on Framework 13 AMD Ryzen AI 300 Series:
 
@@ -20,6 +20,25 @@ EC Firmware
 PD Controllers
   Right (01):       0.0.0E (MainFw)
   Left  (23):       0.0.0E (MainFw)
+[...]
+```
+
+Example on Framework 13 Intel Core Ultra Series 1:
+
+```
+> framework_tool --versions
+Mainboard Hardware
+  Type:           Laptop 13 (AMD Ryzen AI 300 Series)
+  Revision:       MassProduction
+UEFI BIOS
+  Version:        03.03
+  Release Date:   10/07/2024
+EC Firmware
+  Build version:  marigold-3.0.3-278d300 2024-10-04 03:03:58 marigold1@ip-172-26-3-226
+  Current image:  RO
+PD Controllers
+  Right (01):       0.0.08 (MainFw)
+  Left  (23):       0.0.08 (MainFw)
 [...]
 ```
 
@@ -133,6 +152,56 @@ DisplayPort Expansion Card
 CSME
   Firmware Version: 0:16.1.32.2473
 [...]
+```
+
+### Firmware Version using ESRT (BIOS, Retimer, CSME)
+
+All systems have at least an entry for BIOS. Intel systems also have CSME and some Retimers.
+
+Example on Framework 13 Intel Core Ultra Series 1:
+
+```
+> sudo framework_tool --esrt
+ESRT Table
+  ResourceCount:        4
+  ResourceCountMax:     4
+  ResourceVersion:      1
+ESRT Entry 0
+  GUID:                 BDFFCE36-809C-4FA6-AECC-54536922F0E0
+  GUID:                 MtlRetimer23
+  Type:                 DeviceFirmware
+  Version:              0x270 (624)
+  Min FW Version:       0x0 (0)
+  Capsule Flags:        0x0
+  Last Attempt Version: 0x270 (624)
+  Last Attempt Status:  Success
+ESRT Entry 1
+  GUID:                 32D8D677-EEBC-4947-8F8A-0693A45240E5
+  GUID:                 MtlCsme
+  Type:                 DeviceFirmware
+  Version:              0x85D (2141)
+  Min FW Version:       0x3E8 (1000)
+  Capsule Flags:        0x0
+  Last Attempt Version: 0x0 (0)
+  Last Attempt Status:  Success
+ESRT Entry 2
+  GUID:                 C57FD615-2AC9-4154-BF34-4DC715344408
+  GUID:                 MtlRetimer01
+  Type:                 DeviceFirmware
+  Version:              0x270 (624)
+  Min FW Version:       0x0 (0)
+  Capsule Flags:        0x0
+  Last Attempt Version: 0x270 (624)
+  Last Attempt Status:  Success
+ESRT Entry 3
+  GUID:                 72CECB9B-2B37-5EC2-A9FF-C739AABAADF3
+  GUID:                 MtlBios
+  Type:                 SystemFirmware
+  Version:              0x303 (771)
+  Min FW Version:       0x303 (771)
+  Capsule Flags:        0x0
+  Last Attempt Version: 0x303 (771)
+  Last Attempt Status:  Success
 ```
 
 ## Check input deck status
