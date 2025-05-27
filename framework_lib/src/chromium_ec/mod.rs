@@ -724,6 +724,23 @@ impl CrosEc {
             }
         }
 
+        // Determine recommended flash parameters
+        let info = EcRequestFlashInfo {}.send_command(self)?;
+
+        // Check that our hardcoded offsets are valid for the available flash
+        if FLASH_RO_SIZE + FLASH_RW_SIZE > info.flash_size {
+            return Err(EcError::DeviceError(format!(
+                "RO+RW larger than flash 0x{:X}",
+                { info.flash_size }
+            )));
+        }
+        if FLASH_RW_BASE + FLASH_RW_SIZE > info.flash_size {
+            return Err(EcError::DeviceError(format!(
+                "RW overruns end of flash 0x{:X}",
+                { info.flash_size }
+            )));
+        }
+
         println!("Unlocking flash");
         self.flash_notify(MecFlashNotify::AccessSpi)?;
         self.flash_notify(MecFlashNotify::FirmwareStart)?;
@@ -736,11 +753,22 @@ impl CrosEc {
         if ft == EcFlashType::Full || ft == EcFlashType::Rw {
             let rw_data = &data[FLASH_RW_BASE as usize..(FLASH_RW_BASE + FLASH_RW_SIZE) as usize];
 
-            println!("Erasing RW region{}", if dry_run { " (DRY RUN)" } else { "" });
-            self.erase_ec_flash(FLASH_BASE + FLASH_RW_BASE, FLASH_RW_SIZE, dry_run)?;
+            println!(
+                "Erasing RW region{}",
+                if dry_run { " (DRY RUN)" } else { "" }
+            );
+            self.erase_ec_flash(
+                FLASH_BASE + FLASH_RW_BASE,
+                FLASH_RW_SIZE,
+                dry_run,
+                info.erase_block_size,
+            )?;
             println!("  Done");
 
-            println!("Writing RW region{}", if dry_run { " (DRY RUN)" } else { "" });
+            println!(
+                "Writing RW region{}",
+                if dry_run { " (DRY RUN)" } else { "" }
+            );
             self.write_ec_flash(FLASH_BASE + FLASH_RW_BASE, rw_data, dry_run)?;
             println!("  Done");
 
@@ -758,7 +786,12 @@ impl CrosEc {
             let ro_data = &data[FLASH_RO_BASE as usize..(FLASH_RO_BASE + FLASH_RO_SIZE) as usize];
 
             println!("Erasing RO region");
-            self.erase_ec_flash(FLASH_BASE + FLASH_RO_BASE, FLASH_RO_SIZE, dry_run)?;
+            self.erase_ec_flash(
+                FLASH_BASE + FLASH_RO_BASE,
+                FLASH_RO_SIZE,
+                dry_run,
+                info.erase_block_size,
+            )?;
             println!("  Done");
 
             println!("Writing RO region");
@@ -840,10 +873,15 @@ impl CrosEc {
         .send_command_extra(self, data)
     }
 
-    fn erase_ec_flash(&self, offset: u32, size: u32, dry_run: bool) -> EcResult<()> {
+    fn erase_ec_flash(
+        &self,
+        offset: u32,
+        size: u32,
+        dry_run: bool,
+        chunk_size: u32,
+    ) -> EcResult<()> {
         // Erasing a big section takes too long sometimes and the linux kernel driver times out, so
-        // split it up into chunks. One chunk is 1/8 of EC ROM size.
-        let chunk_size = 0x10000;
+        // split it up into chunks.
         let mut cur_offset = offset;
 
         while cur_offset < offset + size {
