@@ -832,7 +832,30 @@ impl CrosEc {
     }
 
     fn erase_ec_flash(&self, offset: u32, size: u32) -> EcResult<()> {
-        EcRequestFlashErase { offset, size }.send_command(self)
+        // Erasing a big section takes too long sometimes and the linux kernel driver times out, so
+        // split it up into chunks. One chunk is 1/8 of EC ROM size.
+        let chunk_size = 0x10000;
+        let mut cur_offset = offset;
+
+        while cur_offset < offset + size {
+            let rem_size = offset + size - cur_offset;
+            let cur_size = if rem_size < chunk_size {
+                rem_size
+            } else {
+                chunk_size
+            };
+            debug!(
+                "EcRequestFlashErase (0x{:05X}, 0x{:05X})",
+                cur_offset, cur_size
+            );
+            EcRequestFlashErase {
+                offset: cur_offset,
+                size: cur_size,
+            }
+            .send_command(self)?;
+            cur_offset += chunk_size;
+        }
+        Ok(())
     }
 
     pub fn flash_notify(&self, flag: MecFlashNotify) -> EcResult<()> {
