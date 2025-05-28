@@ -253,11 +253,13 @@ Capsule Header
 ```
 
 ###### Running on Windows
-Windows does not ship with a Chrome EC driver. However there is an open-source implementation that this tool can take advantage of.
-The project is hosted on GitHub and you can download pre-built binaries
-[there](https://github.com/DHowett/FrameworkWindowsUtils/releases).
 
-The driver is not signed by Microsoft, so you will have to enable testsigning.
+On newly released systems since 2025 the Framework driver installer includes the EC driver.
+This includes Framework 12, Framework 13 AMD Ryzen AI 300, Framework Desktop.
+
+Previous platforms will be enabled next.
+
+Installing: `winget install FrameworkComputer.framework_tool`
 
 ##### Running on ChromeOS
 
