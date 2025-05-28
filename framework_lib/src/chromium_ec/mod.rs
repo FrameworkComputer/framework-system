@@ -703,7 +703,8 @@ impl CrosEc {
     /// | 3C000 | 3FFFF | 04000 | Preserved   |
     /// | 40000 | 3C000 | 39000 | RO Region   |
     /// | 79000 | 79FFF | 01000 | Flash Flags |
-    pub fn reflash(&self, data: &[u8], ft: EcFlashType) -> EcResult<()> {
+    pub fn reflash(&self, data: &[u8], ft: EcFlashType, dry_run: bool) -> EcResult<()> {
+        let mut res = Ok(());
         if ft == EcFlashType::Full || ft == EcFlashType::Ro {
             if let Some(version) = ec_binary::read_ec_version(data, true) {
                 println!("EC RO Version in File: {:?}", version.version);
@@ -723,9 +724,21 @@ impl CrosEc {
             }
         }
 
-        if ft == EcFlashType::Full || ft == EcFlashType::Ro {
-            println!("For safety reasons flashing RO firmware is disabled.");
-            return Ok(());
+        // Determine recommended flash parameters
+        let info = EcRequestFlashInfo {}.send_command(self)?;
+
+        // Check that our hardcoded offsets are valid for the available flash
+        if FLASH_RO_SIZE + FLASH_RW_SIZE > info.flash_size {
+            return Err(EcError::DeviceError(format!(
+                "RO+RW larger than flash 0x{:X}",
+                { info.flash_size }
+            )));
+        }
+        if FLASH_RW_BASE + FLASH_RW_SIZE > info.flash_size {
+            return Err(EcError::DeviceError(format!(
+                "RW overruns end of flash 0x{:X}",
+                { info.flash_size }
+            )));
         }
 
         println!("Unlocking flash");
@@ -740,18 +753,32 @@ impl CrosEc {
         if ft == EcFlashType::Full || ft == EcFlashType::Rw {
             let rw_data = &data[FLASH_RW_BASE as usize..(FLASH_RW_BASE + FLASH_RW_SIZE) as usize];
 
-            println!("Erasing RW region");
-            self.erase_ec_flash(FLASH_BASE + FLASH_RW_BASE, FLASH_RW_SIZE)?;
+            println!(
+                "Erasing RW region{}",
+                if dry_run { " (DRY RUN)" } else { "" }
+            );
+            self.erase_ec_flash(
+                FLASH_BASE + FLASH_RW_BASE,
+                FLASH_RW_SIZE,
+                dry_run,
+                info.erase_block_size,
+            )?;
+            println!("  Done");
 
-            println!("Writing RW region");
-            self.write_ec_flash(FLASH_BASE + FLASH_RW_BASE, rw_data)?;
+            println!(
+                "Writing RW region{}",
+                if dry_run { " (DRY RUN)" } else { "" }
+            );
+            self.write_ec_flash(FLASH_BASE + FLASH_RW_BASE, rw_data, dry_run)?;
+            println!("  Done");
 
             println!("Verifying RW region");
             let flash_rw_data = self.read_ec_flash(FLASH_BASE + FLASH_RW_BASE, FLASH_RW_SIZE)?;
             if rw_data == flash_rw_data {
-                println!("RW verify success");
+                println!("  RW verify success");
             } else {
-                println!("RW verify fail");
+                error!("RW verify fail!");
+                res = Err(EcError::DeviceError("RW verify fail!".to_string()));
             }
         }
 
@@ -759,17 +786,25 @@ impl CrosEc {
             let ro_data = &data[FLASH_RO_BASE as usize..(FLASH_RO_BASE + FLASH_RO_SIZE) as usize];
 
             println!("Erasing RO region");
-            self.erase_ec_flash(FLASH_BASE + FLASH_RO_BASE, FLASH_RO_SIZE)?;
+            self.erase_ec_flash(
+                FLASH_BASE + FLASH_RO_BASE,
+                FLASH_RO_SIZE,
+                dry_run,
+                info.erase_block_size,
+            )?;
+            println!("  Done");
 
             println!("Writing RO region");
-            self.write_ec_flash(FLASH_BASE + FLASH_RO_BASE, ro_data)?;
+            self.write_ec_flash(FLASH_BASE + FLASH_RO_BASE, ro_data, dry_run)?;
+            println!("  Done");
 
             println!("Verifying RO region");
             let flash_ro_data = self.read_ec_flash(FLASH_BASE + FLASH_RO_BASE, FLASH_RO_SIZE)?;
             if ro_data == flash_ro_data {
-                println!("RO verify success");
+                println!("  RO verify success");
             } else {
-                println!("RO verify fail");
+                error!("RO verify fail!");
+                res = Err(EcError::DeviceError("RW verify fail!".to_string()));
             }
         }
 
@@ -777,43 +812,50 @@ impl CrosEc {
         self.flash_notify(MecFlashNotify::AccessSpiDone)?;
         self.flash_notify(MecFlashNotify::FirmwareDone)?;
 
-        println!("Flashing EC done. You can reboot the EC now");
-        // TODO: Should we force a reboot if currently running one was reflashed?
+        if res.is_ok() {
+            println!("Flashing EC done. You can reboot the EC now");
+        }
 
-        Ok(())
+        res
     }
 
     /// Write a big section of EC flash. Must be unlocked already
-    fn write_ec_flash(&self, addr: u32, data: &[u8]) -> EcResult<()> {
-        let info = EcRequestFlashInfo {}.send_command(self)?;
-        println!("Flash info: {:?}", info);
+    fn write_ec_flash(&self, addr: u32, data: &[u8], dry_run: bool) -> EcResult<()> {
+        // TODO: Use flash info to help guide ideal chunk size
+        // let info = EcRequestFlashInfo {}.send_command(self)?;
         //let chunk_size = ((0x80 / info.write_ideal_size) * info.write_ideal_size) as usize;
+
         let chunk_size = 0x80;
 
         let chunks = data.len() / chunk_size;
+        println!(
+            "  Will write flash from 0x{:X} to 0x{:X} in {}*{}B chunks",
+            addr,
+            data.len(),
+            chunks,
+            chunk_size
+        );
         for chunk_no in 0..chunks {
             let offset = chunk_no * chunk_size;
             // Current chunk might be smaller if it's the last
             let cur_chunk_size = std::cmp::min(chunk_size, data.len() - chunk_no * chunk_size);
 
             if chunk_no % 100 == 0 {
-                println!();
-                print!(
-                    "Writing chunk {:>4}/{:>4} ({:>6}/{:>6}): X",
-                    chunk_no,
-                    chunks,
-                    offset,
-                    cur_chunk_size * chunks
-                );
+                if chunk_no != 0 {
+                    println!();
+                }
+                print!("  Chunk {:>4}: X", chunk_no);
             } else {
                 print!("X");
             }
 
             let chunk = &data[offset..offset + cur_chunk_size];
-            let res = self.write_ec_flash_chunk(addr + offset as u32, chunk);
-            if let Err(err) = res {
-                println!("  Failed to write chunk: {:?}", err);
-                return Err(err);
+            if !dry_run {
+                let res = self.write_ec_flash_chunk(addr + offset as u32, chunk);
+                if let Err(err) = res {
+                    println!("  Failed to write chunk: {:?}", err);
+                    return Err(err);
+                }
             }
         }
         println!();
@@ -831,8 +873,38 @@ impl CrosEc {
         .send_command_extra(self, data)
     }
 
-    fn erase_ec_flash(&self, offset: u32, size: u32) -> EcResult<()> {
-        EcRequestFlashErase { offset, size }.send_command(self)
+    fn erase_ec_flash(
+        &self,
+        offset: u32,
+        size: u32,
+        dry_run: bool,
+        chunk_size: u32,
+    ) -> EcResult<()> {
+        // Erasing a big section takes too long sometimes and the linux kernel driver times out, so
+        // split it up into chunks.
+        let mut cur_offset = offset;
+
+        while cur_offset < offset + size {
+            let rem_size = offset + size - cur_offset;
+            let cur_size = if rem_size < chunk_size {
+                rem_size
+            } else {
+                chunk_size
+            };
+            debug!(
+                "EcRequestFlashErase (0x{:05X}, 0x{:05X})",
+                cur_offset, cur_size
+            );
+            if !dry_run {
+                EcRequestFlashErase {
+                    offset: cur_offset,
+                    size: cur_size,
+                }
+                .send_command(self)?;
+            }
+            cur_offset += chunk_size;
+        }
+        Ok(())
     }
 
     pub fn flash_notify(&self, flag: MecFlashNotify) -> EcResult<()> {

@@ -170,6 +170,8 @@ pub struct Cli {
     pub flash_rw_ec: Option<String>,
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
+    pub dry_run: bool,
+    pub force: bool,
     pub intrusion: bool,
     pub inputdeck: bool,
     pub inputdeck_mode: Option<InputDeckModeArg>,
@@ -594,7 +596,7 @@ fn print_esrt() {
     }
 }
 
-fn flash_ec(ec: &CrosEc, ec_bin_path: &str, flash_type: EcFlashType) {
+fn flash_ec(ec: &CrosEc, ec_bin_path: &str, flash_type: EcFlashType, dry_run: bool) {
     #[cfg(feature = "uefi")]
     let data = crate::uefi::fs::shell_read_file(ec_bin_path);
     #[cfg(not(feature = "uefi"))]
@@ -613,7 +615,7 @@ fn flash_ec(ec: &CrosEc, ec_bin_path: &str, flash_type: EcFlashType) {
         println!("File");
         println!("  Size:       {:>20} B", data.len());
         println!("  Size:       {:>20} KB", data.len() / 1024);
-        if let Err(err) = ec.reflash(&data, flash_type) {
+        if let Err(err) = ec.reflash(&data, flash_type, dry_run) {
             println!("Error: {:?}", err);
         } else {
             println!("Success!");
@@ -1107,11 +1109,19 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         // TODO: Should have progress indicator
         dump_ec_flash(&ec, dump_path);
     } else if let Some(ec_bin_path) = &args.flash_ec {
-        flash_ec(&ec, ec_bin_path, EcFlashType::Full);
+        if args.force {
+            flash_ec(&ec, ec_bin_path, EcFlashType::Full, args.dry_run);
+        } else {
+            error!("Flashing EC RO region is unsafe. Use --flash-ec-rw instead");
+        }
     } else if let Some(ec_bin_path) = &args.flash_ro_ec {
-        flash_ec(&ec, ec_bin_path, EcFlashType::Ro);
+        if args.force {
+            flash_ec(&ec, ec_bin_path, EcFlashType::Ro, args.dry_run);
+        } else {
+            error!("Flashing EC RO region is unsafe. Use --flash-ec-rw instead");
+        }
     } else if let Some(ec_bin_path) = &args.flash_rw_ec {
-        flash_ec(&ec, ec_bin_path, EcFlashType::Rw);
+        flash_ec(&ec, ec_bin_path, EcFlashType::Rw, args.dry_run);
     } else if let Some(hash_file) = &args.hash {
         println!("Hashing file: {}", hash_file);
         #[cfg(feature = "uefi")]
@@ -1193,6 +1203,8 @@ Options:
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
       --hash <HASH>          Hash a file of arbitrary data
       --flash-gpu-descriptor <MAGIC> <18 DIGIT SN> Overwrite the GPU bay descriptor SN and type.
+  -f, --force                Force execution of an unsafe command - may render your hardware unbootable!
+      --dry-run              Simulate execution of a command (e.g. --flash-ec)
   -t, --test                 Run self-test to check if interaction with EC is possible
   -h, --help                 Print help information
   -b                         Print output one screen at a time
