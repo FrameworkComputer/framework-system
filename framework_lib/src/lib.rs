@@ -39,6 +39,7 @@ pub mod ec_binary;
 pub mod esrt;
 mod os_specific;
 pub mod power;
+pub mod serialnum;
 pub mod smbios;
 #[cfg(feature = "uefi")]
 pub mod uefi;
