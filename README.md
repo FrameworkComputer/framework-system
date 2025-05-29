@@ -126,6 +126,14 @@ make -C framework_uefi
 ls -l framework_uefi/build/x86_64-unknown-uefi/boot.efi
 ```
 
+### Dependencies
+
+```
+# NixOS
+nix-shell --run fish -p cargo systemd udev hidapi pkg-config
+direnv shell
+```
+
 ## Install local package
 
 ```
