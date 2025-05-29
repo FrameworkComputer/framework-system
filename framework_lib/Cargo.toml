@@ -52,6 +52,7 @@ clap-num = { version = "1.2.0" }
 clap-verbosity-flag = { version = "2.2.1" }
 windows-version = "0.1.4"
 winreg = "0.55.0"
+nvml-wrapper = "0.11.0"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.155"
@@ -62,6 +63,7 @@ env_logger = "0.11"
 clap = { version = "4.5", features = ["derive", "cargo"] }
 clap-num = { version = "1.2.0" }
 clap-verbosity-flag = { version = "2.2.1" }
+nvml-wrapper = "0.11.0"
 
 [target.'cfg(windows)'.dependencies.windows]
 version = "0.59.0"
