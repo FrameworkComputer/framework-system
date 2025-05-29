@@ -756,6 +756,24 @@ fn print_versions(ec: &CrosEc) {
             }
         }
     }
+
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    match nvml_wrapper::Nvml::init() {
+        Ok(nvml) => {
+            // Get the first `Device` (GPU) in the system
+            match nvml.device_by_index(0) {
+                Ok(device) => {
+                    println!("NVIDIA GPU");
+                    println!("  BRAND:          {:?}", device.brand());
+                    println!("  VBIOS Version:  {:?}", device.vbios_version());
+                    println!("  INFO ROM Ver:   {:?}", device.info_rom_image_version());
+                    println!("  Memory Info:    {:?}", device.memory_info());
+                }
+                Err(err) => debug!("Nvidia, device not foun: {:?}", err),
+            }
+        }
+        Err(err) => debug!("Nvidia, library init: {:?}", err),
+    }
 }
 
 fn print_esrt() {
