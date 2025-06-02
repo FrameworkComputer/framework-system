@@ -123,11 +123,11 @@ struct ClapCli {
     #[arg(long)]
     dump_ec_flash: Option<std::path::PathBuf>,
 
-    /// Flash EC with new firmware from file
+    /// Flash EC (RO+RW) with new firmware from file - may render your hardware unbootable!
     #[arg(long)]
     flash_ec: Option<std::path::PathBuf>,
 
-    /// Flash EC with new RO firmware from file
+    /// Flash EC with new RO firmware from file - may render your hardware unbootable!
     #[arg(long)]
     flash_ro_ec: Option<std::path::PathBuf>,
 
@@ -250,6 +250,14 @@ struct ClapCli {
     /// Run self-test to check if interaction with EC is possible
     #[arg(long, short)]
     test: bool,
+
+    /// Force execution of an unsafe command - may render your hardware unbootable!
+    #[arg(long, short)]
+    force: bool,
+
+    /// Simulate execution of a command (e.g. --flash-ec)
+    #[arg(long)]
+    dry_run: bool,
 }
 
 /// Parse a list of commandline arguments and return the struct
@@ -424,6 +432,8 @@ pub fn parse(args: &[String]) -> Cli {
         pd_addrs,
         pd_ports,
         test: args.test,
+        dry_run: args.dry_run,
+        force: args.force,
         // TODO: Set help. Not very important because Clap handles this by itself
         help: false,
         // UEFI only for now. Don't need to handle

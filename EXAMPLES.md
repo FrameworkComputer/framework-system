@@ -533,3 +533,23 @@ ESRT Entry 0
   Last Attempt Version: 0x108 (264)
   Last Attempt Status:  Success
 ```
+
+## Flashing EC firmware
+
+**IMPORTANT** Flashing EC firmware yourself is not recommended. It may render
+your hardware unbootable. Please update your firmware using the official BIOS
+update methods (Windows .exe, LVFS/FWUPD, EFI updater)!
+
+This command has not been thoroughly tested on all Framework Computer systems
+
+```
+# Simulate flashing RW (to see which blocks are updated)
+> framework_tool --flash-rw-ec ec.bin --dry-run
+
+# Actually flash RW
+> framework_tool --flash-rw-ec ec.bin
+
+# Boot into EC RW firmware (will crash your OS and reboot immediately)
+# EC will boot back into RO if the system turned off for 30s
+> framework_tool --reboot-ec jump-rw
+```
