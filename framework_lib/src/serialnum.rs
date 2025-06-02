@@ -1,3 +1,4 @@
+use alloc::format;
 use alloc::string::{String, ToString};
 use core::str::FromStr;
 use num_derive::FromPrimitive;
