@@ -474,6 +474,27 @@ fn print_versions(ec: &CrosEc) {
                 left.main_fw.app, left.active_fw
             );
         }
+    } else if let Ok(PdVersions::Many(versions)) = ccgx_pd_vers {
+        for (i, version) in versions.into_iter().enumerate() {
+            if version.main_fw.app != version.backup_fw.app {
+                println!("  PD {}", 1);
+                println!(
+                    "    Main:           {}{}",
+                    version.main_fw.app,
+                    active_mode(&version.active_fw, FwMode::MainFw)
+                );
+                println!(
+                    "    Backup:         {}{}",
+                    version.backup_fw.app,
+                    active_mode(&version.active_fw, FwMode::BackupFw)
+                );
+            } else {
+                println!(
+                    "  PD {}:            {} ({:?})",
+                    i, version.main_fw.app, version.active_fw
+                );
+            }
+        }
     } else if let Ok(PdVersions::Single(pd)) = ccgx_pd_vers {
         if pd.main_fw.app != pd.backup_fw.app {
             println!(
