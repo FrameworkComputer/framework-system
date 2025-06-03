@@ -238,12 +238,12 @@ struct ClapCli {
     driver: Option<CrosEcDriverType>,
 
     /// Specify I2C addresses of the PD chips (Advanced)
-    #[clap(number_of_values = 2, requires("pd_ports"))]
+    #[clap(number_of_values = 3, requires("pd_ports"))]
     #[arg(long)]
     pd_addrs: Vec<u16>,
 
     /// Specify I2C ports of the PD chips (Advanced)
-    #[clap(number_of_values = 2, requires("pd_addrs"))]
+    #[clap(number_of_values = 3, requires("pd_addrs"))]
     #[arg(long)]
     pd_ports: Vec<u8>,
 
@@ -317,13 +317,13 @@ pub fn parse(args: &[String]) -> Cli {
         .unwrap();
 
     let pd_addrs = match args.pd_addrs.len() {
-        2 => Some((args.pd_addrs[0], args.pd_addrs[1])),
+        3 => Some((args.pd_addrs[0], args.pd_addrs[1], args.pd_addrs[2])),
         0 => None,
         // Checked by clap
         _ => unreachable!(),
     };
     let pd_ports = match args.pd_ports.len() {
-        2 => Some((args.pd_ports[0], args.pd_ports[1])),
+        3 => Some((args.pd_ports[0], args.pd_ports[1], args.pd_ports[2])),
         0 => None,
         // Checked by clap
         _ => unreachable!(),

@@ -37,7 +37,7 @@ pub enum Platform {
     FrameworkDesktopAmdAiMax300,
     /// Generic Framework device
     /// pd_addrs, pd_ports
-    GenericFramework((u16, u16), (u8, u8)),
+    GenericFramework((u16, u16, u16), (u8, u8, u8)),
     UnknownSystem,
 }
 
