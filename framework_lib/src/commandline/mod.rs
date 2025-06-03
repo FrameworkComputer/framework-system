@@ -817,6 +817,7 @@ fn print_nvidia_details() {
         "  Pwr Mgmt Limit Df:{:?}mW",
         device.power_management_limit_default()
     );
+    // NotSupported
     println!(
         "  Pwr Mgmt Limit:   {:?}mW",
         device.power_management_limit()
@@ -830,7 +831,7 @@ fn print_nvidia_details() {
         "  Total Energy:     {:?}mJ",
         device.total_energy_consumption()
     );
-    // 0 right now
+    // 0/NotSupported right now
     println!("  Serialnum:        {:?}", device.serial());
     println!(
         "  Throttle Reason:  {:?}",
@@ -843,9 +844,12 @@ fn print_nvidia_details() {
     //println!("  Temperature Thres:{:?}C", device.temperature_threshold());
     println!("  Util Rate:        {:?}", device.utilization_rates());
     println!("  Memory Info:      {:?}", device.memory_info());
+    // Not supported
     println!("  Part Number:      {:?}", device.board_part_number());
     println!("  Board ID:         {:?}", device.board_id());
+    // 0
     println!("  Num Fans:         {:?}", device.num_fans());
+    // Works
     println!("  Display Active?:  {:?}", device.is_display_active());
     println!("  Display Conn?:    {:?}", device.is_display_connected());
 }
