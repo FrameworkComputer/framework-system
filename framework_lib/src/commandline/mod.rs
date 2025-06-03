@@ -72,6 +72,9 @@ use sha2::{Digest, Sha256, Sha384, Sha512};
 //use smbioslib::*;
 use smbioslib::{DefinedStruct, SMBiosInformation};
 
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+use nvml_wrapper::{enum_wrappers::device::TemperatureSensor, Nvml};
+
 use crate::chromium_ec::{CrosEc, CrosEcDriverType, HardwareDeviceType};
 
 #[cfg(feature = "uefi")]
@@ -356,6 +359,8 @@ fn print_pd_details(ec: &CrosEc) {
 
 #[cfg(feature = "hidapi")]
 const NOT_SET: &str = "NOT SET";
+
+const UNKNOWN: &str = "Unknown";
 
 #[cfg(feature = "rusb")]
 fn print_audio_card_details() {
@@ -758,16 +763,71 @@ fn print_versions(ec: &CrosEc) {
     }
 
     #[cfg(any(target_os = "linux", target_os = "windows"))]
-    match nvml_wrapper::Nvml::init() {
+    print_nvidia_details();
+}
+
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+fn print_nvidia_details() {
+    match Nvml::init() {
         Ok(nvml) => {
             // Get the first `Device` (GPU) in the system
             match nvml.device_by_index(0) {
                 Ok(device) => {
                     println!("NVIDIA GPU");
-                    println!("  BRAND:          {:?}", device.brand());
-                    println!("  VBIOS Version:  {:?}", device.vbios_version());
-                    println!("  INFO ROM Ver:   {:?}", device.info_rom_image_version());
-                    println!("  Memory Info:    {:?}", device.memory_info());
+                    // GeForce
+                    info!("  BRAND:          {:?}", device.brand());
+                    println!(
+                        "  Name:             {}",
+                        device.name().unwrap_or(UNKNOWN.to_string())
+                    );
+                    println!("  Architecture:     {:?}", device.architecture());
+                    println!(
+                        "  VBIOS Version:    {}",
+                        device.vbios_version().unwrap_or(UNKNOWN.to_string())
+                    );
+                    println!(
+                        "  INFO ROM Ver:     {}",
+                        device
+                            .info_rom_image_version()
+                            .unwrap_or(UNKNOWN.to_string())
+                    );
+                    println!("  PCI Info:         {:X?}", device.pci_info());
+                    println!("  Performance State:{:?}", device.performance_state());
+                    println!(
+                        "  Pwr Mgmt Limit Df:{:?}mW",
+                        device.power_management_limit_default()
+                    );
+                    println!(
+                        "  Pwr Mgmt Limit:   {:?}mW",
+                        device.power_management_limit()
+                    );
+                    println!(
+                        "  Pwr Mgmt Limit Cs:{:?}",
+                        device.power_management_limit_constraints()
+                    );
+                    println!("  Pwr Usage:        {:?}mW", device.power_usage());
+                    println!(
+                        "  Total Energy:     {:?}mJ",
+                        device.total_energy_consumption()
+                    );
+                    // 0 right now
+                    println!("  Serialnum:        {:?}", device.serial());
+                    println!(
+                        "  Throttle Reason:  {:?}",
+                        device.current_throttle_reasons()
+                    );
+                    println!(
+                        "  Temperature:      {:?}C",
+                        device.temperature(TemperatureSensor::Gpu)
+                    );
+                    //println!("  Temperature Thres:{:?}C", device.temperature_threshold());
+                    println!("  Util Rate:        {:?}", device.utilization_rates());
+                    println!("  Memory Info:      {:?}", device.memory_info());
+                    println!("  Part Number:      {:?}", device.board_part_number());
+                    println!("  Board ID:         {:?}", device.board_id());
+                    println!("  Num Fans:         {:?}", device.num_fans());
+                    println!("  Display Active?:  {:?}", device.is_display_active());
+                    println!("  Display Conn?:    {:?}", device.is_display_connected());
                 }
                 Err(err) => debug!("Nvidia, device not foun: {:?}", err),
             }
