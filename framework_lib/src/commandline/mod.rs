@@ -777,72 +777,77 @@ fn print_versions(ec: &CrosEc) {
 
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 fn print_nvidia_details() {
-    match Nvml::init() {
-        Ok(nvml) => {
-            // Get the first `Device` (GPU) in the system
-            match nvml.device_by_index(0) {
-                Ok(device) => {
-                    println!("NVIDIA GPU");
-                    // GeForce
-                    info!("  BRAND:          {:?}", device.brand());
-                    println!(
-                        "  Name:             {}",
-                        device.name().unwrap_or(UNKNOWN.to_string())
-                    );
-                    println!("  Architecture:     {:?}", device.architecture());
-                    println!(
-                        "  VBIOS Version:    {}",
-                        device.vbios_version().unwrap_or(UNKNOWN.to_string())
-                    );
-                    println!(
-                        "  INFO ROM Ver:     {}",
-                        device
-                            .info_rom_image_version()
-                            .unwrap_or(UNKNOWN.to_string())
-                    );
-                    println!("  PCI Info:         {:X?}", device.pci_info());
-                    println!("  Performance State:{:?}", device.performance_state());
-                    println!(
-                        "  Pwr Mgmt Limit Df:{:?}mW",
-                        device.power_management_limit_default()
-                    );
-                    println!(
-                        "  Pwr Mgmt Limit:   {:?}mW",
-                        device.power_management_limit()
-                    );
-                    println!(
-                        "  Pwr Mgmt Limit Cs:{:?}",
-                        device.power_management_limit_constraints()
-                    );
-                    println!("  Pwr Usage:        {:?}mW", device.power_usage());
-                    println!(
-                        "  Total Energy:     {:?}mJ",
-                        device.total_energy_consumption()
-                    );
-                    // 0 right now
-                    println!("  Serialnum:        {:?}", device.serial());
-                    println!(
-                        "  Throttle Reason:  {:?}",
-                        device.current_throttle_reasons()
-                    );
-                    println!(
-                        "  Temperature:      {:?}C",
-                        device.temperature(TemperatureSensor::Gpu)
-                    );
-                    //println!("  Temperature Thres:{:?}C", device.temperature_threshold());
-                    println!("  Util Rate:        {:?}", device.utilization_rates());
-                    println!("  Memory Info:      {:?}", device.memory_info());
-                    println!("  Part Number:      {:?}", device.board_part_number());
-                    println!("  Board ID:         {:?}", device.board_id());
-                    println!("  Num Fans:         {:?}", device.num_fans());
-                    println!("  Display Active?:  {:?}", device.is_display_active());
-                    println!("  Display Conn?:    {:?}", device.is_display_connected());
-                }
-                Err(err) => debug!("Nvidia, device not foun: {:?}", err),
-            }
+    let nvml = match Nvml::init() {
+        Ok(nvml) => nvml,
+        Err(err) => {
+            debug!("Nvidia, library init fail: {:?}", err);
+            return;
         }
-        Err(err) => debug!("Nvidia, library init: {:?}", err),
-    }
+    };
+    // Get the first `Device` (GPU) in the system
+    let device = match nvml.device_by_index(0) {
+        Ok(device) => device,
+        Err(err) => {
+            debug!("Nvidia, device not found: {:?}", err);
+            return;
+        }
+    };
+
+    println!("NVIDIA GPU");
+    // GeForce
+    info!("  BRAND:          {:?}", device.brand());
+    println!(
+        "  Name:             {}",
+        device.name().unwrap_or(UNKNOWN.to_string())
+    );
+    println!("  Architecture:     {:?}", device.architecture());
+    println!(
+        "  VBIOS Version:    {}",
+        device.vbios_version().unwrap_or(UNKNOWN.to_string())
+    );
+    println!(
+        "  INFO ROM Ver:     {}",
+        device
+            .info_rom_image_version()
+            .unwrap_or(UNKNOWN.to_string())
+    );
+    println!("  PCI Info:         {:X?}", device.pci_info());
+    println!("  Performance State:{:?}", device.performance_state());
+    println!(
+        "  Pwr Mgmt Limit Df:{:?}mW",
+        device.power_management_limit_default()
+    );
+    println!(
+        "  Pwr Mgmt Limit:   {:?}mW",
+        device.power_management_limit()
+    );
+    println!(
+        "  Pwr Mgmt Limit Cs:{:?}",
+        device.power_management_limit_constraints()
+    );
+    println!("  Pwr Usage:        {:?}mW", device.power_usage());
+    println!(
+        "  Total Energy:     {:?}mJ",
+        device.total_energy_consumption()
+    );
+    // 0 right now
+    println!("  Serialnum:        {:?}", device.serial());
+    println!(
+        "  Throttle Reason:  {:?}",
+        device.current_throttle_reasons()
+    );
+    println!(
+        "  Temperature:      {:?}C",
+        device.temperature(TemperatureSensor::Gpu)
+    );
+    //println!("  Temperature Thres:{:?}C", device.temperature_threshold());
+    println!("  Util Rate:        {:?}", device.utilization_rates());
+    println!("  Memory Info:      {:?}", device.memory_info());
+    println!("  Part Number:      {:?}", device.board_part_number());
+    println!("  Board ID:         {:?}", device.board_id());
+    println!("  Num Fans:         {:?}", device.num_fans());
+    println!("  Display Active?:  {:?}", device.is_display_active());
+    println!("  Display Conn?:    {:?}", device.is_display_connected());
 }
 
 fn print_esrt() {
