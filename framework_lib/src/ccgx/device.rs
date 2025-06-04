@@ -23,6 +23,7 @@ const HPI_RESET_DEV_CMD: u8 = 1;
 const _HPI_FLASH_READ_CMD: u8 = 0;
 const _HPI_FLASH_WRITE_CMD: u8 = 1;
 
+#[derive(Debug, Copy, Clone)]
 enum ControlRegisters {
     DeviceMode = 0,
     SiliconId = 2, // Two bytes long, First LSB, then MSB
@@ -40,7 +41,7 @@ enum ControlRegisters {
     _FlashRwMem = 0x0200,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PdPort {
     Left01,
     Right23,
@@ -148,7 +149,7 @@ pub struct PdController {
     ec: CrosEc,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FwMode {
     BootLoader = 0,
     /// Backup CCGX firmware (No 1)
