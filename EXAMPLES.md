@@ -453,6 +453,37 @@ Keyboard backlight: 5%
 > framework_tool.exe --kblight 20
 ```
 
+## Fingerprint/Powerbutton brightness
+
+On Framework 13 and Framework 16 the power button has an integrated fingerprint reader, hence the name.
+On Framework 12 it does not, but the same command can be used.
+
+```
+# Check the current brightness
+> framework_tool --fp-brightness
+Fingerprint LED Brightness
+  Requested:  Auto
+  Brightness: 55%
+
+# Set it to a custom perfentage
+> framework_tool --fp-brightness 42
+Fingerprint LED Brightness
+  Requested:  Custom
+  Brightness: 42%
+
+# Set to a specific level (like the BIOS setting does)
+> framework_tool --fp-led-level high
+Fingerprint LED Brightness
+  Requested:  High
+  Brightness: 55%
+
+# Set it back to auto
+> framework_tool --fp-led-level auto
+Fingerprint LED Brightness
+  Requested:  Auto
+  Brightness: 15%
+```
+
 ## RGB LED (Framework Desktop)
 
 ```
