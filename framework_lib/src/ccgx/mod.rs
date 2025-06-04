@@ -105,7 +105,8 @@ struct CyAcd2Metadata {
 pub enum SiliconId {
     Ccg3 = 0x1D00,
     Ccg5 = 0x2100,
-    Ccg6 = 0x3000,
+    Ccg6Adl = 0x3000,
+    Ccg6 = 0x30A0,
     Ccg8 = 0x3580,
 }
 
