@@ -157,6 +157,8 @@ pub struct Cli {
     pub privacy: bool,
     pub pd_info: bool,
     pub pd_reset: Option<u8>,
+    pub pd_disable: Option<u8>,
+    pub pd_enable: Option<u8>,
     pub dp_hdmi_info: bool,
     pub dp_hdmi_update: Option<String>,
     pub audio_card_info: bool,
@@ -1006,6 +1008,28 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             0 => PdController::new(PdPort::Left01, ec.clone()).reset_device(),
             1 => PdController::new(PdPort::Right23, ec.clone()).reset_device(),
             2 => PdController::new(PdPort::Back, ec.clone()).reset_device(),
+            _ => {
+                error!("PD {} does not exist", pd);
+                Ok(())
+            }
+        });
+    } else if let Some(pd) = args.pd_disable {
+        println!("Disabling PD {}...", pd);
+        print_err(match pd {
+            0 => PdController::new(PdPort::Left01, ec.clone()).enable_ports(false),
+            1 => PdController::new(PdPort::Right23, ec.clone()).enable_ports(false),
+            2 => PdController::new(PdPort::Back, ec.clone()).enable_ports(false),
+            _ => {
+                error!("PD {} does not exist", pd);
+                Ok(())
+            }
+        });
+    } else if let Some(pd) = args.pd_enable {
+        println!("Enabling PD {}...", pd);
+        print_err(match pd {
+            0 => PdController::new(PdPort::Left01, ec.clone()).enable_ports(true),
+            1 => PdController::new(PdPort::Right23, ec.clone()).enable_ports(true),
+            2 => PdController::new(PdPort::Back, ec.clone()).enable_ports(true),
             _ => {
                 error!("PD {} does not exist", pd);
                 Ok(())

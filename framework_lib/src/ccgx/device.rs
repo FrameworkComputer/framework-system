@@ -366,4 +366,10 @@ impl PdController {
         )?;
         Ok(())
     }
+
+    pub fn enable_ports(&self, enable: bool) -> EcResult<()> {
+        let mask = if enable { 0b11 } else { 0b00 };
+        self.ccgx_write(ControlRegisters::PdPortsEnable, &[mask])?;
+        Ok(())
+    }
 }

@@ -71,6 +71,8 @@ pub fn parse(args: &[String]) -> Cli {
         pdports: false,
         pd_info: false,
         pd_reset: None,
+        pd_disable: None,
+        pd_enable: None,
         dp_hdmi_info: false,
         dp_hdmi_update: None,
         audio_card_info: false,
@@ -532,6 +534,38 @@ pub fn parse(args: &[String]) -> Cli {
                 }
             } else {
                 println!("--pd-reset requires specifying the PD controller");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--pd-disable" {
+            cli.pd_reset = if args.len() > i + 1 {
+                if let Ok(pd) = args[i + 1].parse::<u8>() {
+                    Some(pd)
+                } else {
+                    println!(
+                        "Invalid value for --pd-disable: '{}'. Must be 0 or 1.",
+                        args[i + 1],
+                    );
+                    None
+                }
+            } else {
+                println!("--pd-disable requires specifying the PD controller");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--pd-enable" {
+            cli.pd_enable = if args.len() > i + 1 {
+                if let Ok(pd) = args[i + 1].parse::<u8>() {
+                    Some(pd)
+                } else {
+                    println!(
+                        "Invalid value for --pd-enable: '{}'. Must be 0 or 1.",
+                        args[i + 1],
+                    );
+                    None
+                }
+            } else {
+                println!("--pd-enable requires specifying the PD controller");
                 None
             };
             found_an_option = true;
