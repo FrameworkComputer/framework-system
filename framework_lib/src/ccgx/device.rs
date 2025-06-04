@@ -14,12 +14,30 @@ use crate::util::{assert_win_len, Config, Platform};
 
 use super::*;
 
+const _HPI_FLASH_ENTER_SIGNATURE: char = 'P';
+const _HPI_JUMP_TO_ALT_SIGNATURE: char = 'A';
+const _HPI_JUMP_TO_BOOT_SIGNATURE: char = 'J';
+const HPI_RESET_SIGNATURE: char = 'R';
+const _HPI_FLASH_RW_SIGNATURE: char = 'F';
+const HPI_RESET_DEV_CMD: u8 = 1;
+const _HPI_FLASH_READ_CMD: u8 = 0;
+const _HPI_FLASH_WRITE_CMD: u8 = 1;
+
 enum ControlRegisters {
     DeviceMode = 0,
     SiliconId = 2, // Two bytes long, First LSB, then MSB
+    _InterruptStatus = 0x06,
+    _JumpToBoot = 0x07,
+    ResetRequest = 0x08,
+    _FlashmodeEnter = 0x0A,
+    _ValidateFw = 0x0B,
+    _FlashSignature = 0x0C,
     BootLoaderVersion = 0x10,
     Firmware1Version = 0x18,
     Firmware2Version = 0x20,
+    PdPortsEnable = 0x2C,
+    _ResponseType = 0x7E,
+    _FlashRwMem = 0x0200,
 }
 
 #[derive(Debug)]
