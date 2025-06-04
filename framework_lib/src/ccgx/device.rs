@@ -358,4 +358,12 @@ impl PdController {
             base_ver, app_ver
         );
     }
+
+    pub fn reset_device(&self) -> EcResult<()> {
+        self.ccgx_write(
+            ControlRegisters::ResetRequest,
+            &[HPI_RESET_SIGNATURE as u8, HPI_RESET_DEV_CMD],
+        )?;
+        Ok(())
+    }
 }

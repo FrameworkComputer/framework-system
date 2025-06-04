@@ -156,6 +156,7 @@ pub struct Cli {
     pub pdports: bool,
     pub privacy: bool,
     pub pd_info: bool,
+    pub pd_reset: Option<u8>,
     pub dp_hdmi_info: bool,
     pub dp_hdmi_update: Option<String>,
     pub audio_card_info: bool,
@@ -999,6 +1000,17 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         smbios_info();
     } else if args.pd_info {
         print_pd_details(&ec);
+    } else if let Some(pd) = args.pd_reset {
+        println!("Resetting PD {}...", pd);
+        print_err(match pd {
+            0 => PdController::new(PdPort::Left01, ec.clone()).reset_device(),
+            1 => PdController::new(PdPort::Right23, ec.clone()).reset_device(),
+            2 => PdController::new(PdPort::Back, ec.clone()).reset_device(),
+            _ => {
+                error!("PD {} does not exist", pd);
+                Ok(())
+            }
+        });
     } else if args.dp_hdmi_info {
         #[cfg(feature = "hidapi")]
         print_dp_hdmi_details(true);
