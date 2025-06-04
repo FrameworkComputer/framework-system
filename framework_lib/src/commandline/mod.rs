@@ -234,11 +234,14 @@ fn print_pd_details(ec: &CrosEc) {
     }
     let pd_01 = PdController::new(PdPort::Left01, ec.clone());
     let pd_23 = PdController::new(PdPort::Right23, ec.clone());
+    let pd_back = PdController::new(PdPort::Back, ec.clone());
 
     println!("Left / Ports 01");
     print_single_pd_details(&pd_01);
     println!("Right / Ports 23");
     print_single_pd_details(&pd_23);
+    println!("Back");
+    print_single_pd_details(&pd_back);
 }
 
 #[cfg(feature = "hidapi")]
