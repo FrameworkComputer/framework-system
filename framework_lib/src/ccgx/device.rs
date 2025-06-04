@@ -182,6 +182,21 @@ impl PdController {
         )
     }
 
+    pub fn i2c_write(&self, addr: u16, data: &[u8]) -> EcResult<EcI2cPassthruResponse> {
+        trace!(
+            "I2C passthrough from I2C Port {} to I2C Addr {}",
+            self.port.i2c_port()?,
+            self.port.i2c_address()?
+        );
+        i2c_write(
+            &self.ec,
+            self.port.i2c_port()?,
+            self.port.i2c_address()?,
+            addr,
+            data,
+        )
+    }
+
     fn ccgx_read(&self, reg: ControlRegisters, len: u16) -> EcResult<Vec<u8>> {
         let mut data: Vec<u8> = Vec::with_capacity(len.into());
 
@@ -202,6 +217,35 @@ impl PdController {
         }
 
         Ok(data)
+    }
+
+    fn ccgx_write(&self, reg: ControlRegisters, data: &[u8]) -> EcResult<()> {
+        let addr = reg as u16;
+        trace!(
+            "ccgx_write(reg: {:?}, addr: {}, data.len(): {}",
+            reg,
+            addr,
+            data.len()
+        );
+        let mut data_written = 0;
+
+        while data_written < data.len() {
+            let chunk_len = std::cmp::min(MAX_I2C_CHUNK, data.len());
+            let buffer = &data[data_written..data_written + chunk_len];
+            let offset = addr + data_written as u16;
+
+            let i2c_response = self.i2c_write(offset, buffer)?;
+            if let Err(EcError::DeviceError(err)) = i2c_response.is_successful() {
+                return Err(EcError::DeviceError(format!(
+                    "I2C write was not successful: {:?}",
+                    err
+                )));
+            }
+
+            data_written += chunk_len;
+        }
+
+        Ok(())
     }
 
     pub fn get_silicon_id(&self) -> EcResult<u16> {

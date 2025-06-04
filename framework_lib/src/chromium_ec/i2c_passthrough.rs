@@ -155,7 +155,7 @@ pub fn i2c_write(
 
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
     let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
-    assert_eq!(data.len(), size_of::<_EcI2cPassthruResponse>()); // No extra data other than the header
+    util::assert_win_len(data.len(), size_of::<_EcI2cPassthruResponse>()); // No extra data other than the header
     debug_assert_eq!(res.messages as usize, messages.len());
     Ok(EcI2cPassthruResponse {
         i2c_status: res.i2c_status,
