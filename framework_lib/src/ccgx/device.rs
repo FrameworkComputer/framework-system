@@ -43,8 +43,8 @@ enum ControlRegisters {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PdPort {
-    Left01,
-    Right23,
+    Right01,
+    Left23,
     Back,
 }
 
@@ -58,21 +58,21 @@ impl PdPort {
         ));
 
         Ok(match (platform, self) {
-            (Platform::GenericFramework((left, _, _), _), PdPort::Left01) => *left,
-            (Platform::GenericFramework((_, right, _), _), PdPort::Right23) => *right,
+            (Platform::GenericFramework((left, _, _), _), PdPort::Right01) => *left,
+            (Platform::GenericFramework((_, right, _), _), PdPort::Left23) => *right,
             (Platform::GenericFramework((_, _, back), _), PdPort::Back) => *back,
             // Framework AMD Platforms (CCG8)
             (
                 Platform::Framework13Amd7080
                 | Platform::Framework13AmdAi300
                 | Platform::Framework16Amd7080,
-                PdPort::Left01,
+                PdPort::Right01,
             ) => 0x42,
             (
                 Platform::Framework13Amd7080
                 | Platform::Framework13AmdAi300
                 | Platform::Framework16Amd7080,
-                PdPort::Right23,
+                PdPort::Left23,
             ) => 0x40,
             (Platform::Framework16Amd7080, PdPort::Back) => 0x42,
             (Platform::FrameworkDesktopAmdAiMax300, PdPort::Back) => 0x08,
@@ -84,7 +84,7 @@ impl PdPort {
                 | Platform::IntelGen12
                 | Platform::IntelGen13
                 | Platform::IntelCoreUltra1,
-                PdPort::Left01,
+                PdPort::Right01,
             ) => 0x08,
             (
                 Platform::Framework12IntelGen13
@@ -92,7 +92,7 @@ impl PdPort {
                 | Platform::IntelGen12
                 | Platform::IntelGen13
                 | Platform::IntelCoreUltra1,
-                PdPort::Right23,
+                PdPort::Left23,
             ) => 0x40,
             (Platform::UnknownSystem, _) => {
                 Err(EcError::DeviceError("Unsupported platform".to_string()))?
@@ -111,19 +111,19 @@ impl PdPort {
         )));
 
         Ok(match (platform, self) {
-            (Platform::GenericFramework(_, (left, _, _)), PdPort::Left01) => *left,
-            (Platform::GenericFramework(_, (_, right, _)), PdPort::Right23) => *right,
+            (Platform::GenericFramework(_, (left, _, _)), PdPort::Right01) => *left,
+            (Platform::GenericFramework(_, (_, right, _)), PdPort::Left23) => *right,
             (Platform::GenericFramework(_, (_, _, back)), PdPort::Back) => *back,
             (Platform::IntelGen11, _) => 6,
-            (Platform::IntelGen12 | Platform::IntelGen13, PdPort::Left01) => 6,
-            (Platform::IntelGen12 | Platform::IntelGen13, PdPort::Right23) => 7,
+            (Platform::IntelGen12 | Platform::IntelGen13, PdPort::Right01) => 6,
+            (Platform::IntelGen12 | Platform::IntelGen13, PdPort::Left23) => 7,
             (
                 Platform::Framework13Amd7080
                 | Platform::Framework16Amd7080
                 | Platform::IntelCoreUltra1
                 | Platform::Framework13AmdAi300
                 | Platform::Framework12IntelGen13,
-                PdPort::Left01,
+                PdPort::Right01,
             ) => 1,
             (
                 Platform::Framework13Amd7080
@@ -131,7 +131,7 @@ impl PdPort {
                 | Platform::IntelCoreUltra1
                 | Platform::Framework13AmdAi300
                 | Platform::Framework12IntelGen13,
-                PdPort::Right23,
+                PdPort::Left23,
             ) => 2,
             (Platform::Framework16Amd7080, PdPort::Back) => 5,
             (Platform::FrameworkDesktopAmdAiMax300, PdPort::Back) => 1,

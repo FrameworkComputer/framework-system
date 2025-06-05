@@ -247,13 +247,13 @@ fn print_pd_details(ec: &CrosEc) {
         println!("Only supported on Framework systems");
         return;
     }
-    let pd_01 = PdController::new(PdPort::Left01, ec.clone());
-    let pd_23 = PdController::new(PdPort::Right23, ec.clone());
+    let pd_01 = PdController::new(PdPort::Right01, ec.clone());
+    let pd_23 = PdController::new(PdPort::Left23, ec.clone());
     let pd_back = PdController::new(PdPort::Back, ec.clone());
 
-    println!("Left / Ports 01");
+    println!("Right / Ports 01");
     print_single_pd_details(&pd_01);
-    println!("Right / Ports 23");
+    println!("Left / Ports 23");
     print_single_pd_details(&pd_23);
     println!("Back");
     print_single_pd_details(&pd_back);
@@ -570,13 +570,13 @@ fn print_versions(ec: &CrosEc) {
                 | esrt::ADL_RETIMER01_GUID
                 | esrt::RPL_RETIMER01_GUID
                 | esrt::MTL_RETIMER01_GUID => {
-                    left_retimer = Some(entry.fw_version);
+                    right_retimer = Some(entry.fw_version);
                 }
                 esrt::TGL_RETIMER23_GUID
                 | esrt::ADL_RETIMER23_GUID
                 | esrt::RPL_RETIMER23_GUID
                 | esrt::MTL_RETIMER23_GUID => {
-                    right_retimer = Some(entry.fw_version);
+                    left_retimer = Some(entry.fw_version);
                 }
                 _ => {}
             }
@@ -1017,8 +1017,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(pd) = args.pd_reset {
         println!("Resetting PD {}...", pd);
         print_err(match pd {
-            0 => PdController::new(PdPort::Left01, ec.clone()).reset_device(),
-            1 => PdController::new(PdPort::Right23, ec.clone()).reset_device(),
+            0 => PdController::new(PdPort::Right01, ec.clone()).reset_device(),
+            1 => PdController::new(PdPort::Left23, ec.clone()).reset_device(),
             2 => PdController::new(PdPort::Back, ec.clone()).reset_device(),
             _ => {
                 error!("PD {} does not exist", pd);
@@ -1028,8 +1028,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(pd) = args.pd_disable {
         println!("Disabling PD {}...", pd);
         print_err(match pd {
-            0 => PdController::new(PdPort::Left01, ec.clone()).enable_ports(false),
-            1 => PdController::new(PdPort::Right23, ec.clone()).enable_ports(false),
+            0 => PdController::new(PdPort::Right01, ec.clone()).enable_ports(false),
+            1 => PdController::new(PdPort::Left23, ec.clone()).enable_ports(false),
             2 => PdController::new(PdPort::Back, ec.clone()).enable_ports(false),
             _ => {
                 error!("PD {} does not exist", pd);
@@ -1039,8 +1039,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(pd) = args.pd_enable {
         println!("Enabling PD {}...", pd);
         print_err(match pd {
-            0 => PdController::new(PdPort::Left01, ec.clone()).enable_ports(true),
-            1 => PdController::new(PdPort::Right23, ec.clone()).enable_ports(true),
+            0 => PdController::new(PdPort::Right01, ec.clone()).enable_ports(true),
+            1 => PdController::new(PdPort::Left23, ec.clone()).enable_ports(true),
             2 => PdController::new(PdPort::Back, ec.clone()).enable_ports(true),
             _ => {
                 error!("PD {} does not exist", pd);
@@ -1376,8 +1376,8 @@ fn selftest(ec: &CrosEc) -> Option<()> {
         println!(" - OK");
     }
 
-    let pd_01 = PdController::new(PdPort::Left01, ec.clone());
-    let pd_23 = PdController::new(PdPort::Right23, ec.clone());
+    let pd_01 = PdController::new(PdPort::Right01, ec.clone());
+    let pd_23 = PdController::new(PdPort::Left23, ec.clone());
     print!("  Getting PD01 info through I2C tunnel");
     print_err(pd_01.get_silicon_id())?;
     print_err(pd_01.get_device_info())?;
@@ -1554,22 +1554,22 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
             println!("  Type:         Framework RPL Insyde BIOS");
         }
         esrt::TGL_RETIMER01_GUID => {
-            println!("  Type:    Framework TGL Retimer01 (Left)");
+            println!("  Type:    Framework TGL Retimer01 (Right)");
         }
         esrt::TGL_RETIMER23_GUID => {
-            println!("  Type:   Framework TGL Retimer23 (Right)");
+            println!("  Type:   Framework TGL Retimer23 (Left)");
         }
         esrt::ADL_RETIMER01_GUID => {
-            println!("  Type:    Framework ADL Retimer01 (Left)");
+            println!("  Type:    Framework ADL Retimer01 (Right)");
         }
         esrt::ADL_RETIMER23_GUID => {
-            println!("  Type:   Framework ADL Retimer23 (Right)");
+            println!("  Type:   Framework ADL Retimer23 (Left)");
         }
         esrt::RPL_RETIMER01_GUID => {
-            println!("  Type:    Framework RPL Retimer01 (Left)");
+            println!("  Type:    Framework RPL Retimer01 (Right)");
         }
         esrt::RPL_RETIMER23_GUID => {
-            println!("  Type:   Framework RPL Retimer23 (Right)");
+            println!("  Type:   Framework RPL Retimer23 (Left)");
         }
         esrt::WINUX_GUID => {
             println!("  Type:            Windows UX capsule");

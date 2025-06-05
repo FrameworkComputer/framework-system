@@ -252,8 +252,8 @@ pub enum MainPdVersions {
 }
 
 pub fn get_pd_controller_versions(ec: &CrosEc) -> EcResult<PdVersions> {
-    let pd01 = PdController::new(PdPort::Left01, ec.clone()).get_fw_versions();
-    let pd23 = PdController::new(PdPort::Right23, ec.clone()).get_fw_versions();
+    let pd01 = PdController::new(PdPort::Right01, ec.clone()).get_fw_versions();
+    let pd23 = PdController::new(PdPort::Left23, ec.clone()).get_fw_versions();
     let pd_back = PdController::new(PdPort::Back, ec.clone()).get_fw_versions();
 
     match (pd01, pd23, pd_back) {
