@@ -193,8 +193,8 @@ pub struct Cli {
     pub reboot_ec: Option<RebootEcArg>,
     pub ec_hib_delay: Option<Option<u32>>,
     pub hash: Option<String>,
-    pub pd_addrs: Option<(u16, u16)>,
-    pub pd_ports: Option<(u8, u8)>,
+    pub pd_addrs: Option<(u16, u16, u16)>,
+    pub pd_ports: Option<(u8, u8, u8)>,
     pub help: bool,
     pub info: bool,
     pub flash_gpu_descriptor: Option<(u8, String)>,
@@ -234,11 +234,14 @@ fn print_pd_details(ec: &CrosEc) {
     }
     let pd_01 = PdController::new(PdPort::Left01, ec.clone());
     let pd_23 = PdController::new(PdPort::Right23, ec.clone());
+    let pd_back = PdController::new(PdPort::Back, ec.clone());
 
     println!("Left / Ports 01");
     print_single_pd_details(&pd_01);
     println!("Right / Ports 23");
     print_single_pd_details(&pd_23);
+    println!("Back");
+    print_single_pd_details(&pd_back);
 }
 
 #[cfg(feature = "hidapi")]
@@ -473,6 +476,27 @@ fn print_versions(ec: &CrosEc) {
                 "  Left  (23):       {} ({:?})",
                 left.main_fw.app, left.active_fw
             );
+        }
+    } else if let Ok(PdVersions::Many(versions)) = ccgx_pd_vers {
+        for (i, version) in versions.into_iter().enumerate() {
+            if version.main_fw.app != version.backup_fw.app {
+                println!("  PD {}", 1);
+                println!(
+                    "    Main:           {}{}",
+                    version.main_fw.app,
+                    active_mode(&version.active_fw, FwMode::MainFw)
+                );
+                println!(
+                    "    Backup:         {}{}",
+                    version.backup_fw.app,
+                    active_mode(&version.active_fw, FwMode::BackupFw)
+                );
+            } else {
+                println!(
+                    "  PD {}:            {} ({:?})",
+                    i, version.main_fw.app, version.active_fw
+                );
+            }
         }
     } else if let Ok(PdVersions::Single(pd)) = ccgx_pd_vers {
         if pd.main_fw.app != pd.backup_fw.app {

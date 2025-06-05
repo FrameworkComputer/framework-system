@@ -39,8 +39,9 @@ impl PdPort {
         ));
 
         Ok(match (platform, self) {
-            (Platform::GenericFramework((left, _), _), PdPort::Left01) => *left,
-            (Platform::GenericFramework((_, right), _), PdPort::Right23) => *right,
+            (Platform::GenericFramework((left, _, _), _), PdPort::Left01) => *left,
+            (Platform::GenericFramework((_, right, _), _), PdPort::Right23) => *right,
+            (Platform::GenericFramework((_, _, back), _), PdPort::Back) => *back,
             // Framework AMD Platforms (CCG8)
             (
                 Platform::Framework13Amd7080
@@ -54,6 +55,7 @@ impl PdPort {
                 | Platform::Framework16Amd7080,
                 PdPort::Right23,
             ) => 0x40,
+            (Platform::Framework16Amd7080, PdPort::Back) => 0x42,
             (Platform::FrameworkDesktopAmdAiMax300, PdPort::Back) => 0x08,
             (Platform::FrameworkDesktopAmdAiMax300, _) => unsupported?,
             // Framework Intel Platforms (CCG5 and CCG6)
@@ -90,8 +92,9 @@ impl PdPort {
         )));
 
         Ok(match (platform, self) {
-            (Platform::GenericFramework(_, (left, _)), PdPort::Left01) => *left,
-            (Platform::GenericFramework(_, (_, right)), PdPort::Right23) => *right,
+            (Platform::GenericFramework(_, (left, _, _)), PdPort::Left01) => *left,
+            (Platform::GenericFramework(_, (_, right, _)), PdPort::Right23) => *right,
+            (Platform::GenericFramework(_, (_, _, back)), PdPort::Back) => *back,
             (Platform::IntelGen11, _) => 6,
             (Platform::IntelGen12 | Platform::IntelGen13, PdPort::Left01) => 6,
             (Platform::IntelGen12 | Platform::IntelGen13, PdPort::Right23) => 7,
@@ -111,6 +114,7 @@ impl PdPort {
                 | Platform::Framework12IntelGen13,
                 PdPort::Right23,
             ) => 2,
+            (Platform::Framework16Amd7080, PdPort::Back) => 5,
             (Platform::FrameworkDesktopAmdAiMax300, PdPort::Back) => 1,
             (Platform::FrameworkDesktopAmdAiMax300, _) => unsupported?,
             (Platform::UnknownSystem, _) => {

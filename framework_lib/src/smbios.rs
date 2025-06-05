@@ -47,7 +47,7 @@ pub enum ConfigDigit0 {
 pub fn is_framework() -> bool {
     if matches!(
         get_platform(),
-        Some(Platform::GenericFramework((_, _), (_, _))) | Some(Platform::UnknownSystem)
+        Some(Platform::GenericFramework((_, _, _), (_, _, _))) | Some(Platform::UnknownSystem)
     ) {
         return true;
     }
@@ -292,7 +292,7 @@ pub fn get_platform() -> Option<Platform> {
         let platform = &(*config).as_ref().unwrap().platform;
         if matches!(
             platform,
-            Platform::GenericFramework((_, _), (_, _)) | Platform::UnknownSystem
+            Platform::GenericFramework((_, _, _), (_, _, _)) | Platform::UnknownSystem
         ) {
             return Some(*platform);
         }

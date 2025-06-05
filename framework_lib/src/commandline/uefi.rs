@@ -602,35 +602,39 @@ pub fn parse(args: &[String]) -> Cli {
             };
             found_an_option = true;
         } else if arg == "--pd-addrs" {
-            cli.pd_addrs = if args.len() > i + 2 {
+            cli.pd_addrs = if args.len() > i + 3 {
                 let left = args[i + 1].parse::<u16>();
                 let right = args[i + 2].parse::<u16>();
-                if left.is_ok() && right.is_ok() {
-                    Some((left.unwrap(), right.unwrap()))
+                let back = args[i + 3].parse::<u16>();
+                if left.is_ok() && right.is_ok() && back.is_ok() {
+                    Some((left.unwrap(), right.unwrap(), back.unwrap()))
                 } else {
                     println!(
-                        "Invalid values for --pd-addrs: '{} {}'. Must be u16 integers.",
+                        "Invalid values for --pd-addrs: '{} {} {}'. Must be u16 integers.",
                         args[i + 1],
-                        args[i + 2]
+                        args[i + 2],
+                        args[i + 3]
                     );
                     None
                 }
             } else {
-                println!("--pd-addrs requires two arguments, one for each address");
+                println!("--pd-addrs requires three arguments, one for each address");
                 None
             };
             found_an_option = true;
         } else if arg == "--pd-ports" {
-            cli.pd_ports = if args.len() > i + 2 {
+            cli.pd_ports = if args.len() > i + 3 {
                 let left = args[i + 1].parse::<u8>();
                 let right = args[i + 2].parse::<u8>();
-                if left.is_ok() && right.is_ok() {
-                    Some((left.unwrap(), right.unwrap()))
+                let back = args[i + 3].parse::<u8>();
+                if left.is_ok() && right.is_ok() && back.is_ok() {
+                    Some((left.unwrap(), right.unwrap(), back.unwrap()))
                 } else {
                     println!(
-                        "Invalid values for --pd-ports: '{} {}'. Must be u16 integers.",
+                        "Invalid values for --pd-ports: '{} {} {}'. Must be u16 integers.",
                         args[i + 1],
-                        args[i + 2]
+                        args[i + 2],
+                        args[i + 3]
                     );
                     None
                 }
