@@ -1177,7 +1177,50 @@ impl CrosEc {
         Ok(result.valid)
     }
 
-    /// Requests console output from EC and constantly asks for more
+    pub fn write_ec_gpu_chunk(&self, offset: u16, data: &[u8]) -> EcResult<()> {
+        let result = i2c_passthrough::i2c_write(self, 5, 0x50, offset, data)?;
+        result.is_successful()
+    }
+
+    /// Writes EC GPU descriptor to the GPU EEPROM.
+    pub fn set_gpu_descriptor(&self, data: &[u8]) -> EcResult<()> {
+        // Need to program the EEPROM 32 bytes at a time.
+        let chunk_size = 32;
+
+        let chunks = data.len() / chunk_size;
+        for chunk_no in 0..chunks {
+            let offset = chunk_no * chunk_size;
+            // Current chunk might be smaller if it's the last
+            let cur_chunk_size = std::cmp::min(chunk_size, data.len() - chunk_no * chunk_size);
+
+            if chunk_no % 100 == 0 {
+                println!();
+                print!(
+                    "Writing chunk {:>4}/{:>4} ({:>6}/{:>6}): X",
+                    chunk_no,
+                    chunks,
+                    offset,
+                    cur_chunk_size * chunks
+                );
+            } else {
+                print!("X");
+            }
+
+            let chunk = &data[offset..offset + cur_chunk_size];
+            let offset_le = (((offset as u16) << 8) & 0xff00) | (((offset as u16) >> 8) & 0x00ff);
+            let res = self.write_ec_gpu_chunk(offset_le, chunk);
+            // Don't read too fast, wait 100ms before writing more to allow for page erase/write cycle.
+            os_specific::sleep(100_000);
+            if let Err(err) = res {
+                println!("  Failed to write chunk: {:?}", err);
+                return Err(err);
+            }
+        }
+        println!();
+        Ok(())
+    }
+
+    /// Requests recent console output from EC and constantly asks for more
     /// Prints the output and returns it when an error is encountered
     pub fn console_read(&self) -> EcResult<()> {
         EcRequestConsoleSnapshot {}.send_command(self)?;

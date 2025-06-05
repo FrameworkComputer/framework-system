@@ -270,6 +270,10 @@ struct ClapCli {
     /// Simulate execution of a command (e.g. --flash-ec)
     #[arg(long)]
     dry_run: bool,
+
+    /// File to write to the gpu EEPROM
+    #[arg(long)]
+    flash_gpu_descriptor_file: Option<std::path::PathBuf>,
 }
 
 /// Parse a list of commandline arguments and return the struct
@@ -457,6 +461,9 @@ pub fn parse(args: &[String]) -> Cli {
         paginate: false,
         info: args.info,
         flash_gpu_descriptor,
+        flash_gpu_descriptor_file: args
+            .flash_gpu_descriptor_file
+            .map(|x| x.into_os_string().into_string().unwrap()),
         raw_command: vec![],
     }
 }

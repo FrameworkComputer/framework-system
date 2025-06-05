@@ -116,6 +116,7 @@ pub fn parse(args: &[String]) -> Cli {
         force: false,
         help: false,
         flash_gpu_descriptor: None,
+        flash_gpu_descriptor_file: None,
         allupdate: false,
         info: false,
         raw_command: vec![],
@@ -761,6 +762,14 @@ pub fn parse(args: &[String]) -> Cli {
                 }
             } else {
                 println!("Need to provide a value for --flash_gpu_descriptor. TYPE_MAGIC SERIAL");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--flash-gpu-descriptor-file" {
+            cli.flash_gpu_descriptor_file = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("Need to provide a value for --flash_gpu_descriptor_file. PATH");
                 None
             };
             found_an_option = true;
