@@ -544,43 +544,4 @@ It's not controlled by the EC, use https://keyboard.frame.work.
 
 Mostly for debugging firmware.
 
-### Check EFI Resource Table
-
-On Framework Desktop:
-
-```
-> sudo framework_tool --esrt
-ESRT Table
-  ResourceCount:        1
-  ResourceCountMax:     1
-  ResourceVersion:      1
-ESRT Entry 0
-  GUID:                 EB68DBAE-3AEF-5077-92AE-9016D1F0C856
-  GUID:                 DesktopAmdAi300Bios
-  Type:                 SystemFirmware
-  Version:              0x204 (516)
-  Min FW Version:       0x100 (256)
-  Capsule Flags:        0x0
-  Last Attempt Version: 0x108 (264)
-  Last Attempt Status:  Success
-```
-
-## Flashing EC firmware
-
-**IMPORTANT** Flashing EC firmware yourself is not recommended. It may render
-your hardware unbootable. Please update your firmware using the official BIOS
-update methods (Windows .exe, LVFS/FWUPD, EFI updater)!
-
-This command has not been thoroughly tested on all Framework Computer systems
-
-```
-# Simulate flashing RW (to see which blocks are updated)
-> framework_tool --flash-rw-ec ec.bin --dry-run
-
-# Actually flash RW
-> framework_tool --flash-rw-ec ec.bin
-
-# Boot into EC RW firmware (will crash your OS and reboot immediately)
-# EC will boot back into RO if the system turned off for 30s
-> framework_tool --reboot-ec jump-rw
-```
+See [EXAMPLES_ADVANCED.md](EXAMPLES_ADVANCED.md)
