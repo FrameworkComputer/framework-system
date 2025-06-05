@@ -1222,9 +1222,10 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             Err(err) => println!("GPU Descriptor write failed with error:  {:?}", err),
         }
     } else if let Some(gpu_descriptor_file) = &args.flash_gpu_descriptor_file {
-        if let Some(PlatformFamily::Framework16) =
-            smbios::get_platform().and_then(Platform::which_family)
-        {
+        if matches!(
+            smbios::get_family(),
+            Some(PlatformFamily::Framework16) | None
+        ) {
             #[cfg(feature = "uefi")]
             let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(gpu_descriptor_file);
             #[cfg(not(feature = "uefi"))]
