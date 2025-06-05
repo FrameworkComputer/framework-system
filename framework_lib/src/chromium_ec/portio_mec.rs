@@ -25,7 +25,6 @@ const _MEC_LPC_DATA_REGISTER3: u16 = 0x0807;
 pub fn init() -> bool {
     #[cfg(target_os = "linux")]
     unsafe {
-        println!("Init MEC");
         let res = ioperm(EC_LPC_ADDR_HOST_DATA as u64, 8, 1);
         if res != 0 {
             error!("ioperm failed. portio driver is likely block by Linux kernel lockdown mode");
