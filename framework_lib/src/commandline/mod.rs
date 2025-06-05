@@ -1240,7 +1240,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 println!("File");
                 println!("  Size:       {:>20} B", data.len());
                 println!("  Size:       {:>20} KB", data.len() / 1024);
-                let res = ec.set_gpu_descriptor(&data);
+                let res = ec.set_gpu_descriptor(&data, args.dry_run);
                 match res {
                     Ok(()) => println!("GPU Descriptor successfully written"),
                     Err(err) => println!("GPU Descriptor write failed with error:  {:?}", err),

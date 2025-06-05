@@ -1183,7 +1183,11 @@ impl CrosEc {
     }
 
     /// Writes EC GPU descriptor to the GPU EEPROM.
-    pub fn set_gpu_descriptor(&self, data: &[u8]) -> EcResult<()> {
+    pub fn set_gpu_descriptor(&self, data: &[u8], dry_run: bool) -> EcResult<()> {
+        println!(
+            "Writing GPU EEPROM {}",
+            if dry_run { " (DRY RUN)" } else { "" }
+        );
         // Need to program the EEPROM 32 bytes at a time.
         let chunk_size = 32;
 
@@ -1204,6 +1208,9 @@ impl CrosEc {
                 );
             } else {
                 print!("X");
+            }
+            if dry_run {
+                continue;
             }
 
             let chunk = &data[offset..offset + cur_chunk_size];
