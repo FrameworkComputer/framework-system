@@ -1177,6 +1177,34 @@ impl CrosEc {
         Ok(result.valid)
     }
 
+    pub fn read_ec_gpu_chunk(&self, addr: u16, len: u16) -> EcResult<Vec<u8>> {
+        let eeprom_port = 0x05;
+        let eeprom_addr = 0x50;
+        let mut data: Vec<u8> = Vec::with_capacity(len.into());
+
+        while data.len() < len.into() {
+            let remaining = len - data.len() as u16;
+            let chunk_len = std::cmp::min(i2c_passthrough::MAX_I2C_CHUNK, remaining.into());
+            let offset = addr + data.len() as u16;
+            let i2c_response = i2c_passthrough::i2c_read(
+                self,
+                eeprom_port,
+                eeprom_addr,
+                offset,
+                chunk_len as u16,
+            )?;
+            if let Err(EcError::DeviceError(err)) = i2c_response.is_successful() {
+                return Err(EcError::DeviceError(format!(
+                    "I2C read was not successful: {:?}",
+                    err
+                )));
+            }
+            data.extend(i2c_response.data);
+        }
+
+        Ok(data)
+    }
+
     pub fn write_ec_gpu_chunk(&self, offset: u16, data: &[u8]) -> EcResult<()> {
         let result = i2c_passthrough::i2c_write(self, 5, 0x50, offset, data)?;
         result.is_successful()
@@ -1224,6 +1252,15 @@ impl CrosEc {
         }
         println!();
         Ok(())
+    }
+
+    pub fn read_gpu_desc_header(&self) -> EcResult<GpuCfgDescriptor> {
+        let bytes =
+            self.read_ec_gpu_chunk(0x00, core::mem::size_of::<GpuCfgDescriptor>() as u16)?;
+        let header: *const GpuCfgDescriptor = unsafe { std::mem::transmute(bytes.as_ptr()) };
+        let header = unsafe { *header };
+
+        Ok(header)
     }
 
     /// Requests recent console output from EC and constantly asks for more
@@ -1632,4 +1669,29 @@ pub struct IntrusionStatus {
     /// We can tell because opening the chassis, even when off, leaves a sticky bit that the EC can read when it powers back on.
     /// That means we only know if it was opened at least once, while off, not how many times.
     pub vtr_open_count: u8,
+}
+
+#[derive(Clone, Debug, Copy, PartialEq)]
+#[repr(C, packed)]
+pub struct GpuCfgDescriptor {
+    /// Expansion bay card magic value that is unique
+    pub magic: [u8; 4],
+    /// Length of header following this field
+    pub length: u32,
+    /// descriptor version, if EC max version is lower than this, ec cannot parse
+    pub desc_ver_major: u16,
+    pub desc_ver_minor: u16,
+    /// Hardware major version
+    pub hardware_version: u16,
+    /// Hardware minor revision
+    pub hardware_revision: u16,
+    /// 18 digit Framework Serial that starts with FRA
+    /// the first 10 digits must be allocated by framework
+    pub serial: [u8; 20],
+    /// Length of descriptor following heade
+    pub descriptor_length: u32,
+    /// CRC of descriptor
+    pub descriptor_crc32: u32,
+    /// CRC of header before this value
+    pub crc32: u32,
 }

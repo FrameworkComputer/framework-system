@@ -884,6 +884,26 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         if let Err(err) = ec.check_bay_status() {
             error!("{:?}", err);
         }
+        if let Ok(header) = ec.read_gpu_desc_header() {
+            println!("  Expansion Bay EEPROM");
+            println!(
+                "    Valid:       {:?}",
+                header.magic == [0x32, 0xAC, 0x00, 0x00]
+            );
+            println!("    HW Version:  {}.{}", { header.hardware_version }, {
+                header.hardware_revision
+            });
+            if log_enabled!(Level::Info) {
+                println!("    Hdr Length   {} B", { header.length });
+                println!("    Desc Ver:    {}.{}", { header.desc_ver_major }, {
+                    header.desc_ver_minor
+                });
+                println!("    Serialnumber:{:X?}", { header.serial });
+                println!("    Desc Length: {} B", { header.descriptor_length });
+                println!("    Desc CRC:    {:X}", { header.descriptor_crc32 });
+                println!("    Hdr CRC:     {:X}", { header.crc32 });
+            }
+        }
     } else if let Some(maybe_limit) = args.charge_limit {
         print_err(handle_charge_limit(&ec, maybe_limit));
     } else if let Some((limit, soc)) = args.charge_current_limit {
