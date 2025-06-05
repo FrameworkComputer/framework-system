@@ -87,6 +87,11 @@ It's intended for advanced users who build their own expansion bay module.
 The I2C address of the EEPROM is hardcoded to 0x50.
 
 ```
+# Dump current descriptor (e.g. for backup)
+> framework_tool --dump-gpu-descriptor-file foo.bin
+Dumping to foo.bin
+Wrote 153 bytes to foo.bin
+
 # Update just the serial number
 > framework_tool --flash_gpu_descriptor GPU FRAKMQCP41500ASSY1
 > framework_tool --flash_gpu_descriptor 13 FRAKMQCP41500ASSY1

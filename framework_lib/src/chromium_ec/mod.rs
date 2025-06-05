@@ -1254,6 +1254,16 @@ impl CrosEc {
         Ok(())
     }
 
+    pub fn read_gpu_descriptor(&self) -> EcResult<Vec<u8>> {
+        let header = self.read_gpu_desc_header()?;
+        if header.magic != [0x32, 0xAC, 0x00, 0x00] {
+            return Err(EcError::DeviceError(
+                "Invalid descriptor hdr magic".to_string(),
+            ));
+        }
+        self.read_ec_gpu_chunk(0x00, header.descriptor_length as u16)
+    }
+
     pub fn read_gpu_desc_header(&self) -> EcResult<GpuCfgDescriptor> {
         let bytes =
             self.read_ec_gpu_chunk(0x00, core::mem::size_of::<GpuCfgDescriptor>() as u16)?;

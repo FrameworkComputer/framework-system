@@ -117,6 +117,7 @@ pub fn parse(args: &[String]) -> Cli {
         help: false,
         flash_gpu_descriptor: None,
         flash_gpu_descriptor_file: None,
+        dump_gpu_descriptor_file: None,
         allupdate: false,
         info: false,
         raw_command: vec![],
@@ -770,6 +771,14 @@ pub fn parse(args: &[String]) -> Cli {
                 Some(args[i + 1].clone())
             } else {
                 println!("Need to provide a value for --flash_gpu_descriptor_file. PATH");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--dump-gpu-descriptor-file" {
+            cli.dump_gpu_descriptor_file = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("Need to provide a value for --dump_gpu_descriptor_file. PATH");
                 None
             };
             found_an_option = true;

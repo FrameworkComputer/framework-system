@@ -202,6 +202,7 @@ pub struct Cli {
     pub info: bool,
     pub flash_gpu_descriptor: Option<(u8, String)>,
     pub flash_gpu_descriptor_file: Option<String>,
+    pub dump_gpu_descriptor_file: Option<String>,
     // UEFI only
     pub allupdate: bool,
     pub paginate: bool,
@@ -678,6 +679,24 @@ fn dump_ec_flash(ec: &CrosEc, dump_path: &str) {
             println!("Failed to dump EC FW image.");
         }
     }
+}
+
+fn dump_dgpu_eeprom(ec: &CrosEc, dump_path: &str) {
+    let flash_bin = ec.read_gpu_descriptor().unwrap();
+
+    #[cfg(not(feature = "uefi"))]
+    {
+        let mut file = fs::File::create(dump_path).unwrap();
+        file.write_all(&flash_bin).unwrap();
+    }
+    #[cfg(feature = "uefi")]
+    {
+        let ret = crate::uefi::fs::shell_write_file(dump_path, &flash_bin);
+        if ret.is_err() {
+            println!("Failed to dump EC FW image.");
+        }
+    }
+    println!("Wrote {} bytes to {}", flash_bin.len(), dump_path);
 }
 
 fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &CrosEc) -> i32 {
@@ -1270,6 +1289,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         } else {
             println!("Unsupported on this platform");
         }
+    } else if let Some(dump_path) = &args.dump_gpu_descriptor_file {
+        println!("Dumping to {}", dump_path);
+        dump_dgpu_eeprom(&ec, dump_path);
     }
 
     0
