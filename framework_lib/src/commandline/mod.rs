@@ -1340,7 +1340,8 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     }
 
     println!("  Checking EC memory mapped magic bytes");
-    ec.check_mem_magic()?;
+    print_err(ec.check_mem_magic())?;
+    println!("  Verified that Framework EC is present!");
 
     println!("  Reading EC Build Version");
     print_err(ec.version_info())?;
