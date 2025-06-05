@@ -227,6 +227,17 @@ fn print_single_pd_details(pd: &PdController) {
     } else {
         println!("  Failed to device info");
     }
+    if let Ok(port_mask) = pd.get_port_status() {
+        let ports = match port_mask {
+            1 => "0",
+            2 => "1",
+            3 => "0, 1",
+            _ => "None",
+        };
+        println!("  Ports Enabled:  {}", ports);
+    } else {
+        println!("  Ports Enabled:  Unknown");
+    }
     pd.print_fw_info();
 }
 

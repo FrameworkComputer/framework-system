@@ -372,4 +372,10 @@ impl PdController {
         self.ccgx_write(ControlRegisters::PdPortsEnable, &[mask])?;
         Ok(())
     }
+
+    pub fn get_port_status(&self) -> EcResult<u8> {
+        let data = self.ccgx_read(ControlRegisters::PdPortsEnable, 1)?;
+        assert_win_len(data.len(), 1);
+        Ok(data[0])
+    }
 }

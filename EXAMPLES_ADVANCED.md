@@ -5,12 +5,14 @@
 ### Check PD state
 
 Example on Framework 13 AMD Ryzen AI 300
+
 ```
 > sudo framework_tool.exe --pd-info
 Left / Ports 01
   Silicon ID:     0x3580
   Mode:           MainFw
   Flash Row Size: 256 B
+  Ports Enabled:  0, 1
   Bootloader Version:   Base: 3.6.0.009,  App: 0.0.01
   FW1 (Backup) Version: Base: 3.7.0.197,  App: 0.0.0B
   FW2 (Main)   Version: Base: 3.7.0.197,  App: 0.0.0B
@@ -18,6 +20,7 @@ Right / Ports 23
   Silicon ID:     0x3580
   Mode:           MainFw
   Flash Row Size: 256 B
+  Ports Enabled:  0, 1
   Bootloader Version:   Base: 3.6.0.009,  App: 0.0.01
   FW1 (Backup) Version: Base: 3.7.0.197,  App: 0.0.0B
   FW2 (Main)   Version: Base: 3.7.0.197,  App: 0.0.0B
