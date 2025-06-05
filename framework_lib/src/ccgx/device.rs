@@ -14,15 +14,34 @@ use crate::util::{assert_win_len, Config, Platform};
 
 use super::*;
 
+const _HPI_FLASH_ENTER_SIGNATURE: char = 'P';
+const _HPI_JUMP_TO_ALT_SIGNATURE: char = 'A';
+const _HPI_JUMP_TO_BOOT_SIGNATURE: char = 'J';
+const HPI_RESET_SIGNATURE: char = 'R';
+const _HPI_FLASH_RW_SIGNATURE: char = 'F';
+const HPI_RESET_DEV_CMD: u8 = 1;
+const _HPI_FLASH_READ_CMD: u8 = 0;
+const _HPI_FLASH_WRITE_CMD: u8 = 1;
+
+#[derive(Debug, Copy, Clone)]
 enum ControlRegisters {
     DeviceMode = 0,
     SiliconId = 2, // Two bytes long, First LSB, then MSB
+    _InterruptStatus = 0x06,
+    _JumpToBoot = 0x07,
+    ResetRequest = 0x08,
+    _FlashmodeEnter = 0x0A,
+    _ValidateFw = 0x0B,
+    _FlashSignature = 0x0C,
     BootLoaderVersion = 0x10,
     Firmware1Version = 0x18,
     Firmware2Version = 0x20,
+    PdPortsEnable = 0x2C,
+    _ResponseType = 0x7E,
+    _FlashRwMem = 0x0200,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PdPort {
     Left01,
     Right23,
@@ -130,7 +149,7 @@ pub struct PdController {
     ec: CrosEc,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FwMode {
     BootLoader = 0,
     /// Backup CCGX firmware (No 1)
@@ -182,6 +201,21 @@ impl PdController {
         )
     }
 
+    pub fn i2c_write(&self, addr: u16, data: &[u8]) -> EcResult<EcI2cPassthruResponse> {
+        trace!(
+            "I2C passthrough from I2C Port {} to I2C Addr {}",
+            self.port.i2c_port()?,
+            self.port.i2c_address()?
+        );
+        i2c_write(
+            &self.ec,
+            self.port.i2c_port()?,
+            self.port.i2c_address()?,
+            addr,
+            data,
+        )
+    }
+
     fn ccgx_read(&self, reg: ControlRegisters, len: u16) -> EcResult<Vec<u8>> {
         let mut data: Vec<u8> = Vec::with_capacity(len.into());
 
@@ -202,6 +236,35 @@ impl PdController {
         }
 
         Ok(data)
+    }
+
+    fn ccgx_write(&self, reg: ControlRegisters, data: &[u8]) -> EcResult<()> {
+        let addr = reg as u16;
+        trace!(
+            "ccgx_write(reg: {:?}, addr: {}, data.len(): {}",
+            reg,
+            addr,
+            data.len()
+        );
+        let mut data_written = 0;
+
+        while data_written < data.len() {
+            let chunk_len = std::cmp::min(MAX_I2C_CHUNK, data.len());
+            let buffer = &data[data_written..data_written + chunk_len];
+            let offset = addr + data_written as u16;
+
+            let i2c_response = self.i2c_write(offset, buffer)?;
+            if let Err(EcError::DeviceError(err)) = i2c_response.is_successful() {
+                return Err(EcError::DeviceError(format!(
+                    "I2C write was not successful: {:?}",
+                    err
+                )));
+            }
+
+            data_written += chunk_len;
+        }
+
+        Ok(())
     }
 
     pub fn get_silicon_id(&self) -> EcResult<u16> {
@@ -294,5 +357,25 @@ impl PdController {
             "  FW2 (Main)   Version: Base: {},  App: {}",
             base_ver, app_ver
         );
+    }
+
+    pub fn reset_device(&self) -> EcResult<()> {
+        self.ccgx_write(
+            ControlRegisters::ResetRequest,
+            &[HPI_RESET_SIGNATURE as u8, HPI_RESET_DEV_CMD],
+        )?;
+        Ok(())
+    }
+
+    pub fn enable_ports(&self, enable: bool) -> EcResult<()> {
+        let mask = if enable { 0b11 } else { 0b00 };
+        self.ccgx_write(ControlRegisters::PdPortsEnable, &[mask])?;
+        Ok(())
+    }
+
+    pub fn get_port_status(&self) -> EcResult<u8> {
+        let data = self.ccgx_read(ControlRegisters::PdPortsEnable, 1)?;
+        assert_win_len(data.len(), 1);
+        Ok(data[0])
     }
 }

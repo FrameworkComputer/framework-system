@@ -106,7 +106,7 @@ fn read_metadata(
     let buffer = read_256_bytes(file_buffer, metadata_offset, flash_row_size)?;
     match ccgx {
         SiliconId::Ccg3 => parse_metadata_ccg3(&buffer),
-        SiliconId::Ccg5 | SiliconId::Ccg6 => parse_metadata_cyacd(&buffer),
+        SiliconId::Ccg5 | SiliconId::Ccg6Adl | SiliconId::Ccg6 => parse_metadata_cyacd(&buffer),
         SiliconId::Ccg8 => parse_metadata_cyacd2(&buffer)
             .map(|(fw_row_start, fw_size)| (fw_row_start / (flash_row_size as u32), fw_size)),
     }
@@ -172,6 +172,7 @@ pub fn read_versions(file_buffer: &[u8], ccgx: SiliconId) -> Option<PdFirmwareFi
     let (flash_row_size, f1_metadata_row, fw2_metadata_row) = match ccgx {
         SiliconId::Ccg3 => (SMALL_ROW, 0x03FF, 0x03FE),
         SiliconId::Ccg5 => (LARGE_ROW, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG5),
+        SiliconId::Ccg6Adl => (SMALL_ROW, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG6),
         SiliconId::Ccg6 => (SMALL_ROW, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG6),
         SiliconId::Ccg8 => (LARGE_ROW, FW1_METADATA_ROW_CCG8, FW2_METADATA_ROW_CCG8),
     };

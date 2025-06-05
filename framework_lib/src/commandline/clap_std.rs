@@ -83,6 +83,18 @@ struct ClapCli {
     #[arg(long)]
     pd_info: bool,
 
+    /// Reset a specific PD controller (for debugging only)
+    #[arg(long)]
+    pd_reset: Option<u8>,
+
+    /// Disable all ports on a specific PD controller (for debugging only)
+    #[arg(long)]
+    pd_disable: Option<u8>,
+
+    /// Enable all ports on a specific PD controller (for debugging only)
+    #[arg(long)]
+    pd_enable: Option<u8>,
+
     /// Show details about connected DP or HDMI Expansion Cards
     #[arg(long)]
     dp_hdmi_info: bool,
@@ -376,6 +388,9 @@ pub fn parse(args: &[String]) -> Cli {
         autofanctrl: args.autofanctrl,
         pdports: args.pdports,
         pd_info: args.pd_info,
+        pd_reset: args.pd_reset,
+        pd_disable: args.pd_disable,
+        pd_enable: args.pd_enable,
         dp_hdmi_info: args.dp_hdmi_info,
         dp_hdmi_update: args
             .dp_hdmi_update

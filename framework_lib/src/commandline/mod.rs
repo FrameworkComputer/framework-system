@@ -156,6 +156,9 @@ pub struct Cli {
     pub pdports: bool,
     pub privacy: bool,
     pub pd_info: bool,
+    pub pd_reset: Option<u8>,
+    pub pd_disable: Option<u8>,
+    pub pd_enable: Option<u8>,
     pub dp_hdmi_info: bool,
     pub dp_hdmi_update: Option<String>,
     pub audio_card_info: bool,
@@ -217,12 +220,24 @@ fn print_single_pd_details(pd: &PdController) {
         println!("  Silicon ID:     0x{:X}", si);
     } else {
         println!("  Failed to read Silicon ID/Family");
+        return;
     }
     if let Ok((mode, frs)) = pd.get_device_info() {
         println!("  Mode:           {:?}", mode);
         println!("  Flash Row Size: {} B", frs);
     } else {
         println!("  Failed to device info");
+    }
+    if let Ok(port_mask) = pd.get_port_status() {
+        let ports = match port_mask {
+            1 => "0",
+            2 => "1",
+            3 => "0, 1",
+            _ => "None",
+        };
+        println!("  Ports Enabled:  {}", ports);
+    } else {
+        println!("  Ports Enabled:  Unknown");
     }
     pd.print_fw_info();
 }
@@ -999,6 +1014,39 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         smbios_info();
     } else if args.pd_info {
         print_pd_details(&ec);
+    } else if let Some(pd) = args.pd_reset {
+        println!("Resetting PD {}...", pd);
+        print_err(match pd {
+            0 => PdController::new(PdPort::Left01, ec.clone()).reset_device(),
+            1 => PdController::new(PdPort::Right23, ec.clone()).reset_device(),
+            2 => PdController::new(PdPort::Back, ec.clone()).reset_device(),
+            _ => {
+                error!("PD {} does not exist", pd);
+                Ok(())
+            }
+        });
+    } else if let Some(pd) = args.pd_disable {
+        println!("Disabling PD {}...", pd);
+        print_err(match pd {
+            0 => PdController::new(PdPort::Left01, ec.clone()).enable_ports(false),
+            1 => PdController::new(PdPort::Right23, ec.clone()).enable_ports(false),
+            2 => PdController::new(PdPort::Back, ec.clone()).enable_ports(false),
+            _ => {
+                error!("PD {} does not exist", pd);
+                Ok(())
+            }
+        });
+    } else if let Some(pd) = args.pd_enable {
+        println!("Enabling PD {}...", pd);
+        print_err(match pd {
+            0 => PdController::new(PdPort::Left01, ec.clone()).enable_ports(true),
+            1 => PdController::new(PdPort::Right23, ec.clone()).enable_ports(true),
+            2 => PdController::new(PdPort::Back, ec.clone()).enable_ports(true),
+            _ => {
+                error!("PD {} does not exist", pd);
+                Ok(())
+            }
+        });
     } else if args.dp_hdmi_info {
         #[cfg(feature = "hidapi")]
         print_dp_hdmi_details(true);
