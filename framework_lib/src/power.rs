@@ -305,10 +305,11 @@ pub fn print_sensors(ec: &CrosEc) {
         err => _ = print_err(err),
     }
 
-    // If we can't detect it based on motionsense
+    // If we can't detect it based on motionsense, check the system family
+    // If family is unknown, assume it has
     let als_family = matches!(
         smbios::get_family(),
-        Some(PlatformFamily::Framework13) | Some(PlatformFamily::Framework16)
+        Some(PlatformFamily::Framework13) | Some(PlatformFamily::Framework16) | None
     );
 
     if has_als || als_family {
