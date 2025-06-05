@@ -1214,8 +1214,7 @@ impl CrosEc {
             }
 
             let chunk = &data[offset..offset + cur_chunk_size];
-            let offset_le = (((offset as u16) << 8) & 0xff00) | (((offset as u16) >> 8) & 0x00ff);
-            let res = self.write_ec_gpu_chunk(offset_le, chunk);
+            let res = self.write_ec_gpu_chunk((offset as u16).to_be(), chunk);
             // Don't read too fast, wait 100ms before writing more to allow for page erase/write cycle.
             os_specific::sleep(100_000);
             if let Err(err) = res {
