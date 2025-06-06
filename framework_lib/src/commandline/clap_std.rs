@@ -193,7 +193,7 @@ struct ClapCli {
     #[arg(long)]
     kblight: Option<Option<u8>>,
 
-    /// Set keyboard backlight percentage or get, if no value provided
+    /// Remap a key by changing the scancode
     #[arg(long, value_parser=maybe_hex::<u16>)]
     #[clap(num_args = 3)]
     remap_key: Vec<u16>,
