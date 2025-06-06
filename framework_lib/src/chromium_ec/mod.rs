@@ -276,25 +276,25 @@ impl CrosEc {
         }
     }
 
-    pub fn check_mem_magic(&self) -> Option<()> {
+    pub fn check_mem_magic(&self) -> EcResult<()> {
         match self.read_memory(EC_MEMMAP_ID, 2) {
             Some(ec_id) => {
                 if ec_id.len() != 2 {
-                    error!("  Unexpected length returned: {:?}", ec_id.len());
-                    return None;
-                }
-                if ec_id[0] != b'E' || ec_id[1] != b'C' {
-                    error!("  This machine doesn't look like it has a Framework EC");
-                    None
+                    Err(EcError::DeviceError(format!(
+                        "  Unexpected length returned: {:?}",
+                        ec_id.len()
+                    )))
+                } else if ec_id[0] != b'E' || ec_id[1] != b'C' {
+                    Err(EcError::DeviceError(
+                        "This machine doesn't look like it has a Framework EC".to_string(),
+                    ))
                 } else {
-                    println!("  Verified that Framework EC is present!");
-                    Some(())
+                    Ok(())
                 }
             }
-            None => {
-                error!("  Failed to read EC ID from memory map");
-                None
-            }
+            None => Err(EcError::DeviceError(
+                "Failed to read EC ID from memory map".to_string(),
+            )),
         }
     }
 

@@ -844,7 +844,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.version {
         print_tool_version();
     } else if args.features {
-        ec.get_features().unwrap();
+        print_err(ec.get_features());
     } else if args.esrt {
         print_esrt();
     } else if let Some(compare_version_ver) = &args.compare_version {
@@ -1340,7 +1340,8 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     }
 
     println!("  Checking EC memory mapped magic bytes");
-    ec.check_mem_magic()?;
+    print_err(ec.check_mem_magic())?;
+    println!("  Verified that Framework EC is present!");
 
     println!("  Reading EC Build Version");
     print_err(ec.version_info())?;

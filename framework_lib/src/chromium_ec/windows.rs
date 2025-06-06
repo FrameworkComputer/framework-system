@@ -14,6 +14,8 @@ use windows::{
 use crate::chromium_ec::protocol::HEADER_LEN;
 use crate::chromium_ec::EC_MEMMAP_SIZE;
 use crate::chromium_ec::{EcError, EcResponseStatus, EcResult};
+use crate::smbios;
+use crate::util::Platform;
 
 // Create a wrapper around HANDLE to mark it as Send.
 // I'm not sure, but I think it's safe to do that for this type of HANDL.
@@ -46,6 +48,20 @@ fn init() -> bool {
     let handle = match res {
         Ok(h) => h,
         Err(err) => {
+            let platform = smbios::get_platform();
+            match platform {
+                Some(platform @ Platform::IntelGen11)
+                | Some(platform @ Platform::IntelGen12)
+                | Some(platform @ Platform::IntelGen13)
+                | Some(platform @ Platform::Framework13Amd7080)
+                | Some(platform @ Platform::Framework16Amd7080) => {
+                    println!("The windows driver is not enabled on {:?}.", platform);
+                    println!("Please stay tuned for future BIOS and driver updates.");
+                    println!();
+                }
+                _ => (),
+            }
+
             error!("Failed to find Windows driver. {:?}", err);
             return false;
         }
