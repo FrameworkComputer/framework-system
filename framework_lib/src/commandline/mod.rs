@@ -54,8 +54,8 @@ use crate::nvme;
 use crate::os_specific;
 use crate::parade_retimer;
 use crate::power;
+use crate::serialnum::Cfg0;
 use crate::smbios;
-use crate::smbios::ConfigDigit0;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
 #[cfg(feature = "hidapi")]
 use crate::touchpad::print_touchpad_fw_ver;
@@ -1642,8 +1642,7 @@ fn smbios_info() {
                     // Assumes it's ASCII, which is guaranteed by SMBIOS
                     let config_digit0 = &version[0..1];
                     let config_digit0 = u8::from_str_radix(config_digit0, 16);
-                    if let Ok(version_config) =
-                        config_digit0.map(<ConfigDigit0 as FromPrimitive>::from_u8)
+                    if let Ok(version_config) = config_digit0.map(<Cfg0 as FromPrimitive>::from_u8)
                     {
                         println!("  Version:      {:?} ({})", version_config, version);
                     } else {
@@ -1681,8 +1680,7 @@ fn smbios_info() {
                     // Assumes it's ASCII, which is guaranteed by SMBIOS
                     let config_digit0 = &version[0..1];
                     let config_digit0 = u8::from_str_radix(config_digit0, 16);
-                    if let Ok(version_config) =
-                        config_digit0.map(<ConfigDigit0 as FromPrimitive>::from_u8)
+                    if let Ok(version_config) = config_digit0.map(<Cfg0 as FromPrimitive>::from_u8)
                     {
                         println!("  Version:      {:?} ({})", version_config, version);
                     } else {

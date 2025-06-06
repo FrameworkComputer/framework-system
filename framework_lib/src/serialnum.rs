@@ -1,5 +1,7 @@
 use alloc::string::{String, ToString};
 use core::str::FromStr;
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 
 #[derive(Debug)]
 pub struct FrameworkSerial {
@@ -20,7 +22,8 @@ pub struct FrameworkSerial {
     pub part: String,
 }
 
-#[derive(Debug)]
+#[repr(u8)]
+#[derive(Debug, PartialEq, FromPrimitive, Clone, Copy)]
 pub enum Cfg0 {
     SKU = 0x00,
     Poc1 = 0x01,
@@ -32,7 +35,12 @@ pub enum Cfg0 {
     Dvt1 = 0x07,
     Dvt2 = 0x08,
     Pvt = 0x09,
-    Mp = 0x0A,
+    MassProduction = 0x0A,
+    MassProductionB = 0x0B,
+    MassProductionC = 0x0C,
+    MassProductionD = 0x0D,
+    MassProductionE = 0x0E,
+    MassProductionF = 0x0F,
 }
 
 #[derive(Debug)]
@@ -57,19 +65,14 @@ impl FromStr for FrameworkSerial {
 
         let caps = re.captures(s).ok_or("Invalid Serial".to_string())?;
 
-        let cfg0 = match caps.get(3).unwrap().as_str().chars().next().unwrap() {
-            '0' => Cfg0::SKU,
-            '1' => Cfg0::Poc1,
-            '2' => Cfg0::Proto1,
-            '3' => Cfg0::Proto2,
-            '4' => Cfg0::Evt1,
-            '5' => Cfg0::Evt2,
-            '6' => Cfg0::Reserved,
-            '7' => Cfg0::Dvt1,
-            '8' => Cfg0::Dvt2,
-            '9' => Cfg0::Pvt,
-            'A' => Cfg0::Mp,
-            _ => return Err("Invalid CFG0".to_string()),
+        let cfg0 = caps.get(3).unwrap().as_str().chars().next();
+        let cfg0 = cfg0.and_then(|x| str::parse::<u8>(&x.to_string()).ok());
+        let cfg0 = cfg0.and_then(<Cfg0 as FromPrimitive>::from_u8);
+        let cfg0 = if let Some(cfg0) = cfg0 {
+            cfg0
+        } else {
+            error!("Invalid CFG0 '{:?}'", cfg0);
+            return Err(format!("Invalid CFG0 '{:?}'", cfg0));
         };
         let cfg1 = caps.get(4).unwrap().as_str().chars().next().unwrap();
         let year = str::parse::<u16>(caps.get(5).unwrap().as_str()).unwrap();
