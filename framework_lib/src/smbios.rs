@@ -6,10 +6,10 @@ use std::prelude::v1::*;
 #[cfg(all(not(feature = "uefi"), not(target_os = "freebsd")))]
 use std::io::ErrorKind;
 
+use crate::serialnum::Cfg0;
 use crate::serialnum::FrameworkSerial;
 use crate::util::Config;
 pub use crate::util::{Platform, PlatformFamily};
-use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use smbioslib::*;
 #[cfg(feature = "uefi")]
@@ -25,25 +25,6 @@ static CACHED_PLATFORM: Mutex<Option<Option<Platform>>> = Mutex::new(None);
 
 // TODO: Should cache SMBIOS and values gotten from it
 // SMBIOS is fixed after boot. Oh, so maybe not cache when we're running in UEFI
-
-#[repr(u8)]
-#[derive(Debug, PartialEq, FromPrimitive, Clone, Copy)]
-pub enum ConfigDigit0 {
-    Poc1 = 0x01,
-    Proto1 = 0x02,
-    Proto2 = 0x03,
-    Evt1 = 0x04,
-    Evt2 = 0x05,
-    Dvt1 = 0x07,
-    Dvt2 = 0x08,
-    Pvt = 0x09,
-    MassProduction = 0x0A,
-    MassProductionB = 0x0B,
-    MassProductionC = 0x0C,
-    MassProductionD = 0x0D,
-    MassProductionE = 0x0E,
-    MassProductionF = 0x0F,
-}
 
 /// Check whether the manufacturer in the SMBIOS says Framework
 pub fn is_framework() -> bool {
@@ -241,7 +222,7 @@ pub fn get_product_name() -> Option<String> {
     })
 }
 
-pub fn get_baseboard_version() -> Option<ConfigDigit0> {
+pub fn get_baseboard_version() -> Option<Cfg0> {
     // TODO: On FreeBSD we can short-circuit and avoid parsing SMBIOS
     // #[cfg(target_os = "freebsd")]
     // if let Ok(product) = kenv_get("smbios.system.product") {
@@ -260,9 +241,7 @@ pub fn get_baseboard_version() -> Option<ConfigDigit0> {
                 // Assumes it's ASCII, which is guaranteed by SMBIOS
                 let config_digit0 = &version[0..1];
                 let config_digit0 = u8::from_str_radix(config_digit0, 16);
-                if let Ok(version_config) =
-                    config_digit0.map(<ConfigDigit0 as FromPrimitive>::from_u8)
-                {
+                if let Ok(version_config) = config_digit0.map(<Cfg0 as FromPrimitive>::from_u8) {
                     return version_config;
                 } else {
                     error!("  Invalid BaseBoard Version: {}'", version);
