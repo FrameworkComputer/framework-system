@@ -317,7 +317,12 @@ Expansion Bay
   Serial Number: FRAXXXXXXXXXXXXXXX
   Config:        Pcie4x2
   Vendor:        SsdHolder
+  Expansion Bay EEPROM
+    Valid:       true
+    HW Version:  8.0
 ```
+
+Add `-vv` for more verbose details.
 
 ## Check charger and battery status (Framework 12/13/16)
 

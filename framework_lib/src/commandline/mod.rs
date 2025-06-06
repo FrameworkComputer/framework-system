@@ -201,6 +201,8 @@ pub struct Cli {
     pub help: bool,
     pub info: bool,
     pub flash_gpu_descriptor: Option<(u8, String)>,
+    pub flash_gpu_descriptor_file: Option<String>,
+    pub dump_gpu_descriptor_file: Option<String>,
     // UEFI only
     pub allupdate: bool,
     pub paginate: bool,
@@ -679,6 +681,24 @@ fn dump_ec_flash(ec: &CrosEc, dump_path: &str) {
     }
 }
 
+fn dump_dgpu_eeprom(ec: &CrosEc, dump_path: &str) {
+    let flash_bin = ec.read_gpu_descriptor().unwrap();
+
+    #[cfg(not(feature = "uefi"))]
+    {
+        let mut file = fs::File::create(dump_path).unwrap();
+        file.write_all(&flash_bin).unwrap();
+    }
+    #[cfg(feature = "uefi")]
+    {
+        let ret = crate::uefi::fs::shell_write_file(dump_path, &flash_bin);
+        if ret.is_err() {
+            println!("Failed to dump EC FW image.");
+        }
+    }
+    println!("Wrote {} bytes to {}", flash_bin.len(), dump_path);
+}
+
 fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &CrosEc) -> i32 {
     println!("Target Version {:?}", version);
 
@@ -882,6 +902,26 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.expansion_bay {
         if let Err(err) = ec.check_bay_status() {
             error!("{:?}", err);
+        }
+        if let Ok(header) = ec.read_gpu_desc_header() {
+            println!("  Expansion Bay EEPROM");
+            println!(
+                "    Valid:       {:?}",
+                header.magic == [0x32, 0xAC, 0x00, 0x00]
+            );
+            println!("    HW Version:  {}.{}", { header.hardware_version }, {
+                header.hardware_revision
+            });
+            if log_enabled!(Level::Info) {
+                println!("    Hdr Length   {} B", { header.length });
+                println!("    Desc Ver:    {}.{}", { header.desc_ver_major }, {
+                    header.desc_ver_minor
+                });
+                println!("    Serialnumber:{:X?}", { header.serial });
+                println!("    Desc Length: {} B", { header.descriptor_length });
+                println!("    Desc CRC:    {:X}", { header.descriptor_crc32 });
+                println!("    Hdr CRC:     {:X}", { header.crc32 });
+            }
         }
     } else if let Some(maybe_limit) = args.charge_limit {
         print_err(handle_charge_limit(&ec, maybe_limit));
@@ -1220,6 +1260,38 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             Ok(x) => println!("GPU Descriptor write failed with status code:  {}", x),
             Err(err) => println!("GPU Descriptor write failed with error:  {:?}", err),
         }
+    } else if let Some(gpu_descriptor_file) = &args.flash_gpu_descriptor_file {
+        if matches!(
+            smbios::get_family(),
+            Some(PlatformFamily::Framework16) | None
+        ) {
+            #[cfg(feature = "uefi")]
+            let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(gpu_descriptor_file);
+            #[cfg(not(feature = "uefi"))]
+            let data = match fs::read(gpu_descriptor_file) {
+                Ok(data) => Some(data),
+                // TODO: Perhaps a more user-friendly error
+                Err(e) => {
+                    println!("Error {:?}", e);
+                    None
+                }
+            };
+            if let Some(data) = data {
+                println!("File");
+                println!("  Size:       {:>20} B", data.len());
+                println!("  Size:       {:>20} KB", data.len() / 1024);
+                let res = ec.set_gpu_descriptor(&data, args.dry_run);
+                match res {
+                    Ok(()) => println!("GPU Descriptor successfully written"),
+                    Err(err) => println!("GPU Descriptor write failed with error:  {:?}", err),
+                }
+            }
+        } else {
+            println!("Unsupported on this platform");
+        }
+    } else if let Some(dump_path) = &args.dump_gpu_descriptor_file {
+        println!("Dumping to {}", dump_path);
+        dump_dgpu_eeprom(&ec, dump_path);
     }
 
     0
@@ -1275,6 +1347,7 @@ Options:
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
       --hash <HASH>          Hash a file of arbitrary data
       --flash-gpu-descriptor <MAGIC> <18 DIGIT SN> Overwrite the GPU bay descriptor SN and type.
+      --flash-gpu-descriptor-file <DESCRIPTOR_FILE> Write the GPU bay descriptor with a descriptor file.
   -f, --force                Force execution of an unsafe command - may render your hardware unbootable!
       --dry-run              Simulate execution of a command (e.g. --flash-ec)
   -t, --test                 Run self-test to check if interaction with EC is possible

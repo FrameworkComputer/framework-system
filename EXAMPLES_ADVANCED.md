@@ -79,3 +79,24 @@ This command has not been thoroughly tested on all Framework Computer systems
 # EC will boot back into RO if the system turned off for 30s
 > framework_tool --reboot-ec jump-rw
 ```
+
+## Flashing Expansion Bay EEPROM (Framework 16)
+
+This will render your dGPU unsuable if you flash the wrong file!
+It's intended for advanced users who build their own expansion bay module.
+The I2C address of the EEPROM is hardcoded to 0x50.
+
+```
+# Dump current descriptor (e.g. for backup)
+> framework_tool --dump-gpu-descriptor-file foo.bin
+Dumping to foo.bin
+Wrote 153 bytes to foo.bin
+
+# Update just the serial number
+> framework_tool --flash_gpu_descriptor GPU FRAKMQCP41500ASSY1
+> framework_tool --flash_gpu_descriptor 13 FRAKMQCP41500ASSY1
+> framework_tool --flash_gpu_descriptor 0x0D FRAKMQCP41500ASSY1
+
+# Update everything from a file
+> framework_tool --flash-gpu-descriptor-file pcie_4x2.bin
+```
