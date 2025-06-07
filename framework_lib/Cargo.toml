@@ -19,7 +19,7 @@ hidapi = ["dep:hidapi"]
 uefi = [ "lazy_static/spin_no_std" ]
 
 [build-dependencies]
-built = { version = "0.5", features = ["chrono", "git2"] }
+built = { version = "0.8", features = ["chrono", "git2"] }
 
 [dependencies]
 lazy_static = "1.4.0"
