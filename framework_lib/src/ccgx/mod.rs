@@ -110,7 +110,7 @@ pub enum SiliconId {
     Ccg8 = 0x3580,
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
 pub struct BaseVersion {
     /// Major part of the version. X of X.Y.Z.BB
     pub major: u8,
@@ -154,7 +154,7 @@ impl From<u32> for BaseVersion {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
 pub enum Application {
     Notebook,
     Monitor,
@@ -162,7 +162,7 @@ pub enum Application {
     Invalid,
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
 pub struct AppVersion {
     pub application: Application,
     /// Major part of the version. X of X.Y.Z
@@ -307,5 +307,44 @@ fn parse_metadata_cyacd2(buffer: &[u8]) -> Option<(u32, u32)> {
         }
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // Make sure deriving does what I expect, properly comparing with multiple fields
+    fn derive_ord() {
+        let v0_0_0 = AppVersion {
+            application: Application::Notebook,
+            major: 0,
+            minor: 0,
+            circuit: 0,
+        };
+        let v1_0_1 = AppVersion {
+            application: Application::Notebook,
+            major: 1,
+            minor: 0,
+            circuit: 1,
+        };
+        let v0_1_0 = AppVersion {
+            application: Application::Notebook,
+            major: 0,
+            minor: 1,
+            circuit: 0,
+        };
+        let v1_1_1 = AppVersion {
+            application: Application::Notebook,
+            major: 1,
+            minor: 1,
+            circuit: 1,
+        };
+        assert_eq!(v0_0_0, v0_0_0.clone());
+        assert!(v0_0_0 < v1_0_1);
+        assert!(v0_1_0 < v1_0_1);
+        assert!(v1_0_1 < v1_1_1);
+        assert!(v1_1_1 > v1_0_1);
     }
 }
