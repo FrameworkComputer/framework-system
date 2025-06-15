@@ -100,3 +100,68 @@ Wrote 153 bytes to foo.bin
 # Update everything from a file
 > framework_tool --flash-gpu-descriptor-file pcie_4x2.bin
 ```
+
+## Analyzing binaries
+
+### EC
+
+Note that only since Framework 13 Intel Core Ultra (and later) the version number embedded in the ED binary is meaningful. As you can see below, in this example on Intel Core 12th/13th Gen (hx30) it's always 0.0.1.
+The commit hash though is accurate and reflects the git commit it was built from.
+
+```
+> framework-tool --ec--bin ec.bin
+File
+  Size:                     524288 B
+  Size:                        512 KB
+EC
+  Version:     hx30_v0.0.1-7a61a89
+  RollbackVer:                   0
+  Platform:                   hx30
+  Version:                   0.0.1
+  Commit:                  7a61a89
+  Size:                       2868 B
+  Size:                          2 KB
+```
+
+### PD
+
+```
+> framework_tool --pd-bin pd-0.1.14.bin
+File
+  Size:                      65536 B
+  Size:                         64 KB
+FW 1
+  Silicon ID:               0x3000
+  Version:                  0.1.14
+  Row size:                    128 B
+  Start Row:                    22
+  Rows:                         95
+  Size:                      12160 B
+  Size:                         11 KB
+FW 2
+  Silicon ID:               0x3000
+  Version:                  0.1.14
+  Row size:                    128 B
+  Start Row:                   118
+  Rows:                        381
+  Size:                      48768 B
+  Size:                         47 KB
+```
+
+### UEFI Capsule
+
+```
+> framework_tool --capsule retimer23.cap
+File
+  Size:                    2232676 B
+  Size:                       2180 KB
+Capsule Header
+  Capsule GUID: (ba2e4e6e, 3b0c, 4f25, [8a,59,4c,55,3f,c8,6e,a2])
+  Header size:                  28 B
+  Flags:                   0x50000
+    Persist across reset  (0x10000)
+    Initiate reset        (0x40000)
+  Capsule Size:            2232676 B
+  Capsule Size:               2180 KB
+  Type:   Framework Retimer23 (Right)
+```
