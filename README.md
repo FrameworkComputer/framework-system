@@ -205,61 +205,6 @@ Many actions require root. First build with cargo and then run the binary with s
 cargo build && sudo ./target/debug/framework_tool
 ```
 
-Dumping version information from firmware binaries:
-
-```
-# Dumping PD FW Binary Information:
->  cargo run -q -- --pd-bin pd-0.1.14.bin
-File
-  Size:                      65536 B
-  Size:                         64 KB
-FW 1
-  Silicon ID:               0x3000
-  Version:                  0.1.14
-  Row size:                    128 B
-  Start Row:                    22
-  Rows:                         95
-  Size:                      12160 B
-  Size:                         11 KB
-FW 2
-  Silicon ID:               0x3000
-  Version:                  0.1.14
-  Row size:                    128 B
-  Start Row:                   118
-  Rows:                        381
-  Size:                      48768 B
-  Size:                         47 KB
-
-# Dumping EC FW Binary Information
-> cargo run -q -- --ec--bin ec.bin
-File
-  Size:                     524288 B
-  Size:                        512 KB
-EC
-  Version:     hx30_v0.0.1-7a61a89
-  RollbackVer:                   0
-  Platform:                   hx30
-  Version:                   0.0.1
-  Commit:                  7a61a89
-  Size:                       2868 B
-  Size:                          2 KB
-
-# Dumping Capsule Binary Information:
-> cargo run -q -- --capsule retimer23.cap
-File
-  Size:                    2232676 B
-  Size:                       2180 KB
-Capsule Header
-  Capsule GUID: (ba2e4e6e, 3b0c, 4f25, [8a,59,4c,55,3f,c8,6e,a2])
-  Header size:                  28 B
-  Flags:                   0x50000
-    Persist across reset  (0x10000)
-    Initiate reset        (0x40000)
-  Capsule Size:            2232676 B
-  Capsule Size:               2180 KB
-  Type:   Framework Retimer23 (Right)
-```
-
 ###### Running on Windows
 
 On newly released systems since 2025 the Framework driver installer includes the EC driver.
