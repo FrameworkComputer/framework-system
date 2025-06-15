@@ -13,11 +13,32 @@ see the [Support Matrices](support-matrices.md).
 
 ###### Operating System Support
 
-- [x] OS Tool (`framework_tool`)
-  - [x] Tested on Linux
-  - [x] Tested on Windows
-  - [x] Tested on FreeBSD
-- [x] UEFI Shell tool (`framework_uefi`)
+The following operating environments are supported.
+
+- Linux
+- Windows
+- UEFI
+- FreeBSD
+
+Most functionality depends communication with the EC.
+For Linux and Windows there are dedicated drivers.
+On UEFI and FreeBSD raw port I/O is used - on Linux this can also be used as a fallback, if the driver is not available or not working.
+
+|                     | Port I/O | Linux | Windows |
+|---------------------|----------| ------|---------|
+| Framework 12        |          |       |         |
+| Intel Core 12th Gen | Yes      | [6.12](https://github.com/torvalds/linux/commit/62be134abf4250474a7a694837064bc783d2b291) | Yes     |
+| Framework 13        |          |       |         |
+| Intel Core 11th Gen | Yes      | [6.11](https://github.com/torvalds/linux/commit/04ca0a51f1e63bd553fd4af8e9af0fe094fa4f0a) | Not yet |
+| Intel Core 12th Gen | Yes      | [6.13](https://github.com/torvalds/linux/commit/dcd59d0d7d51b2a4b768fc132b0d74a97dfd6d6a) | Not yet |
+| Intel Core 13th Gen | Yes      | [6.13](https://github.com/torvalds/linux/commit/dcd59d0d7d51b2a4b768fc132b0d74a97dfd6d6a) | Not yet |
+| AMD Ryzen 7040      | Yes      | [6.10](https://github.com/torvalds/linux/commit/c8f460d991df93d87de01a96b783cad5a2da9616) | Soon    |
+| Intel Core Ultra 1S | Yes      | [6.12](https://github.com/torvalds/linux/commit/62be134abf4250474a7a694837064bc783d2b291) | Soon    |
+| AMD Ryzen AI 300    | Yes      | [6.12](https://github.com/torvalds/linux/commit/62be134abf4250474a7a694837064bc783d2b291) | Yes     |
+| Framework 16        |          |       |         |
+| AMD Ryzen 7040      | Yes      | [6.10](https://github.com/torvalds/linux/commit/c8f460d991df93d87de01a96b783cad5a2da9616) | Soon    |
+| Framework Desktop   |          |       |         |
+| AMD Ryzen AI Max    | Yes      | [6.15](https://github.com/torvalds/linux/commit/d83c45aeec9b223fe6db4175e9d1c4f5699cc37a) | Yes     |
 
 ###### Firmware Information
 
