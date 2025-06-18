@@ -603,9 +603,11 @@ impl CrosEc {
     pub fn print_fw16_inputdeck_status(&self) -> EcResult<()> {
         let intrusion = self.get_intrusion_status()?;
         let status = self.get_input_deck_status()?;
+        let sleep_l = self.get_gpio("sleep_l")?;
         println!("Chassis Closed:   {}", !intrusion.currently_open);
         println!("Input Deck State: {:?}", status.state);
         println!("Touchpad present: {}", status.touchpad_present);
+        println!("SLEEP# GPIO high: {}", sleep_l);
         println!("Positions:");
         println!("  Pos 0: {:?}", status.top_row.pos0);
         println!("  Pos 1: {:?}", status.top_row.pos1);

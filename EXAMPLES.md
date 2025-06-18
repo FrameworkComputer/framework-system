@@ -234,6 +234,7 @@ Input Deck
 Chassis Closed:   true
 Input Deck State: On
 Touchpad present: true
+SLEEP# GPIO high: true
 Positions:
   Pos 0: GenericC
   Pos 1: KeyboardA
