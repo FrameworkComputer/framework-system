@@ -134,13 +134,22 @@ impl From<InputDeckModeArg> for DeckStateMode {
     }
 }
 
+#[derive(Debug)]
+pub struct LogLevel(log::LevelFilter);
+
+impl Default for LogLevel {
+    fn default() -> Self {
+        LogLevel(log::LevelFilter::Error)
+    }
+}
+
 /// Shadows `clap_std::ClapCli` with extras for UEFI
 ///
 /// The UEFI commandline currently doesn't use clap, so we need to shadow the struct.
 /// Also it has extra options.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Cli {
-    pub verbosity: log::LevelFilter,
+    pub verbosity: LogLevel,
     pub versions: bool,
     pub version: bool,
     pub features: bool,
@@ -212,9 +221,73 @@ pub struct Cli {
 
 pub fn parse(args: &[String]) -> Cli {
     #[cfg(feature = "uefi")]
-    return uefi::parse(args);
+    let cli = uefi::parse(args);
     #[cfg(not(feature = "uefi"))]
-    return clap_std::parse(args);
+    let cli = clap_std::parse(args);
+
+    if cfg!(feature = "readonly") {
+        // Initialize a new Cli with no arguments
+        // Set all arguments that are readonly/safe
+        // We explicitly only cope the safe ones so that if we add new arguments in the future,
+        // which might be unsafe, we can't forget to exclude them from the safe set.
+        // TODO: Instead of silently ignoring blocked command, we should remind the user
+        Cli {
+            verbosity: cli.verbosity,
+            versions: cli.versions,
+            version: cli.version,
+            esrt: cli.esrt,
+            device: cli.device,
+            power: cli.power,
+            thermal: cli.thermal,
+            sensors: cli.sensors,
+            // fansetduty
+            // fansetrpm
+            // autofanctrl
+            privacy: cli.privacy,
+            pd_info: cli.version,
+            dp_hdmi_info: cli.dp_hdmi_info,
+            // dp_hdmi_update
+            audio_card_info: cli.audio_card_info,
+            pd_bin: cli.pd_bin,
+            ec_bin: cli.ec_bin,
+            capsule: cli.capsule,
+            dump: cli.dump,
+            h2o_capsule: cli.h2o_capsule,
+            // dump_ec_flash
+            // flash_ec
+            // flash_ro_ec
+            driver: cli.driver,
+            test: cli.test,
+            intrusion: cli.intrusion,
+            inputdeck: cli.inputdeck,
+            inputdeck_mode: cli.inputdeck_mode,
+            expansion_bay: cli.expansion_bay,
+            // charge_limit
+            // charge_current_limit
+            get_gpio: cli.get_gpio,
+            fp_led_level: cli.fp_led_level,
+            fp_brightness: cli.fp_brightness,
+            kblight: cli.kblight,
+            rgbkbd: cli.rgbkbd,
+            // tablet_mode
+            // touchscreen_enable
+            stylus_battery: cli.stylus_battery,
+            console: cli.console,
+            reboot_ec: cli.reboot_ec,
+            // ec_hib_delay
+            hash: cli.hash,
+            pd_addrs: cli.pd_addrs,
+            pd_ports: cli.pd_ports,
+            help: cli.help,
+            info: cli.info,
+            // allupdate
+            paginate: cli.paginate,
+            // raw_command
+            ..Default::default()
+        }
+    } else {
+        cli
+    }
 }
 
 fn print_single_pd_details(pd: &PdController) {
@@ -815,7 +888,7 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
 pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     #[cfg(feature = "uefi")]
     {
-        log::set_max_level(args.verbosity);
+        log::set_max_level(args.verbosity.0);
     }
     #[cfg(not(feature = "uefi"))]
     {
@@ -824,7 +897,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         //     .filter("FRAMEWORK_COMPUTER_LOG")
         //     .write_style("FRAMEWORK_COMPUTER_LOG_STYLE");
 
-        let level = args.verbosity.as_str();
+        let level = args.verbosity.0.as_str();
         env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(level))
             .format_target(false)
             .format_timestamp(None)

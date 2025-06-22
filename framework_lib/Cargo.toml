@@ -14,6 +14,7 @@ build = "build.rs"
 
 [features]
 default = ["hidapi", "rusb"]
+readonly = [ ]
 rusb = ["dep:rusb"]
 hidapi = ["dep:hidapi"]
 uefi = [ "lazy_static/spin_no_std" ]
