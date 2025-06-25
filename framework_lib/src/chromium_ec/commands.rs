@@ -888,6 +888,33 @@ impl EcRequest<()> for EcRequestApReset {
     }
 }
 
+#[repr(C)]
+pub struct EcRequestRebootApOnG3V0 {}
+
+impl EcRequest<()> for EcRequestRebootApOnG3V0 {
+    fn command_id() -> EcCommands {
+        EcCommands::RebootApOnG3
+    }
+    fn command_version() -> u8 {
+        0
+    }
+}
+
+#[repr(C)]
+pub struct EcRequestRebootApOnG3V1 {
+    /// Delay in seconds after entering G3 state
+    pub delay: u32,
+}
+
+impl EcRequest<()> for EcRequestRebootApOnG3V1 {
+    fn command_id() -> EcCommands {
+        EcCommands::RebootApOnG3
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+
 // TODO: Actually 128, but if we go above ~80 EC returns REQUEST_TRUNCATED
 // At least when I use the portio driver
 pub const EC_RGBKBD_MAX_KEY_COUNT: usize = 64;
