@@ -879,6 +879,15 @@ impl EcRequest<EcResponseAdcRead> for EcRequestAdcRead {
     }
 }
 
+#[repr(C)]
+pub struct EcRequestApReset {}
+
+impl EcRequest<()> for EcRequestApReset {
+    fn command_id() -> EcCommands {
+        EcCommands::ApReset
+    }
+}
+
 // TODO: Actually 128, but if we go above ~80 EC returns REQUEST_TRUNCATED
 // At least when I use the portio driver
 pub const EC_RGBKBD_MAX_KEY_COUNT: usize = 64;
