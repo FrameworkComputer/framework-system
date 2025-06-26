@@ -13,11 +13,32 @@ see the [Support Matrices](support-matrices.md).
 
 ###### Operating System Support
 
-- [x] OS Tool (`framework_tool`)
-  - [x] Tested on Linux
-  - [x] Tested on Windows
-  - [x] Tested on FreeBSD
-- [x] UEFI Shell tool (`framework_uefi`)
+The following operating environments are supported.
+
+- Linux
+- Windows
+- UEFI
+- FreeBSD
+
+Most functionality depends communication with the EC.
+For Linux and Windows there are dedicated drivers.
+On UEFI and FreeBSD raw port I/O is used - on Linux this can also be used as a fallback, if the driver is not available or not working.
+
+|                     | Port I/O | Linux | Windows |
+|---------------------|----------| ------|---------|
+| Framework 12        |          |       |         |
+| Intel Core 12th Gen | Yes      | [6.12](https://github.com/torvalds/linux/commit/62be134abf4250474a7a694837064bc783d2b291) | Yes     |
+| Framework 13        |          |       |         |
+| Intel Core 11th Gen | Yes      | [6.11](https://github.com/torvalds/linux/commit/04ca0a51f1e63bd553fd4af8e9af0fe094fa4f0a) | Not yet |
+| Intel Core 12th Gen | Yes      | [6.13](https://github.com/torvalds/linux/commit/dcd59d0d7d51b2a4b768fc132b0d74a97dfd6d6a) | Not yet |
+| Intel Core 13th Gen | Yes      | [6.13](https://github.com/torvalds/linux/commit/dcd59d0d7d51b2a4b768fc132b0d74a97dfd6d6a) | Not yet |
+| AMD Ryzen 7040      | Yes      | [6.10](https://github.com/torvalds/linux/commit/c8f460d991df93d87de01a96b783cad5a2da9616) | Soon    |
+| Intel Core Ultra 1S | Yes      | [6.12](https://github.com/torvalds/linux/commit/62be134abf4250474a7a694837064bc783d2b291) | Soon    |
+| AMD Ryzen AI 300    | Yes      | [6.12](https://github.com/torvalds/linux/commit/62be134abf4250474a7a694837064bc783d2b291) | Yes     |
+| Framework 16        |          |       |         |
+| AMD Ryzen 7040      | Yes      | [6.10](https://github.com/torvalds/linux/commit/c8f460d991df93d87de01a96b783cad5a2da9616) | Soon    |
+| Framework Desktop   |          |       |         |
+| AMD Ryzen AI Max    | Yes      | [6.15](https://github.com/torvalds/linux/commit/d83c45aeec9b223fe6db4175e9d1c4f5699cc37a) | Yes     |
 
 ###### Firmware Information
 
@@ -203,61 +224,6 @@ Many actions require root. First build with cargo and then run the binary with s
 
 ```sh
 cargo build && sudo ./target/debug/framework_tool
-```
-
-Dumping version information from firmware binaries:
-
-```
-# Dumping PD FW Binary Information:
->  cargo run -q -- --pd-bin pd-0.1.14.bin
-File
-  Size:                      65536 B
-  Size:                         64 KB
-FW 1
-  Silicon ID:               0x3000
-  Version:                  0.1.14
-  Row size:                    128 B
-  Start Row:                    22
-  Rows:                         95
-  Size:                      12160 B
-  Size:                         11 KB
-FW 2
-  Silicon ID:               0x3000
-  Version:                  0.1.14
-  Row size:                    128 B
-  Start Row:                   118
-  Rows:                        381
-  Size:                      48768 B
-  Size:                         47 KB
-
-# Dumping EC FW Binary Information
-> cargo run -q -- --ec--bin ec.bin
-File
-  Size:                     524288 B
-  Size:                        512 KB
-EC
-  Version:     hx30_v0.0.1-7a61a89
-  RollbackVer:                   0
-  Platform:                   hx30
-  Version:                   0.0.1
-  Commit:                  7a61a89
-  Size:                       2868 B
-  Size:                          2 KB
-
-# Dumping Capsule Binary Information:
-> cargo run -q -- --capsule retimer23.cap
-File
-  Size:                    2232676 B
-  Size:                       2180 KB
-Capsule Header
-  Capsule GUID: (ba2e4e6e, 3b0c, 4f25, [8a,59,4c,55,3f,c8,6e,a2])
-  Header size:                  28 B
-  Flags:                   0x50000
-    Persist across reset  (0x10000)
-    Initiate reset        (0x40000)
-  Capsule Size:            2232676 B
-  Capsule Size:               2180 KB
-  Type:   Framework Retimer23 (Right)
 ```
 
 ###### Running on Windows
