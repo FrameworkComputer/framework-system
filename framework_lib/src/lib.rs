@@ -1,6 +1,7 @@
 //! A library to interact with [Framework Computer](https://frame.work) hardware and building tools to do so.
 
 #![cfg_attr(feature = "uefi", no_std)]
+#![allow(clippy::uninlined_format_args)]
 
 extern crate alloc;
 #[cfg(feature = "uefi")]

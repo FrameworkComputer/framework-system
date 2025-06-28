@@ -167,14 +167,14 @@ struct ClapCli {
     #[arg(long)]
     charge_limit: Option<Option<u8>>,
 
-    /// Get or set max charge current limit
+    /// Set max charge current limit
     #[arg(long)]
-    #[clap(num_args = ..=2)]
+    #[clap(num_args = 1..=2)]
     charge_current_limit: Vec<u32>,
 
-    /// Get or set max charge current limit
+    /// Set max charge current limit
     #[arg(long)]
-    #[clap(num_args = ..=2)]
+    #[clap(num_args = 1..=2)]
     charge_rate_limit: Vec<f32>,
 
     /// Get GPIO value by name or all, if no name provided
