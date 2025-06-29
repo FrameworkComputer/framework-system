@@ -47,6 +47,8 @@ use crate::chromium_ec::{EcError, EcResult};
 use crate::csme;
 use crate::ec_binary;
 use crate::esrt;
+#[cfg(feature = "uefi")]
+use crate::fw_uefi::enable_page_break;
 #[cfg(feature = "rusb")]
 use crate::inputmodule::check_inputmodule_version;
 use crate::power;
@@ -57,8 +59,6 @@ use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
 use crate::touchpad::print_touchpad_fw_ver;
 #[cfg(feature = "hidapi")]
 use crate::touchscreen;
-#[cfg(feature = "uefi")]
-use crate::fw_uefi::enable_page_break;
 use crate::util::{self, Config, Platform, PlatformFamily};
 #[cfg(feature = "hidapi")]
 use hidapi::HidApi;
