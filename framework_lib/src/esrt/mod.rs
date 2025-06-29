@@ -518,7 +518,7 @@ pub const SYSTEM_RESOURCE_TABLE_GUID_BYTES: [u8; 16] = [
 pub fn get_esrt() -> Option<Esrt> {
     with_config_table(|slice| {
         for i in slice {
-            if i.guid == uefi::table::cfg::ESRT_GUID {
+            if i.guid == ConfigTableEntry::ESRT_GUID {
                 unsafe {
                     return esrt_from_buf(i.address as *const u8);
                 }
