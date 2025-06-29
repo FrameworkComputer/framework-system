@@ -4,10 +4,8 @@ use alloc::vec::Vec;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace};
-use uefi::prelude::BootServices;
-use uefi::proto::shell_params::*;
-use uefi::table::boot::{OpenProtocolAttributes, OpenProtocolParams, SearchType};
-use uefi::Identify;
+use uefi::boot;
+use uefi::proto::shell_params::ShellParameters;
 
 use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::{CrosEcDriverType, HardwareDeviceType};
@@ -16,40 +14,19 @@ use crate::commandline::Cli;
 use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, RebootEcArg, TabletModeArg};
 
 /// Get commandline arguments from UEFI environment
-pub fn get_args(boot_services: &BootServices) -> Vec<String> {
-    // TODO: I think i should open this from the ImageHandle?
-    let shell_params_h =
-        boot_services.locate_handle_buffer(SearchType::ByProtocol(&ShellParameters::GUID));
-    let shell_params_h = if let Ok(shell_params_h) = shell_params_h {
-        shell_params_h
-    } else {
-        error!("ShellParameters protocol not found");
-        return vec![];
-    };
-
-    for handle in &*shell_params_h {
-        let params_handle = unsafe {
-            boot_services
-                .open_protocol::<ShellParameters>(
-                    OpenProtocolParams {
-                        handle: *handle,
-                        agent: boot_services.image_handle(),
-                        controller: None,
-                    },
-                    OpenProtocolAttributes::GetProtocol,
-                )
-                .expect("Failed to open ShellParameters handle")
-        };
-
-        // Ehm why are there two and one has no args?
-        // Maybe one is the shell itself?
-        if params_handle.argc == 0 {
-            continue;
+pub fn get_args() -> Vec<String> {
+    let shell_params = uefi::boot::open_protocol_exclusive::<ShellParameters>(boot::image_handle());
+    let shell_params = match shell_params {
+        Ok(s) => s,
+        Err(e) => {
+            error!("Failed to get ShellParameters protocol");
+            // TODO: Return result
+            // return e.status();
+            return vec![];
         }
-
-        return params_handle.get_args();
-    }
-    vec![]
+    };
+    let args: Vec<String> = shell_params.args().map(|x| x.to_string()).collect();
+    args
 }
 
 pub fn parse(args: &[String]) -> Cli {
