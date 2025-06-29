@@ -19,5 +19,10 @@ default-members = [
     "framework_tool",
 ]
 
+# Need latest commit that hasn't been released yet
+[patch.crates-io]
+uefi = { git = "https://github.com/rust-osdev/uefi-rs", rev = "1fcf4d84d5ed10fe76055469b6df01318eb35af8" }
+uefi-raw = { git = "https://github.com/rust-osdev/uefi-rs", rev = "1fcf4d84d5ed10fe76055469b6df01318eb35af8" }
+
 [profile.release]
 lto = true

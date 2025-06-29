@@ -4,9 +4,8 @@ use alloc::vec::Vec;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace};
-use uefi::prelude::BootServices;
-use uefi::proto::shell_params::*;
-use uefi::Handle;
+use uefi::boot;
+use uefi::proto::shell_params::ShellParameters;
 
 use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::{CrosEcDriverType, HardwareDeviceType};
@@ -15,13 +14,19 @@ use crate::commandline::{Cli, LogLevel};
 use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, RebootEcArg, TabletModeArg};
 
 /// Get commandline arguments from UEFI environment
-pub fn get_args(bs: &BootServices, image_handle: Handle) -> Vec<String> {
-    if let Ok(shell_params) = bs.open_protocol_exclusive::<ShellParameters>(image_handle) {
-        shell_params.get_args()
-    } else {
-        // No protocol found if the application wasn't executed by the shell
-        vec![]
-    }
+pub fn get_args() -> Vec<String> {
+    let shell_params = uefi::boot::open_protocol_exclusive::<ShellParameters>(boot::image_handle());
+    let shell_params = match shell_params {
+        Ok(s) => s,
+        Err(e) => {
+            error!("Failed to get ShellParameters protocol");
+            // TODO: Return result
+            // return e.status();
+            return vec![];
+        }
+    };
+    let args: Vec<String> = shell_params.args().map(|x| x.to_string()).collect();
+    args
 }
 
 pub fn parse(args: &[String]) -> Cli {

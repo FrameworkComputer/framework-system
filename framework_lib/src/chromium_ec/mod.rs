@@ -9,11 +9,11 @@
 //! - `windows` - It uses [DHowett's Windows driver](https://github.com/DHowett/FrameworkWindowsUtils)
 
 use crate::ec_binary;
+#[cfg(feature = "uefi")]
+use crate::fw_uefi::shell_get_execution_break_flag;
 use crate::os_specific;
 use crate::power;
 use crate::smbios;
-#[cfg(feature = "uefi")]
-use crate::fw_uefi::shell_get_execution_break_flag;
 use crate::util::{self, Platform};
 
 use no_std_compat::time::Duration;
