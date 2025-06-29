@@ -32,7 +32,7 @@ pub mod usbhub;
 
 #[cfg(feature = "uefi")]
 #[macro_use]
-extern crate uefi_services;
+extern crate uefi;
 
 pub mod capsule;
 pub mod capsule_content;
