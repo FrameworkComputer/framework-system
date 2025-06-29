@@ -13,7 +13,7 @@ use crate::os_specific;
 use crate::power;
 use crate::smbios;
 #[cfg(feature = "uefi")]
-use crate::uefi::shell_get_execution_break_flag;
+use crate::fw_uefi::shell_get_execution_break_flag;
 use crate::util::{self, Platform};
 
 use log::Level;
