@@ -33,6 +33,11 @@ use std::os::fd::AsRawFd;
 #[cfg(target_os = "freebsd")]
 use std::os::unix::fs::OpenOptionsExt;
 
+#[cfg(feature = "uefi")]
+use uefi::system::with_config_table;
+#[cfg(feature = "uefi")]
+use uefi::table::cfg::ConfigTableEntry;
+
 pub const TGL_BIOS_GUID: GUID = GUID::build_from_components(
     0xb3bdb2e4,
     0xc5cb,
@@ -537,22 +542,16 @@ pub const SYSTEM_RESOURCE_TABLE_GUID_BYTES: [u8; 16] = [
 
 #[cfg(feature = "uefi")]
 pub fn get_esrt() -> Option<Esrt> {
-    let st = unsafe { uefi_services::system_table().as_ref() };
-    let config_tables = st.config_table();
-
-    for table in config_tables {
-        // TODO: Why aren't they the same type?
-        //debug!("Table: {:?}", table);
-        let table_guid: Guid = unsafe { std::mem::transmute(table.guid) };
-        let table_guid = GUID::from(table_guid);
-        match table_guid {
-            SYSTEM_RESOURCE_TABLE_GUID => unsafe {
-                return esrt_from_buf(table.address as *const u8);
-            },
-            _ => {}
+    with_config_table(|slice| {
+        for i in slice {
+            if i.guid == uefi::table::cfg::ESRT_GUID {
+                unsafe {
+                    return esrt_from_buf(i.address as *const u8);
+                }
+            }
         }
-    }
-    None
+        None
+    })
 }
 
 /// Parse the ESRT table buffer
