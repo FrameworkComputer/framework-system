@@ -193,7 +193,7 @@ pub fn get_smbios() -> Option<SMBiosData> {
 #[cfg(feature = "uefi")]
 pub fn get_smbios() -> Option<SMBiosData> {
     trace!("get_smbios() uefi entry");
-    let data = crate::uefi::smbios_data().unwrap();
+    let data = crate::fw_uefi::smbios_data().unwrap();
     let version = None; // TODO: Maybe add the version here
     let smbios = SMBiosData::from_vec_and_version(data, version);
     Some(smbios)
