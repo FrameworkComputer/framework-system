@@ -574,6 +574,7 @@ Swap **L_Alt** and **L_Control**:
 -   The actual embedded controller source code contains a table that looks just the same to the matrix (albiet rotated). It can be found [here](https://github.com/FrameworkComputer/EmbeddedController/blob/f6620a8200e8d1b349078710b271540b5b8a1a18/board/hx30/keyboard_customization.c#L25).
 -   Some scancodes can be found in the embedded controller [source code](https://github.com/FrameworkComputer/EmbeddedController/blob/f6620a8200e8d1b349078710b271540b5b8a1a18/include/keyboard_8042_sharedlib.h#L106) and some can be found in [the original list from the kernel](http://kbd-project.org/docs/scancodes/scancodes-10.html#ss10.6).
     -   A full breakdown of all possible scancodes is [available](http://kbd-project.org/docs/scancodes/scancodes-1.html) but won't be useful to most users.
+-   The Framework 12 wiring matrix was taken from [here](https://github.com/FrameworkComputer/Framework-Laptop-12/tree/main/InputCover#keyboard-matrix)
 
 #### Scancodes
 
@@ -621,8 +622,6 @@ Swap **L_Alt** and **L_Control**:
 
 ##### FrameWork 13
 
-> Matrix w/ keys
-
 |   |  0  |    1     |    2     |  3   |       4       |      5       | 6 | 7 |       8     |    9   |        10       |         11        |   12  |       13      |        14      |        15      |
 |---|-----|----------|----------|------|---------------|--------------|---|---|-------------|--------|-----------------|-------------------|-------|---------------|----------------|----------------|
 | 0 |  c  |  Delete  |    q     | RAlt |   KP Enter    |      x       |v  |m  |      .      | RShift |      Comma      | Katakana Hiragana | RCtrl |       /       |       '        |     Yen        |
@@ -634,23 +633,18 @@ Swap **L_Alt** and **L_Control**:
 | 6 | KP1 | Page Up  | Muhenkan |      |  Vol. Up F3   |      w       |r  |u  | PrtScr F11  |        |        i        |       Left        |       |      [        |      ]         |    KP5         |
 | 7 | KP/ | Num Lock |    a     |      |   Page Down   |    Escape    |f  |j  |      l      |        |        k        |       Menu        |       |       ;       |       d        |      KP6       |
 
-> Matrix w/ scancodes
-
-|    |   0    |   1    |   2    |   3    |   4    |   5    |   6    |   7    |   8    |   9    |   10   |   11   |   12   |   13   |   14   |   15   |
-| ---|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|--------|
-|  0 | 0x0021 | 0xe071 | 0x0015 | 0xe011 | 0xe05a | 0x0022 | 0x002A | 0x003a | 0x0049 | 0x0059 | 0x0041 | 0x0013 | 0xe014 | 0x004a | 0x0052 | 0x006a |
-|  1 | 0x007B | 0xe070 | 0x0070 | 0x0011 | 0x0029 | 0x001a | 0x0032 | 0x0031 | 0xe072 | 0x0012 | 0x007c | 0x0064 | 0x0014 | 0xe075 | 0x005a | 0x000a |
-|  2 | 0x0079 | 0x007D | 0x00ff | 0x0000 | 0x0024 | 0x0006 | 0x0034 | 0x0033 | 0x005d | 0x0000 | 0x0083 | 0x0075 | 0x0000 | 0x004e | 0xe03c | 0xe074 |
-|  3 | 0x0072 | 0xe01f | 0x000D | 0x0000 | 0x000c | 0x0005 | 0x002c | 0x0035 | 0x0044 | 0x0000 | 0x000b | 0x0001 | 0x0000 | 0x0007 | 0xe069 | 0xe054 |
-|  4 | 0x007A | 0x006c | 0x000E | 0x0000 | 0x0058 | 0x001b | 0x002e | 0x0036 | 0x0009 | 0x0000 | 0x0003 | 0x0051 | 0x0000 | 0x0045 | 0x0055 | 0x0000 |
-|  5 | 0x0071 | 0xe06c | 0x0016 | 0x0000 | 0x0026 | 0x001e | 0x0025 | 0x003d | 0x0046 | 0x0000 | 0x003e | 0x0061 | 0x0000 | 0x004d | 0x0066 | 0x006b |
-|  6 | 0x0069 | 0xe07d | 0x0067 | 0x0000 | 0x0004 | 0x001d | 0x002d | 0x003c | 0x0078 | 0x0000 | 0x0043 | 0xe06b | 0x0000 | 0x0054 | 0x005b | 0x0073 |
-|  7 | 0xe04A | 0x0077 | 0x001c | 0x0000 | 0xe07a | 0x0076 | 0x002b | 0x003b | 0x004b | 0x0000 | 0x0042 | 0xe02f | 0x0000 | 0x004c | 0x0023 | 0x0074 |
-
 ##### FrameWork 12
 
-If anyone can find the source code with the FW12 matrix please let me know and I'll add info about that to this page. I don't have an FW12 so all my testing was done on an FW13.
-
+|     |Col 0|Col 1|Col 2|Col 3|Col 4|Col 5|Col 6|Col 7|Col 8|Col 9|Col10|Col11|Col12|Col13|Col14|Col15|Col16|Col17|
+|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
+|Row 0|     | F11 | F1  | B   | F10 | N   |     |     | =   |     |RAlt |     |     |     |     |     | FN  |     |
+|Row 1|     | ESC | F4  | G   | F7  | F12 | H   |     | '   | F9  |     | Bsp |     |     |LCtrl|     |     |     |
+|Row 2|     | TAB | F3  | T   | F6  | ]   | Y   |     | [   | Del |     | F8  |     |     |     |     |     |     |
+|Row 3| WIN | `   | F2  | 5   | S   |     | -   |     | 6   |     |     | |   |     |     |RCtrl|     |     |     |
+|Row 4|     | A   | D   | F   | F5  | K   | J   |     | ;   | L   |     |Enter|     |     |     |     |     |     |
+|Row 5|     | 1   | ,   | >   | /   | C   |Space|LShft| X   | V   |     | M   |     |     |     |     |     |     |
+|Row 6|     | Z   | 3   | 4   | 2   | 8   | 0   |     | 7   | 9   |     | Down|Left |LAlt |     |CapsL|     |     |
+|Row 7|     | U   | I   | O   | P   | Q   | W   |RShft| E   | R   |     | Up  |Right|     |     |     |     |     |
 
 ## Advanced commands
 
