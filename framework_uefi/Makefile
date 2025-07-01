@@ -38,6 +38,9 @@ $(BUILD)/efi.img: $(BUILD)/boot.efi
 	mkfs.vfat $@.tmp
 	mmd -i $@.tmp efi
 	mmd -i $@.tmp efi/boot
+	echo 'efi\boot\bootx64.efi --version' > startup.nsh
+	mcopy -i $@.tmp startup.nsh ::efi/boot/startup.nsh
+	rm -f startup.nsh
 	mcopy -i $@.tmp $< ::efi/boot/bootx64.efi
 	mv $@.tmp $@
 
