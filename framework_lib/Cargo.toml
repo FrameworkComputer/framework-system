@@ -1,6 +1,6 @@
 [package]
 name = "framework_lib"
-version = "0.4.3"
+version = "0.4.4"
 description = "Library to control Framework Computer systems"
 homepage = "https://github.com/FrameworkComputer/framework-system"
 repository = "https://github.com/FrameworkComputer/framework-system"
