@@ -6,8 +6,7 @@ use alloc::vec::Vec;
 use log::{debug, error, info, trace};
 use uefi::prelude::BootServices;
 use uefi::proto::shell_params::*;
-use uefi::table::boot::{OpenProtocolAttributes, OpenProtocolParams, SearchType};
-use uefi::Identify;
+use uefi::Handle;
 
 use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::{CrosEcDriverType, HardwareDeviceType};
@@ -16,40 +15,13 @@ use crate::commandline::Cli;
 use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, RebootEcArg, TabletModeArg};
 
 /// Get commandline arguments from UEFI environment
-pub fn get_args(boot_services: &BootServices) -> Vec<String> {
-    // TODO: I think i should open this from the ImageHandle?
-    let shell_params_h =
-        boot_services.locate_handle_buffer(SearchType::ByProtocol(&ShellParameters::GUID));
-    let shell_params_h = if let Ok(shell_params_h) = shell_params_h {
-        shell_params_h
+pub fn get_args(bs: &BootServices, image_handle: Handle) -> Vec<String> {
+    if let Ok(shell_params) = bs.open_protocol_exclusive::<ShellParameters>(image_handle) {
+        shell_params.get_args()
     } else {
-        error!("ShellParameters protocol not found");
-        return vec![];
-    };
-
-    for handle in &*shell_params_h {
-        let params_handle = unsafe {
-            boot_services
-                .open_protocol::<ShellParameters>(
-                    OpenProtocolParams {
-                        handle: *handle,
-                        agent: boot_services.image_handle(),
-                        controller: None,
-                    },
-                    OpenProtocolAttributes::GetProtocol,
-                )
-                .expect("Failed to open ShellParameters handle")
-        };
-
-        // Ehm why are there two and one has no args?
-        // Maybe one is the shell itself?
-        if params_handle.argc == 0 {
-            continue;
-        }
-
-        return params_handle.get_args();
+        // No protocol found if the application wasn't executed by the shell
+        vec![]
     }
-    vec![]
 }
 
 pub fn parse(args: &[String]) -> Cli {
