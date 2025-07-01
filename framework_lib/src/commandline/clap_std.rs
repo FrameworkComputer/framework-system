@@ -9,7 +9,7 @@ use clap_num::maybe_hex;
 use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::{
-    Cli, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg, RebootEcArg,
+    Cli, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg, LogLevel, RebootEcArg,
     TabletModeArg,
 };
 
@@ -381,7 +381,7 @@ pub fn parse(args: &[String]) -> Cli {
     };
 
     Cli {
-        verbosity: args.verbosity.log_level_filter(),
+        verbosity: LogLevel(args.verbosity.log_level_filter()),
         versions: args.versions,
         version: args.version,
         features: args.features,

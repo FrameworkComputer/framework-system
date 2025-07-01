@@ -14,6 +14,10 @@ rust-version = "1.74"
 name = "uefitool"
 path = "src/main.rs"
 
+[features]
+default = [ ]
+readonly = [ "framework_lib/readonly" ]
+
 [dependencies]
 uefi = { version = "0.20", features = ["alloc"] }
 uefi-services = "0.17"

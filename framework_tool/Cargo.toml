@@ -12,6 +12,10 @@ edition = "2021"
 name = "framework_tool"
 path = "src/main.rs"
 
+[features]
+default = [ ]
+readonly = [ "framework_lib/readonly" ]
+
 [dependencies.framework_lib]
 path = "../framework_lib"
 

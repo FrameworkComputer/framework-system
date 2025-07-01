@@ -1,5 +1,6 @@
 TARGET?=x86_64-unknown-uefi
 BUILD=build/$(TARGET)
+FEATURES?=''
 
 SRC_DIR=.
 
@@ -18,7 +19,7 @@ all: $(BUILD)/boot.img
 iso: $(BUILD)/UEFI-Shell-fwk.iso
 
 clean:
-	rm -r $(BUILD)
+	rm -rf $(BUILD)
 
 qemu: $(BUILD)/boot.img
 	$(QEMU) $(QEMU_FLAGS) $<
@@ -61,6 +62,7 @@ $(BUILD)/boot.efi: ../Cargo.lock $(SRC_DIR)/Cargo.toml $(SRC_DIR)/src/*
 	  mkdir -p $(BUILD)
 		cargo rustc \
 		--target $(TARGET) \
+		--features $(FEATURES) \
 		--release \
 		-- \
 		--emit link=framework_uefi/$@

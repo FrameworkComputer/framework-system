@@ -77,13 +77,17 @@ jobs:
       run: rustup show
 
     - name: Build UEFI application (no ESP)
-      run: make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
+      run: |
+        make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
+        mv framework_uefi/build/x86_64-unknown-uefi/boot.efi framework_tool_full.efi
+        make -C framework_uefi FEATURES=readonly build/x86_64-unknown-uefi/boot.efi
+        cp framework_uefi/build/x86_64-unknown-uefi/boot.efi framework_tool.efi
 
     - name: Upload UEFI App
       uses: actions/upload-artifact@v4
       with:
-        name: framework.efi
-        path: framework_uefi/build/x86_64-unknown-uefi/boot.efi
+        name: framework_efi.zip
+        path: ./*.efi
 
     - name: Install mtools to build ESP and ISO (Linux)
       run: sudo apt-get install -y mtools genisoimage
