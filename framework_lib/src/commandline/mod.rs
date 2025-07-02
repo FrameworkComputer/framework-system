@@ -235,16 +235,22 @@ pub fn parse(args: &[String]) -> Cli {
             verbosity: cli.verbosity,
             versions: cli.versions,
             version: cli.version,
+            features: cli.features,
             esrt: cli.esrt,
             device: cli.device,
+            compare_version: cli.compare_version,
             power: cli.power,
             thermal: cli.thermal,
             sensors: cli.sensors,
             // fansetduty
             // fansetrpm
             // autofanctrl
+            pdports: cli.pdports,
             privacy: cli.privacy,
             pd_info: cli.version,
+            // pd_reset
+            // pd_disable
+            // pd_enable
             dp_hdmi_info: cli.dp_hdmi_info,
             // dp_hdmi_update
             audio_card_info: cli.audio_card_info,
@@ -256,19 +262,25 @@ pub fn parse(args: &[String]) -> Cli {
             // dump_ec_flash
             // flash_ec
             // flash_ro_ec
+            // flash_rw_ec
             driver: cli.driver,
             test: cli.test,
+            dry_run: cli.dry_run,
+            // force
             intrusion: cli.intrusion,
             inputdeck: cli.inputdeck,
             inputdeck_mode: cli.inputdeck_mode,
             expansion_bay: cli.expansion_bay,
             // charge_limit
             // charge_current_limit
+            // charge_rate_limit
             get_gpio: cli.get_gpio,
             fp_led_level: cli.fp_led_level,
             fp_brightness: cli.fp_brightness,
             kblight: cli.kblight,
+            remap_key: cli.remap_key,
             rgbkbd: cli.rgbkbd,
+            ps2_enable: cli.ps2_enable,
             // tablet_mode
             // touchscreen_enable
             stylus_battery: cli.stylus_battery,
@@ -280,6 +292,8 @@ pub fn parse(args: &[String]) -> Cli {
             pd_ports: cli.pd_ports,
             help: cli.help,
             info: cli.info,
+            // flash_gpu_descriptor
+            // flash_gpu_descriptor_file
             // allupdate
             paginate: cli.paginate,
             // raw_command

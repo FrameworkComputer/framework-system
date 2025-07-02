@@ -1,6 +1,6 @@
 [package]
 name = "framework_uefi"
-version = "0.4.4"
+version = "0.4.5"
 description = "UEFI Tool to control Framework Computer systems"
 homepage = "https://github.com/FrameworkComputer/framework-system"
 repository = "https://github.com/FrameworkComputer/framework-system"
