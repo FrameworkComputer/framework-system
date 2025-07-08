@@ -73,6 +73,7 @@ features = [
     "Win32_System_Ioctl",
     "Win32_System_SystemInformation",
     "Win32_System_SystemServices",
+    "Win32_System_WindowsProgramming",
     # For HID devices
     "Win32_Devices_DeviceAndDriverInstallation",
     "Win32_Devices_HumanInterfaceDevice",
