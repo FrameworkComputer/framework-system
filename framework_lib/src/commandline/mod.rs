@@ -1134,7 +1134,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("File");
             println!("  Size:       {:>20} B", data.len());
             println!("  Size:       {:>20} KB", data.len() / 1024);
-            os_specific::set_dbx(&data);
+            os_specific::get_dbx();
+            //os_specific::set_dbx(&data);
         }
     } else if args.test {
         println!("Self-Test");
