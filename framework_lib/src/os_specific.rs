@@ -38,7 +38,7 @@ pub fn get_os_version() -> String {
 }
 
 #[cfg(windows)]
-use windows::{core::*, Win32::System::WindowsProgramming::*};
+use windows::{core::*, Win32::Foundation::*, Win32::System::WindowsProgramming::*};
 
 /// Sleep a number of microseconds
 pub fn sleep(micros: u64) {
@@ -73,6 +73,16 @@ pub fn set_dbx(data: &[u8]) -> Option<()> {
 }
 
 #[cfg(windows)]
+pub fn get_dbx() -> Option<Vec<u8>> {
+    get_uefi_var(w!("dbx"), w!("d719b2cb-3d3a-4596-a3bc-dad00e67656f"))
+}
+#[cfg(not(windows))]
+pub fn get_dbx() -> Option<Vec<u8>> {
+    error!("Getting UEFI variable not supported on this OS");
+    None
+}
+
+#[cfg(windows)]
 pub fn set_uefi_var(name: &str, guid: &str, value: &[u8], attributes: u32) -> Option<()> {
     let res = unsafe {
         SetFirmwareEnvironmentVariableExW(
@@ -92,5 +102,39 @@ pub fn set_uefi_var(name: &str, guid: &str, value: &[u8], attributes: u32) -> Op
 #[cfg(not(windows))]
 pub fn set_uefi_var(name: &str, guid: &str, value: &[u8], attributes: u32) -> Option<()> {
     error!("Setting UEFI variable not supported on this OS");
+    None
+}
+
+#[cfg(windows)]
+pub fn get_uefi_var(name: PCWSTR, guid: PCWSTR) -> Option<Vec<u8>> {
+    let mut data = [0; 1024];
+    let mut attributes: u32 = 0;
+    let (res, error) = unsafe {
+        let res = GetFirmwareEnvironmentVariableExW(
+            // PCWSTR
+            //&HSTRING::from(name),
+            name,
+            // PCWSTR
+            //&HSTRING::from(guid),
+            guid,
+            Some(data.as_mut_ptr() as *mut core::ffi::c_void),
+            data.len() as u32,
+            Some(&mut attributes),
+        );
+        let error = GetLastError();
+        (res, error)
+    };
+
+    //let data = std::slice::from_raw_parts::<u8>(credentials_ptr as _, count as usize);
+
+    println!("Res:       {:?}", res);
+    println!("LastError: {:?}", error);
+    println!("Data:      {:X?}", data);
+    Some(vec![])
+}
+
+#[cfg(not(windows))]
+pub fn get_uefi_var(name: &str, guid: &str, value: &[u8], attributes: u32) -> Option<Vec<u8>> {
+    error!("Getting UEFI variable not supported on this OS");
     None
 }
