@@ -240,6 +240,10 @@ struct ClapCli {
     #[arg(long)]
     ec_hib_delay: Option<Option<u32>>,
 
+    /// Set UEFI variable (name, file path)
+    #[arg(long)]
+    set_uefi_var: Option<std::path::PathBuf>,
+
     /// Hash a file of arbitrary data
     #[arg(long)]
     hash: Option<std::path::PathBuf>,
@@ -450,6 +454,7 @@ pub fn parse(args: &[String]) -> Cli {
         console: args.console,
         reboot_ec: args.reboot_ec,
         ec_hib_delay: args.ec_hib_delay,
+        set_uefi_var: args.set_uefi_var,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         pd_addrs,

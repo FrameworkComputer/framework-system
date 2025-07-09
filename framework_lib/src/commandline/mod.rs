@@ -49,6 +49,7 @@ use crate::ec_binary;
 use crate::esrt;
 #[cfg(feature = "rusb")]
 use crate::inputmodule::check_inputmodule_version;
+use crate::os_specific;
 use crate::power;
 use crate::smbios;
 use crate::smbios::ConfigDigit0;
@@ -204,6 +205,7 @@ pub struct Cli {
     pub console: Option<ConsoleArg>,
     pub reboot_ec: Option<RebootEcArg>,
     pub ec_hib_delay: Option<Option<u32>>,
+    pub set_uefi_var: Option<std::path::PathBuf>,
     pub hash: Option<String>,
     pub pd_addrs: Option<(u16, u16, u16)>,
     pub pd_ports: Option<(u8, u8, u8)>,
@@ -1116,6 +1118,24 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             print_err(ec.set_ec_hib_delay(*delay));
         }
         print_err(ec.get_ec_hib_delay());
+    } else if let Some(filepath) = &args.set_uefi_var {
+        #[cfg(feature = "uefi")]
+        let data = crate::uefi::fs::shell_read_file(filepath);
+        #[cfg(not(feature = "uefi"))]
+        let data = match fs::read(filepath) {
+            Ok(data) => Some(data),
+            // TODO: Perhaps a more user-friendly error
+            Err(e) => {
+                println!("Error {:?}", e);
+                None
+            }
+        };
+        if let Some(data) = data {
+            println!("File");
+            println!("  Size:       {:>20} B", data.len());
+            println!("  Size:       {:>20} KB", data.len() / 1024);
+            os_specific::set_dbx(&data);
+        }
     } else if args.test {
         println!("Self-Test");
         let result = selftest(&ec);
