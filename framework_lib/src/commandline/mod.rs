@@ -216,6 +216,7 @@ pub struct Cli {
     pub ec_hib_delay: Option<Option<u32>>,
     pub uptimeinfo: bool,
     pub s0ix_counter: bool,
+    pub set_uefi_var: Option<std::path::PathBuf>,
     pub hash: Option<String>,
     pub pd_addrs: Option<(u16, u16, u16)>,
     pub pd_ports: Option<(u8, u8, u8)>,
@@ -1509,6 +1510,24 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("s0ix_counter: {}", counter);
         } else {
             println!("s0ix_counter: Unknown");
+        }
+    } else if let Some(filepath) = &args.set_uefi_var {
+        #[cfg(feature = "uefi")]
+        let data = crate::uefi::fs::shell_read_file(filepath);
+        #[cfg(not(feature = "uefi"))]
+        let data = match fs::read(filepath) {
+            Ok(data) => Some(data),
+            // TODO: Perhaps a more user-friendly error
+            Err(e) => {
+                println!("Error {:?}", e);
+                None
+            }
+        };
+        if let Some(data) = data {
+            println!("File");
+            println!("  Size:       {:>20} B", data.len());
+            println!("  Size:       {:>20} KB", data.len() / 1024);
+            os_specific::set_dbx(&data);
         }
     } else if args.test {
         println!("Self-Test");

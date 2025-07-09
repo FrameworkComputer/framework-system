@@ -254,6 +254,10 @@ struct ClapCli {
     #[arg(long)]
     s0ix_counter: bool,
 
+    /// Set UEFI variable (name, file path)
+    #[arg(long)]
+    set_uefi_var: Option<std::path::PathBuf>,
+
     /// Hash a file of arbitrary data
     #[arg(long)]
     hash: Option<std::path::PathBuf>,
@@ -528,6 +532,7 @@ pub fn parse(args: &[String]) -> Cli {
         ec_hib_delay: args.ec_hib_delay,
         uptimeinfo: args.uptimeinfo,
         s0ix_counter: args.s0ix_counter,
+        set_uefi_var: args.set_uefi_var,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         pd_addrs,
