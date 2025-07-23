@@ -980,7 +980,16 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             Some(PlatformFamily::Framework12) => ec.print_fw12_inputdeck_status(),
             Some(PlatformFamily::Framework13) => ec.print_fw13_inputdeck_status(),
             Some(PlatformFamily::Framework16) => ec.print_fw16_inputdeck_status(),
-            _ => Ok(()),
+            // If we don't know which platform it is, we can use some heuristics
+            _ => {
+                // Only Framework 16 has this GPIO
+                if ec.get_gpio("sleep_l").is_ok() {
+                    ec.print_fw16_inputdeck_status()
+                } else {
+                    println!("  Unable to tell");
+                    Ok(())
+                }
+            }
         };
         print_err(res);
     } else if let Some(mode) = &args.inputdeck_mode {
