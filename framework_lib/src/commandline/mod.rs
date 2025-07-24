@@ -49,6 +49,7 @@ use crate::ec_binary;
 use crate::esrt;
 #[cfg(feature = "rusb")]
 use crate::inputmodule::check_inputmodule_version;
+use crate::os_specific;
 use crate::power;
 use crate::smbios;
 use crate::smbios::ConfigDigit0;
@@ -461,6 +462,8 @@ fn print_stylus_battery_level() {
 }
 
 fn print_versions(ec: &CrosEc) {
+    println!("Tool Version:     {}", built_info::PKG_VERSION);
+    println!("OS Version:       {}", os_specific::get_os_version());
     println!("Mainboard Hardware");
     if let Some(ver) = smbios::get_product_name() {
         println!("  Type:           {}", ver);
