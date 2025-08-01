@@ -1,6 +1,6 @@
 pub const FRAMEWORK_VID: u16 = 0x32AC;
 pub const LEDMATRIX_PID: u16 = 0x0020;
-pub const FRAMEWORK16_INPUTMODULE_PIDS: [u16; 6] = [
+pub const FRAMEWORK16_INPUTMODULE_PIDS: [u16; 7] = [
     0x0012, // Keyboard White Backlight ANSI
     0x0013, // Keyboard RGB Backlight Numpad
     0x0014, // Keyboard White Backlight Numpad
