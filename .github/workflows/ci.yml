@@ -62,8 +62,17 @@ jobs:
     - name: Upload Linux App
       uses: actions/upload-artifact@v4
       with:
-        name: framework_tool
+        name: framework_tool_debug
         path: target/debug/framework_tool
+
+    - name: Build Linux tool (Release)
+      run: cargo build -p framework_tool --release
+
+    - name: Upload Linux App
+      uses: actions/upload-artifact@v4
+      with:
+        name: framework_tool
+        path: target/release/framework_tool
 
   build-uefi:
     name: Build UEFI
