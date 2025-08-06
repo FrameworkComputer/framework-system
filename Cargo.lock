@@ -427,7 +427,8 @@ dependencies = [
  "num-derive",
  "num-traits",
  "plain",
- "redox_hwio",
+ "redox_hwio 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "redox_hwio 0.1.6 (git+https://github.com/FrameworkComputer/rust-hwio?branch=freebsd)",
  "regex",
  "rusb",
  "sha2",
@@ -1052,6 +1053,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 dependencies = [
  "getrandom",
+]
+
+[[package]]
+name = "redox_hwio"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8eb516ad341a84372b5b15a5a35cf136ba901a639c8536f521b108253d7fce74"
+dependencies = [
+ "lazy_static",
 ]
 
 [[package]]

@@ -4,8 +4,10 @@ use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::convert::TryInto;
-#[cfg(not(windows))]
+#[cfg(all(not(windows), not(target_os = "freebsd")))]
 use hwio::{Io, Pio};
+#[cfg(target_os = "freebsd")]
+use hwio_freebsd::{Io, Pio};
 #[cfg(target_os = "linux")]
 use libc::ioperm;
 use log::Level;
