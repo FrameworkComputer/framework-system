@@ -38,6 +38,7 @@ pub mod commandline;
 pub mod csme;
 pub mod ec_binary;
 pub mod esrt;
+pub mod guid;
 mod os_specific;
 pub mod power;
 pub mod smbios;

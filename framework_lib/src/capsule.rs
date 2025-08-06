@@ -10,8 +10,8 @@
 
 use std::prelude::v1::*;
 
+use crate::guid::CGuid;
 use core::prelude::rust_2021::derive;
-use guid_create::Guid;
 #[cfg(not(feature = "uefi"))]
 use std::fs::File;
 #[cfg(not(feature = "uefi"))]
@@ -21,7 +21,7 @@ use std::io::prelude::*;
 #[repr(C)]
 pub struct EfiCapsuleHeader {
     /// A GUID that defines the contents of a capsule.
-    pub capsule_guid: Guid,
+    pub capsule_guid: CGuid,
 
     /// The size of the capsule header. This may be larger than the size of
     /// the EFI_CAPSULE_HEADER since CapsuleGuid may imply
@@ -205,14 +205,14 @@ mod tests {
         let data = fs::read(capsule_path).unwrap();
         let cap = parse_capsule_header(&data).unwrap();
         let expected_header = EfiCapsuleHeader {
-            capsule_guid: Guid::from(esrt::WINUX_GUID),
+            capsule_guid: CGuid::from(esrt::WINUX_GUID),
             header_size: 28,
             flags: 65536,
             capsule_image_size: 676898,
         };
         assert_eq!(cap, expected_header);
 
-        assert_eq!(cap.capsule_guid, Guid::from(esrt::WINUX_GUID));
+        assert_eq!(cap.capsule_guid, CGuid::from(esrt::WINUX_GUID));
         let ux_header = parse_ux_header(&data);
         assert_eq!(
             ux_header,
