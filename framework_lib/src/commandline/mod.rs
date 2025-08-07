@@ -3,11 +3,15 @@
 //! Can be easily re-used from any OS or UEFI shell.
 //! We have implemented both in the `framework_tool` and `framework_uefi` crates.
 
+use crate::guid::CGuid;
 use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
-use guid_create::{Guid, GUID};
+#[cfg(not(feature = "uefi"))]
+use guid_create::GUID;
+#[cfg(feature = "uefi")]
+use guid_create_no_std::GUID;
 use log::Level;
 use num_traits::FromPrimitive;
 
@@ -65,6 +69,9 @@ use crate::util::{self, Config, Platform, PlatformFamily};
 use hidapi::HidApi;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 //use smbioslib::*;
+#[cfg(feature = "uefi")]
+use smbios_lib_no_std::{DefinedStruct, SMBiosInformation};
+#[cfg(not(feature = "uefi"))]
 use smbioslib::{DefinedStruct, SMBiosInformation};
 
 use crate::chromium_ec::{CrosEc, CrosEcDriverType, HardwareDeviceType};
@@ -1270,7 +1277,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("  Size:       {:>20} B", data.len());
             println!("  Size:       {:>20} KB", data.len() / 1024);
             if let Some(header) = analyze_capsule(&data) {
-                if header.capsule_guid == Guid::from(esrt::WINUX_GUID) {
+                if header.capsule_guid == CGuid::from(esrt::WINUX_GUID) {
                     let ux_header = capsule::parse_ux_header(&data);
                     if let Some(dump_path) = &args.dump {
                         // TODO: Better error handling, rather than just panicking
