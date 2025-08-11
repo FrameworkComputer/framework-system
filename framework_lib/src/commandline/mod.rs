@@ -1683,7 +1683,6 @@ fn analyze_ccgx_pd_fw(data: &[u8]) {
 
         println!("FW 2");
         ccgx::binary::print_fw(&versions.main_fw);
-        return;
     } else if let Some(versions) = ccgx::binary::read_versions(data, Ccg6) {
         println!("Detected CCG6 firmware");
         println!("FW 1 (Backup)");
@@ -1691,7 +1690,6 @@ fn analyze_ccgx_pd_fw(data: &[u8]) {
 
         println!("FW 2 (Main)");
         ccgx::binary::print_fw(&versions.main_fw);
-        return;
     } else {
         println!("Failed to read PD versions")
     }
