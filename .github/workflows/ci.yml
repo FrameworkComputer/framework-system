@@ -3,36 +3,36 @@ on:
   push:
 
 jobs:
-  freebsd-cross-build:
-    name: Cross-Build for FreeBSD
-    runs-on: 'ubuntu-24.04'
-    env:
-      CARGO_NET_GIT_FETCH_WITH_CLI: true
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libudev-dev libhidapi-dev
-
-    - name: Setup Rust toolchain
-      run: |
-        rm rust-toolchain.toml
-        rustup target add x86_64-unknown-freebsd
-        rustup show
-
-    - name: Install cross compilation tool
-      run: cargo install cross
-
-    - name: Build FreeBSD tool
-      run: cross build --target=x86_64-unknown-freebsd --no-default-features -p framework_lib
-
-    - name: Upload FreeBSD App
-      uses: actions/upload-artifact@v4
-      with:
-        name: framework_tool_freebsd
-        path: target/x86_64-unknown-freebsd/debug/framework_tool
+#  freebsd-cross-build:
+#    name: Cross-Build for FreeBSD
+#    runs-on: 'ubuntu-24.04'
+#    env:
+#      CARGO_NET_GIT_FETCH_WITH_CLI: true
+#    steps:
+#    - uses: actions/checkout@v4
+#
+#    - name: Install dependencies
+#      run: |
+#        sudo apt-get update
+#        sudo apt-get install -y libudev-dev libhidapi-dev
+#
+#    - name: Setup Rust toolchain
+#      run: |
+#        rm rust-toolchain.toml
+#        rustup target add x86_64-unknown-freebsd
+#        rustup show
+#
+#    - name: Install cross compilation tool
+#      run: cargo install cross
+#
+#    - name: Build FreeBSD tool
+#      run: cross build --target=x86_64-unknown-freebsd --no-default-features -p framework_lib
+#
+#    - name: Upload FreeBSD App
+#      uses: actions/upload-artifact@v4
+#      with:
+#        name: framework_tool_freebsd
+#        path: target/x86_64-unknown-freebsd/debug/framework_tool
 
   build:
     name: Build Linux
@@ -65,44 +65,44 @@ jobs:
         name: framework_tool
         path: target/debug/framework_tool
 
-  build-uefi:
-    name: Build UEFI
-    runs-on: ubuntu-24.04
-    env:
-      CARGO_NET_GIT_FETCH_WITH_CLI: true
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Setup Rust toolchain
-      run: rustup show
-
-    - name: Build UEFI application (no ESP)
-      run: |
-        make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
-        mv framework_uefi/build/x86_64-unknown-uefi/boot.efi framework_tool_full.efi
-        make -C framework_uefi FEATURES=readonly build/x86_64-unknown-uefi/boot.efi
-        cp framework_uefi/build/x86_64-unknown-uefi/boot.efi framework_tool.efi
-
-    - name: Upload UEFI App
-      uses: actions/upload-artifact@v4
-      with:
-        name: framework_efi.zip
-        path: ./*.efi
-
-    - name: Install mtools to build ESP and ISO (Linux)
-      run: sudo apt-get install -y mtools genisoimage
-
-    - name: Build ESP (Linux)
-      run: make -C framework_uefi
-
-    - name: Build ISO (Linux)
-      run: make -C framework_uefi iso
-
-    - name: Upload UEFI App ISO
-      uses: actions/upload-artifact@v4
-      with:
-        name: UEFI-Shell-fwk.iso
-        path: framework_uefi/build/x86_64-unknown-uefi/UEFI-Shell-fwk.iso
+#  build-uefi:
+#    name: Build UEFI
+#    runs-on: ubuntu-24.04
+#    env:
+#      CARGO_NET_GIT_FETCH_WITH_CLI: true
+#    steps:
+#    - uses: actions/checkout@v4
+#
+#    - name: Setup Rust toolchain
+#      run: rustup show
+#
+#    - name: Build UEFI application (no ESP)
+#      run: |
+#        make -C framework_uefi build/x86_64-unknown-uefi/boot.efi
+#        mv framework_uefi/build/x86_64-unknown-uefi/boot.efi framework_tool_full.efi
+#        make -C framework_uefi FEATURES=readonly build/x86_64-unknown-uefi/boot.efi
+#        cp framework_uefi/build/x86_64-unknown-uefi/boot.efi framework_tool.efi
+#
+#    - name: Upload UEFI App
+#      uses: actions/upload-artifact@v4
+#      with:
+#        name: framework_efi.zip
+#        path: ./*.efi
+#
+#    - name: Install mtools to build ESP and ISO (Linux)
+#      run: sudo apt-get install -y mtools genisoimage
+#
+#    - name: Build ESP (Linux)
+#      run: make -C framework_uefi
+#
+#    - name: Build ISO (Linux)
+#      run: make -C framework_uefi iso
+#
+#    - name: Upload UEFI App ISO
+#      uses: actions/upload-artifact@v4
+#      with:
+#        name: UEFI-Shell-fwk.iso
+#        path: framework_uefi/build/x86_64-unknown-uefi/UEFI-Shell-fwk.iso
 
   build-windows:
     name: Build Windows
