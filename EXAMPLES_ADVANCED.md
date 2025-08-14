@@ -39,7 +39,7 @@ Left / Ports 23
 > sudo framework_tool --pd-enable 0
 ```
 
-### Check EFI Resource Table
+## Check EFI Resource Table
 
 On Framework Desktop:
 
@@ -58,6 +58,30 @@ ESRT Entry 0
   Capsule Flags:        0x0
   Last Attempt Version: 0x108 (264)
   Last Attempt Status:  Success
+```
+
+## Manually overriding tablet mode status
+
+If you have a suspicion that the embedded controller does not control tablet
+mode correctly based on Hall and G-Sensor, you can manually force a mode.
+
+This may also be useful if you want to use the touchpad and keyboard while the
+lid is folded back - for example if you're using an external display only (Cyberdeck).
+In this case you can force laptop mode.
+
+Tablet mode:
+- Sets a GPIO connected to the touchpad to disable it
+- Stops the EC from sending keypresses to the CPU
+
+```
+# Force tablet mode to disable touchpad and keyboard
+> framework_tool --tablet-mode tablet
+
+# Force laptop mode to always keep touchpad and keyboard enabled
+> framework_tool --tablet-mode laptop
+
+# Let the EC handle tablet mode automatically based on sensors
+> framework_tool --tablet-mode auto
 ```
 
 ## Flashing EC firmware
