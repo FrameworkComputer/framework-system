@@ -1,5 +1,33 @@
 # Advanced debugging
 
+## Verbosity
+
+To debug, increase the verbosity from the commandline with `-v`.
+The verbosity levels are:
+
+| Commandline | Level  |
+|-------------|--------|
+| `-q`        | No log |
+| None        | Error  |
+| `-v`        | Warn   |
+| `-vv`       | Info   |
+| `-vvv`      | Debug  |
+| `-vvvv`     | Trace  |
+
+For example it is useful to check which EC driver is used:
+
+```
+> framework_tool --kblight -vvv
+[DEBUG] Chromium EC Driver: CrosEc
+[DEBUG] send_command(command=0x22, ver=0, data_len=0)
+Keyboard backlight: 0%
+
+> framework_tool --driver portio --kblight -vvv
+[DEBUG] Chromium EC Driver: Portio
+[DEBUG] send_command(command=0x22, ver=0, data_len=0)
+Keyboard backlight: 0%
+```
+
 ## PD
 
 ### Check PD state
@@ -188,4 +216,59 @@ Capsule Header
   Capsule Size:            2232676 B
   Capsule Size:               2180 KB
   Type:   Framework Retimer23 (Right)
+```
+
+## Version Check
+
+Check if the firmware version is what you expect, returns exit code 0 on
+succcess, 1 on failure.
+
+```
+# Check which devices it's available for
+> ./framework_tool --device
+  [possible values: bios, ec, pd0, pd1, rtm01, rtm23, ac-left, ac-right]
+
+For more information try '--help'
+
+# Successful compare
+> ./framework_tool --device bios --compare-version 03.01
+Target Version "03.01"
+Comparing BIOS version "03.01"
+Compared version:   0
+> echo $?
+0
+
+# Failed compare
+> ./framework_tool --device bios --compare-version 03.00
+    Finished dev [unoptimized + debuginfo] target(s) in 0.05s
+Target Version "03.00"
+Comparing BIOS version "03.01"
+Compared version:   1
+Error: "Fail"
+
+> echo $?
+1
+```
+
+On UEFI Shell:
+
+```
+# Check if AC is attached on left side
+Shell> fs0:framework_tool.efi --device ac-left --compare-version 1
+Target Version "1"
+Comparing AcLeft "1"
+Comparison Result: 0
+# It is
+Shell> echo %lasterror%
+0x0
+
+# Check if AC is attached on right side
+Shell> fs0:framework_tool.efi --device ac-right --compare-version 1
+Target Version "1"
+Comparing AcLeft "0"
+Comparison Result: 1
+
+# It is not
+Shell> echo %lasterror%
+0x1
 ```
