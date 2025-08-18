@@ -6,6 +6,33 @@ The tool works on Linux, Windows and the UEFI shell.
 Download it from the latest [GH Actions](https://github.com/FrameworkComputer/framework-system/actions?query=branch%3Amain) run on the main branch.
 Most features are supported on every "OS". See below for details.
 
+## Installation
+
+### Linux
+
+- [NixOS](https://github.com/NixOS/nixpkgs/blob/nixos-25.05/pkgs/by-name/fr/framework-tool/package.nix)
+  - `nix-shell -p framework-tool`
+- [ArchLinux](https://archlinux.org/packages/extra/x86_64/framework-system/)
+  - `pacman -Sy framework-system`
+- [Bazzite](https://github.com/ublue-os/bazzite/pull/3026)
+- Others
+  - Build from source
+  - Or download [latest binary](https://github.com/FrameworkComputer/framework-system/releases/latest/download/framework_tool)
+- ChromeOS
+  - Build from source
+
+### Windows
+
+```
+winget install FrameworkComputer.framework_tool
+```
+
+### FreeBSD
+
+```
+sudo pkg install framework-system
+```
+
 ## Features
 
 To check which features are supported on which OS and platform,
@@ -153,6 +180,9 @@ ls -l framework_uefi/build/x86_64-unknown-uefi/boot.efi
 # NixOS
 nix-shell --run fish -p cargo systemd udev hidapi pkg-config
 direnv shell
+
+# FreeBSD
+sudo pkg install hidapi
 ```
 
 ## Install local package
@@ -225,15 +255,6 @@ Many actions require root. First build with cargo and then run the binary with s
 ```sh
 cargo build && sudo ./target/debug/framework_tool
 ```
-
-###### Running on Windows
-
-On newly released systems since 2025 the Framework driver installer includes the EC driver.
-This includes Framework 12, Framework 13 AMD Ryzen AI 300, Framework Desktop.
-
-Previous platforms will be enabled next.
-
-Installing: `winget install FrameworkComputer.framework_tool`
 
 ##### Running on ChromeOS
 
@@ -328,16 +349,4 @@ Keyboard backlight: 0%
 [DEBUG] Chromium EC Driver: Portio
 [DEBUG] send_command(command=0x22, ver=0, data_len=0)
 Keyboard backlight: 0%
-```
-
-## FreeBSD
-
-```
-sudo pkg install hidapi
-
-# Build the library and tool
-cargo build
-
-# Running the tool
-cargo run
 ```
