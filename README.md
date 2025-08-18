@@ -61,7 +61,7 @@ On UEFI and FreeBSD raw port I/O is used - on Linux this can also be used as a f
 | Intel Core 12th Gen | Yes      | [6.13](https://github.com/torvalds/linux/commit/dcd59d0d7d51b2a4b768fc132b0d74a97dfd6d6a) | Not yet    |
 | Intel Core 13th Gen | Yes      | [6.13](https://github.com/torvalds/linux/commit/dcd59d0d7d51b2a4b768fc132b0d74a97dfd6d6a) | Not yet    |
 | AMD Ryzen 7040      | Yes      | [6.10](https://github.com/torvalds/linux/commit/c8f460d991df93d87de01a96b783cad5a2da9616) | BIOS 3.16+ |
-| Intel Core Ultra 1S | Yes      | [6.12](https://github.com/torvalds/linux/commit/62be134abf4250474a7a694837064bc783d2b291) | Soon       |
+| Intel Core Ultra S1 | Yes      | [6.12](https://github.com/torvalds/linux/commit/62be134abf4250474a7a694837064bc783d2b291) | BIOS 3.06+ |
 | AMD Ryzen AI 300    | Yes      | [6.12](https://github.com/torvalds/linux/commit/62be134abf4250474a7a694837064bc783d2b291) | Yes        |
 | Framework 16        |          |       |         |
 | AMD Ryzen 7040      | Yes      | [6.10](https://github.com/torvalds/linux/commit/c8f460d991df93d87de01a96b783cad5a2da9616) | BIOS 3.06+ |
