@@ -137,17 +137,31 @@ All of these need EC communication support in order to work.
 - [x] Using [Framework EC Windows driver](https://github.com/FrameworkComputer/crosecbus) based on [coolstar's](https://github.com/coolstar/crosecbus)
 - [x] Using [DHowett's Windows CrosEC driver](https://github.com/DHowett/FrameworkWindowsUtils)
 
-## Prerequisites
-
-Only [Rustup](https://rustup.rs/) is needed. Based on `rust-toolchain.toml` it
-will install the right toolchain and version for this project.
-
 ## Building
+
+### Dependencies
+
+[Rustup](https://rustup.rs/) is convenient for setting up the right Rust version.
+Based on `rust-toolchain.toml` it will install the right toolchain and version for this project.
 
 MSRV (Minimum Supported Rust Version):
 
 - 1.74 for Linux/Windows
 - 1.74 for UEFI
+
+System dependencies
+
+```
+# NixOS
+nix-shell --run fish -p cargo systemd udev hidapi pkg-config
+direnv shell
+
+# Fedora
+sudo dnf install systemd-devel hidapi-devel
+
+# FreeBSD
+sudo pkg install hidapi
+```
 
 ```sh
 # Running linter
@@ -175,17 +189,6 @@ make -C framework_uefi
 ls -l framework_uefi/build/x86_64-unknown-uefi/boot.efi
 ```
 
-### Dependencies
-
-```
-# NixOS
-nix-shell --run fish -p cargo systemd udev hidapi pkg-config
-direnv shell
-
-# FreeBSD
-sudo pkg install hidapi
-```
-
 ## Install local package
 
 ```
@@ -196,75 +199,10 @@ sudo pkg install hidapi
 
 ## Running
 
-Run without any arguments to see the help:
-
-```
-> cargo run
-Swiss army knife for Framework laptops
-
-Usage: framework_tool [OPTIONS]
-
-Options:
-  -v, --verbose...                  More output per occurrence
-  -q, --quiet...                    Less output per occurrence
-      --versions                    List current firmware versions version
-      --esrt                        Display the UEFI ESRT table
-      --power                       Show current power status (battery and AC)
-      --pdports                     Show information about USB-C PD ports
-      --info                        Show info from SMBIOS (Only on UEFI)
-      --pd-info                     Show details about the PD controllers
-      --dp-hdmi-info                Show details about connected DP or HDMI Expansion Cards
-      --dp-hdmi-update <UPDATE_BIN> Update the DisplayPort or HDMI Expansion Card
-      --audio-card-info             Show details about connected Audio Expansion Cards (Needs root privileges)
-      --privacy                     Show privacy switch statuses (camera and microphone)
-      --pd-bin <PD_BIN>             Parse versions from PD firmware binary file
-      --ec-bin <EC_BIN>             Parse versions from EC firmware binary file
-      --capsule <CAPSULE>           Parse UEFI Capsule information from binary file
-      --dump <DUMP>                 Dump extracted UX capsule bitmap image to a file
-      --h2o-capsule <H2O_CAPSULE>   Parse UEFI Capsule information from binary file
-      --intrusion                   Show status of intrusion switch
-      --inputdeck                   Show status of the input deck
-      --input-deck-mode <INPUT_DECK_MODE>
-          Set input deck power mode [possible values: auto, off, on] (Framework 16 only) [possible values: auto, off, on]
-      --expansion-bay               Show status of the expansion bay (Framework 16 only)
-      --charge-limit [<CHARGE_LIMIT>]
-          Get or set max charge limit
-      --get-gpio [<GET_GPIO>]
-          Get GPIO value by name or all, if no name provided
-      --fp-led-level [<FP_LED_LEVEL>]
-          Get or set fingerprint LED brightness level [possible values: high, medium, low, ultra-low, auto]
-      --fp-brightness [<FP_BRIGHTNESS>]
-          Get or set fingerprint LED brightness percentage
-      --kblight [<KBLIGHT>]         Set keyboard backlight percentage or get, if no value provided
-      --tablet-mode <TABLET_MODE>   Set tablet mode override [possible values: auto, tablet, laptop]
-      --touchscreen-enable <TOUCHSCREEN_ENABLE>
-          Enable/disable touchscreen [possible values: true, false]
-      --console <CONSOLE>           Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
-      --reboot-ec <REBOOT_EC>       Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
-      --hash <HASH>                 Hash a file of arbitrary data
-      --driver <DRIVER>             Select which driver is used. By default portio is used [possible values: portio, cros-ec, windows]
-      --pd-addrs <PD_ADDRS> <PD_ADDRS>
-          Specify I2C addresses of the PD chips (Advanced)
-      --pd-ports <PD_PORTS> <PD_PORTS>
-          Specify I2C ports of the PD chips (Advanced)
-  -t, --test                        Run self-test to check if interaction with EC is possible
-  -h, --help                        Print help information
-```
+Run without any arguments to see the help.
 
 Many actions require root. First build with cargo and then run the binary with sudo:
 
 ```sh
 cargo build && sudo ./target/debug/framework_tool
 ```
-
-##### Running on ChromeOS
-
-The application can run on ChromeOS but most commands rely on custom host
-commands that we built into the EC firmware of non-Chromebook Framework laptops.
-In theory you could add those patches to the Chromebook platform, build your
-own EC firmware and flash it.
-
-## Tests
-
-- [x] Basic unit tests
-- [x] Test parsing real binaries
