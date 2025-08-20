@@ -60,6 +60,8 @@ use crate::touchpad::print_touchpad_fw_ver;
 use crate::touchscreen;
 #[cfg(feature = "uefi")]
 use crate::uefi::enable_page_break;
+#[cfg(feature = "rusb")]
+use crate::usbhub::check_usbhub_version;
 use crate::util::{self, Config, Platform, PlatformFamily};
 #[cfg(feature = "hidapi")]
 use hidapi::HidApi;
@@ -704,6 +706,9 @@ fn print_versions(ec: &CrosEc) {
     }
     #[cfg(feature = "rusb")]
     let _ignore_err = check_camera_version();
+
+    #[cfg(feature = "rusb")]
+    let _ignore_err = check_usbhub_version();
 
     #[cfg(feature = "rusb")]
     let _ignore_err = check_inputmodule_version();

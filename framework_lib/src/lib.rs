@@ -25,6 +25,8 @@ pub mod touchpad;
 pub mod touchscreen;
 #[cfg(all(feature = "hidapi", windows))]
 pub mod touchscreen_win;
+#[cfg(feature = "rusb")]
+pub mod usbhub;
 
 #[cfg(feature = "uefi")]
 #[macro_use]
