@@ -34,7 +34,7 @@ spin = { version = "0.9.8" }
 no-std-compat = { version = "0.4.1", features = [ "alloc" ] }
 hidapi = { version = "2.6.3", features = [ "windows-native" ], optional = true }
 rusb = { version = "0.9.4", optional = true }
-guid-create = { git = "https://github.com/FrameworkComputer/guid-create", branch = "no-rand", default-features = false }
+guid-create = { git = "https://github.com/kurtlawrence/guid-create", default-features = false }
 
 [target.'cfg(target_os = "uefi")'.dependencies]
 uefi = { version = "0.20", features = ["alloc"] }

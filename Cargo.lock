@@ -584,7 +584,7 @@ dependencies = [
 [[package]]
 name = "guid-create"
 version = "0.4.1"
-source = "git+https://github.com/FrameworkComputer/guid-create?branch=no-rand#84c3ad2e8b64a12beebb460804a65da55434cfd9"
+source = "git+https://github.com/kurtlawrence/guid-create#14b53de6d816b9892b8590bbad0f3ba1e282aff3"
 dependencies = [
  "winapi",
 ]

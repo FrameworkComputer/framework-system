@@ -7,7 +7,7 @@ use alloc::format;
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
-use guid_create::{Guid, GUID};
+use guid_create::{CGuid, GUID};
 use log::Level;
 use num_traits::FromPrimitive;
 
@@ -1275,7 +1275,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("  Size:       {:>20} B", data.len());
             println!("  Size:       {:>20} KB", data.len() / 1024);
             if let Some(header) = analyze_capsule(&data) {
-                if header.capsule_guid == Guid::from(esrt::WINUX_GUID) {
+                if header.capsule_guid == CGuid::from(esrt::WINUX_GUID) {
                     let ux_header = capsule::parse_ux_header(&data);
                     if let Some(dump_path) = &args.dump {
                         // TODO: Better error handling, rather than just panicking
