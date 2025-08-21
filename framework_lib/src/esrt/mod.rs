@@ -15,7 +15,7 @@ use log::{debug, error, info, trace};
 use std::prelude::v1::*;
 
 use core::prelude::v1::derive;
-use guid_create::{Guid, GUID};
+use guid_create::{CGuid, GUID};
 
 #[cfg(target_os = "linux")]
 use std::fs;
@@ -193,7 +193,7 @@ pub enum FrameworkGuidKind {
     Unknown,
 }
 
-pub fn match_guid_kind(guid: &Guid) -> FrameworkGuidKind {
+pub fn match_guid_kind(guid: &CGuid) -> FrameworkGuidKind {
     match GUID::from(*guid) {
         TGL_BIOS_GUID => FrameworkGuidKind::TglBios,
         ADL_BIOS_GUID => FrameworkGuidKind::AdlBios,
@@ -292,7 +292,7 @@ impl UpdateStatus {
 // TODO: Decode into proper Rust types
 #[derive(Clone)]
 pub struct EsrtResourceEntry {
-    pub fw_class: Guid,
+    pub fw_class: CGuid,
     pub fw_type: u32, // ResourceType
     pub fw_version: u32,
     pub lowest_supported_fw_version: u32,
@@ -364,7 +364,7 @@ fn esrt_from_sysfs(dir: &Path) -> io::Result<Esrt> {
                 let last_attempt_version = fs::read_to_string(path.join("last_attempt_version"))?;
                 let last_attempt_status = fs::read_to_string(path.join("last_attempt_status"))?;
                 let esrt = EsrtResourceEntry {
-                    fw_class: Guid::from(
+                    fw_class: CGuid::from(
                         GUID::parse(fw_class.trim()).expect("Kernel provided wrong value"),
                     ),
                     fw_type: fw_type
@@ -436,7 +436,7 @@ pub fn get_esrt() -> Option<Esrt> {
                 let ver_str = caps.get(2).unwrap().as_str().to_string();
 
                 let guid = GUID::parse(guid_str.trim()).expect("Kernel provided wrong value");
-                let guid_kind = match_guid_kind(&Guid::from(guid));
+                let guid_kind = match_guid_kind(&CGuid::from(guid));
                 let ver = u32::from_str_radix(&ver_str, 16).unwrap();
                 debug!("ESRT Entry {}", i);
                 debug!("  Name:    {:?}", guid_kind);
@@ -456,7 +456,7 @@ pub fn get_esrt() -> Option<Esrt> {
                 // TODO: The missing fields are present in Device Manager
                 // So there must be a way to get at them
                 let esrt = EsrtResourceEntry {
-                    fw_class: Guid::from(guid),
+                    fw_class: CGuid::from(guid),
                     fw_type,
                     fw_version: ver,
                     // TODO: Not exposed by windows
@@ -543,7 +543,7 @@ pub fn get_esrt() -> Option<Esrt> {
     for table in config_tables {
         // TODO: Why aren't they the same type?
         //debug!("Table: {:?}", table);
-        let table_guid: Guid = unsafe { std::mem::transmute(table.guid) };
+        let table_guid: CGuid = unsafe { std::mem::transmute(table.guid) };
         let table_guid = GUID::from(table_guid);
         match table_guid {
             SYSTEM_RESOURCE_TABLE_GUID => unsafe {
