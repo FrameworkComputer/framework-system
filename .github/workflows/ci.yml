@@ -74,6 +74,9 @@ jobs:
         name: framework_tool
         path: target/release/framework_tool
 
+    - name: Make sure nothing changed (e.g. Cargo.lock)
+      run: git diff --exit-code
+
   build-uefi:
     name: Build UEFI
     runs-on: ubuntu-24.04
