@@ -290,7 +290,7 @@ pub fn flash_firmware(fw_binary: &[u8]) {
     let versions = if let Some(versions) = ccgx::binary::read_versions(fw_binary, SiliconId::Ccg3) {
         versions
     } else {
-        println!("Incompatible firmware. Need CCG3 firmware.");
+        eprintln!("Incompatible firmware. Need CCG3 firmware.");
         return;
     };
 
@@ -302,7 +302,7 @@ pub fn flash_firmware(fw_binary: &[u8]) {
     } else if util::find_sequence(fw_binary, dp_string).is_some() {
         [DP_CARD_PID]
     } else {
-        println!("Incompatible firmware. Need DP/HDMI Expansion Card Firmware.");
+        eprintln!("Incompatible firmware. Need DP/HDMI Expansion Card Firmware.");
         return;
     };
 
@@ -319,7 +319,7 @@ pub fn flash_firmware(fw_binary: &[u8]) {
     let mut api = HidApi::new().unwrap();
     let devices = find_devices(&api, &filter_devs, None);
     if devices.is_empty() {
-        println!("No compatible Expansion Card connected");
+        eprintln!("No compatible Expansion Card connected");
         return;
     };
     for dev_info in devices {

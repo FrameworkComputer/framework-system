@@ -302,7 +302,7 @@ fn parse_metadata_cyacd2(buffer: &[u8]) -> Option<(u32, u32)> {
         if metadata.metadata_version == 1 {
             Some((metadata.fw_start, metadata.fw_size))
         } else {
-            println!("Unknown CCG8 metadata version");
+            eprintln!("Unknown CCG8 metadata version");
             None
         }
     } else {

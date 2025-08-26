@@ -311,14 +311,14 @@ fn print_single_pd_details(pd: &PdController) {
     if let Ok(si) = pd.get_silicon_id() {
         println!("  Silicon ID:     0x{:X}", si);
     } else {
-        println!("  Failed to read Silicon ID/Family");
+        eprintln!("  Failed to read Silicon ID/Family");
         return;
     }
     if let Ok((mode, frs)) = pd.get_device_info() {
         println!("  Mode:           {:?}", mode);
         println!("  Flash Row Size: {} B", frs);
     } else {
-        println!("  Failed to device info");
+        eprintln!("  Failed to device info");
     }
     if let Ok(port_mask) = pd.get_port_status() {
         let ports = match port_mask {
@@ -336,7 +336,7 @@ fn print_single_pd_details(pd: &PdController) {
 
 fn print_pd_details(ec: &CrosEc) {
     if !is_framework() {
-        println!("Only supported on Framework systems");
+        eprintln!("Only supported on Framework systems");
         return;
     }
     let pd_01 = PdController::new(PdPort::Right01, ec.clone());
@@ -430,7 +430,7 @@ fn flash_dp_hdmi_card(pd_bin_path: &str) {
         Ok(data) => Some(data),
         // TODO: Perhaps a more user-friendly error
         Err(e) => {
-            println!("Error {:?}", e);
+            eprintln!("Error {:?}", e);
             None
         }
     };
@@ -728,7 +728,7 @@ fn print_esrt() {
     if let Some(esrt) = esrt::get_esrt() {
         esrt::print_esrt(&esrt);
     } else {
-        println!("Could not find and parse ESRT table.");
+        eprintln!("Could not find and parse ESRT table.");
     }
 }
 
@@ -741,7 +741,7 @@ fn flash_ec(ec: &CrosEc, ec_bin_path: &str, flash_type: EcFlashType, dry_run: bo
             Ok(data) => Some(data),
             // TODO: Perhaps a more user-friendly error
             Err(e) => {
-                println!("Error {:?}", e);
+                eprintln!("Error {:?}", e);
                 None
             }
         }
@@ -752,7 +752,7 @@ fn flash_ec(ec: &CrosEc, ec_bin_path: &str, flash_type: EcFlashType, dry_run: bo
         println!("  Size:       {:>20} B", data.len());
         println!("  Size:       {:>20} KB", data.len() / 1024);
         if let Err(err) = ec.reflash(&data, flash_type, dry_run) {
-            println!("Error: {:?}", err);
+            eprintln!("Error: {:?}", err);
         } else {
             println!("Success!");
         }
@@ -771,7 +771,7 @@ fn dump_ec_flash(ec: &CrosEc, dump_path: &str) {
     {
         let ret = crate::uefi::fs::shell_write_file(dump_path, &flash_bin);
         if ret.is_err() {
-            println!("Failed to dump EC FW image.");
+            eprintln!("Failed to dump EC FW image.");
         }
     }
 }
@@ -788,7 +788,7 @@ fn dump_dgpu_eeprom(ec: &CrosEc, dump_path: &str) {
     {
         let ret = crate::uefi::fs::shell_write_file(dump_path, &flash_bin);
         if ret.is_err() {
-            println!("Failed to dump EC FW image.");
+            eprintln!("Failed to dump EC FW image.");
         }
     }
     println!("Wrote {} bytes to {}", flash_bin.len(), dump_path);
@@ -936,7 +936,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         if let Some(driver) = CrosEc::with(driver) {
             driver
         } else {
-            println!("Selected driver {:?} not available.", driver);
+            eprintln!("Selected driver {:?} not available.", driver);
             return 1;
         }
     } else {
@@ -1062,7 +1062,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_err(ec.remap_key(row, col, scanset));
     } else if !args.rgbkbd.is_empty() {
         if args.rgbkbd.len() < 2 {
-            println!(
+            eprintln!(
                 "Must provide at least 2 arguments. Provided only: {}",
                 args.rgbkbd.len()
             );
@@ -1102,30 +1102,30 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             }
             ConsoleArg::Recent => match ec.console_read_one() {
                 Ok(output) => println!("{}", output),
-                Err(err) => println!("Failed to read console: {:?}", err),
+                Err(err) => eprintln!("Failed to read console: {:?}", err),
             },
         }
     } else if let Some(reboot_arg) = &args.reboot_ec {
         match reboot_arg {
             RebootEcArg::Reboot => match ec.reboot_ec(RebootEcCmd::ColdReboot) {
                 Ok(_) => {}
-                Err(err) => println!("Failed: {:?}", err),
+                Err(err) => eprintln!("Failed: {:?}", err),
             },
             RebootEcArg::JumpRo => match ec.jump_ro() {
                 Ok(_) => {}
-                Err(err) => println!("Failed: {:?}", err),
+                Err(err) => eprintln!("Failed: {:?}", err),
             },
             RebootEcArg::JumpRw => match ec.jump_rw() {
                 Ok(_) => {}
-                Err(err) => println!("Failed: {:?}", err),
+                Err(err) => eprintln!("Failed: {:?}", err),
             },
             RebootEcArg::CancelJump => match ec.cancel_jump() {
                 Ok(_) => {}
-                Err(err) => println!("Failed: {:?}", err),
+                Err(err) => eprintln!("Failed: {:?}", err),
             },
             RebootEcArg::DisableJump => match ec.disable_jump() {
                 Ok(_) => {}
-                Err(err) => println!("Failed: {:?}", err),
+                Err(err) => eprintln!("Failed: {:?}", err),
             },
         }
     } else if let Some(delay) = &args.ec_hib_delay {
@@ -1137,7 +1137,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         println!("Self-Test");
         let result = selftest(&ec);
         if result.is_none() {
-            println!("FAILED!!");
+            eprintln!("FAILED!!");
             return 1;
         }
     } else if args.power {
@@ -1227,7 +1227,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             Ok(data) => Some(data),
             // TODO: Perhaps a more user-friendly error
             Err(e) => {
-                println!("Error {:?}", e);
+                eprintln!("Error {:?}", e);
                 None
             }
         };
@@ -1246,7 +1246,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             Ok(data) => Some(data),
             // TODO: Perhaps a more user-friendly error
             Err(e) => {
-                println!("Error {:?}", e);
+                eprintln!("Error {:?}", e);
                 None
             }
         };
@@ -1265,7 +1265,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             Ok(data) => Some(data),
             // TODO: Perhaps a more user-friendly error
             Err(e) => {
-                println!("Error {:?}", e);
+                eprintln!("Error {:?}", e);
                 None
             }
         };
@@ -1283,7 +1283,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                     }
                 }
             } else {
-                println!("Capsule is invalid.");
+                eprintln!("Capsule is invalid.");
             }
         }
     } else if let Some(capsule_path) = &args.h2o_capsule {
@@ -1294,7 +1294,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             Ok(data) => Some(data),
             // TODO: Perhaps a more user-friendly error
             Err(e) => {
-                println!("Error {:?}", e);
+                eprintln!("Error {:?}", e);
                 None
             }
         };
@@ -1347,7 +1347,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             Ok(data) => Some(data),
             // TODO: Perhaps a more user-friendly error
             Err(e) => {
-                println!("Error {:?}", e);
+                eprintln!("Error {:?}", e);
                 None
             }
         };
@@ -1362,7 +1362,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         match res {
             Ok(1) => println!("GPU Descriptor successfully written"),
             Ok(x) => println!("GPU Descriptor write failed with status code:  {}", x),
-            Err(err) => println!("GPU Descriptor write failed with error:  {:?}", err),
+            Err(err) => eprintln!("GPU Descriptor write failed with error:  {:?}", err),
         }
     } else if let Some(gpu_descriptor_file) = &args.flash_gpu_descriptor_file {
         if matches!(
@@ -1376,7 +1376,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 Ok(data) => Some(data),
                 // TODO: Perhaps a more user-friendly error
                 Err(e) => {
-                    println!("Error {:?}", e);
+                    eprintln!("Error {:?}", e);
                     None
                 }
             };
@@ -1387,11 +1387,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 let res = ec.set_gpu_descriptor(&data, args.dry_run);
                 match res {
                     Ok(()) => println!("GPU Descriptor successfully written"),
-                    Err(err) => println!("GPU Descriptor write failed with error:  {:?}", err),
+                    Err(err) => eprintln!("GPU Descriptor write failed with error:  {:?}", err),
                 }
             }
         } else {
-            println!("Unsupported on this platform");
+            eprintln!("Unsupported on this platform");
         }
     } else if let Some(dump_path) = &args.dump_gpu_descriptor_file {
         println!("Dumping to {}", dump_path);
@@ -1512,7 +1512,7 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     if let Some(mem) = ec.dump_mem_region() {
         util::print_multiline_buffer(&mem, 0);
     } else {
-        println!("    Failed to read EC memory region");
+        eprintln!("    Failed to read EC memory region");
         return None;
     }
 
@@ -1537,7 +1537,7 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     println!("  Getting AC info from EC");
     // All our laptops have at least 4 PD ports so far
     if power::get_pd_info(ec, 4).iter().any(|x| x.is_err()) {
-        println!("    Failed to get PD Info from EC");
+        eprintln!("    Failed to get PD Info from EC");
         return None;
     }
 
@@ -1546,7 +1546,7 @@ fn selftest(ec: &CrosEc) -> Option<()> {
         // TGL does not have this command, so we have to ignore it
         if err != EcError::Response(EcResponseStatus::InvalidCommand) {
             println!();
-            println!("Err: {:?}", err);
+            eprintln!("Err: {:?}", err);
         } else {
             println!(" - Skipped");
         }
@@ -1696,7 +1696,7 @@ fn analyze_ccgx_pd_fw(data: &[u8]) {
         println!("FW 2 (Main)");
         ccgx::binary::print_fw(&versions.main_fw);
     } else {
-        println!("Failed to read PD versions")
+        eprintln!("Failed to read PD versions")
     }
 }
 
@@ -1705,13 +1705,13 @@ pub fn analyze_ec_fw(data: &[u8]) {
     if let Some(ver) = ec_binary::read_ec_version(data, true) {
         ec_binary::print_ec_version(&ver, true);
     } else {
-        println!("Failed to read EC version")
+        eprintln!("Failed to read EC version")
     }
     // Readwrite firmware
     if let Some(ver) = ec_binary::read_ec_version(data, false) {
         ec_binary::print_ec_version(&ver, false);
     } else {
-        println!("Failed to read EC version")
+        eprintln!("Failed to read EC version")
     }
 }
 

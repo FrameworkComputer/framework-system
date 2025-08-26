@@ -55,9 +55,9 @@ fn init() -> bool {
                 | Some(platform @ Platform::IntelGen13)
                 | Some(platform @ Platform::Framework13Amd7080)
                 | Some(platform @ Platform::Framework16Amd7080) => {
-                    println!("The windows driver is not enabled on {:?}.", platform);
-                    println!("Please stay tuned for future BIOS and driver updates.");
-                    println!();
+                    eprintln!("The windows driver is not enabled on {:?}.", platform);
+                    eprintln!("Please stay tuned for future BIOS and driver updates.");
+                    eprintln!();
                 }
                 _ => (),
             }

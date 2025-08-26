@@ -21,7 +21,7 @@ pub fn shell_read_file(path: &str) -> Option<Vec<u8>> {
     let shell = if let Some(shell) = find_shell_handle() {
         shell
     } else {
-        println!("Failed to open Shell Protocol");
+        eprintln!("Failed to open Shell Protocol");
         return None;
     };
 
@@ -34,14 +34,14 @@ pub fn shell_read_file(path: &str) -> Option<Vec<u8>> {
     let handle = if let Ok(handle) = handle {
         handle
     } else {
-        println!("Failed to open file: {:?}", handle);
+        eprintln!("Failed to open file: {:?}", handle);
         return None;
     };
 
     let handle = if let Some(handle) = handle {
         handle
     } else {
-        println!("Failed to open file: {:?}", handle);
+        eprintln!("Failed to open file: {:?}", handle);
         return None;
     };
     let file_handle = handle;
@@ -63,7 +63,7 @@ pub fn shell_write_file(path: &str, data: &[u8]) -> Result {
     let shell = if let Some(shell) = find_shell_handle() {
         shell
     } else {
-        println!("Failed to open Shell Protocol");
+        eprintln!("Failed to open Shell Protocol");
         return Status::LOAD_ERROR.into();
     };
 
@@ -76,13 +76,13 @@ pub fn shell_write_file(path: &str, data: &[u8]) -> Result {
     let handle = if let Ok(handle) = handle {
         handle
     } else {
-        println!("Failed to open file: {:?}", handle);
+        eprintln!("Failed to open file: {:?}", handle);
         return Status::LOAD_ERROR.into();
     };
     let handle = if let Some(handle) = handle {
         handle
     } else {
-        println!("Failed to open file: {:?}", handle);
+        eprintln!("Failed to open file: {:?}", handle);
         return Status::LOAD_ERROR.into();
     };
     let file_handle = handle;
@@ -90,7 +90,7 @@ pub fn shell_write_file(path: &str, data: &[u8]) -> Result {
     //// TODO: Free file_info buffer
     //let file_info = (shell.0.GetFileInfo)(file_handle);
     //if file_info.is_null() {
-    //    println!("Failed to get file info");
+    //    eprintln!("Failed to get file info");
     //    return ret;
     //}
 
@@ -104,7 +104,7 @@ pub fn shell_write_file(path: &str, data: &[u8]) -> Result {
     ////    file_info.Size = 0;
     ////    let ret = (shell.0.SetFileInfo)(file_handle, file_info);
     ////    if ret.0 != 0 {
-    ////        println!("Failed to set file info");
+    ////        eprintln!("Failed to set file info");
     ////        return ret;
     ////    }
     ////}
@@ -112,11 +112,11 @@ pub fn shell_write_file(path: &str, data: &[u8]) -> Result {
     //let mut buffer_size = data.len() as usize;
     //let ret = (shell.0.WriteFile)(file_handle, &mut buffer_size, data.as_ptr());
     //if ret.0 != 0 {
-    //    println!("Failed to write file");
+    //    eprintln!("Failed to write file");
     //    return ret;
     //}
     //if buffer_size != data.len() {
-    //    println!(
+    //    eprintln!(
     //        "Failed to write whole buffer. Instead of {} wrote {} bytes.",
     //        data.len(),
     //        buffer_size
