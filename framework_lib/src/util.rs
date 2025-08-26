@@ -33,6 +33,8 @@ pub enum Platform {
     Framework13AmdAi300,
     /// Framework 16 - AMD Ryzen 7080 Series
     Framework16Amd7080,
+    /// Framework 16 - AMD Ryzen AI 300 Series
+    Framework16AmdAi300,
     /// Framework Desktop - AMD Ryzen AI Max 300
     FrameworkDesktopAmdAiMax300,
     /// Generic Framework device
@@ -66,6 +68,7 @@ impl Platform {
             Platform::Framework13Amd7080
             | Platform::Framework13AmdAi300
             | Platform::Framework16Amd7080
+            | Platform::Framework16AmdAi300
             | Platform::FrameworkDesktopAmdAiMax300 => Some(CpuVendor::Amd),
             Platform::GenericFramework(..) => None,
             Platform::UnknownSystem => None,
@@ -81,6 +84,7 @@ impl Platform {
             | Platform::Framework13Amd7080
             | Platform::Framework13AmdAi300 => Some(PlatformFamily::Framework13),
             Platform::Framework16Amd7080 => Some(PlatformFamily::Framework16),
+            Platform::Framework16AmdAi300 => Some(PlatformFamily::Framework16),
             Platform::FrameworkDesktopAmdAiMax300 => Some(PlatformFamily::FrameworkDesktop),
             Platform::GenericFramework(..) => None,
             Platform::UnknownSystem => None,

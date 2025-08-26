@@ -65,16 +65,18 @@ impl PdPort {
             (
                 Platform::Framework13Amd7080
                 | Platform::Framework13AmdAi300
-                | Platform::Framework16Amd7080,
+                | Platform::Framework16Amd7080
+                | Platform::Framework16AmdAi300,
                 PdPort::Right01,
             ) => 0x42,
             (
                 Platform::Framework13Amd7080
                 | Platform::Framework13AmdAi300
-                | Platform::Framework16Amd7080,
+                | Platform::Framework16Amd7080
+                | Platform::Framework16AmdAi300,
                 PdPort::Left23,
             ) => 0x40,
-            (Platform::Framework16Amd7080, PdPort::Back) => 0x42,
+            (Platform::Framework16Amd7080 | Platform::Framework16AmdAi300, PdPort::Back) => 0x42,
             (Platform::FrameworkDesktopAmdAiMax300, PdPort::Back) => 0x08,
             (Platform::FrameworkDesktopAmdAiMax300, _) => unsupported?,
             // Framework Intel Platforms (CCG5 and CCG6)
@@ -120,6 +122,7 @@ impl PdPort {
             (
                 Platform::Framework13Amd7080
                 | Platform::Framework16Amd7080
+                | Platform::Framework16AmdAi300
                 | Platform::IntelCoreUltra1
                 | Platform::Framework13AmdAi300
                 | Platform::Framework12IntelGen13,
@@ -128,12 +131,13 @@ impl PdPort {
             (
                 Platform::Framework13Amd7080
                 | Platform::Framework16Amd7080
+                | Platform::Framework16AmdAi300
                 | Platform::IntelCoreUltra1
                 | Platform::Framework13AmdAi300
                 | Platform::Framework12IntelGen13,
                 PdPort::Left23,
             ) => 2,
-            (Platform::Framework16Amd7080, PdPort::Back) => 5,
+            (Platform::Framework16Amd7080 | Platform::Framework16AmdAi300, PdPort::Back) => 5,
             (Platform::FrameworkDesktopAmdAiMax300, PdPort::Back) => 1,
             (Platform::FrameworkDesktopAmdAiMax300, _) => unsupported?,
             (Platform::UnknownSystem, _) => {
