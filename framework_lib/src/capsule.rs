@@ -185,7 +185,7 @@ pub fn dump_winux_image(data: &[u8], header: &DisplayCapsule, filename: &str) {
     {
         let ret = crate::uefi::fs::shell_write_file(filename, image);
         if let Err(err) = ret {
-            println!("Failed to dump winux image: {:?}", err);
+            eprintln!("Failed to dump winux image: {:?}", err);
         }
     }
 }

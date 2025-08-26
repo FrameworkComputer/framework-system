@@ -206,11 +206,11 @@ pub fn get_smbios() -> Option<SMBiosData> {
     match smbioslib::table_load_from_device() {
         Ok(data) => Some(data),
         Err(ref e) if e.kind() == ErrorKind::PermissionDenied => {
-            println!("Must be root to get SMBIOS data.");
+            eprintln!("Must be root to get SMBIOS data.");
             None
         }
         Err(err) => {
-            println!("Failed to get SMBIOS: {:?}", err);
+            eprintln!("Failed to get SMBIOS: {:?}", err);
             None
         }
     }
@@ -225,7 +225,7 @@ pub fn get_product_name() -> Option<String> {
 
     let smbios = get_smbios();
     if smbios.is_none() {
-        println!("Failed to find SMBIOS");
+        eprintln!("Failed to find SMBIOS");
         return None;
     }
     let mut smbios = smbios.into_iter().flatten();
@@ -317,7 +317,7 @@ pub fn get_platform() -> Option<Platform> {
     if let Some(platform) = platform {
         Config::set(platform);
     } else {
-        println!("Failed to find PlatformFamily");
+        eprintln!("Failed to find PlatformFamily");
     }
 
     assert!(cached_platform.is_none());

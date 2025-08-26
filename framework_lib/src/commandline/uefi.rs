@@ -143,7 +143,7 @@ pub fn parse(args: &[String]) -> Cli {
                 if let (Ok(fan_idx), Ok(duty)) = (fan_idx, duty) {
                     Some((Some(fan_idx), duty))
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid values for --fansetduty: '{} {}'. Must be u32 integers.",
                         args[i + 1],
                         args[i + 2]
@@ -154,14 +154,14 @@ pub fn parse(args: &[String]) -> Cli {
                 if let Ok(duty) = args[i + 1].parse::<u32>() {
                     Some((None, duty))
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid values for --fansetduty: '{}'. Must be 0-100.",
                         args[i + 1],
                     );
                     None
                 }
             } else {
-                println!("--fansetduty requires one or two. [fan id] [duty] or [duty]");
+                eprintln!("--fansetduty requires one or two. [fan id] [duty] or [duty]");
                 None
             };
             found_an_option = true;
@@ -172,7 +172,7 @@ pub fn parse(args: &[String]) -> Cli {
                 if let (Ok(fan_idx), Ok(rpm)) = (fan_idx, rpm) {
                     Some((Some(fan_idx), rpm))
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid values for --fansetrpm: '{} {}'. Must be u32 integers.",
                         args[i + 1],
                         args[i + 2]
@@ -183,14 +183,14 @@ pub fn parse(args: &[String]) -> Cli {
                 if let Ok(rpm) = args[i + 1].parse::<u32>() {
                     Some((None, rpm))
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid values for --fansetrpm: '{}'. Must be an integer.",
                         args[i + 1],
                     );
                     None
                 }
             } else {
-                println!("--fansetrpm requires one or two. [fan id] [rpm] or [rpm]");
+                eprintln!("--fansetrpm requires one or two. [fan id] [rpm] or [rpm]");
                 None
             };
             found_an_option = true;
@@ -222,11 +222,11 @@ pub fn parse(args: &[String]) -> Cli {
                 } else if inputdeck_mode == "on" {
                     Some(InputDeckModeArg::On)
                 } else {
-                    println!("Invalid value for --inputdeck-mode: {}", inputdeck_mode);
+                    eprintln!("Invalid value for --inputdeck-mode: {}", inputdeck_mode);
                     None
                 }
             } else {
-                println!(
+                eprintln!(
                     "Need to provide a value for --inputdeck-mode. Either `auto`, `off`, or `on`"
                 );
                 None
@@ -240,7 +240,7 @@ pub fn parse(args: &[String]) -> Cli {
                 if let Ok(percent) = args[i + 1].parse::<u8>() {
                     Some(Some(percent))
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid value for --charge-limit: '{}'. Must be integer < 100.",
                         args[i + 1]
                     );
@@ -257,7 +257,7 @@ pub fn parse(args: &[String]) -> Cli {
                 if let (Ok(limit), Ok(soc)) = (limit, soc) {
                     Some((limit, Some(soc)))
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid values for --charge-current-limit: '{} {}'. Must be u32 integers.",
                         args[i + 1],
                         args[i + 2]
@@ -268,14 +268,14 @@ pub fn parse(args: &[String]) -> Cli {
                 if let Ok(limit) = args[i + 1].parse::<u32>() {
                     Some((limit, None))
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid values for --charge-current-limit: '{}'. Must be an integer.",
                         args[i + 1],
                     );
                     None
                 }
             } else {
-                println!("--charge-current-limit requires one or two. [limit] [soc] or [limit]");
+                eprintln!("--charge-current-limit requires one or two. [limit] [soc] or [limit]");
                 None
             };
             found_an_option = true;
@@ -286,7 +286,7 @@ pub fn parse(args: &[String]) -> Cli {
                 if let (Ok(limit), Ok(soc)) = (limit, soc) {
                     Some((limit, Some(soc)))
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid values for --charge-rate-limit: '{} {}'. Must be u32 integers.",
                         args[i + 1],
                         args[i + 2]
@@ -297,14 +297,14 @@ pub fn parse(args: &[String]) -> Cli {
                 if let Ok(limit) = args[i + 1].parse::<f32>() {
                     Some((limit, None))
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid values for --charge-rate-limit: '{}'. Must be an integer.",
                         args[i + 1],
                     );
                     None
                 }
             } else {
-                println!("--charge-rate-limit requires one or two. [limit] [soc] or [limit]");
+                eprintln!("--charge-rate-limit requires one or two. [limit] [soc] or [limit]");
                 None
             };
             found_an_option = true;
@@ -320,7 +320,7 @@ pub fn parse(args: &[String]) -> Cli {
                 if let Ok(percent) = args[i + 1].parse::<u8>() {
                     Some(Some(percent))
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid value for --kblight: '{}'. Must be integer < 100.",
                         args[i + 1]
                     );
@@ -339,7 +339,7 @@ pub fn parse(args: &[String]) -> Cli {
                 }
                 colors
             } else {
-                println!("--rgbkbd requires at least 2 arguments, the start key and an RGB value");
+                eprintln!("--rgbkbd requires at least 2 arguments, the start key and an RGB value");
                 vec![]
             }
         } else if arg == "--ps2-enable" {
@@ -350,7 +350,7 @@ pub fn parse(args: &[String]) -> Cli {
                 } else if enable_arg == "false" {
                     Some(false)
                 } else {
-                    println!(
+                    eprintln!(
                         "Need to provide a value for --ps2-enable: '{}'. {}",
                         args[i + 1],
                         "Must be `true` or `false`",
@@ -358,7 +358,7 @@ pub fn parse(args: &[String]) -> Cli {
                     None
                 }
             } else {
-                println!("Need to provide a value for --tablet-mode. One of: `auto`, `tablet` or `laptop`");
+                eprintln!("Need to provide a value for --tablet-mode. One of: `auto`, `tablet` or `laptop`");
                 None
             };
             found_an_option = true;
@@ -372,7 +372,7 @@ pub fn parse(args: &[String]) -> Cli {
                 } else if tablet_mode_arg == "laptop" {
                     Some(TabletModeArg::Laptop)
                 } else {
-                    println!(
+                    eprintln!(
                         "Need to provide a value for --tablet-mode: '{}'. {}",
                         args[i + 1],
                         "Must be one of: `auto`, `tablet` or `laptop`",
@@ -380,7 +380,7 @@ pub fn parse(args: &[String]) -> Cli {
                     None
                 }
             } else {
-                println!("Need to provide a value for --tablet-mode. One of: `auto`, `tablet` or `laptop`");
+                eprintln!("Need to provide a value for --tablet-mode. One of: `auto`, `tablet` or `laptop`");
                 None
             };
             found_an_option = true;
@@ -398,7 +398,7 @@ pub fn parse(args: &[String]) -> Cli {
                 } else if fp_led_level_arg == "auto" {
                     Some(Some(FpBrightnessArg::Auto))
                 } else {
-                    println!("Invalid value for --fp-led-level: {}", fp_led_level_arg);
+                    eprintln!("Invalid value for --fp-led-level: {}", fp_led_level_arg);
                     None
                 }
             } else {
@@ -409,7 +409,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.fp_brightness = if args.len() > i + 1 {
                 if let Ok(fp_brightness_arg) = args[i + 1].parse::<u8>() {
                     if fp_brightness_arg == 0 || fp_brightness_arg > 100 {
-                        println!(
+                        eprintln!(
                             "Invalid value for --fp-brightness: {}. Must be in the range of 1-100",
                             fp_brightness_arg
                         );
@@ -418,7 +418,7 @@ pub fn parse(args: &[String]) -> Cli {
                         Some(Some(fp_brightness_arg))
                     }
                 } else {
-                    println!("Invalid value for --fp-brightness. Must be in the range of 1-100");
+                    eprintln!("Invalid value for --fp-brightness. Must be in the range of 1-100");
                     None
                 }
             } else {
@@ -433,11 +433,11 @@ pub fn parse(args: &[String]) -> Cli {
                 } else if console_arg == "follow" {
                     Some(ConsoleArg::Follow)
                 } else {
-                    println!("Invalid value for --console: {}", console_arg);
+                    eprintln!("Invalid value for --console: {}", console_arg);
                     None
                 }
             } else {
-                println!("Need to provide a value for --console. Either `follow` or `recent`");
+                eprintln!("Need to provide a value for --console. Either `follow` or `recent`");
                 None
             };
             found_an_option = true;
@@ -455,11 +455,11 @@ pub fn parse(args: &[String]) -> Cli {
                 } else if reboot_ec_arg == "disable-jump" {
                     Some(RebootEcArg::DisableJump)
                 } else {
-                    println!("Invalid value for --reboot-ec: {}", reboot_ec_arg);
+                    eprintln!("Invalid value for --reboot-ec: {}", reboot_ec_arg);
                     None
                 }
             } else {
-                println!("Need to provide a value for --reboot-ec. Either `reboot`, `jump-ro`, `jump-rw`, `cancel-jump` or `disable-jump`");
+                eprintln!("Need to provide a value for --reboot-ec. Either `reboot`, `jump-ro`, `jump-rw`, `cancel-jump` or `disable-jump`");
                 None
             };
             found_an_option = true;
@@ -467,13 +467,13 @@ pub fn parse(args: &[String]) -> Cli {
             cli.ec_hib_delay = if args.len() > i + 1 {
                 if let Ok(delay) = args[i + 1].parse::<u32>() {
                     if delay == 0 {
-                        println!("Invalid value for --ec-hib-delay: {}. Must be >0", delay);
+                        eprintln!("Invalid value for --ec-hib-delay: {}. Must be >0", delay);
                         None
                     } else {
                         Some(Some(delay))
                     }
                 } else {
-                    println!("Invalid value for --fp-brightness. Must be amount in seconds >0");
+                    eprintln!("Invalid value for --fp-brightness. Must be amount in seconds >0");
                     None
                 }
             } else {
@@ -500,14 +500,14 @@ pub fn parse(args: &[String]) -> Cli {
                 if let Ok(pd) = args[i + 1].parse::<u8>() {
                     Some(pd)
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid value for --pd-reset: '{}'. Must be 0 or 1.",
                         args[i + 1],
                     );
                     None
                 }
             } else {
-                println!("--pd-reset requires specifying the PD controller");
+                eprintln!("--pd-reset requires specifying the PD controller");
                 None
             };
             found_an_option = true;
@@ -516,14 +516,14 @@ pub fn parse(args: &[String]) -> Cli {
                 if let Ok(pd) = args[i + 1].parse::<u8>() {
                     Some(pd)
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid value for --pd-disable: '{}'. Must be 0 or 1.",
                         args[i + 1],
                     );
                     None
                 }
             } else {
-                println!("--pd-disable requires specifying the PD controller");
+                eprintln!("--pd-disable requires specifying the PD controller");
                 None
             };
             found_an_option = true;
@@ -532,14 +532,14 @@ pub fn parse(args: &[String]) -> Cli {
                 if let Ok(pd) = args[i + 1].parse::<u8>() {
                     Some(pd)
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid value for --pd-enable: '{}'. Must be 0 or 1.",
                         args[i + 1],
                     );
                     None
                 }
             } else {
-                println!("--pd-enable requires specifying the PD controller");
+                eprintln!("--pd-enable requires specifying the PD controller");
                 None
             };
             found_an_option = true;
@@ -550,7 +550,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.pd_bin = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
-                println!("--pd-bin requires extra argument to denote input file");
+                eprintln!("--pd-bin requires extra argument to denote input file");
                 None
             };
             found_an_option = true;
@@ -558,7 +558,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.ec_bin = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
-                println!("--ec-bin requires extra argument to denote input file");
+                eprintln!("--ec-bin requires extra argument to denote input file");
                 None
             };
             found_an_option = true;
@@ -566,7 +566,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.capsule = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
-                println!("--capsule requires extra argument to denote input file");
+                eprintln!("--capsule requires extra argument to denote input file");
                 None
             };
             found_an_option = true;
@@ -574,7 +574,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.dump = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
-                println!("--dump requires extra argument to denote output file");
+                eprintln!("--dump requires extra argument to denote output file");
                 None
             };
             found_an_option = true;
@@ -582,7 +582,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.h2o_capsule = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
-                println!("--h2o-capsule requires extra argument to denote input file");
+                eprintln!("--h2o-capsule requires extra argument to denote input file");
                 None
             };
             found_an_option = true;
@@ -590,7 +590,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.dump_ec_flash = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
-                println!("--dump-ec-flash requires extra argument to denote output file");
+                eprintln!("--dump-ec-flash requires extra argument to denote output file");
                 None
             };
             found_an_option = true;
@@ -598,7 +598,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.flash_ec = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
-                println!("--flash-ec requires extra argument to denote input file");
+                eprintln!("--flash-ec requires extra argument to denote input file");
                 None
             };
             found_an_option = true;
@@ -606,7 +606,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.flash_ro_ec = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
-                println!("--flash-ro-ec requires extra argument to denote input file");
+                eprintln!("--flash-ro-ec requires extra argument to denote input file");
                 None
             };
             found_an_option = true;
@@ -614,7 +614,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.flash_rw_ec = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
-                println!("--flash-rw-ec requires extra argument to denote input file");
+                eprintln!("--flash-rw-ec requires extra argument to denote input file");
                 None
             };
             found_an_option = true;
@@ -622,7 +622,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.hash = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
-                println!("--hash requires extra argument to denote input file");
+                eprintln!("--hash requires extra argument to denote input file");
                 None
             };
             found_an_option = true;
@@ -634,7 +634,7 @@ pub fn parse(args: &[String]) -> Cli {
                 if left.is_ok() && right.is_ok() && back.is_ok() {
                     Some((left.unwrap(), right.unwrap(), back.unwrap()))
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid values for --pd-addrs: '{} {} {}'. Must be u16 integers.",
                         args[i + 1],
                         args[i + 2],
@@ -643,7 +643,7 @@ pub fn parse(args: &[String]) -> Cli {
                     None
                 }
             } else {
-                println!("--pd-addrs requires three arguments, one for each address");
+                eprintln!("--pd-addrs requires three arguments, one for each address");
                 None
             };
             found_an_option = true;
@@ -655,7 +655,7 @@ pub fn parse(args: &[String]) -> Cli {
                 if left.is_ok() && right.is_ok() && back.is_ok() {
                     Some((left.unwrap(), right.unwrap(), back.unwrap()))
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid values for --pd-ports: '{} {} {}'. Must be u16 integers.",
                         args[i + 1],
                         args[i + 2],
@@ -664,7 +664,7 @@ pub fn parse(args: &[String]) -> Cli {
                     None
                 }
             } else {
-                println!("--pd-ports requires two arguments, one for each port");
+                eprintln!("--pd-ports requires two arguments, one for each port");
                 None
             };
             found_an_option = true;
@@ -674,7 +674,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.compare_version = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
-                println!("--compare-version requires extra argument to denote version");
+                eprintln!("--compare-version requires extra argument to denote version");
                 None
             };
             found_an_option = true;
@@ -698,11 +698,11 @@ pub fn parse(args: &[String]) -> Cli {
                 } else if console_arg == "ac-right" {
                     Some(HardwareDeviceType::AcRight)
                 } else {
-                    println!("Invalid value for --device: {}", console_arg);
+                    eprintln!("Invalid value for --device: {}", console_arg);
                     None
                 }
             } else {
-                println!("Need to provide a value for --console. Possible values: bios, ec, pd0, pd1, rtm01, rtm23, ac-left, ac-right");
+                eprintln!("Need to provide a value for --console. Possible values: bios, ec, pd0, pd1, rtm01, rtm23, ac-left, ac-right");
                 None
             };
         } else if arg == "--flash-gpu-descriptor" {
@@ -726,7 +726,7 @@ pub fn parse(args: &[String]) -> Cli {
                 } else if magic.to_uppercase() == "SSD" {
                     Some((SetGpuSerialMagic::WriteSSDConfig as u8, sn))
                 } else {
-                    println!(
+                    eprintln!(
                         "Invalid values for --flash_gpu_descriptor: '{} {}'. Must be u8, 18 character string.",
                         args[i + 1],
                         args[i + 2]
@@ -734,7 +734,7 @@ pub fn parse(args: &[String]) -> Cli {
                     None
                 }
             } else {
-                println!("Need to provide a value for --flash_gpu_descriptor. TYPE_MAGIC SERIAL");
+                eprintln!("Need to provide a value for --flash_gpu_descriptor. TYPE_MAGIC SERIAL");
                 None
             };
             found_an_option = true;
@@ -742,7 +742,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.flash_gpu_descriptor_file = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
-                println!("Need to provide a value for --flash_gpu_descriptor_file. PATH");
+                eprintln!("Need to provide a value for --flash_gpu_descriptor_file. PATH");
                 None
             };
             found_an_option = true;
@@ -750,7 +750,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.dump_gpu_descriptor_file = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
             } else {
-                println!("Need to provide a value for --dump_gpu_descriptor_file. PATH");
+                eprintln!("Need to provide a value for --dump_gpu_descriptor_file. PATH");
                 None
             };
             found_an_option = true;
@@ -760,7 +760,7 @@ pub fn parse(args: &[String]) -> Cli {
     let custom_platform = cli.pd_addrs.is_some() && cli.pd_ports.is_some();
     let no_customization = cli.pd_addrs.is_none() && cli.pd_ports.is_none();
     if !(custom_platform || no_customization) {
-        println!("To customize the platform you need to provide all of --pd-addrs, and --pd-ports");
+        eprintln!("To customize the platform you need to provide all of --pd-addrs, and --pd-ports");
     }
 
     if args.len() == 1 && cli.paginate {
@@ -769,7 +769,7 @@ pub fn parse(args: &[String]) -> Cli {
     }
 
     if !found_an_option {
-        println!(
+        eprintln!(
             "Failed to parse any commandline options. Commandline was: {:?}",
             args
         );
