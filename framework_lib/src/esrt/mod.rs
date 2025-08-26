@@ -119,6 +119,12 @@ pub const FL16_BIOS_GUID: GUID = GUID::build_from_components(
     0x5d64,
     &[0x8e, 0x18, 0x65, 0x8d, 0x20, 0x5a, 0xcf, 0x34],
 );
+pub const AMD16_AI300_BIOS_GUID: GUID = GUID::build_from_components(
+    0x820436ee,
+    0x8208,
+    0x463b,
+    &[0x92, 0xb8, 0x82, 0x77, 0xd6, 0x38, 0x4d, 0x93],
+);
 pub const AMD13_RYZEN7040_BIOS_GUID: GUID = GUID::build_from_components(
     0xb5f7dcc1,
     0x568c,
@@ -186,6 +192,7 @@ pub enum FrameworkGuidKind {
     RplUCsme,
     MtlCsme,
     Fl16Bios,
+    Amd16Ai300Bios,
     Amd13Ryzen7040Bios,
     Amd13Ai300Bios,
     DesktopAmdAi300Bios,
@@ -201,6 +208,7 @@ pub fn match_guid_kind(guid: &CGuid) -> FrameworkGuidKind {
         MTL_BIOS_GUID => FrameworkGuidKind::MtlBios,
         FW12_RPL_BIOS_GUID => FrameworkGuidKind::Fw12RplBios,
         FL16_BIOS_GUID => FrameworkGuidKind::Fl16Bios,
+        AMD16_AI300_BIOS_GUID => FrameworkGuidKind::Amd16Ai300Bios,
         AMD13_RYZEN7040_BIOS_GUID => FrameworkGuidKind::Amd13Ryzen7040Bios,
         AMD13_AI300_BIOS_GUID => FrameworkGuidKind::Amd13Ai300Bios,
         DESKTOP_AMD_AI300_BIOS_GUID => FrameworkGuidKind::DesktopAmdAi300Bios,
