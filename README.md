@@ -65,6 +65,7 @@ On UEFI and FreeBSD raw port I/O is used - on Linux this can also be used as a f
 | AMD Ryzen AI 300    | Yes      | [6.12](https://github.com/torvalds/linux/commit/62be134abf4250474a7a694837064bc783d2b291) | Yes        |
 | Framework 16        |          |       |         |
 | AMD Ryzen 7040      | Yes      | [6.10](https://github.com/torvalds/linux/commit/c8f460d991df93d87de01a96b783cad5a2da9616) | BIOS 3.06+ |
+| AMD Ryzen AI 300    | Yes      | [6.10](https://github.com/torvalds/linux/commit/c8f460d991df93d87de01a96b783cad5a2da9616) | Yes        |
 | Framework Desktop   |          |       |         |
 | AMD Ryzen AI Max    | Yes      | [6.15](https://github.com/torvalds/linux/commit/d83c45aeec9b223fe6db4175e9d1c4f5699cc37a) | Yes        |
 
@@ -129,6 +130,7 @@ All of these need EC communication support in order to work.
 - [x] Framework Laptop 13 (AMD Ryzen 7080)
 - [x] Framework Laptop 13 (AMD Ryzen AI 300)
 - [x] Framework Laptop 16 (AMD Ryzen 7080)
+- [x] Framework Laptop 16 (AMD Ryzen AI 300)
 - [x] Framework Desktop (AMD Ryzen AI Max 300)
 - [x] Port I/O communication on Linux
 - [x] Port I/O communication in UEFI

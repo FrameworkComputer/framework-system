@@ -14,7 +14,6 @@ use crate::chromium_ec::command::EcRequestRaw;
 use crate::chromium_ec::commands::*;
 use crate::chromium_ec::*;
 use crate::smbios;
-use crate::smbios::get_platform;
 use crate::util::{Platform, PlatformFamily};
 
 /// Maximum length of strings in memmap
@@ -358,6 +357,7 @@ pub fn print_thermal(ec: &CrosEc) {
     let fans = ec.read_memory(EC_MEMMAP_FAN, 0x08).unwrap();
 
     let platform = smbios::get_platform();
+    let family = smbios::get_family();
     let remaining_sensors = match platform {
         Some(Platform::IntelGen11) | Some(Platform::IntelGen12) | Some(Platform::IntelGen13) => {
             println!("  F75303_Local: {:>4}", TempSensor::from(temps[0]));
@@ -396,13 +396,14 @@ pub fn print_thermal(ec: &CrosEc) {
         Some(
             Platform::Framework13Amd7080
             | Platform::Framework13AmdAi300
-            | Platform::Framework16Amd7080,
+            | Platform::Framework16Amd7080
+            | Platform::Framework16AmdAi300,
         ) => {
             println!("  F75303_Local: {:>4}", TempSensor::from(temps[0]));
             println!("  F75303_CPU:   {:>4}", TempSensor::from(temps[1]));
             println!("  F75303_DDR:   {:>4}", TempSensor::from(temps[2]));
             println!("  APU:          {:>4}", TempSensor::from(temps[3]));
-            if matches!(platform, Some(Platform::Framework16Amd7080)) {
+            if family == Some(PlatformFamily::Framework16) {
                 println!("  dGPU VR:      {:>4}", TempSensor::from(temps[4]));
                 println!("  dGPU VRAM:    {:>4}", TempSensor::from(temps[5]));
                 println!("  dGPU AMB:     {:>4}", TempSensor::from(temps[6]));
@@ -721,7 +722,7 @@ pub fn get_pd_info(ec: &CrosEc, ports: u8) -> Vec<EcResult<UsbPdPowerInfo>> {
 }
 
 pub fn get_and_print_pd_info(ec: &CrosEc) {
-    let fl16 = Some(crate::util::Platform::Framework16Amd7080) == get_platform();
+    let fl16 = Some(PlatformFamily::Framework16) == smbios::get_family();
     let ports = 4; // All our platforms have 4 PD ports so far
     let infos = get_pd_info(ec, ports);
     for (port, info) in infos.iter().enumerate().take(ports.into()) {
