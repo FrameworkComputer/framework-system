@@ -6,7 +6,7 @@ pub const FRAMEWORK16_INPUTMODULE_PIDS: [u16; 7] = [
     0x0014, // Keyboard White Backlight Numpad
     0x0018, // Keyboard White Backlight ISO
     0x0019, // Keyboard White Backlight JIS
-    0x0030,
+    0x0030, // Keyboard White Backlight ANSI Copilot
     LEDMATRIX_PID,
 ];
 
