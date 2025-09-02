@@ -109,7 +109,7 @@ On UEFI and FreeBSD raw port I/O is used - on Linux this can also be used as a f
 All of these need EC communication support in order to work.
 
 - [x] Get information about battery/AC (`--power`)
-- [x] Get information about USB-C PD ports (`--pdorts`)
+- [x] Get information about USB-C PD ports (`--pdports`)
 - [x] Get information about CCGX PD Controllers (`--pd-info`)
 - [x] Show status of intrusion switches (`--intrusion`)
 - [x] Show status of privacy switches (`--privacy`)
