@@ -25,7 +25,7 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
 ### Windows
 
 ```
-winget install FrameworkComputer.framework_tool
+winget install framework_tool
 ```
 
 ### FreeBSD
