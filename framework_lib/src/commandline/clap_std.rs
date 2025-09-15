@@ -202,7 +202,7 @@ struct ClapCli {
     /// <key> <RGB> [<RGB> ...]
     /// Example: 0 0xFF000 0x00FF00 0x0000FF
     #[clap(num_args = 2..)]
-    #[arg(long, value_parser=maybe_hex::<u64>)]
+    #[arg(long, value_parser=maybe_hex::<u64>, value_names(["START", "HEXCOLOR"]))]
     rgbkbd: Vec<u64>,
 
     /// Control PS2 touchpad emulation (DEBUG COMMAND, if touchpad not working, reboot system)
