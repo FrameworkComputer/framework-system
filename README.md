@@ -14,7 +14,7 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
 - [NixOS](https://github.com/NixOS/nixpkgs/blob/nixos-25.05/pkgs/by-name/fr/framework-tool/package.nix)
   - `nix-shell -p framework-tool`
 - [ArchLinux](https://archlinux.org/packages/extra/x86_64/framework-system/)
-  - `pacman -Sy framework-system`
+  - `pacman -S framework-system`
 - [Bazzite](https://github.com/ublue-os/bazzite/pull/3026)
 - Others
   - Build from source
