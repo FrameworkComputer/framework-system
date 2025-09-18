@@ -1426,6 +1426,7 @@ pub enum GpuVendor {
     GpuAmdR23M = 0x02,
     SsdHolder = 0x03,
     PcieAccessory = 0x4,
+    NvidiaGn22 = 0x5,
 }
 
 #[repr(C, packed)]
