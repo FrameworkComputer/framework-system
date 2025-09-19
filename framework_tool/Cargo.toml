@@ -15,6 +15,7 @@ path = "src/main.rs"
 [features]
 default = [ ]
 readonly = [ "framework_lib/readonly" ]
+nvidia = [ "framework_lib/nvidia" ]
 
 [dependencies.framework_lib]
 path = "../framework_lib"
