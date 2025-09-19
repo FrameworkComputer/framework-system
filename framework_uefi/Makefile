@@ -10,6 +10,8 @@ QEMU_FLAGS=\
 	-m 1024 \
 	-net none \
 	-vga std \
+	-device qemu-xhci,id=xhci \
+	-device usb-host,vendorid=0x31e3,productid=0x1402 \
 	-bios /usr/share/OVMF/OVMF_CODE.fd
 
 .PHONY: qemu clean
