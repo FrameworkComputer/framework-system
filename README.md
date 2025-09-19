@@ -16,6 +16,9 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
 - [ArchLinux](https://archlinux.org/packages/extra/x86_64/framework-system/)
   - `pacman -S framework-system`
 - [Bazzite](https://github.com/ublue-os/bazzite/pull/3026)
+  - No need to install - included in the base image
+- [OpenSUSE](https://build.opensuse.org/package/show/openSUSE%3AFactory/framework_tool)
+  - `zypper install framework_tool`
 - Others
   - Build from source
   - Or download [latest binary](https://github.com/FrameworkComputer/framework-system/releases/latest/download/framework_tool)
