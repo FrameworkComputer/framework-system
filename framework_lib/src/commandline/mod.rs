@@ -72,7 +72,7 @@ use sha2::{Digest, Sha256, Sha384, Sha512};
 //use smbioslib::*;
 use smbioslib::{DefinedStruct, SMBiosInformation};
 
-#[cfg(any(target_os = "linux", target_os = "windows"))]
+#[cfg(feature = "nvidia")]
 use nvml_wrapper::{enum_wrappers::device::TemperatureSensor, Nvml};
 
 use crate::chromium_ec::{CrosEc, CrosEcDriverType, HardwareDeviceType};
@@ -365,8 +365,6 @@ fn print_pd_details(ec: &CrosEc) {
 
 #[cfg(feature = "hidapi")]
 const NOT_SET: &str = "NOT SET";
-
-const UNKNOWN: &str = "Unknown";
 
 #[cfg(feature = "rusb")]
 fn print_audio_card_details() {
@@ -773,11 +771,11 @@ fn print_versions(ec: &CrosEc) {
         }
     }
 
-    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    #[cfg(feature = "nvidia")]
     print_nvidia_details();
 }
 
-#[cfg(any(target_os = "linux", target_os = "windows"))]
+#[cfg(feature = "nvidia")]
 fn print_nvidia_details() {
     let nvml = match Nvml::init() {
         Ok(nvml) => nvml,
@@ -800,18 +798,18 @@ fn print_nvidia_details() {
     info!("  BRAND:          {:?}", device.brand());
     println!(
         "  Name:             {}",
-        device.name().unwrap_or(UNKNOWN.to_string())
+        device.name().unwrap_or("Unknown".to_string())
     );
     println!("  Architecture:     {:?}", device.architecture());
     println!(
         "  VBIOS Version:    {}",
-        device.vbios_version().unwrap_or(UNKNOWN.to_string())
+        device.vbios_version().unwrap_or("Unknown".to_string())
     );
     println!(
         "  INFO ROM Ver:     {}",
         device
             .info_rom_image_version()
-            .unwrap_or(UNKNOWN.to_string())
+            .unwrap_or("Unknown".to_string())
     );
     println!("  PCI Info:         {:X?}", device.pci_info());
     println!("  Performance State:{:?}", device.performance_state());
