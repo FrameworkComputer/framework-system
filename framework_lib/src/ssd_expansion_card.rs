@@ -5,3 +5,6 @@
 /// | Micron N28   | UHFM10.x         |
 /// | Micron N48   | UHFM30.x         |
 /// | Kioxia BiSC6 | UHFM90.x         |
+///
+/// On Linux: sudo smartctl -ji /dev/sda | jq -r .firmware_version
+///   Need to install smartmontools
