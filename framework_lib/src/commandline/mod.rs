@@ -50,6 +50,7 @@ use crate::esrt;
 #[cfg(feature = "rusb")]
 use crate::inputmodule::check_inputmodule_version;
 use crate::os_specific;
+use crate::parade_retimer;
 use crate::power;
 use crate::smbios;
 use crate::smbios::ConfigDigit0;
@@ -677,7 +678,7 @@ fn print_versions(ec: &CrosEc) {
         }
     }
     if has_retimer {
-        println!("Retimers");
+        println!("Intel Retimers");
         if let Some(fw_version) = left_retimer {
             println!("  Left:           0x{:X} ({})", fw_version, fw_version);
         }
@@ -686,6 +687,21 @@ fn print_versions(ec: &CrosEc) {
         }
         if left_retimer.is_none() && right_retimer.is_none() {
             // This means there's a bug, we should've found one but didn't
+            println!("  Unknown");
+        }
+    }
+    match parade_retimer::get_version(ec) {
+        // Does not exist
+        Ok(None) => {}
+        Ok(Some(ver)) => {
+            println!("Parade Retimers");
+            println!(
+                "  dGPU:           {:X}.{:X}.{:X}.{:X}",
+                ver[0], ver[1], ver[2], ver[3]
+            );
+        }
+        _err => {
+            println!("Parade Retimers");
             println!("  Unknown");
         }
     }
