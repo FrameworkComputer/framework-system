@@ -8,3 +8,7 @@
 ///
 /// On Linux: sudo smartctl -ji /dev/sda | jq -r .firmware_version
 ///   Need to install smartmontools
+/// On Windows
+///   winget
+///     winget install --id=smartmontools.smartmontools -e
+///     winget install --id=jqlang.jq  -e
