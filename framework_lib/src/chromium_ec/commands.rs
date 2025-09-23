@@ -1419,7 +1419,7 @@ pub enum GpuPcieConfig {
 }
 
 #[repr(u8)]
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, FromPrimitive, PartialEq)]
 pub enum GpuVendor {
     Initializing = 0x00,
     FanOnly = 0x01,
