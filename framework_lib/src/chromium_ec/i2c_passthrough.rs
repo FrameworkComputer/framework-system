@@ -79,7 +79,11 @@ pub fn i2c_read(
             len
         )));
     }
-    let addr_bytes = u16::to_le_bytes(addr);
+    let addr_bytes = if addr < 0xFF {
+        vec![addr as u8]
+    } else {
+        u16::to_le_bytes(addr).to_vec()
+    };
     let messages = vec![
         EcParamsI2cPassthruMsg {
             addr_and_flags: i2c_addr,
