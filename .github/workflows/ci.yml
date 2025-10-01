@@ -56,6 +56,9 @@ jobs:
     - name: Build Linux tool
       run: cargo build -p framework_tool
 
+    - name: Build Linux GUI
+      run: cargo build -p framework_gui
+
     - name: Check if Linux tool can start
       run: cargo run -- --help
 
@@ -136,6 +139,10 @@ jobs:
         cargo build -p framework_tool
         cargo build -p framework_tool --release
 
+    - name: Build Windows gui
+      run: |
+        cargo build -p framework_gui --release
+
     - name: Check if Windows tool can start
       run: cargo run -- --help --release
 
@@ -145,6 +152,13 @@ jobs:
       with:
         name: framework_tool.exe
         path: target/release/framework_tool.exe
+
+    # Upload release build so that vcruntime is statically linked
+    - name: Upload Windows GUI
+      uses: actions/upload-artifact@v4
+      with:
+        name: framework_gui.exe
+        path: target/release/framework_gui.exe
 
 
   test:
