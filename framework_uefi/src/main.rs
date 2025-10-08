@@ -11,6 +11,10 @@ extern crate alloc;
 
 use framework_lib::commandline;
 
+#[used]
+#[link_section = ".sbat"]
+pub static SBAT: [u8; 191] = *b"sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md\nframework_tool,1,Framework Computer Inc,framework_tool,0.4.5,https://github.com/FrameworkComputer/framework-system\0";
+
 #[entry]
 fn main(image_handle: Handle, mut system_table: SystemTable<Boot>) -> Status {
     uefi_services::init(&mut system_table).unwrap();
