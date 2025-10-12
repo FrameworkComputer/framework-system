@@ -731,19 +731,19 @@ pub fn get_and_print_pd_info(ec: &CrosEc) {
             port,
             match port {
                 0 => "Right Back",
-                1 => "Right Front",
+                1 =>
+                    if fl16 {
+                        "Right Middle"
+                    } else {
+                        "Right Front"
+                    },
                 2 =>
                     if fl16 {
                         "Left Middle"
                     } else {
                         "Left Front"
                     },
-                3 =>
-                    if fl16 {
-                        "Left Middle"
-                    } else {
-                        "Left Back"
-                    },
+                3 => "Left Back",
                 _ => "??",
             }
         );
