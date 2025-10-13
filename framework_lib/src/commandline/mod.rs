@@ -49,6 +49,8 @@ use crate::ec_binary;
 use crate::esrt;
 #[cfg(feature = "rusb")]
 use crate::inputmodule::check_inputmodule_version;
+#[cfg(target_os = "linux")]
+use crate::nvme;
 use crate::os_specific;
 use crate::power;
 use crate::smbios;
@@ -722,6 +724,22 @@ fn print_versions(ec: &CrosEc) {
     }
     #[cfg(feature = "hidapi")]
     print_dp_hdmi_details(false);
+
+    #[cfg(target_os = "linux")]
+    for i in 0..4 {
+        let device = format!("/dev/nvme{i}");
+        match nvme::get_nvme_firmware_version(&device) {
+            Ok(dev) => {
+                println!("NVMe Device: {}", device);
+                println!(" Model Number:     {}", dev.model_number);
+                println!(" Firmware Version: {}", dev.firmware_version);
+            }
+            Err(_e) => {
+                // TODO: Maybe print errors but ignore "Not such file or directory"
+                // eprintln!("Failed to get firmware version for {}: {}", device, e);
+            }
+        }
+    }
 }
 
 fn print_esrt() {
