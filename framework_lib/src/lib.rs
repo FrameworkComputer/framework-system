@@ -19,6 +19,8 @@ pub mod audio_card;
 pub mod camera;
 #[cfg(feature = "rusb")]
 pub mod inputmodule;
+#[cfg(target_os = "linux")]
+pub mod nvme;
 #[cfg(feature = "hidapi")]
 pub mod touchpad;
 #[cfg(feature = "hidapi")]
