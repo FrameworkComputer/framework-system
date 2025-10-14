@@ -594,7 +594,14 @@ impl CrosEc {
 
         println!("Input Deck");
         println!("  Chassis Closed:      {}", !intrusion.currently_open);
-        println!("  Audio Daughterboard: {}", is_present(audio.is_some()));
+        println!(
+            "  Audio Daughterboard: {}",
+            if let Some(audio) = audio {
+                format!("{} ({})", is_present(true), audio)
+            } else {
+                is_present(false).to_string()
+            }
+        );
         println!("  Touchpad:            {}", is_present(tp.is_some()));
 
         Ok(())
