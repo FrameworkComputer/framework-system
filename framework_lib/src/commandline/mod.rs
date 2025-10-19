@@ -70,6 +70,9 @@ use crate::util::{self, Config, Platform, PlatformFamily};
 use hidapi::HidApi;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 //use smbioslib::*;
+#[cfg(feature = "uefi")]
+use smbios_lib_no_std::{DefinedStruct, SMBiosInformation};
+#[cfg(not(feature = "uefi"))]
 use smbioslib::{DefinedStruct, SMBiosInformation};
 
 use crate::chromium_ec::{CrosEc, CrosEcDriverType, HardwareDeviceType};
