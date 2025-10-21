@@ -72,6 +72,7 @@ pub enum EcCommands {
     ChassisOpenCheck = 0x3E0F,
     /// Get information about historical chassis open/close (intrusion) information
     ChassisIntrusion = 0x3E09,
+    RetimerControl = 0x3E0A,
 
     /// Not used by this library
     AcpiNotify = 0xE10,
