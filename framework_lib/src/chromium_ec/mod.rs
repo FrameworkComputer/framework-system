@@ -547,6 +547,67 @@ impl CrosEc {
         })
     }
 
+    /// Check if the retimer is in firmware update mode
+    ///
+    /// This is normally false. Update mode is used to enable the retimer power even when no device
+    /// is attached.
+    pub fn retimer_in_fwupd_mode(&self, retimer: u8) -> EcResult<bool> {
+        let status = EcRequestRetimerControl {
+            controller: retimer,
+            mode: RetimerControlMode::CheckStatus as u8,
+        }
+        .send_command(self)?;
+
+        Ok(status.status == 0x01)
+    }
+
+    /// Enable or disable retimer update mode
+    ///
+    /// Check for success and returns Err if not successful
+    pub fn retimer_enable_fwupd(&self, retimer: u8, enable: bool) -> EcResult<()> {
+        if self.retimer_in_fwupd_mode(retimer)? == enable {
+            info!("Retimer update mode already: {:?}", enable);
+            return Ok(());
+        }
+        EcRequestRetimerControl {
+            controller: retimer,
+            mode: if enable {
+                RetimerControlMode::EntryFwUpdateMode as u8
+            } else {
+                RetimerControlMode::ExitFwUpdateMode as u8
+            },
+        }
+        .send_command(self)?;
+
+        // Wait half a second to let it enter the new mode
+        os_specific::sleep(500_000);
+
+        if self.retimer_in_fwupd_mode(retimer).unwrap() != enable {
+            error!("Failed to set retimer update mode to: {}", enable);
+            return Err(EcError::DeviceError(format!(
+                "Failed to set retimer update mode to: {}",
+                enable
+            )));
+        }
+        Ok(())
+    }
+
+    /// Enable or disable retimer Thunderbolt compliance mode (Intel only)
+    ///
+    /// Cannot check for success
+    pub fn retimer_enable_compliance(&self, retimer: u8, enable: bool) -> EcResult<()> {
+        EcRequestRetimerControl {
+            controller: retimer,
+            mode: if enable {
+                RetimerControlMode::EnableComplianceMode as u8
+            } else {
+                RetimerControlMode::DisableComplianceMode as u8
+            },
+        }
+        .send_command(self)?;
+        Ok(())
+    }
+
     pub fn get_input_deck_status(&self) -> EcResult<InputDeckStatus> {
         let status = EcRequestDeckState {
             mode: DeckStateMode::ReadOnly,

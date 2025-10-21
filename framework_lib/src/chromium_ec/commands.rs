@@ -1022,6 +1022,39 @@ impl EcRequest<EcResponseChassisIntrusionControl> for EcRequestChassisIntrusionC
     }
 }
 
+#[repr(u8)]
+pub enum RetimerControlMode {
+    /// AMD and Intel
+    EntryFwUpdateMode = 0x01,
+    /// AMD and Intel
+    ExitFwUpdateMode = 0x02,
+    /// Intel only
+    EnableComplianceMode = 0x04,
+    /// Intel only
+    DisableComplianceMode = 0x08,
+    /// Check if in FwUpdateMode
+    CheckStatus = 0x80,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestRetimerControl {
+    /// 0 (right) or 1 (left)
+    pub controller: u8,
+    /// See RetimerControlMode
+    pub mode: u8,
+}
+
+#[repr(C, packed)]
+pub struct EcResponseRetimerControlStatus {
+    pub status: u8,
+}
+
+impl EcRequest<EcResponseRetimerControlStatus> for EcRequestRetimerControl {
+    fn command_id() -> EcCommands {
+        EcCommands::RetimerControl
+    }
+}
+
 #[repr(C, packed)]
 pub struct EcRequestReadPdVersionV0 {}
 
