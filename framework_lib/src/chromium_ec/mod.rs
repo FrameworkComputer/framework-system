@@ -606,7 +606,18 @@ impl CrosEc {
             "    ADC Value (mV)     {:?}",
             self.adc_read(Framework13Adc::AudioBoardId as u8)
         );
-        println!("  Touchpad:            {}", is_present(tp.is_some()));
+        println!(
+            "  Touchpad:            {}",
+            if let Some(tp) = tp {
+                format!("{} ({})", is_present(true), tp)
+            } else {
+                is_present(false).to_string()
+            }
+        );
+        println!(
+            "    ADC Value (mV)     {:?}",
+            self.adc_read(Framework13Adc::TouchpadBoardId as u8)
+        );
 
         Ok(())
     }
