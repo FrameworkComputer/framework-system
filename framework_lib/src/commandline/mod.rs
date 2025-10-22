@@ -54,8 +54,8 @@ use crate::nvme;
 use crate::os_specific;
 use crate::parade_retimer;
 use crate::power;
+use crate::serialnum::Cfg0;
 use crate::smbios;
-use crate::smbios::ConfigDigit0;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
 #[cfg(feature = "hidapi")]
 use crate::touchpad::print_touchpad_fw_ver;
@@ -218,6 +218,7 @@ pub struct Cli {
     pub flash_gpu_descriptor: Option<(u8, String)>,
     pub flash_gpu_descriptor_file: Option<String>,
     pub dump_gpu_descriptor_file: Option<String>,
+    pub serialnums: bool,
     // UEFI only
     pub allupdate: bool,
     pub paginate: bool,
@@ -1190,6 +1191,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         power::get_and_print_pd_info(&ec);
     } else if args.info {
         smbios_info();
+    } else if args.serialnums {
+        serialnum_info();
     } else if args.pd_info {
         print_pd_details(&ec);
     } else if let Some(pd) = args.pd_reset {
@@ -1459,7 +1462,8 @@ Options:
       --fansetrpm            Set fan RPM (limited by EC fan table max RPM)
       --autofanctrl          Turn on automatic fan speed control
       --pdports              Show information about USB-C PD ports
-      --info                 Show info from SMBIOS (Only on UEFI)
+      --info                 Show info from SMBIOS
+      --serialnums           Show info about system serial numbers
       --pd-info              Show details about the PD controllers
       --privacy              Show privacy switch statuses (camera and microphone)
       --pd-bin <PD_BIN>      Parse versions from PD firmware binary file
@@ -1638,8 +1642,7 @@ fn smbios_info() {
                     // Assumes it's ASCII, which is guaranteed by SMBIOS
                     let config_digit0 = &version[0..1];
                     let config_digit0 = u8::from_str_radix(config_digit0, 16);
-                    if let Ok(version_config) =
-                        config_digit0.map(<ConfigDigit0 as FromPrimitive>::from_u8)
+                    if let Ok(version_config) = config_digit0.map(<Cfg0 as FromPrimitive>::from_u8)
                     {
                         println!("  Version:      {:?} ({})", version_config, version);
                     } else {
@@ -1677,8 +1680,7 @@ fn smbios_info() {
                     // Assumes it's ASCII, which is guaranteed by SMBIOS
                     let config_digit0 = &version[0..1];
                     let config_digit0 = u8::from_str_radix(config_digit0, 16);
-                    if let Ok(version_config) =
-                        config_digit0.map(<ConfigDigit0 as FromPrimitive>::from_u8)
+                    if let Ok(version_config) = config_digit0.map(<Cfg0 as FromPrimitive>::from_u8)
                     {
                         println!("  Version:      {:?} ({})", version_config, version);
                     } else {
@@ -1696,6 +1698,19 @@ fn smbios_info() {
                 }
             }
             _ => {}
+        }
+    }
+}
+
+fn serialnum_info() {
+    let smbios = get_smbios();
+    if smbios.is_none() {
+        error!("Failed to find SMBIOS");
+        return;
+    }
+    for undefined_struct in smbios.unwrap().iter() {
+        if let DefinedStruct::OemStrings(data) = undefined_struct.defined_struct() {
+            smbios::dump_oem_strings(data.oem_strings());
         }
     }
 }
