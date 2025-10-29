@@ -69,7 +69,7 @@ struct ClapCli {
 
     /// Turn on automatic fan speed control
     #[arg(long)]
-    autofanctrl: bool,
+    autofanctrl: Option<Option<u8>>,
 
     /// Show information about USB-C PD ports
     #[arg(long)]
