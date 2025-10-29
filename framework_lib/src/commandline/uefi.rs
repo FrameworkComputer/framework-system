@@ -39,7 +39,7 @@ pub fn parse(args: &[String]) -> Cli {
         sensors: false,
         fansetduty: None,
         fansetrpm: None,
-        autofanctrl: false,
+        autofanctrl: None,
         pdports: false,
         pd_info: false,
         pd_reset: None,
@@ -195,7 +195,19 @@ pub fn parse(args: &[String]) -> Cli {
             };
             found_an_option = true;
         } else if arg == "--autofanctrol" {
-            cli.autofanctrl = true;
+            cli.autofanctrl = if args.len() > i + 1 {
+                if let Ok(fan_id) = args[i + 1].parse::<u8>() {
+                    Some(Some(fan_id))
+                } else {
+                    println!(
+                        "Invalid value for --autofanctrl: '{}'. Must be integer < 256.",
+                        args[i + 1]
+                    );
+                    None
+                }
+            } else {
+                Some(None)
+            };
             found_an_option = true;
         } else if arg == "--pdports" {
             cli.pdports = true;

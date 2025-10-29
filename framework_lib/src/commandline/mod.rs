@@ -167,7 +167,7 @@ pub struct Cli {
     pub sensors: bool,
     pub fansetduty: Option<(Option<u32>, u32)>,
     pub fansetrpm: Option<(Option<u32>, u32)>,
-    pub autofanctrl: bool,
+    pub autofanctrl: Option<Option<u8>>,
     pub pdports: bool,
     pub privacy: bool,
     pub pd_info: bool,
@@ -1184,7 +1184,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_err(ec.fan_set_duty(fan, percent));
     } else if let Some((fan, rpm)) = args.fansetrpm {
         print_err(ec.fan_set_rpm(fan, rpm));
-    } else if args.autofanctrl {
+    } else if let Some(Some(fan_id)) = args.autofanctrl {
+        print_err(ec.autofanctrl(Some(fan_id)));
+    } else if let Some(None) = args.autofanctrl {
         print_err(ec.autofanctrl(None));
     } else if args.pdports {
         power::get_and_print_pd_info(&ec);
@@ -1457,7 +1459,7 @@ Options:
       --sensors              Print sensor information (ALS, G-Sensor)
       --fansetduty           Set fan duty cycle (0-100%)
       --fansetrpm            Set fan RPM (limited by EC fan table max RPM)
-      --autofanctrl          Turn on automatic fan speed control
+      --autofanctrl [<FANID>]Turn on automatic fan speed control (optionally provide fan index)
       --pdports              Show information about USB-C PD ports
       --info                 Show info from SMBIOS (Only on UEFI)
       --pd-info              Show details about the PD controllers

@@ -441,6 +441,10 @@ Accelerometers:
   F75303_DDR:   38 C
   APU:          42 C
   Fan Speed:       0 RPM
+
+# Or just for a specific fan (e.g. on Framework Desktop)
+> sudo framework_tool --autofanctrl 0
+> sudo framework_tool --autofanctrl 1
 ```
 
 ## Check expansion bay (Framework 16)
