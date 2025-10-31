@@ -145,9 +145,9 @@ Dumping to foo.bin
 Wrote 153 bytes to foo.bin
 
 # Update just the serial number
-> framework_tool --flash_gpu_descriptor GPU FRAKMQCP41500ASSY1
-> framework_tool --flash_gpu_descriptor 13 FRAKMQCP41500ASSY1
-> framework_tool --flash_gpu_descriptor 0x0D FRAKMQCP41500ASSY1
+> framework_tool --flash-gpu-descriptor GPU FRAKMQCP41500ASSY1
+> framework_tool --flash-gpu-descriptor 13 FRAKMQCP41500ASSY1
+> framework_tool --flash-gpu-descriptor 0x0D FRAKMQCP41500ASSY1
 
 # Update everything from a file
 > framework_tool --flash-gpu-descriptor-file pcie_4x2.bin
