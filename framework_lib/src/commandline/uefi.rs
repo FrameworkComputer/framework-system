@@ -84,6 +84,7 @@ pub fn parse(args: &[String]) -> Cli {
         pd_addrs: None,
         pd_ports: None,
         test: false,
+        test_retimer: false,
         dry_run: false,
         force: false,
         help: false,
@@ -494,6 +495,9 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "-t" || arg == "--test" {
             cli.test = true;
+            found_an_option = true;
+        } else if arg == "-t" || arg == "--test-retimer" {
+            cli.test_retimer = true;
             found_an_option = true;
         } else if arg == "-f" || arg == "--force" {
             cli.force = true;
