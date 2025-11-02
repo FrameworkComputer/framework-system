@@ -188,6 +188,7 @@ pub struct Cli {
     pub flash_rw_ec: Option<String>,
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
+    pub test_retimer: bool,
     pub dry_run: bool,
     pub force: bool,
     pub intrusion: bool,
@@ -271,6 +272,7 @@ pub fn parse(args: &[String]) -> Cli {
             // flash_rw_ec
             driver: cli.driver,
             test: cli.test,
+            test_retimer: cli.test_retimer,
             dry_run: cli.dry_run,
             // force
             intrusion: cli.intrusion,
@@ -1174,6 +1176,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("FAILED!!");
             return 1;
         }
+    } else if args.test_retimer {
+        println!("Retimer Self-Test");
+        if let Err(err) = selftest_retimer(&ec) {
+            println!("  Failed: {:?}", err);
+        }
     } else if args.power {
         return power::get_and_print_power_info(&ec);
     } else if args.thermal {
@@ -1604,6 +1611,67 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     println!(" - OK");
 
     Some(())
+}
+
+// Platforms that have Retimers
+// Retimer I2C is always connected to the CPU, except for the Framework 16 dGPU retimer.
+//
+// - Framework 12
+//   - No Retimer, only retimer for both left ports (no firmware)
+// - Framework 13 Intel
+//   - One Intel retimer for each port (with firmware)
+// - Framework 13 AMD 7040
+//   - Kandou Retimer on top two ports (no firmware)
+//   - Analogix Retimer on bottom two ports (no firmware)
+// - Framework 13 AMD AI 300
+//   - Parade Retimer on top two ports (with firmware)
+//   - Analogix Retimer on bottom two ports (no firmware)
+// - Framework 16 AMD 7040
+//   - Kandou Retimer on top two ports (no firmware)
+//   - Analogix Retimer on lower and middle left ports (no firmware)
+// - Framework 16 AMD AI 300
+//   - Parade Retimer on top two ports (with firmware)
+// - Framework 16 AMD dGPU
+//   - None
+// - Framework 16 NVIDIA dGPU
+//   - Parade Retimer
+// - Framework Desktop
+//   - Parade Retimer on both back ports (with firmware)
+fn selftest_retimer(ec: &CrosEc) -> EcResult<()> {
+    // TODO: Make sure that it can work for the NVIDIA dGPU retimer and increase to 3
+    for i in 0..2 {
+        let update_mode = ec.retimer_in_fwupd_mode(i);
+        if update_mode == Err(EcError::Response(EcResponseStatus::InvalidParameter)) {
+            println!("  Retimer status not supported on this platform. Cannot test");
+            return Ok(());
+        }
+        println!("  Retimers on PD Controller {}", i);
+        println!(
+            "    In update mode: {:?}",
+            ec.retimer_in_fwupd_mode(i).unwrap()
+        );
+        if update_mode? {
+            println!("      Disabling it to start test.");
+            ec.retimer_enable_fwupd(i, false)?;
+        }
+
+        println!("    Enabling update mode");
+        let success = ec.retimer_enable_fwupd(i, true);
+        println!(
+            "    In update mode: {:?}",
+            ec.retimer_in_fwupd_mode(i).unwrap()
+        );
+
+        println!("    Disabling update mode");
+        ec.retimer_enable_fwupd(i, false)?;
+        os_specific::sleep(100);
+        println!(
+            "    In update mode: {:?}",
+            ec.retimer_in_fwupd_mode(i).unwrap()
+        );
+        success?;
+    }
+    Ok(())
 }
 
 fn smbios_info() {

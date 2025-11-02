@@ -263,6 +263,10 @@ struct ClapCli {
     #[arg(long, short)]
     test: bool,
 
+    /// Run self-test to check if interaction with retimers is possible
+    #[arg(long)]
+    test_retimer: bool,
+
     /// Force execution of an unsafe command - may render your hardware unbootable!
     #[arg(long, short)]
     force: bool,
@@ -455,6 +459,7 @@ pub fn parse(args: &[String]) -> Cli {
         pd_addrs,
         pd_ports,
         test: args.test,
+        test_retimer: args.test_retimer,
         dry_run: args.dry_run,
         force: args.force,
         // TODO: Set help. Not very important because Clap handles this by itself
