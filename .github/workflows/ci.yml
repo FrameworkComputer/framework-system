@@ -22,38 +22,6 @@ jobs:
           cargo build -p framework_lib
           cargo build -p framework_tool
 
-  freebsd-cross-build:
-    name: Cross-Build for FreeBSD
-    runs-on: 'ubuntu-24.04'
-    env:
-      CARGO_NET_GIT_FETCH_WITH_CLI: true
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libudev-dev libhidapi-dev
-
-    - name: Setup Rust toolchain
-      run: |
-        rm rust-toolchain.toml
-        rustup target add x86_64-unknown-freebsd
-        rustup show
-
-    - name: Install cross compilation tool
-      run: cargo install cross
-
-    - name: Build FreeBSD lib
-      run: |
-        cross build --target=x86_64-unknown-freebsd -p framework_lib
-
-    - name: Upload FreeBSD App
-      uses: actions/upload-artifact@v4
-      with:
-        name: framework_tool_freebsd
-        path: target/x86_64-unknown-freebsd/debug/framework_tool
-
   build:
     name: Build Linux
     runs-on: ubuntu-24.04
