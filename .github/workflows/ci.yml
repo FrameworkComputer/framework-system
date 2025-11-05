@@ -3,6 +3,25 @@ on:
   push:
 
 jobs:
+  build-freebsd:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+    - name: Build
+      id: test
+      uses: vmactions/freebsd-vm@v1
+      with:
+        usesh: true
+        mem: 8192
+        sync: rsync
+        prepare: |
+          pkg install -y rust hidapi pkgconf
+        run: |
+          cargo build -p framework_lib
+          cargo build -p framework_tool
+
   freebsd-cross-build:
     name: Cross-Build for FreeBSD
     runs-on: 'ubuntu-24.04'
