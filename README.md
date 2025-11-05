@@ -165,7 +165,7 @@ direnv shell
 sudo dnf install systemd-devel hidapi-devel
 
 # FreeBSD
-sudo pkg install hidapi
+sudo pkg install rust hidapi pkgconf
 ```
 
 ```sh
