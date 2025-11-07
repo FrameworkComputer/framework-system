@@ -687,13 +687,15 @@ fn print_versions(ec: &CrosEc) {
                 esrt::TGL_RETIMER01_GUID
                 | esrt::ADL_RETIMER01_GUID
                 | esrt::RPL_RETIMER01_GUID
-                | esrt::MTL_RETIMER01_GUID => {
+                | esrt::MTL_RETIMER01_GUID
+                | esrt::PTL_RETIMER01_GUID => {
                     right_retimer = Some(entry.fw_version);
                 }
                 esrt::TGL_RETIMER23_GUID
                 | esrt::ADL_RETIMER23_GUID
                 | esrt::RPL_RETIMER23_GUID
-                | esrt::MTL_RETIMER23_GUID => {
+                | esrt::MTL_RETIMER23_GUID
+                | esrt::PTL_RETIMER23_GUID => {
                     left_retimer = Some(entry.fw_version);
                 }
                 _ => {}
