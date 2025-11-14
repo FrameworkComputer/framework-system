@@ -71,6 +71,15 @@ const EC_BATT_FLAG_DISCHARGING: u8 = 0x04;
 const EC_BATT_FLAG_CHARGING: u8 = 0x08;
 const EC_BATT_FLAG_LEVEL_CRITICAL: u8 = 0x10;
 
+const EC_CUSTOMIZED_MEMMAP_BATT_AVER_TEMP: u16 = 0x103;
+const EC_CUSTOMIZED_MEMMAP_BATT_CHARGE_CURR: u16 = 0x104;
+const EC_CUSTOMIZED_MEMMAP_BATT_PERCENTAGE: u16 = 0x106;
+const EC_CUSTOMIZED_MEMMAP_BATT_STATUS: u16 = 0x107;
+const EC_CUSTOMIZED_MEMMAP_BATT_TRIP_POINT: u16 = 0x108;
+const EC_CUSTOMIZED_MEMMAP_BATT_MANUF_DAY: u16 = 0x144;
+const EC_CUSTOMIZED_MEMMAP_BATT_MANUF_MONTH: u16 = 0x145;
+const EC_CUSTOMIZED_MEMMAP_BATT_MANUF_YEAR: u16 = 0x146;
+
 const EC_FAN_SPEED_ENTRIES: usize = 4;
 /// Used on old EC firmware (before 2023)
 const EC_FAN_SPEED_STALLED_DEPRECATED: u16 = 0xFFFE;
@@ -489,6 +498,23 @@ pub fn power_info(ec: &CrosEc) -> Option<PowerInfo> {
     let model_number = read_string(ec, EC_MEMMAP_BATT_MODEL);
     let serial_number = read_string(ec, EC_MEMMAP_BATT_SERIAL);
     let battery_type = read_string(ec, EC_MEMMAP_BATT_TYPE);
+
+    let average_temp = ec.read_memory(EC_CUSTOMIZED_MEMMAP_BATT_AVER_TEMP, 1);
+    let charger_current = ec.read_memory(EC_CUSTOMIZED_MEMMAP_BATT_CHARGE_CURR, 1);
+    let batt_percentage = ec.read_memory(EC_CUSTOMIZED_MEMMAP_BATT_PERCENTAGE, 1);
+    let batt_status = ec.read_memory(EC_CUSTOMIZED_MEMMAP_BATT_STATUS, 1);
+    let trip_point = ec.read_memory(EC_CUSTOMIZED_MEMMAP_BATT_TRIP_POINT, 2);
+    let manuf_day = ec.read_memory(EC_CUSTOMIZED_MEMMAP_BATT_MANUF_DAY, 1);
+    let manuf_month = ec.read_memory(EC_CUSTOMIZED_MEMMAP_BATT_MANUF_MONTH, 1);
+    let manuf_year = ec.read_memory(EC_CUSTOMIZED_MEMMAP_BATT_MANUF_YEAR, 2);
+    println!("{:?}", average_temp);
+    println!("{:?}", charger_current);
+    println!("{:?}", batt_percentage);
+    println!("{:?}", batt_status);
+    println!("{:?}", trip_point);
+    println!("{:?}", manuf_day);
+    println!("{:?}", manuf_month);
+    println!("{:?}", manuf_year);
 
     Some(PowerInfo {
         ac_present: 0 != (battery_flag & EC_BATT_FLAG_AC_PRESENT),
