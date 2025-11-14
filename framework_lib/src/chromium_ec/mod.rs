@@ -1700,9 +1700,9 @@ impl CrosEcDriver for CrosEc {
         }
 
         debug!("read_memory(offset={:#X}, size={:#X})", offset, length);
-        if offset + length > EC_MEMMAP_SIZE {
-            return None;
-        }
+        //if offset + length > EC_MEMMAP_SIZE {
+        //    return None;
+        //}
 
         // TODO: Change this function to return EcResult instead and print the error only in UI code
         print_err(match self.driver {
