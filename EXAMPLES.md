@@ -380,6 +380,26 @@ Positions:
   Pos 4: GenericC
 ```
 
+### Checking board ID
+
+Most inputdeck checking is implemented by Board ID. To read those directly for
+debugging low level issues, use the `--boardid` command.
+This host command was added recently is not available on every system yet.
+
+```
+# Example on Framework Laptop 13
+# Touchpad Board ID is only present on Laptop 12
+# dGPU Board IDs are only present on Laptop 16
+> framework_tool --boardid
+Board IDs
+  Mainboard:    Ok(Some(6))
+  PowerButton:  Err(Response(InvalidResponse))
+  Touchpad:     Ok(Some(7))
+  AudioBoard:   Ok(Some(7))
+  dGPU0:        Err(Response(InvalidCommand))
+  dGPU1:        Err(Response(InvalidCommand))
+```
+
 ## Check temperatures and fan speed
 
 ```

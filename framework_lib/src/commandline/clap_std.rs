@@ -273,6 +273,10 @@ struct ClapCli {
     #[arg(long)]
     test_retimer: bool,
 
+    /// Print all board IDs
+    #[arg(long)]
+    boardid: bool,
+
     /// Force execution of an unsafe command - may render your hardware unbootable!
     #[arg(long, short)]
     force: bool,
@@ -472,6 +476,7 @@ pub fn parse(args: &[String]) -> Cli {
         pd_ports,
         test: args.test,
         test_retimer: args.test_retimer,
+        boardid: args.boardid,
         dry_run: args.dry_run,
         force: args.force,
         // TODO: Set help. Not very important because Clap handles this by itself

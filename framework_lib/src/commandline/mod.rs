@@ -35,6 +35,7 @@ use crate::ccgx::device::{FwMode, PdController, PdPort};
 use crate::ccgx::hid::{check_ccg_fw_version, find_devices, DP_CARD_PID, HDMI_CARD_PID};
 use crate::ccgx::{self, MainPdVersions, PdVersions, SiliconId::*};
 use crate::chromium_ec;
+use crate::chromium_ec::commands::BoardIdType;
 use crate::chromium_ec::commands::DeckStateMode;
 use crate::chromium_ec::commands::FpLedBrightnessLevel;
 use crate::chromium_ec::commands::RebootEcCmd;
@@ -192,6 +193,7 @@ pub struct Cli {
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
     pub test_retimer: bool,
+    pub boardid: bool,
     pub dry_run: bool,
     pub force: bool,
     pub intrusion: bool,
@@ -279,6 +281,7 @@ pub fn parse(args: &[String]) -> Cli {
             driver: cli.driver,
             test: cli.test,
             test_retimer: cli.test_retimer,
+            boardid: cli.boardid,
             dry_run: cli.dry_run,
             // force
             intrusion: cli.intrusion,
@@ -1487,6 +1490,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         if let Err(err) = selftest_retimer(&ec) {
             println!("  Failed: {:?}", err);
         }
+    } else if args.boardid {
+        print_board_ids(&ec);
     } else if args.power {
         return power::get_and_print_power_info(&ec);
     } else if args.thermal {
@@ -1848,6 +1853,34 @@ fn hash(data: &[u8]) {
     util::print_buffer(sha384);
     print!("  SHA512:  ");
     util::print_buffer(sha512);
+}
+
+fn print_board_ids(ec: &CrosEc) {
+    println!("Board IDs");
+    println!(
+        "  Mainboard:    {:?}",
+        ec.read_board_id_hc(BoardIdType::Mainboard)
+    );
+    println!(
+        "  PowerButton:  {:?}",
+        ec.read_board_id_hc(BoardIdType::PowerButtonBoard)
+    );
+    println!(
+        "  Touchpad:     {:?}",
+        ec.read_board_id_hc(BoardIdType::Touchpad)
+    );
+    println!(
+        "  AudioBoard:   {:?}",
+        ec.read_board_id_hc(BoardIdType::AudioBoard)
+    );
+    println!(
+        "  dGPU0:        {:?}",
+        ec.read_board_id_hc(BoardIdType::DGpu0)
+    );
+    println!(
+        "  dGPU1:        {:?}",
+        ec.read_board_id_hc(BoardIdType::DGpu1)
+    );
 }
 
 fn selftest(ec: &CrosEc) -> Option<()> {
