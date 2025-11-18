@@ -35,6 +35,7 @@ use crate::ccgx::device::{FwMode, PdController, PdPort};
 use crate::ccgx::hid::{check_ccg_fw_version, find_devices, DP_CARD_PID, HDMI_CARD_PID};
 use crate::ccgx::{self, MainPdVersions, PdVersions, SiliconId::*};
 use crate::chromium_ec;
+use crate::chromium_ec::commands::BoardIdType;
 use crate::chromium_ec::commands::DeckStateMode;
 use crate::chromium_ec::commands::FpLedBrightnessLevel;
 use crate::chromium_ec::commands::RebootEcCmd;
@@ -1542,6 +1543,20 @@ fn hash(data: &[u8]) {
 }
 
 fn selftest(ec: &CrosEc) -> Option<()> {
+    let boardid = ec.read_board_id_hc(BoardIdType::Mainboard);
+    println!("Mainboard   Board ID: {:?}", boardid);
+    let boardid = ec.read_board_id_hc(BoardIdType::PowerButtonBoard);
+    println!("PowerButton Board ID: {:?}", boardid);
+    let boardid = ec.read_board_id_hc(BoardIdType::Touchpad);
+    println!("Touchpad    Board ID: {:?}", boardid);
+    let boardid = ec.read_board_id_hc(BoardIdType::AudioBoard);
+    println!("AudioBoard  Board ID: {:?}", boardid);
+    let boardid = ec.read_board_id_hc(BoardIdType::DGpu0);
+    println!("dGPU0       Board ID: {:?}", boardid);
+    let boardid = ec.read_board_id_hc(BoardIdType::DGpu1);
+    println!("dGPU1       Board ID: {:?}", boardid);
+
+    return Some(());
     if let Some(platform) = smbios::get_platform() {
         println!("  SMBIOS Platform:     {:?}", platform);
     } else {
