@@ -109,6 +109,7 @@ pub enum EcCommands {
     ProgramGpuEeprom = 0x3E1F,
     /// Read board ID of specific ADC channel
     ReadBoardId = 0x3E26,
+    LedPwmControl = 0x3E2B,
 }
 
 pub trait EcRequest<R> {

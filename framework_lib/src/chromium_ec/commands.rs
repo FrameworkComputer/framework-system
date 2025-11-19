@@ -1537,3 +1537,26 @@ impl EcRequest<EcResponseReadBoardId> for EcRequestReadBoardId {
         EcCommands::ReadBoardId
     }
 }
+
+#[repr(C, packed)]
+pub struct EcRequestLedPwmControl {
+    /// 0: Charging LED, 1: Fingerprint LED
+    pub led_id: u8,
+    /// 0: LED_OFF
+    /// 1: LED_RED
+    /// 2: LED_GREEN
+    /// 3: LED_BLUE,
+    /// 4: LED_YELLOW
+    /// 5: LED_WHITE
+    /// 6: LED_AMBER
+    pub led_color: u8,
+    pub pwm_r: u8,
+    pub pwm_g: u8,
+    pub pwm_b: u8,
+}
+
+impl EcRequest<()> for EcRequestLedPwmControl {
+    fn command_id() -> EcCommands {
+        EcCommands::LedPwmControl
+    }
+}

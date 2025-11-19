@@ -41,6 +41,9 @@ use crate::chromium_ec::commands::FpLedBrightnessLevel;
 use crate::chromium_ec::commands::RebootEcCmd;
 use crate::chromium_ec::commands::RgbS;
 use crate::chromium_ec::commands::TabletModeOverride;
+use crate::chromium_ec::commands::EcRequestLedPwmControl;
+use crate::chromium_ec::command::EcRequestRaw;
+use crate::chromium_ec::commands::*;
 use crate::chromium_ec::EcResponseStatus;
 use crate::chromium_ec::{print_err, EcFlashType};
 use crate::chromium_ec::{EcError, EcResult};
@@ -1555,6 +1558,23 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     println!("dGPU0       Board ID: {:?}", boardid);
     let boardid = ec.read_board_id_hc(BoardIdType::DGpu1);
     println!("dGPU1       Board ID: {:?}", boardid);
+
+    // Framework 13 defaults
+    // Amber <9  1 0>
+    // White <4 10 5>
+    // Red   <8  0 0>
+    // Green <0 16 0>
+    // Blue  <0  0 8>
+    EcRequestLedPwmControl {
+        // charging LED
+        led_id: 0,
+        // Amber
+        led_color: 6,
+        pwm_r: 9,
+        pwm_g: 1,
+        pwm_b: 0,
+    }.send_command(ec).unwrap();
+
 
     return Some(());
     if let Some(platform) = smbios::get_platform() {
