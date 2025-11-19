@@ -790,9 +790,25 @@ impl CrosEc {
     /// | 79000 | 79FFF | 01000 | Flash Flags |
     pub fn reflash(&self, data: &[u8], ft: EcFlashType, dry_run: bool) -> EcResult<()> {
         let mut res = Ok(());
+
+        let cur_ver = self.version_info()?;
+        let platform = if let Some(ver) = ec_binary::parse_ec_version_str(&cur_ver) {
+            ver.platform
+        } else {
+            return Err(EcError::DeviceError(
+                "Cannot determine currently running platform.".to_string(),
+            ));
+        };
+
         if ft == EcFlashType::Full || ft == EcFlashType::Ro {
             if let Some(version) = ec_binary::read_ec_version(data, true) {
                 println!("EC RO Version in File: {:?}", version.version);
+                if version.details.platform != platform {
+                    return Err(EcError::DeviceError(format!(
+                        "RO Firmware file is for platform {}. Currently running {}",
+                        version.details.platform, platform
+                    )));
+                }
             } else {
                 return Err(EcError::DeviceError(
                     "File does not contain valid EC RO firmware".to_string(),
@@ -802,9 +818,15 @@ impl CrosEc {
         if ft == EcFlashType::Full || ft == EcFlashType::Rw {
             if let Some(version) = ec_binary::read_ec_version(data, false) {
                 println!("EC RW Version in File: {:?}", version.version);
+                if version.details.platform != platform {
+                    return Err(EcError::DeviceError(format!(
+                        "RW Firmware file is for platform {}. Currently running {}",
+                        version.details.platform, platform
+                    )));
+                }
             } else {
                 return Err(EcError::DeviceError(
-                    "File does not contain valid EW RO firmware".to_string(),
+                    "File does not contain valid EW RW firmware".to_string(),
                 ));
             }
         }
