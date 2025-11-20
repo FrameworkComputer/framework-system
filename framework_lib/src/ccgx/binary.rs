@@ -84,7 +84,8 @@ pub struct PdFirmware {
 }
 
 // Hexdump
-// 0x4359 is the metadata magic bytes
+// 0x4359 is the metadata magic bytes (CY - Cypress)
+// 0x4649 is the metadata magic bytes (IF - Infineon)
 //
 // FW1
 // 000ff40 5d84 0040 7500 0000 8000 00be 0000 0000
