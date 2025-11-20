@@ -23,11 +23,6 @@ pub mod device;
 #[cfg(feature = "hidapi")]
 pub mod hid;
 
-const FW1_METADATA_ROW: u32 = 0x1FE;
-const FW1_METADATA_ROW_CCG8: u32 = 0x3FE;
-const FW2_METADATA_ROW_CCG5: u32 = 0x1FF;
-const FW2_METADATA_ROW_CCG6: u32 = 0x1FD;
-const FW2_METADATA_ROW_CCG8: u32 = 0x3FF;
 const METADATA_OFFSET: usize = 0xC0; // TODO: Is this 0x40 on ADL?
 const CCG8_METADATA_OFFSET: usize = 0x80;
 const CCG3_METADATA_OFFSET: usize = 0x40;
@@ -109,7 +104,9 @@ pub enum SiliconId {
     Ccg5 = 0x2100,
     Ccg6Adl = 0x3000,
     Ccg6 = 0x30A0,
-    Ccg8 = 0x3580,
+    Ccg8D = 0x3580,
+    Ccg8S = 0x3581,
+    Ccg8Cfp = 0x3E81,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
