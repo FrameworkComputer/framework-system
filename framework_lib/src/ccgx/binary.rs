@@ -578,6 +578,68 @@ mod tests {
     }
 
     #[test]
+    fn can_parse_ccg8_binary_fl16_ai300() {
+        let mut pd_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        pd_bin_path.push("test_bins/fl16-ai300-pd-0.0.22.bin");
+
+        let data = fs::read(pd_bin_path).unwrap();
+        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
+        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
+        let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        assert!(ccg3_ver.is_none());
+        assert!(ccg5_ver.is_none());
+        assert!(ccg6_ver.is_none());
+        assert!(ccg8_ver.is_some());
+
+        assert_eq!(
+            ccg8_ver,
+            Some({
+                PdFirmwareFile {
+                    backup_fw: PdFirmware {
+                        silicon_id: 0x11C5,
+                        silicon_family: 0x3580,
+                        base_version: BaseVersion {
+                            major: 3,
+                            minor: 7,
+                            patch: 0,
+                            build_number: 407,
+                        },
+                        app_version: AppVersion {
+                            application: Application::Notebook,
+                            major: 0,
+                            minor: 0,
+                            circuit: 0x22,
+                        },
+                        start_row: 290,
+                        size: 129912,
+                        row_size: 0x100,
+                    },
+                    main_fw: PdFirmware {
+                        silicon_id: 0x11C5,
+                        silicon_family: 0x3580,
+                        base_version: BaseVersion {
+                            major: 3,
+                            minor: 7,
+                            patch: 0,
+                            build_number: 407,
+                        },
+                        app_version: AppVersion {
+                            application: Application::Notebook,
+                            major: 0,
+                            minor: 0,
+                            circuit: 0x22,
+                        },
+                        start_row: 29,
+                        size: 42816,
+                        row_size: 0x100,
+                    },
+                }
+            })
+        );
+    }
+
+    #[test]
     fn can_parse_ccg8_binary_gnss() {
         let mut pd_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         pd_bin_path.push("test_bins/gn22-pd-0.0.22.bin");
