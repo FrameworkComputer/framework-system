@@ -705,8 +705,13 @@ fn print_versions(ec: &CrosEc) {
             );
         }
         _err => {
-            println!("Parade Retimers");
-            println!("  Unknown");
+            // Only Framework 16 has dGPU support (which has Parade Retimer)
+            if smbios::get_platform().and_then(Platform::which_family)
+                == Some(PlatformFamily::Framework16)
+            {
+                println!("Parade Retimers");
+                println!("  Unknown");
+            }
         }
     }
 
