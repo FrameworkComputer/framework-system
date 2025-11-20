@@ -2610,7 +2610,14 @@ fn analyze_ccgx_pd_fw(data: &[u8]) {
 
         println!("FW 2");
         ccgx::binary::print_fw(&versions.main_fw);
-    } else if let Some(versions) = ccgx::binary::read_versions(data, Ccg8) {
+    } else if let Some(versions) = ccgx::binary::read_versions(data, Ccg8D) {
+        println!("Detected CCG8D/CCG8S firmware");
+        println!("FW 1");
+        ccgx::binary::print_fw(&versions.backup_fw);
+
+        println!("FW 2");
+        ccgx::binary::print_fw(&versions.main_fw);
+    } else if let Some(versions) = ccgx::binary::read_versions(data, Ccg8Cfp) {
         println!("Detected CCG8 firmware");
         println!("FW 1");
         ccgx::binary::print_fw(&versions.backup_fw);

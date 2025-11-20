@@ -110,7 +110,7 @@ fn read_metadata(
     match ccgx {
         SiliconId::Ccg3 => parse_metadata_ccg3(&buffer),
         SiliconId::Ccg5 | SiliconId::Ccg6Adl | SiliconId::Ccg6 => parse_metadata_cyacd(&buffer),
-        SiliconId::Ccg8 => parse_metadata_cyacd2(&buffer)
+        SiliconId::Ccg8D | SiliconId::Ccg8S | SiliconId::Ccg8Cfp => parse_metadata_cyacd2(&buffer)
             .map(|(fw_row_start, fw_size)| (fw_row_start / (flash_row_size as u32), fw_size)),
     }
 }
@@ -172,10 +172,12 @@ fn read_version(
 pub fn read_versions(file_buffer: &[u8], ccgx: SiliconId) -> Option<PdFirmwareFile> {
     let (flash_row_size, f1_metadata_row, fw2_metadata_row) = match ccgx {
         SiliconId::Ccg3 => (SMALL_ROW, 0x03FF, 0x03FE),
-        SiliconId::Ccg5 => (LARGE_ROW, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG5),
-        SiliconId::Ccg6Adl => (SMALL_ROW, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG6),
-        SiliconId::Ccg6 => (SMALL_ROW, FW1_METADATA_ROW, FW2_METADATA_ROW_CCG6),
-        SiliconId::Ccg8 => (LARGE_ROW, FW1_METADATA_ROW_CCG8, FW2_METADATA_ROW_CCG8),
+        SiliconId::Ccg5 => (LARGE_ROW, 0x1FE, 0x1FF),
+        SiliconId::Ccg6Adl => (SMALL_ROW, 0x1FE, 0x1FD),
+        SiliconId::Ccg6 => (SMALL_ROW, 0x1FE, 0x1FD),
+        SiliconId::Ccg8D => (LARGE_ROW, 0x3FE, 0x3FF),
+        SiliconId::Ccg8S => (LARGE_ROW, 0x3FE, 0x3FF),
+        SiliconId::Ccg8Cfp => (LARGE_ROW, 0x1FE, 0x1FF),
     };
     let backup_fw = read_version(file_buffer, flash_row_size, f1_metadata_row, ccgx)?;
     let main_fw = read_version(file_buffer, flash_row_size, fw2_metadata_row, ccgx)?;
@@ -215,11 +217,15 @@ mod tests {
         let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
         let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
         let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
         assert!(ccg3_ver.is_some());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());
-        assert!(ccg8_ver.is_none());
+        assert!(ccg8d_ver.is_none());
+        assert!(ccg8s_ver.is_none());
+        assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
             ccg3_ver,
@@ -277,11 +283,15 @@ mod tests {
         let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
         let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
         let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_some());
         assert!(ccg6_ver.is_none());
-        assert!(ccg8_ver.is_none());
+        assert!(ccg8d_ver.is_none());
+        assert!(ccg8s_ver.is_none());
+        assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
             ccg5_ver,
@@ -339,11 +349,15 @@ mod tests {
         let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
         let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
         let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_some());
-        assert!(ccg8_ver.is_none());
+        assert!(ccg8d_ver.is_none());
+        assert!(ccg8s_ver.is_none());
+        assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
             ccg6_ver,
@@ -401,11 +415,15 @@ mod tests {
         let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
         let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
         let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_some());
-        assert!(ccg8_ver.is_none());
+        assert!(ccg8d_ver.is_none());
+        assert!(ccg8s_ver.is_none());
+        assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
             ccg6_ver,
@@ -463,11 +481,15 @@ mod tests {
         let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
         let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
         let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_some());
-        assert!(ccg8_ver.is_none());
+        assert!(ccg8d_ver.is_none());
+        assert!(ccg8s_ver.is_none());
+        assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
             ccg6_ver,
@@ -525,14 +547,18 @@ mod tests {
         let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
         let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
         let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());
-        assert!(ccg8_ver.is_some());
+        assert!(ccg8d_ver.is_some());
+        assert!(ccg8s_ver.is_some());
+        assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
-            ccg8_ver,
+            ccg8d_ver,
             Some({
                 PdFirmwareFile {
                     backup_fw: PdFirmware {
@@ -587,14 +613,18 @@ mod tests {
         let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
         let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
         let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());
-        assert!(ccg8_ver.is_some());
+        assert!(ccg8d_ver.is_some());
+        assert!(ccg8s_ver.is_some());
+        assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
-            ccg8_ver,
+            ccg8d_ver,
             Some({
                 PdFirmwareFile {
                     backup_fw: PdFirmware {
@@ -649,14 +679,18 @@ mod tests {
         let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
         let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
         let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());
-        assert!(ccg8_ver.is_some());
+        assert!(ccg8d_ver.is_some());
+        assert!(ccg8s_ver.is_some());
+        assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
-            ccg8_ver,
+            ccg8s_ver,
             Some({
                 PdFirmwareFile {
                     backup_fw: PdFirmware {
@@ -695,6 +729,72 @@ mod tests {
                         },
                         start_row: 29,
                         size: 41588,
+                        row_size: 0x100,
+                    },
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn can_parse_ccg8_binary_cfp() {
+        let mut pd_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        pd_bin_path.push("test_bins/ccg8-cfp.bin");
+
+        let data = fs::read(pd_bin_path).unwrap();
+        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
+        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
+        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
+        assert!(ccg3_ver.is_none());
+        assert!(ccg5_ver.is_none());
+        assert!(ccg6_ver.is_none());
+        assert!(ccg8d_ver.is_none());
+        assert!(ccg8s_ver.is_none());
+        assert!(ccg8cfp_ver.is_some());
+
+        assert_eq!(
+            ccg8cfp_ver,
+            Some({
+                PdFirmwareFile {
+                    backup_fw: PdFirmware {
+                        silicon_id: 0x11CE,
+                        silicon_family: 0x3E81,
+                        base_version: BaseVersion {
+                            major: 3,
+                            minor: 7,
+                            patch: 1,
+                            build_number: 554,
+                        },
+                        app_version: AppVersion {
+                            application: Application::Notebook,
+                            major: 0,
+                            minor: 0,
+                            circuit: 3,
+                        },
+                        start_row: 108,
+                        size: 77884,
+                        row_size: 0x100,
+                    },
+                    main_fw: PdFirmware {
+                        silicon_id: 0x11CE,
+                        silicon_family: 0x3E81,
+                        base_version: BaseVersion {
+                            major: 3,
+                            minor: 7,
+                            patch: 1,
+                            build_number: 554,
+                        },
+                        app_version: AppVersion {
+                            application: Application::Notebook,
+                            major: 0,
+                            minor: 0,
+                            circuit: 3,
+                        },
+                        start_row: 7,
+                        size: 23840,
                         row_size: 0x100,
                     },
                 }
