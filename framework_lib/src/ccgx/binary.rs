@@ -330,7 +330,7 @@ mod tests {
     }
 
     #[test]
-    fn can_parse_ccg6_binary() {
+    fn can_parse_ccg6_binary_adl() {
         let mut pd_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         pd_bin_path.push("test_bins/adl-pd-0.1.33.bin");
 
@@ -384,6 +384,68 @@ mod tests {
                         },
                         start_row: 118,
                         size: 49408,
+                        row_size: 128,
+                    },
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn can_parse_ccg6_binary_mtl() {
+        let mut pd_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        pd_bin_path.push("test_bins/mtl-pd-0.0.A.bin");
+
+        let data = fs::read(pd_bin_path).unwrap();
+        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
+        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
+        let ccg8_ver = read_versions(&data, SiliconId::Ccg8);
+        assert!(ccg3_ver.is_none());
+        assert!(ccg5_ver.is_none());
+        assert!(ccg6_ver.is_some());
+        assert!(ccg8_ver.is_none());
+
+        assert_eq!(
+            ccg6_ver,
+            Some({
+                PdFirmwareFile {
+                    backup_fw: PdFirmware {
+                        silicon_id: 0x11C0,
+                        silicon_family: 0x3000,
+                        base_version: BaseVersion {
+                            major: 3,
+                            minor: 6,
+                            patch: 0,
+                            build_number: 115,
+                        },
+                        app_version: AppVersion {
+                            application: Application::Notebook,
+                            major: 0,
+                            minor: 0,
+                            circuit: 0x0A,
+                        },
+                        start_row: 10,
+                        size: 12288,
+                        row_size: 128,
+                    },
+                    main_fw: PdFirmware {
+                        silicon_id: 0x11C0,
+                        silicon_family: 0x3000,
+                        base_version: BaseVersion {
+                            major: 3,
+                            minor: 6,
+                            patch: 0,
+                            build_number: 115,
+                        },
+                        app_version: AppVersion {
+                            application: Application::Notebook,
+                            major: 0,
+                            minor: 0,
+                            circuit: 0x0A,
+                        },
+                        start_row: 112,
+                        size: 47744,
                         row_size: 128,
                     },
                 }
