@@ -263,7 +263,7 @@ pub fn get_baseboard_version() -> Option<ConfigDigit0> {
                 {
                     return version_config;
                 } else {
-                    error!("  Invalid BaseBoard Version: {}'", version);
+                    debug!("  Invalid BaseBoard Version: {}'", version);
                 }
             }
         }
