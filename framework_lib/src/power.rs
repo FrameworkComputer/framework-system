@@ -536,7 +536,7 @@ pub fn is_standalone(ec: &CrosEc) -> bool {
 }
 
 pub fn get_and_print_power_info(ec: &CrosEc) -> i32 {
-    crate::battery::dump_data(ec);
+    crate::battery::SmartBattery::new().dump_data(ec).unwrap();
     if let Some(power_info) = power_info(ec) {
         print_err_ref(&ec.get_charge_state(&power_info));
         print_battery_information(&power_info);
