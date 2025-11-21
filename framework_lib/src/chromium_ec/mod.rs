@@ -1616,6 +1616,8 @@ impl CrosEc {
     }
 
     fn read_board_id(&self, channel: u8) -> EcResult<Option<u8>> {
+        // TODO: This change the parmeter to BoardIdType and map that to ADC if needed
+        // if ec.cmd_version_supported(command::EcCommands::ReadBoardId, 0) == Ok(true) {
         self.read_board_id_raw(channel, BOARD_VERSION)
     }
     fn read_board_id_npc_db(&self, channel: u8) -> EcResult<Option<u8>> {
