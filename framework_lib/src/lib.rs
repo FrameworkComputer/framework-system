@@ -34,6 +34,7 @@ pub mod usbhub;
 #[macro_use]
 extern crate uefi_services;
 
+pub mod battery;
 pub mod capsule;
 pub mod capsule_content;
 pub mod ccgx;
