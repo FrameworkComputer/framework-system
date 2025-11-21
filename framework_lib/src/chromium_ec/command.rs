@@ -12,7 +12,7 @@ use crate::util;
 use super::{CrosEc, CrosEcDriver, EcError, EcResult};
 
 #[non_exhaustive]
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, Clone, Copy, FromPrimitive)]
 #[repr(u16)]
 pub enum EcCommands {
     GetVersion = 0x02,

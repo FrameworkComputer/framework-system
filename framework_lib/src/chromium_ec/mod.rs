@@ -298,8 +298,8 @@ impl CrosEc {
         }
     }
 
-    pub fn cmd_version_supported(&self, cmd: u16, version: u8) -> EcResult<bool> {
-        let res = EcRequestGetCmdVersionsV1 { cmd: cmd.into() }.send_command(self);
+    pub fn cmd_version_supported(&self, cmd: EcCommands, version: u8) -> EcResult<bool> {
+        let res = EcRequestGetCmdVersionsV1 { cmd: cmd as u32 }.send_command(self);
         let mask = if let Ok(res) = res {
             res.version_mask
         } else {
