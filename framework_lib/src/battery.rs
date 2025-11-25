@@ -3,8 +3,12 @@
 // include/battery_smart.h
 use alloc::vec::Vec;
 
+use sha1::{Sha1, Digest};
+use std::thread;
+use std::time::Duration;
+
 use crate::chromium_ec::i2c_passthrough::*;
-use crate::chromium_ec::{CrosEc, EcResult};
+use crate::chromium_ec::{CrosEc, EcResult, EcError};
 
 #[repr(u16)]
 enum SmartBatReg {
@@ -21,6 +25,7 @@ enum SmartBatReg {
     CellVoltage2 = 0x3D,
     CellVoltage3 = 0x3E,
     CellVoltage4 = 0x3F,
+    Authenticate = 0x2F,
 }
 
 #[repr(u16)]
@@ -33,6 +38,8 @@ enum ManufReg {
     SafetyAlert = 0x50,
     SafetyStatus = 0x51,
     PFAlert = 0x52,
+    PFStatus = 0x53,
+    OperationStatus = 0x54,
     LifeTimeDataBlock1 = 0x60,
     LifeTimeDataBlock2 = 0x61,
     LifeTimeDataBlock3 = 0x62,
@@ -44,6 +51,27 @@ enum ManufReg {
 pub struct SmartBattery {
     i2c_port: u8,
     i2c_addr: u16,
+}
+
+/// Calculates the HMAC using TI's specific nested SHA-1 method.
+/// Formula: SHA1( Key || SHA1( Key || Challenge ) )
+fn calculate_ti_hmac(key: &[u8; 16], challenge: &[u8; 20]) -> [u8; 20] {
+    // 1. Inner Hash: SHA1( Key + Challenge )
+    let mut inner_hasher = Sha1::new();
+    inner_hasher.update(key);
+    inner_hasher.update(challenge);
+    let inner_digest = inner_hasher.finalize();
+
+    // 2. Outer Hash: SHA1( Key + Inner_Digest )
+    let mut outer_hasher = Sha1::new();
+    outer_hasher.update(key);
+    outer_hasher.update(inner_digest);
+    let outer_digest = outer_hasher.finalize();
+
+    // Convert GenericArray to standard [u8; 20]
+    let mut result = [0u8; 20];
+    result.copy_from_slice(&outer_digest);
+    result
 }
 
 impl SmartBattery {
@@ -68,6 +96,15 @@ impl SmartBattery {
         Ok(())
     }
 
+
+    fn i2c_write(&self, ec: &CrosEc, addr: u16, data: &[u8]) -> EcResult<()> {
+        i2c_write(ec, self.i2c_port, self.i2c_addr >> 1, addr, data)?;
+        Ok(())
+    }
+    fn i2c_read(&self, ec: &CrosEc, addr: u16, len: u16) -> EcResult<Vec<u8>> {
+        self.read_bytes(ec, addr, len)
+    }
+
     fn read_bytes(&self, ec: &CrosEc, addr: u16, len: u16) -> EcResult<Vec<u8>> {
         let i2c_response = i2c_read(ec, self.i2c_port, self.i2c_addr >> 1, addr, len + 1)?;
         i2c_response.is_successful()?;
@@ -82,6 +119,7 @@ impl SmartBattery {
             i2c_response.data[1],
         ]))
     }
+
     fn read_string(&self, ec: &CrosEc, addr: u16) -> EcResult<String> {
         let i2c_response = i2c_read(ec, self.i2c_port, self.i2c_addr >> 1, addr, 32)?;
         i2c_response.is_successful()?;
@@ -89,6 +127,61 @@ impl SmartBattery {
         // First byte is the returned string length
         let str_bytes = &i2c_response.data[1..=(i2c_response.data[0] as usize)];
         Ok(String::from_utf8_lossy(str_bytes).to_string())
+    }
+
+    pub fn authenticate_battery(&self, ec: &CrosEc, auth_key: &[u8; 16]) -> EcResult<bool> {
+        // 1. Generate a random 20-byte challenge
+        // In production, use `rand::random()` to generate this.
+        let challenge: [u8; 20] = [
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+            0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
+            0x11, 0x12, 0x13, 0x14
+        ];
+
+        println!("Step 1: Sending Challenge...");
+
+        // SMBus Block Write format: [Command, Byte_Count, Data...]
+        let mut write_buf = Vec::new();
+        write_buf.push(20);               // Byte Count (0x14)
+        write_buf.extend_from_slice(&challenge);
+
+        self.i2c_write(ec, SmartBatReg::Authenticate as u16, &write_buf)?;
+
+        // 2. Wait for the gauge to calculate (Datasheet says 250ms)
+        println!("Step 2: Waiting 250ms...");
+        thread::sleep(Duration::from_millis(250));
+
+        // 3. Calculate expected result locally while waiting
+        let expected_response = calculate_ti_hmac(&auth_key, &challenge);
+
+        // 4. Read Response
+        // SMBus Block Read: Write Command -> Repeated Start -> Read [Len] + [Data]
+        println!("Step 3: Reading Response...");
+
+        // For block read, we usually write the command register first
+        self.i2c_write(ec, SmartBatReg::Authenticate as u16, &[])?;
+
+        // Read 21 bytes (1 byte length + 20 bytes signature)
+        // TODO: Read without writing register first
+        let raw_response = self.i2c_read(ec, 0x00, 20)?;
+
+        // 5. Parse and Compare
+        if raw_response.len() < 20 {
+            return Err(EcError::DeviceError("Response too short".to_string()));
+        }
+
+        let device_response = &raw_response[1..20];
+
+        println!("Expected: {:02X?}", expected_response);
+        println!("Received: {:02X?}", device_response);
+
+        if device_response == expected_response {
+            println!("SUCCESS: Battery is genuine.");
+            Ok(true)
+        } else {
+            println!("FAILURE: Signature mismatch.");
+            Ok(false)
+        }
     }
 
     pub fn dump_data(&self, ec: &CrosEc) -> EcResult<()> {
@@ -157,6 +250,9 @@ impl SmartBattery {
         // Default key - does not work on our battery, it's changed during manufacturing!
         self.unseal(ec, 0x0414, 0x3672).unwrap();
 
+        // Dummy code. Do not push real authentication key!
+        // self.authenticate_battery(ec, &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+
         // Need to unseal for access
         // SE [US] [FA]
         let soh = self.read_bytes(ec, ManufReg::Soh as u16, 4)?;
@@ -165,6 +261,10 @@ impl SmartBattery {
             u16::from_le_bytes([soh[0], soh[1]]),
             u16::from_le_bytes([soh[2], soh[3]]) / 100,
             u16::from_le_bytes([soh[2], soh[3]]) % 100,
+        );
+        println!(
+            "OperationStatus{:?}",
+            self.read_i16(&ec, ManufReg::OperationStatus as u16)?
         );
         println!(
             "Safety Alert:  {:?}",
@@ -180,7 +280,7 @@ impl SmartBattery {
         );
         println!(
             "PFStatus:      {:?}",
-            self.read_i16(&ec, ManufReg::SafetyAlert as u16)?
+            self.read_i16(&ec, ManufReg::PFStatus as u16)?
         );
         let lifetime1 = self.read_bytes(ec, ManufReg::LifeTimeDataBlock1 as u16, 32)?;
         println!("LifeTime1");
