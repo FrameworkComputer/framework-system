@@ -17,7 +17,6 @@ enum SmartBatReg {
     /// String
     ManufacturerName = 0x20,
     DeviceName = 0x21,
-    Soh = 0x4F,
     CellVoltage1 = 0x3C,
     CellVoltage2 = 0x3D,
     CellVoltage3 = 0x3E,
@@ -117,6 +116,30 @@ impl SmartBattery {
             "Voltage:       {}.{}V",
             voltage / 1000,
             voltage % 1000
+        );
+        let cell1_v = self.read_i16(ec, SmartBatReg::CellVoltage1 as u16)?;
+        println!(
+            "  Cell 1:      {}.{}V",
+            cell1_v / 1000,
+            cell1_v % 1000
+        );
+        let cell2_v = self.read_i16(ec, SmartBatReg::CellVoltage2 as u16)?;
+        println!(
+            "  Cell 2:      {}.{}V",
+            cell2_v / 1000,
+            cell2_v % 1000
+        );
+        let cell3_v = self.read_i16(ec, SmartBatReg::CellVoltage3 as u16)?;
+        println!(
+            "  Cell 3:      {}.{}V",
+            cell3_v / 1000,
+            cell3_v % 1000
+        );
+        let cell4_v = self.read_i16(ec, SmartBatReg::CellVoltage4 as u16)?;
+        println!(
+            "  Cell 4:      {}.{}V",
+            cell4_v / 1000,
+            cell4_v % 1000
         );
         println!(
             "Cycle Count:   {:?}",
