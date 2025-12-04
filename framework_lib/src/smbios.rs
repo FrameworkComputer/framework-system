@@ -1,13 +1,15 @@
 //! Retrieve SMBIOS tables and extract information from them
 
+use core::str::FromStr;
 use std::prelude::v1::*;
 
 #[cfg(all(not(feature = "uefi"), not(target_os = "freebsd")))]
 use std::io::ErrorKind;
 
+use crate::serialnum::Cfg0;
+use crate::serialnum::FrameworkSerial;
 use crate::util::Config;
 pub use crate::util::{Platform, PlatformFamily};
-use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use smbioslib::*;
 #[cfg(feature = "uefi")]
@@ -23,25 +25,6 @@ static CACHED_PLATFORM: Mutex<Option<Option<Platform>>> = Mutex::new(None);
 
 // TODO: Should cache SMBIOS and values gotten from it
 // SMBIOS is fixed after boot. Oh, so maybe not cache when we're running in UEFI
-
-#[repr(u8)]
-#[derive(Debug, PartialEq, FromPrimitive, Clone, Copy)]
-pub enum ConfigDigit0 {
-    Poc1 = 0x01,
-    Proto1 = 0x02,
-    Proto2 = 0x03,
-    Evt1 = 0x04,
-    Evt2 = 0x05,
-    Dvt1 = 0x07,
-    Dvt2 = 0x08,
-    Pvt = 0x09,
-    MassProduction = 0x0A,
-    MassProductionB = 0x0B,
-    MassProductionC = 0x0C,
-    MassProductionD = 0x0D,
-    MassProductionE = 0x0E,
-    MassProductionF = 0x0F,
-}
 
 /// Check whether the manufacturer in the SMBIOS says Framework
 pub fn is_framework() -> bool {
@@ -239,7 +222,7 @@ pub fn get_product_name() -> Option<String> {
     })
 }
 
-pub fn get_baseboard_version() -> Option<ConfigDigit0> {
+pub fn get_baseboard_version() -> Option<Cfg0> {
     // TODO: On FreeBSD we can short-circuit and avoid parsing SMBIOS
     // #[cfg(target_os = "freebsd")]
     // if let Ok(product) = kenv_get("smbios.system.product") {
@@ -258,9 +241,7 @@ pub fn get_baseboard_version() -> Option<ConfigDigit0> {
                 // Assumes it's ASCII, which is guaranteed by SMBIOS
                 let config_digit0 = &version[0..1];
                 let config_digit0 = u8::from_str_radix(config_digit0, 16);
-                if let Ok(version_config) =
-                    config_digit0.map(<ConfigDigit0 as FromPrimitive>::from_u8)
-                {
+                if let Ok(version_config) = config_digit0.map(<Cfg0 as FromPrimitive>::from_u8) {
                     return version_config;
                 } else {
                     debug!("  Invalid BaseBoard Version: {}'", version);
@@ -350,5 +331,137 @@ fn kenv_get(name: &str) -> nix::Result<String> {
         let value = cvalue.to_string_lossy().into_owned();
 
         Ok(value)
+    }
+}
+
+#[derive(Debug)]
+enum SmbiosSerialNumber {
+    Mainboard = 1,
+    Laptop,
+    Camera,
+    Display,
+    Battery,
+    Touchpad,
+    Keyboard,
+    Fingerprint,
+    AudioDaughtercard,
+    ACover,
+    BCover,
+    CCover,
+    AntennaMain,
+    AntennaAux,
+    TouchpadFpc,
+    FingerprintFfc,
+    EdpCable,
+    LcdCable,
+    ThermalAssembly,
+    WifiModule,
+    Speaker,
+    RamSlot1,
+    RamSlot2,
+    Ssd,
+    AudioFfc,
+
+    Heatsink,
+    Fan,
+    Chassis,
+    LeftPanel,
+    RightPanel,
+    FrontPanel,
+    PowerSupply,
+}
+
+pub fn dump_oem_strings(strings: &SMBiosStringSet) {
+    for (i, s) in strings.into_iter().enumerate() {
+        let idx = i + 1;
+        let sn = if get_family() == Some(PlatformFamily::FrameworkDesktop) {
+            match idx {
+                1 => Some(SmbiosSerialNumber::Mainboard),
+                2 => Some(SmbiosSerialNumber::Heatsink),
+                3 => Some(SmbiosSerialNumber::Fan),
+                4 => Some(SmbiosSerialNumber::Chassis),
+                5 => Some(SmbiosSerialNumber::AntennaMain),
+                6 => Some(SmbiosSerialNumber::WifiModule),
+                7 => Some(SmbiosSerialNumber::LeftPanel),
+                8 => Some(SmbiosSerialNumber::RightPanel),
+                9 => Some(SmbiosSerialNumber::FrontPanel),
+                10 => Some(SmbiosSerialNumber::PowerSupply),
+                11 => Some(SmbiosSerialNumber::RamSlot1),
+                12 => Some(SmbiosSerialNumber::RamSlot2),
+                13 => Some(SmbiosSerialNumber::Ssd),
+                14 => Some(SmbiosSerialNumber::AudioFfc),
+                _ => None,
+            }
+        } else {
+            match idx {
+                1 => Some(SmbiosSerialNumber::Mainboard),
+                2 => Some(SmbiosSerialNumber::Laptop),
+                3 => Some(SmbiosSerialNumber::Camera),
+                4 => Some(SmbiosSerialNumber::Display),
+                5 => Some(SmbiosSerialNumber::Battery),
+                6 => Some(SmbiosSerialNumber::Touchpad),
+                7 => Some(SmbiosSerialNumber::Keyboard),
+                8 => Some(SmbiosSerialNumber::Fingerprint),
+                10 => Some(SmbiosSerialNumber::AudioDaughtercard),
+                11 => Some(SmbiosSerialNumber::ACover),
+                12 => Some(SmbiosSerialNumber::BCover),
+                13 => Some(SmbiosSerialNumber::CCover),
+                14 => Some(SmbiosSerialNumber::AntennaMain),
+                15 => Some(SmbiosSerialNumber::AntennaAux),
+                16 => Some(SmbiosSerialNumber::TouchpadFpc),
+                17 => Some(SmbiosSerialNumber::FingerprintFfc),
+                18 => Some(SmbiosSerialNumber::EdpCable),
+                19 => Some(SmbiosSerialNumber::LcdCable),
+                20 => Some(SmbiosSerialNumber::ThermalAssembly),
+                21 => Some(SmbiosSerialNumber::WifiModule),
+                22 => Some(SmbiosSerialNumber::Speaker),
+                23 => Some(SmbiosSerialNumber::RamSlot1),
+                24 => Some(SmbiosSerialNumber::RamSlot2),
+                25 => Some(SmbiosSerialNumber::Ssd),
+                26 => Some(SmbiosSerialNumber::AudioFfc),
+                _ => None,
+            }
+        };
+        match sn {
+            Some(SmbiosSerialNumber::RamSlot1)
+            | Some(SmbiosSerialNumber::RamSlot2)
+            | Some(SmbiosSerialNumber::Ssd)
+            | Some(SmbiosSerialNumber::WifiModule) => {
+                println!("{} {:<20} (Unused)", s, format!("{:?}", sn.unwrap()))
+            }
+            Some(SmbiosSerialNumber::Fingerprint) | Some(SmbiosSerialNumber::CCover) => {
+                println!("{}", s);
+                println!("  {:<20} (Only Pre-Built)", format!("{:?}", sn.unwrap()));
+                if let Ok(serial) = FrameworkSerial::from_str(&format!("{:?}", s)) {
+                    println!(
+                        "  {} (Config {}) by {}, {:>4} Phase ({:?}, Week {}, {})",
+                        serial.product,
+                        serial.cfg1,
+                        serial.oem,
+                        format!("{:?}", serial.cfg0),
+                        serial.day,
+                        serial.week,
+                        serial.year,
+                    );
+                }
+            }
+            Some(sn) => {
+                println!("{}", s);
+                println!("  {:?}", sn);
+                if let Ok(serial) = FrameworkSerial::from_str(&format!("{:?}", s)) {
+                    println!(
+                        "  {} (Config {}) by {}, {:>4} Phase ({:?}, Week {}, {})",
+                        serial.product,
+                        serial.cfg1,
+                        serial.oem,
+                        format!("{:?}", serial.cfg0),
+                        serial.day,
+                        serial.week,
+                        serial.year,
+                    );
+                }
+            }
+            _ => println!("{} Unknown/Reserved", s),
+        }
     }
 }
