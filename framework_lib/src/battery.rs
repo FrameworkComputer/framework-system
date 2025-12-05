@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 use sha1::{Sha1, Digest};
 use std::thread;
 use std::time::Duration;
+use std::io;
 
 use crate::chromium_ec::i2c_passthrough::*;
 use crate::chromium_ec::{CrosEc, EcResult, EcError};
@@ -247,8 +248,19 @@ impl SmartBattery {
             self.read_string(ec, SmartBatReg::ManufacturerName as u16)?
         );
 
-        // Default key - does not work on our battery, it's changed during manufacturing!
-        self.unseal(ec, 0x0414, 0x3672).unwrap();
+        // The default key is 0x0414, 0x3672 - but our platforms have a customized one.
+        println!("Enter unseal key in hex format, or press enter to skip. Example: 04143672");
+        let mut input_text = String::new();
+        io::stdin()
+            .read_line(&mut input_text)
+            .expect("Failed to read line");
+        let input_text = input_text.trim();
+        if input_text.is_empty() {
+            return Ok(());
+        }
+        let key: u32 = u32::from_str_radix(&input_text, 16)
+            .expect("Couldn't parse Input as u32");
+        self.unseal(ec, (key >> 16) as u16, key as u16).unwrap();
 
         // Dummy code. Do not push real authentication key!
         // self.authenticate_battery(ec, &[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
@@ -283,7 +295,7 @@ impl SmartBattery {
             self.read_i16(&ec, ManufReg::PFStatus as u16)?
         );
         let lifetime1 = self.read_bytes(ec, ManufReg::LifeTimeDataBlock1 as u16, 32)?;
-        println!("LifeTime1");
+        println!("LifeTime1      {:X?}", lifetime1);
         println!(
             "  Cell 1 Max Voltage: {}mV",
             u16::from_le_bytes([lifetime1[0], lifetime1[1]])
@@ -361,7 +373,7 @@ impl SmartBattery {
             lifetime1[31]
         );
         let lifetime2 = self.read_bytes(ec, ManufReg::LifeTimeDataBlock2 as u16, 20)?; // 8?
-        println!("LifeTime2");
+        println!("LifeTime2      {:X?}", lifetime2);
         println!("  No. of Shutdowns:       {}
   No. of Partial Resets:  {}
   No. of Full Resets:     {}
