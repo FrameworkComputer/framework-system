@@ -93,7 +93,7 @@ impl SmartBattery {
     }
 
     fn seal(&self, ec: &CrosEc) -> EcResult<()> {
-        i2c_write(ec, self.i2c_port, self.i2c_addr >> 1, 0x00, &[0x30, 0x00])?;
+        i2c_write_block(ec, self.i2c_port, self.i2c_addr >> 1, 0x00, &[0x30, 0x00])?;
         Ok(())
     }
 
