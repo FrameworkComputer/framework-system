@@ -1323,6 +1323,30 @@ impl CrosEc {
             "Writing GPU EEPROM {}",
             if dry_run { " (DRY RUN)" } else { "" }
         );
+        let mut force_power = false;
+
+        let info = EcRequestExpansionBayStatus {}.send_command(self)?;
+        println!("  Enabled:       {}", info.module_enabled());
+        println!("  No fault:      {}", !info.module_fault());
+        println!("  Door closed:   {}", info.hatch_switch_closed());
+
+        match info.expansion_bay_board() {
+            Ok(board) => println!("  Board:         {:?}", board),
+            Err(err) => println!("  Board:         {:?}", err),
+        }
+
+        if let Ok(ExpansionBayBoard::DualInterposer) = info.expansion_bay_board() {
+            /* Force power to the GPU if we are writing the EEPROM */
+            let res = self.set_gpio("gpu_3v_5v_en", true);
+            if let Err(err) = res {
+                println!("  Failed to set ALW power to GPU off {:?}", err);
+                return Err(err);
+            }
+            println!("Forcing Power to GPU");
+            os_specific::sleep(100_000);
+            force_power = true;
+        }
+
         // Need to program the EEPROM 32 bytes at a time.
         let chunk_size = 32;
 
@@ -1358,6 +1382,15 @@ impl CrosEc {
             }
         }
         println!();
+
+        if force_power {
+            let res = self.set_gpio("gpu_3v_5v_en", false);
+            if let Err(err) = res {
+                println!("  Failed to set ALW power to GPU off {:?}", err);
+                return Err(err);
+            }
+        };
+
         Ok(())
     }
 
@@ -1564,6 +1597,19 @@ impl CrosEc {
         .send_command(self)
     }
 
+    pub fn set_gpio(&self, name: &str, value: bool) -> EcResult<()> {
+        const MAX_LEN: usize = 32;
+        let mut request = EcRequestGpioSetV0 {
+            name: [0; MAX_LEN],
+            value: value as u8,
+        };
+
+        let end = MAX_LEN.min(name.len());
+        request.name[..end].copy_from_slice(&name.as_bytes()[..end]);
+
+        request.send_command(self)?;
+        Ok(())
+    }
     pub fn get_gpio(&self, name: &str) -> EcResult<bool> {
         const MAX_LEN: usize = 32;
         let mut request = EcRequestGpioGetV0 { name: [0; MAX_LEN] };
