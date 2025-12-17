@@ -3,7 +3,7 @@
 //! as well as on the UEFI shell tool.
 use clap::error::ErrorKind;
 use clap::Parser;
-use clap::{arg, command, Arg, Args, FromArgMatches};
+use clap::{command, Arg, Args, FromArgMatches};
 use clap_num::maybe_hex;
 
 use crate::chromium_ec::commands::SetGpuSerialMagic;
