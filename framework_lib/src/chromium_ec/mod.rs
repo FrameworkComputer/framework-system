@@ -298,8 +298,8 @@ impl CrosEc {
         }
     }
 
-    pub fn cmd_version_supported(&self, cmd: u16, version: u8) -> EcResult<bool> {
-        let res = EcRequestGetCmdVersionsV1 { cmd: cmd.into() }.send_command(self);
+    pub fn cmd_version_supported(&self, cmd: EcCommands, version: u8) -> EcResult<bool> {
+        let res = EcRequestGetCmdVersionsV1 { cmd: cmd as u32 }.send_command(self);
         let mask = if let Ok(res) = res {
             res.version_mask
         } else {
@@ -1616,6 +1616,8 @@ impl CrosEc {
     }
 
     fn read_board_id(&self, channel: u8) -> EcResult<Option<u8>> {
+        // TODO: This change the parmeter to BoardIdType and map that to ADC if needed
+        // if ec.cmd_version_supported(command::EcCommands::ReadBoardId, 0) == Ok(true) {
         self.read_board_id_raw(channel, BOARD_VERSION)
     }
     fn read_board_id_npc_db(&self, channel: u8) -> EcResult<Option<u8>> {
@@ -1669,6 +1671,22 @@ impl CrosEc {
             let _res = request.send_command(self)?;
         }
         Ok(())
+    }
+
+    pub fn read_board_id_hc(&self, board_id_type: BoardIdType) -> EcResult<Option<u8>> {
+        let res = EcRequestReadBoardId {
+            board_id_type: board_id_type as u8,
+        }
+        .send_command(self)?;
+        match res.board_id {
+            -1 => Err(EcError::DeviceError(format!(
+                "Failed to read Board ID {:?}",
+                board_id_type
+            ))),
+            15 => Ok(None),
+            0..=14 => Ok(Some(res.board_id as u8)),
+            n => Err(EcError::DeviceError(format!("Invalid Board ID {}", n))),
+        }
     }
 }
 

@@ -1501,3 +1501,39 @@ impl EcRequest<EcResponseSetGpuSerial> for EcRequestSetGpuSerial {
         EcCommands::ProgramGpuEeprom
     }
 }
+
+#[repr(u8)]
+#[derive(Debug, Clone, Copy)]
+pub enum BoardIdType {
+    /// Mainboard - any system
+    Mainboard = 0,
+    /// Power button board - Framework 12
+    PowerButtonBoard = 1,
+    /// Touchpad - Framework 12, 13, 16
+    Touchpad = 2,
+    /// Audio Board - Framework 12, 13
+    AudioBoard = 3,
+    /// dGPU board - Framework 16
+    DGpu0 = 4,
+    /// dGPU board - Framework 16
+    DGpu1 = 5,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestReadBoardId {
+    /// See BoardIdType
+    pub board_id_type: u8,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseReadBoardId {
+    /// Board ID (-1 invalid, 15 not present)
+    pub board_id: i8,
+}
+
+impl EcRequest<EcResponseReadBoardId> for EcRequestReadBoardId {
+    fn command_id() -> EcCommands {
+        EcCommands::ReadBoardId
+    }
+}

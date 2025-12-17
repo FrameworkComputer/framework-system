@@ -12,7 +12,7 @@ use crate::util;
 use super::{CrosEc, CrosEcDriver, EcError, EcResult};
 
 #[non_exhaustive]
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, Clone, Copy, FromPrimitive)]
 #[repr(u16)]
 pub enum EcCommands {
     GetVersion = 0x02,
@@ -107,6 +107,8 @@ pub enum EcCommands {
     GetGpuPcie = 0x3E1E,
     /// Set gpu bay serial and program structure
     ProgramGpuEeprom = 0x3E1F,
+    /// Read board ID of specific ADC channel
+    ReadBoardId = 0x3E26,
 }
 
 pub trait EcRequest<R> {
