@@ -9,6 +9,9 @@ use crate::util::Config;
 pub use crate::util::{Platform, PlatformFamily};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
+#[cfg(feature = "uefi")]
+use smbios_lib_no_std::*;
+#[cfg(not(feature = "uefi"))]
 use smbioslib::*;
 #[cfg(feature = "uefi")]
 use spin::Mutex;
