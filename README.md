@@ -17,7 +17,7 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
   - `pacman -S framework-system`
 - [Bazzite](https://github.com/ublue-os/bazzite/pull/3026)
   - No need to install - included in the base image
-- [Fedora (via the Terra repo](https://github.com/terrapkg/packages/pull/8554)
+- [Fedora (via the Terra repo)](https://github.com/terrapkg/packages/pull/8554)
   - Install the [Terra repository](https://terra.fyralabs.com/), then `dnf install framework-system`
 - [OpenSUSE](https://build.opensuse.org/package/show/openSUSE%3AFactory/framework_tool)
   - `zypper install framework_tool`
