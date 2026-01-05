@@ -476,7 +476,7 @@ pub fn parse(args: &[String]) -> Cli {
                 None
             };
             found_an_option = true;
-        } else if arg == "--reboot-ec" {
+        } else if arg == "--ec-hib-delay" {
             cli.ec_hib_delay = if args.len() > i + 1 {
                 if let Ok(delay) = args[i + 1].parse::<u32>() {
                     if delay == 0 {
