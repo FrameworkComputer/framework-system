@@ -240,6 +240,9 @@ struct ClapCli {
     #[arg(long)]
     ec_hib_delay: Option<Option<u32>>,
 
+    #[arg(long)]
+    uptimeinfo: bool,
+
     /// Hash a file of arbitrary data
     #[arg(long)]
     hash: Option<std::path::PathBuf>,
@@ -454,6 +457,7 @@ pub fn parse(args: &[String]) -> Cli {
         console: args.console,
         reboot_ec: args.reboot_ec,
         ec_hib_delay: args.ec_hib_delay,
+        uptimeinfo: args.uptimeinfo,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         pd_addrs,

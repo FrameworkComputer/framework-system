@@ -78,6 +78,7 @@ pub fn parse(args: &[String]) -> Cli {
         console: None,
         reboot_ec: None,
         ec_hib_delay: None,
+        uptimeinfo: false,
         hash: None,
         // This is the only driver that works on UEFI
         driver: Some(CrosEcDriverType::Portio),
@@ -492,6 +493,9 @@ pub fn parse(args: &[String]) -> Cli {
             } else {
                 Some(None)
             };
+            found_an_option = true;
+        } else if arg == "--uptimeinfo" {
+            cli.uptimeinfo = true;
             found_an_option = true;
         } else if arg == "-t" || arg == "--test" {
             cli.test = true;
