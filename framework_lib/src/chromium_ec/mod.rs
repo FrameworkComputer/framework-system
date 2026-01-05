@@ -16,6 +16,8 @@ use crate::smbios;
 use crate::uefi::shell_get_execution_break_flag;
 use crate::util::{self, Platform};
 
+use no_std_compat::time::Duration;
+
 use log::Level;
 use num_derive::FromPrimitive;
 
@@ -1667,6 +1669,48 @@ impl CrosEc {
             }
 
             let _res = request.send_command(self)?;
+        }
+        Ok(())
+    }
+
+    pub fn get_uptime_info(&self) -> EcResult<()> {
+        let res = EcRequestGetUptimeInfo {}.send_command(self)?;
+        let t_since_boot = Duration::from_millis(res.time_since_ec_boot.into());
+        println!("EC Uptime");
+        println!(
+            "  Time since EC Boot:      {}",
+            util::format_duration(&t_since_boot)
+        );
+        println!("  AP Resets since EC Boot: {}", {
+            res.ap_resets_since_ec_boot
+        });
+        println!("  EC Reset Flags");
+        for flag in 0..(EcResetFlag::Count as usize) {
+            if ((1 << flag) & res.ec_reset_flags) > 0 {
+                // Safe to unwrap unless coding mistake
+                println!(
+                    "    {:?}",
+                    <EcResetFlag as FromPrimitive>::from_usize(flag).unwrap()
+                );
+            }
+        }
+        println!("  Recent AP Resets");
+        for reset in res.recent_ap_resets {
+            if reset.reset_time_ms == 0 {
+                // Empty entry
+                continue;
+            }
+            let reset_time = Duration::from_millis(reset.reset_time_ms.into());
+            println!(
+                "      Reset Time:          {}",
+                util::format_duration(&reset_time)
+            );
+            let reset_cause: Option<ResetCause> = FromPrimitive::from_u16(reset.reset_cause);
+            if let Some(cause) = reset_cause {
+                println!("            Cause:         {:?}", cause);
+            } else {
+                println!("            Cause:         Unknown");
+            }
         }
         Ok(())
     }
