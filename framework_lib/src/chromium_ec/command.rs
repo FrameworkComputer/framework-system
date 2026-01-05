@@ -52,6 +52,7 @@ pub enum EcCommands {
     RebootEc = 0x00D2,
     /// Get information about PD controller power
     UsbPdPowerInfo = 0x0103,
+    GetUptimeInfo = 0x0121,
     AdcRead = 0x0123,
     ApReset = 0x0125,
     LocateChip = 0x0126,

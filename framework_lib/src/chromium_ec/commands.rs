@@ -863,6 +863,132 @@ impl EcRequest<EcResponseUsbPdPowerInfo> for EcRequestUsbPdPowerInfo {
     }
 }
 
+#[repr(usize)]
+#[derive(Debug, FromPrimitive)]
+pub enum EcResetFlag {
+    /// Other known reason
+    Other,
+    /// Reset pin asserted
+    ResetPin,
+    /// Brownout
+    Brownout,
+    /// Power-on reset
+    PowerOn,
+    /// Watchdog timer reset
+    Watchdog,
+    /// Soft reset trigger by core
+    Soft,
+    /// Wake from hibernate
+    Hibernate,
+    /// RTC alarm wake
+    RtcAlarm,
+    /// Wake pin triggered wake
+    WakePin,
+    /// Low battery triggered wake
+    LowBattery,
+    /// Jumped directly to this image
+    Sysjump,
+    /// Hard reset from software
+    Hard,
+    /// Do not power on AP
+    APOff,
+    /// Some reset flags preserved from previous boot
+    Preserved,
+    /// USB resume triggered wake
+    UsbResume,
+    /// USB Type-C debug cable
+    Rdd,
+    /// Fixed Reset Functionality
+    Rbox,
+    /// Security threat
+    Security,
+    /// AP experienced a watchdog reset
+    ApWatchdog,
+    /// Do not select RW in EFS. This enables PD in RO for Chromebox
+    StayInRo,
+    /// Jumped to this image by EFS
+    Efs,
+    /// Leave alone AP
+    ApIdle,
+    /// EC had power, then was reset
+    InitialPwr,
+    Count,
+}
+
+#[repr(u16)]
+#[derive(Debug, FromPrimitive)]
+pub enum ResetCause {
+    ResetUnknown = 0x0000,
+    /// Custom reason defined by a board.c or baseboard.c file
+    ResetBoardCustom,
+    /// Believe that the AP has hung
+    ResetHangReboot,
+    /// Reset by EC console command
+    ResetConsoleCommand,
+    /// Reset by EC host command
+    ResetHostCommand,
+    /// Keyboard module reset key combination
+    ResetKeyboardSysReset,
+    /// Keyboard module warm reboot
+    ResetKeyboardWarmBoot,
+    /// Debug module warm reboot
+    ResetDebugWarmBoot,
+    /// I cannot self-terminate. You must lower me into the steel
+    ResetApReq,
+    /// Reset as side-effect of startup sequence
+    ResetInit,
+    /// EC detected an AP watchdog event
+    ResetApWatchdog,
+
+    ShutdownPowerFail = 0x8000,
+    /// Forcing a shutdown as part of EC initialization
+    ShutdownInit,
+    /// Custom reason on a per-board basis.
+    ShutdownBoardCustom,
+    /// This is a reason to inhibit startup, not cause shut down.
+    ShutdownBatteryInhibit,
+    /// A power_wait_signal is being asserted
+    ShutdownWait,
+    /// Critical battery level.
+    ShutdownBatteryCritical,
+    /// Because you told me to.
+    ShutdownConsoleCommand,
+    /// Forcing a shutdown to effect entry to G3.
+    ShutdownG3,
+    /// Force shutdown due to over-temperature.
+    ShutdownThermal,
+    /// Force a chipset shutdown from the power button through EC
+    ShutdownButton,
+}
+
+#[repr(C)]
+pub struct EcRequestGetUptimeInfo {}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, Debug)]
+pub struct ApResetLogEntry {
+    pub reset_cause: u16,
+    pub reserved: u16,
+    pub reset_time_ms: u32,
+}
+
+#[repr(C, packed)]
+#[derive(Debug)]
+pub struct EcResponseGetUptimeInfo {
+    pub time_since_ec_boot: u32,
+    /// How often the AP was reset by the EC since last EC boot
+    /// The first AP boot may count as more than one
+    pub ap_resets_since_ec_boot: u32,
+    pub ec_reset_flags: u32,
+    pub recent_ap_resets: [ApResetLogEntry; 4],
+}
+
+impl EcRequest<EcResponseGetUptimeInfo> for EcRequestGetUptimeInfo {
+    fn command_id() -> EcCommands {
+        EcCommands::GetUptimeInfo
+    }
+}
+
 #[repr(C, packed)]
 pub struct EcRequestAdcRead {
     /// ADC Channel, specific to each mainboard schematic

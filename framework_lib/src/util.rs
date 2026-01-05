@@ -13,6 +13,8 @@ use spin::{Mutex, MutexGuard};
 #[cfg(not(feature = "uefi"))]
 use std::sync::{Arc, Mutex, MutexGuard};
 
+use no_std_compat::time::Duration;
+
 use crate::smbios;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -263,4 +265,11 @@ pub fn assert_win_len<N: Num + std::fmt::Debug + Ord + NumCast + Copy>(left: N, 
     assert_eq!(left, right + NumCast::from(20).unwrap());
     #[cfg(not(windows))]
     assert_eq!(left, right);
+}
+
+pub fn format_duration(duration: &Duration) -> String {
+    let hours = duration.as_secs() / 3600;
+    let minutes = (duration.as_secs() % 3600) / 60;
+    let seconds = duration.as_secs() % 60;
+    format!("{:02}h {:02}m {:02}s", hours, minutes, seconds)
 }
