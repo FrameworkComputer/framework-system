@@ -453,6 +453,18 @@ impl EcRequest<()> for EcRequestAutoFanCtrlV1 {
 }
 
 #[repr(C, packed)]
+pub struct EcRequestGpioSetV0 {
+    pub name: [u8; 32],
+    pub value: u8,
+}
+
+impl EcRequest<()> for EcRequestGpioSetV0 {
+    fn command_id() -> EcCommands {
+        EcCommands::GpioSet
+    }
+}
+
+#[repr(C, packed)]
 pub struct EcRequestGpioGetV0 {
     pub name: [u8; 32],
 }
