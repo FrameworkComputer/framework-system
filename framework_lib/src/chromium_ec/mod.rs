@@ -1580,6 +1580,19 @@ impl CrosEc {
         .send_command(self)
     }
 
+    pub fn set_gpio(&self, name: &str, value: bool) -> EcResult<()> {
+        const MAX_LEN: usize = 32;
+        let mut request = EcRequestGpioSetV0 {
+            name: [0; MAX_LEN],
+            value: value as u8,
+        };
+
+        let end = MAX_LEN.min(name.len());
+        request.name[..end].copy_from_slice(&name.as_bytes()[..end]);
+
+        request.send_command(self)?;
+        Ok(())
+    }
     pub fn get_gpio(&self, name: &str) -> EcResult<bool> {
         const MAX_LEN: usize = 32;
         let mut request = EcRequestGpioGetV0 { name: [0; MAX_LEN] };
