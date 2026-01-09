@@ -56,7 +56,7 @@ jobs:
         path: target/debug/framework_tool
 
     - name: Build Linux tool (Release)
-      run: cargo build -p framework_tool --release
+      run: cargo build -p framework_tool --release --features nvidia
 
     - name: Upload Linux App
       uses: actions/upload-artifact@v4
@@ -124,7 +124,7 @@ jobs:
     - name: Build Windows tool
       run: |
         cargo build -p framework_tool
-        cargo build -p framework_tool --release
+        cargo build -p framework_tool --release --features nvidia
 
     - name: Check if Windows tool can start
       run: cargo run -- --help --release
