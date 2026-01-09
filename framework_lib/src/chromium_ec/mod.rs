@@ -1326,10 +1326,35 @@ impl CrosEc {
             "Writing GPU EEPROM {}",
             if dry_run { " (DRY RUN)" } else { "" }
         );
+        let mut force_power = false;
+
+        let info = EcRequestExpansionBayStatus {}.send_command(self)?;
+        println!("  Enabled:       {}", info.module_enabled());
+        println!("  No fault:      {}", !info.module_fault());
+        println!("  Door closed:   {}", info.hatch_switch_closed());
+
+        match info.expansion_bay_board() {
+            Ok(board) => println!("  Board:         {:?}", board),
+            Err(err) => println!("  Board:         {:?}", err),
+        }
+
+        if let Ok(ExpansionBayBoard::DualInterposer) = info.expansion_bay_board() {
+            /* Force power to the GPU if we are writing the EEPROM */
+            let res = self.set_gpio("gpu_3v_5v_en", true);
+            if let Err(err) = res {
+                error!("Failed to set ALW power to GPU off {:?}", err);
+                return Err(err);
+            }
+            println!("Forcing Power to GPU");
+            os_specific::sleep(100_000);
+            force_power = true;
+        }
+
         // Need to program the EEPROM 32 bytes at a time.
         let chunk_size = 32;
 
         let chunks = data.len() / chunk_size;
+        let mut return_val: EcResult<()> = Ok(());
         for chunk_no in 0..chunks {
             let offset = chunk_no * chunk_size;
             // Current chunk might be smaller if it's the last
@@ -1356,12 +1381,26 @@ impl CrosEc {
             // Don't read too fast, wait 100ms before writing more to allow for page erase/write cycle.
             os_specific::sleep(100_000);
             if let Err(err) = res {
-                println!("  Failed to write chunk: {:?}", err);
-                return Err(err);
+                error!("Failed to write chunk: {:?}", err);
+                return_val = Err(err);
+                break;
             }
         }
         println!();
-        Ok(())
+
+        if force_power {
+            let res = self.set_gpio("gpu_3v_5v_en", false);
+            if let Err(err) = res {
+                error!("Failed to set ALW power to GPU off {:?}", err);
+                return if return_val.is_err() {
+                    return_val
+                } else {
+                    Err(err)
+                };
+            }
+        };
+
+        return_val
     }
 
     pub fn read_gpu_descriptor(&self) -> EcResult<Vec<u8>> {
