@@ -4,7 +4,10 @@ use alloc::vec::Vec;
 
 use log::Level;
 
+#[cfg(all(not(windows), not(target_os = "freebsd")))]
 use hwio::{Io, Pio};
+#[cfg(target_os = "freebsd")]
+use hwio_freebsd::{Io, Pio};
 #[cfg(target_os = "linux")]
 use libc::ioperm;
 
