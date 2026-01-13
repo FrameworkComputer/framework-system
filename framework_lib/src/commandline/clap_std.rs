@@ -243,6 +243,9 @@ struct ClapCli {
     #[arg(long)]
     uptimeinfo: bool,
 
+    #[arg(long)]
+    s0ix_counter: bool,
+
     /// Hash a file of arbitrary data
     #[arg(long)]
     hash: Option<std::path::PathBuf>,
@@ -458,6 +461,7 @@ pub fn parse(args: &[String]) -> Cli {
         reboot_ec: args.reboot_ec,
         ec_hib_delay: args.ec_hib_delay,
         uptimeinfo: args.uptimeinfo,
+        s0ix_counter: args.s0ix_counter,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         pd_addrs,

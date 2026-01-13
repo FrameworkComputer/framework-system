@@ -212,6 +212,7 @@ pub struct Cli {
     pub reboot_ec: Option<RebootEcArg>,
     pub ec_hib_delay: Option<Option<u32>>,
     pub uptimeinfo: bool,
+    pub s0ix_counter: bool,
     pub hash: Option<String>,
     pub pd_addrs: Option<(u16, u16, u16)>,
     pub pd_ports: Option<(u8, u8, u8)>,
@@ -297,6 +298,7 @@ pub fn parse(args: &[String]) -> Cli {
             reboot_ec: cli.reboot_ec,
             // ec_hib_delay
             uptimeinfo: cli.uptimeinfo,
+            s0ix_counter: cli.s0ix_counter,
             hash: cli.hash,
             pd_addrs: cli.pd_addrs,
             pd_ports: cli.pd_ports,
@@ -1178,6 +1180,12 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_err(ec.get_ec_hib_delay());
     } else if args.uptimeinfo {
         print_err(ec.get_uptime_info());
+    } else if args.s0ix_counter {
+        if let Some(counter) = print_err(ec.get_s0ix_counter()) {
+            println!("s0ix_counter: {}", counter);
+        } else {
+            println!("s0ix_counter: Unknown");
+        }
     } else if args.test {
         println!("Self-Test");
         let result = selftest(&ec);
