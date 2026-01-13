@@ -121,6 +121,66 @@ pub fn i2c_read(
     })
 }
 
+/// I2C read with 16-bit addressing (for larger EEPROMs like 24C32+)
+/// Always sends a 2-byte address, even for addr=0
+pub fn i2c_read_16bit_addr(
+    ec: &CrosEc,
+    i2c_port: u8,
+    i2c_addr: u16,
+    addr: u16,
+    len: u16,
+) -> EcResult<EcI2cPassthruResponse> {
+    trace!(
+        "i2c_read_16bit_addr(i2c_port: 0x{:X}, i2c_addr: 0x{:X}, addr: 0x{:X}, len: 0x{:X})",
+        i2c_port,
+        i2c_addr,
+        addr,
+        len
+    );
+    if usize::from(len) > MAX_I2C_CHUNK {
+        return EcResult::Err(EcError::DeviceError(format!(
+            "i2c_read too long. Must be <128, is: {}",
+            len
+        )));
+    }
+    // Always use 16-bit addressing (big-endian for EEPROM)
+    let addr_bytes = u16::to_be_bytes(addr).to_vec();
+    let messages = vec![
+        EcParamsI2cPassthruMsg {
+            addr_and_flags: i2c_addr,
+            transfer_len: addr_bytes.len() as u16,
+        },
+        EcParamsI2cPassthruMsg {
+            addr_and_flags: i2c_addr + I2C_READ_FLAG,
+            transfer_len: len, // How much to read
+        },
+    ];
+    let msgs_len = size_of::<EcParamsI2cPassthruMsg>() * messages.len();
+    let msgs_buffer: &[u8] = unsafe { util::any_vec_as_u8_slice(&messages) };
+
+    let params = EcParamsI2cPassthru {
+        port: i2c_port,
+        messages: messages.len() as u8,
+        msg: [], // Messages are copied right after this struct
+    };
+    let params_len = size_of::<EcParamsI2cPassthru>();
+    let params_buffer: &[u8] = unsafe { util::any_as_u8_slice(&params) };
+
+    let mut buffer: Vec<u8> = vec![0; params_len + msgs_len + addr_bytes.len()];
+    buffer[0..params_len].copy_from_slice(params_buffer);
+    buffer[params_len..params_len + msgs_len].copy_from_slice(msgs_buffer);
+    buffer[params_len + msgs_len..].copy_from_slice(&addr_bytes);
+
+    let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
+    let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
+    let res_data = &data[size_of::<_EcI2cPassthruResponse>()..];
+    debug_assert!(res.messages as usize == messages.len() || res.messages == 0);
+    Ok(EcI2cPassthruResponse {
+        i2c_status: res.i2c_status,
+        data: res_data.to_vec(),
+    })
+}
+
 /* Write address and bytes in a single I2C transfer */
 pub fn i2c_write_block(
     ec: &CrosEc,
