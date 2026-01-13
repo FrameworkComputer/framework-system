@@ -780,7 +780,7 @@ fn print_nvidia_details() {
     let nvml = match Nvml::init() {
         Ok(nvml) => nvml,
         Err(err) => {
-            debug!("Nvidia, library init fail: {:?}", err);
+            error!("Nvidia, library init fail: {:?}", err);
             return;
         }
     };
@@ -788,70 +788,62 @@ fn print_nvidia_details() {
     let device = match nvml.device_by_index(0) {
         Ok(device) => device,
         Err(err) => {
-            debug!("Nvidia, device not found: {:?}", err);
+            error!("Nvidia, device not found: {:?}", err);
             return;
         }
     };
 
     println!("NVIDIA GPU");
-    // GeForce
-    info!("  BRAND:          {:?}", device.brand());
     println!(
-        "  Name:             {}",
+        "  Name:               {}",
         device.name().unwrap_or("Unknown".to_string())
     );
-    println!("  Architecture:     {:?}", device.architecture());
+    println!("  Architecture:       {:?}", device.architecture());
     println!(
-        "  VBIOS Version:    {}",
+        "  VBIOS Version:      {}",
         device.vbios_version().unwrap_or("Unknown".to_string())
     );
     println!(
-        "  INFO ROM Ver:     {}",
+        "  INFO ROM Ver:       {}",
         device
             .info_rom_image_version()
             .unwrap_or("Unknown".to_string())
     );
-    println!("  PCI Info:         {:X?}", device.pci_info());
-    println!("  Performance State:{:?}", device.performance_state());
+    println!("  PCI Info:           {:X?}", device.pci_info());
+    println!("  Performance State:  {:?}", device.performance_state());
     println!(
-        "  Pwr Mgmt Limit Df:{:?}mW",
+        "  Pwr Mgmt Limit Def: {:?}mW",
         device.power_management_limit_default()
     );
-    // NotSupported
     println!(
-        "  Pwr Mgmt Limit:   {:?}mW",
+        "  Pwr Mgmt Limit:     {:?}mW",
         device.power_management_limit()
     );
     println!(
-        "  Pwr Mgmt Limit Cs:{:?}",
+        "  Pwr Mgmt Limit Con: {:?}",
         device.power_management_limit_constraints()
     );
-    println!("  Pwr Usage:        {:?}mW", device.power_usage());
+    println!("  Pwr Usage:          {:?}mW", device.power_usage());
     println!(
-        "  Total Energy:     {:?}mJ",
+        "  Total Energy:       {:?}mJ",
         device.total_energy_consumption()
     );
-    // 0/NotSupported right now
-    println!("  Serialnum:        {:?}", device.serial());
+    println!("  Serial Number:      {:?}", device.serial());
     println!(
-        "  Throttle Reason:  {:?}",
+        "  Throttle Reason:    {:?}",
         device.current_throttle_reasons()
     );
     println!(
-        "  Temperature:      {:?}C",
+        "  Temperature:        {:?}C",
         device.temperature(TemperatureSensor::Gpu)
     );
-    //println!("  Temperature Thres:{:?}C", device.temperature_threshold());
-    println!("  Util Rate:        {:?}", device.utilization_rates());
-    println!("  Memory Info:      {:?}", device.memory_info());
-    // Not supported
-    println!("  Part Number:      {:?}", device.board_part_number());
-    println!("  Board ID:         {:?}", device.board_id());
-    // 0
-    println!("  Num Fans:         {:?}", device.num_fans());
-    // Works
-    println!("  Display Active?:  {:?}", device.is_display_active());
-    println!("  Display Conn?:    {:?}", device.is_display_connected());
+    println!("  Util Rate:          {:?}", device.utilization_rates());
+    println!("  Memory Info:        {:?}", device.memory_info());
+    println!("  Part Number:        {:?}", device.board_part_number());
+    println!("  Board ID:           {:?}", device.board_id());
+    println!("  Num Fans:           {:?}", device.num_fans());
+    println!("  Display Active?:    {:?}", device.is_display_active());
+    println!("  Display Conn?:      {:?}", device.is_display_connected());
 }
 
 fn print_esrt() {
