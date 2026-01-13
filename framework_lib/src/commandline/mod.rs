@@ -899,18 +899,66 @@ fn dump_ec_flash(ec: &CrosEc, dump_path: &str) {
 }
 
 fn dump_dgpu_eeprom(ec: &CrosEc, dump_path: &str) {
-    let flash_bin = ec.read_gpu_descriptor().unwrap();
+    // Read raw bytes from EEPROM
+    let raw_bytes = match ec.read_ec_gpu_chunk(0x00, 256) {
+        Ok(data) => data,
+        Err(err) => {
+            error!("Failed to read EEPROM: {:?}", err);
+            return;
+        }
+    };
+
+    // For stdout, just print the raw bytes
+    if dump_path == "-" {
+        println!("{:02X?}", raw_bytes);
+        println!("Read {} bytes from EEPROM", raw_bytes.len());
+        return;
+    }
+
+    // Check if header is valid by examining magic bytes
+    let expected_magic = [0x32, 0xAC, 0x00, 0x00];
+    let has_valid_header = raw_bytes.len() >= 4 && raw_bytes[0..4] == expected_magic;
+
+    let flash_bin = if has_valid_header {
+        // Header looks valid, try to read the full descriptor
+        match ec.read_gpu_descriptor() {
+            Ok(data) => data,
+            Err(err) => {
+                error!("GPU descriptor read failed: {:?}", err);
+                println!("Falling back to raw EEPROM dump (256 bytes)");
+                raw_bytes
+            }
+        }
+    } else {
+        error!(
+            "GPU descriptor invalid: magic {:02X?} != expected {:02X?}",
+            &raw_bytes[0..4],
+            expected_magic
+        );
+        println!("Dumping raw EEPROM (256 bytes)");
+        raw_bytes
+    };
 
     #[cfg(not(feature = "uefi"))]
     {
-        let mut file = fs::File::create(dump_path).unwrap();
-        file.write_all(&flash_bin).unwrap();
+        match fs::File::create(dump_path) {
+            Ok(mut file) => {
+                if let Err(err) = file.write_all(&flash_bin) {
+                    error!("Failed to write file: {:?}", err);
+                    return;
+                }
+            }
+            Err(err) => {
+                error!("Failed to create file: {:?}", err);
+                return;
+            }
+        }
     }
     #[cfg(feature = "uefi")]
     {
-        let ret = crate::uefi::fs::shell_write_file(dump_path, &flash_bin);
-        if ret.is_err() {
-            println!("Failed to dump EC FW image.");
+        if let Err(err) = crate::uefi::fs::shell_write_file(dump_path, &flash_bin) {
+            error!("Failed to dump EC FW image: {:?}", err);
+            return;
         }
     }
     println!("Wrote {} bytes to {}", flash_bin.len(), dump_path);
@@ -1531,7 +1579,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("Unsupported on this platform");
         }
     } else if let Some(dump_path) = &args.dump_gpu_descriptor_file {
-        println!("Dumping to {}", dump_path);
+        if dump_path != "-" {
+            println!("Dumping to {}", dump_path);
+        }
         dump_dgpu_eeprom(&ec, dump_path);
     }
 
