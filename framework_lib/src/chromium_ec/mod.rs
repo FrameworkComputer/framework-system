@@ -1295,7 +1295,8 @@ impl CrosEc {
             let remaining = len - data.len() as u16;
             let chunk_len = std::cmp::min(i2c_passthrough::MAX_I2C_CHUNK, remaining.into());
             let offset = addr + data.len() as u16;
-            let i2c_response = i2c_passthrough::i2c_read(
+            // Use 16-bit addressing for GPU EEPROM (required for larger EEPROMs)
+            let i2c_response = i2c_passthrough::i2c_read_16bit_addr(
                 self,
                 eeprom_port,
                 eeprom_addr,
