@@ -1312,7 +1312,7 @@ impl CrosEc {
             data.extend(i2c_response.data);
         }
 
-        Ok(data)
+        Ok(data[..(len.into())].to_vec())
     }
 
     pub fn write_ec_gpu_chunk(&self, offset: u16, data: &[u8]) -> EcResult<()> {
