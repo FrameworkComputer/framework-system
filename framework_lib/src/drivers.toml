@@ -69,3 +69,11 @@ GeneStor = "Framework SD Expansion Card"
 # MediaTek WiFi Drivers
 mtkwlex = "RZ616 WiFi Driver"
 mtkwecx = "RZ717 WiFi Driver"
+
+# INF Drivers - detected via driver store INF file parsing
+# These are boot-only drivers not visible via WMI at runtime
+# Format: inf_name (without .inf) = "display_alias"
+
+[inf_drivers]
+amddrtm = "AMD DRTM Driver"
+rtextfw = "Realtek MEP Opt-in Driver"

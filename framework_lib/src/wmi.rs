@@ -1,6 +1,8 @@
 use crate::util::Platform;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 use wmi::*;
 
 /// Driver configuration loaded from TOML
@@ -9,6 +11,8 @@ struct DriversConfig {
     pnp_drivers: HashMap<String, String>,
     products: HashMap<String, String>,
     system_drivers: HashMap<String, String>,
+    #[serde(default)]
+    inf_drivers: HashMap<String, String>,
 }
 
 /// Platform-specific baseline configuration
@@ -45,6 +49,93 @@ fn load_baseline_for_platform(platform: &Platform) -> BaselineConfig {
         }
     };
     toml::from_str(config_str).unwrap_or_default()
+}
+
+const DRIVER_STORE_PATH: &str = r"C:\Windows\System32\DriverStore\FileRepository";
+
+/// Find driver INF file in the driver store and extract version
+fn find_inf_driver_version(inf_name: &str) -> Option<String> {
+    let driver_store = Path::new(DRIVER_STORE_PATH);
+    if !driver_store.exists() {
+        return None;
+    }
+
+    // Look for directories matching the INF name pattern (e.g., amddrtm.inf_amd64_*)
+    let pattern = format!("{}.inf_", inf_name);
+    let mut best_match: Option<(String, std::time::SystemTime)> = None;
+
+    if let Ok(entries) = fs::read_dir(driver_store) {
+        for entry in entries.flatten() {
+            if let Ok(name) = entry.file_name().into_string() {
+                if name.starts_with(&pattern) {
+                    // Only consider directories, not files like .ini
+                    if let Ok(metadata) = entry.metadata() {
+                        if !metadata.is_dir() {
+                            continue;
+                        }
+                        // Get the modification time to find the newest version
+                        if let Ok(modified) = metadata.modified() {
+                            let should_update = match &best_match {
+                                None => true,
+                                Some((_, prev_time)) => modified > *prev_time,
+                            };
+                            if should_update {
+                                best_match =
+                                    Some((entry.path().to_string_lossy().to_string(), modified));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // If we found a matching directory, read the INF file and extract version
+    if let Some((dir_path, _)) = best_match {
+        let inf_file = Path::new(&dir_path).join(format!("{}.inf", inf_name));
+        if inf_file.exists() {
+            return parse_inf_version(&inf_file);
+        }
+    }
+
+    None
+}
+
+/// Parse INF file and extract DriverVer version number
+fn parse_inf_version(inf_path: &Path) -> Option<String> {
+    // Try reading as UTF-8 first, then as UTF-16 LE (common for Windows INF files)
+    let content = match fs::read_to_string(inf_path) {
+        Ok(c) => c,
+        Err(_) => {
+            // Try reading as UTF-16 LE
+            let bytes = fs::read(inf_path).ok()?;
+            // Skip BOM if present and convert UTF-16 LE to String
+            let start = if bytes.len() >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE {
+                2
+            } else {
+                0
+            };
+            let u16_chars: Vec<u16> = bytes[start..]
+                .chunks_exact(2)
+                .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
+                .collect();
+            String::from_utf16(&u16_chars).ok()?
+        }
+    };
+
+    // Look for DriverVer line, e.g.: DriverVer = 11/11/2024,1.0.18.4
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.to_lowercase().starts_with("driverver") {
+            // Extract version after the comma
+            if let Some(comma_pos) = trimmed.find(',') {
+                let version = trimmed[comma_pos + 1..].trim();
+                return Some(version.to_string());
+            }
+        }
+    }
+
+    None
 }
 
 /// Collected driver information for baseline updates
@@ -257,6 +348,14 @@ pub fn print_drivers_with_baseline(platform: Option<&Platform>) {
             print_version_with_baseline(&version, alias, &baseline);
         }
     }
+
+    // INF Drivers (boot-only drivers from driver store)
+    for (inf_name, alias) in &config.inf_drivers {
+        if let Some(version) = find_inf_driver_version(inf_name) {
+            println!("  {}", alias);
+            print_version_with_baseline(&version, alias, &baseline);
+        }
+    }
 }
 
 /// Print version with baseline comparison
@@ -359,6 +458,13 @@ pub fn collect_drivers() -> DetectedDrivers {
                     }
                 }
             }
+        }
+    }
+
+    // INF Drivers (boot-only drivers from driver store)
+    for (inf_name, alias) in &config.inf_drivers {
+        if let Some(version) = find_inf_driver_version(inf_name) {
+            detected.drivers.insert(alias.clone(), version);
         }
     }
 

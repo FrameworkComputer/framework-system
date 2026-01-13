@@ -438,7 +438,7 @@ pub fn get_esrt() -> Option<Esrt> {
         let short_guid = guid.trim_matches(|c| c == '{' || c == '}');
         let esrt_entry = esrt.open_subkey(&guid).ok()?;
         let esrt = EsrtResourceEntry {
-            fw_class: GUID::parse(&short_guid).ok()?.into(),
+            fw_class: GUID::parse(short_guid).ok()?.into(),
             fw_type: esrt_entry.get_value("Type").ok()?,
             fw_version: esrt_entry.get_value("Version").ok()?,
             lowest_supported_fw_version: esrt_entry.get_value("LowestSupportedVersion").ok()?,
