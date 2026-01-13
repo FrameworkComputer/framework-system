@@ -1,0 +1,25 @@
+# Driver baseline for Framework 13 Intel 13th Gen (RaptorLake)
+# Last updated: 2026-01-14
+# NOTE: Placeholder versions - update with actual values
+
+[versions]
+# Intel Drivers
+"Intel Chipset Driver" = "0.0.0.0"
+"Intel Graphics" = "0.0.0.0"
+"Intel WiFi Driver" = "0.0.0.0"
+"Intel Wireless Bluetooth" = "0.0.0.0"
+"Intel Smart Sound Technology" = "0.0.0.0"
+"Intel Dynamic Tuning Technology" = "0.0.0.0"
+"Intel Serial IO" = "0.0.0.0"
+"Intel Management Engine" = "0.0.0.0"
+"Intel GNA Scoring Accelerator" = "0.0.0.0"
+"Intel PMT Driver" = "0.0.0.0"
+
+# Realtek Drivers
+"Realtek Audio Driver" = "0.0.0.0"
+
+# Goodix Fingerprint
+"Goodix Fingerprint Driver" = "0.0.0.0"
+
+# Framework
+"Framework EC" = "0.0.0.0"

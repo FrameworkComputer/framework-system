@@ -220,6 +220,7 @@ pub struct Cli {
     pub s0ix_counter: bool,
     pub hash: Option<String>,
     pub drivers: bool,
+    pub drivers_baseline: bool,
     pub pd_addrs: Option<(u16, u16, u16)>,
     pub pd_ports: Option<(u8, u8, u8)>,
     pub help: bool,
@@ -1692,9 +1693,20 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         flash_ec(&ec, ec_bin_path, EcFlashType::Rw, args.dry_run);
     } else if args.drivers {
         #[cfg(target_os = "windows")]
-        wmi::print_drivers();
+        {
+            let platform = smbios::get_platform();
+            wmi::print_drivers_with_baseline(platform.as_ref());
+        }
         #[cfg(not(target_os = "windows"))]
         println!("Driver Version only supported on Windows");
+    } else if args.drivers_baseline {
+        #[cfg(target_os = "windows")]
+        {
+            let detected = wmi::collect_drivers();
+            println!("{}", detected.to_toml());
+        }
+        #[cfg(not(target_os = "windows"))]
+        println!("Driver baseline only supported on Windows");
     } else if let Some(hash_file) = &args.hash {
         println!("Hashing file: {}", hash_file);
         #[cfg(feature = "uefi")]

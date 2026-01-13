@@ -1,0 +1,26 @@
+# Driver baseline for Framework 13 AMD Ryzen AI 300 Series
+# Last updated: 2026-01-14
+# NOTE: Placeholder versions - update with actual values
+
+[versions]
+# AMD Drivers
+"AMD Chipset Driver" = "0.0.0.0"
+"AMD Graphics Driver" = "0.0.0.0"
+
+# Realtek Drivers
+"Realtek Audio Driver" = "0.0.0.0"
+"Realtek Audio Console" = "0.0.0.0"
+"Camera Driver" = "0.0.0.0"
+
+# MediaTek Wireless
+"RZ717 WiFi Driver" = "0.0.0.0"
+"RZ717 Bluetooth Driver" = "0.0.0.0"
+
+# Goodix Fingerprint
+"Goodix Fingerprint Driver" = "0.0.0.0"
+
+# Microsoft
+"MEP Driver" = "0.0.0.0"
+
+# Framework
+"Framework EC" = "0.0.0.0"

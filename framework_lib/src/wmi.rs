@@ -1,5 +1,76 @@
+use crate::util::Platform;
+use serde::Deserialize;
 use std::collections::HashMap;
 use wmi::*;
+
+/// Driver configuration loaded from TOML
+#[derive(Debug, Deserialize)]
+struct DriversConfig {
+    pnp_drivers: HashMap<String, String>,
+    products: HashMap<String, String>,
+    system_drivers: HashMap<String, String>,
+}
+
+/// Platform-specific baseline configuration
+#[derive(Debug, Deserialize, Default)]
+struct BaselineConfig {
+    versions: HashMap<String, String>,
+}
+
+/// Load driver configuration from embedded TOML
+fn load_drivers_config() -> DriversConfig {
+    const CONFIG_STR: &str = include_str!("drivers.toml");
+    toml::from_str(CONFIG_STR).expect("Failed to parse drivers.toml")
+}
+
+/// Load baseline configuration for a specific platform
+fn load_baseline_for_platform(platform: &Platform) -> BaselineConfig {
+    let config_str = match platform {
+        Platform::Framework12IntelGen13 => {
+            include_str!("baselines/framework12_intel_gen13.toml")
+        }
+        Platform::IntelGen11 => include_str!("baselines/intel_gen11.toml"),
+        Platform::IntelGen12 => include_str!("baselines/intel_gen12.toml"),
+        Platform::IntelGen13 => include_str!("baselines/intel_gen13.toml"),
+        Platform::IntelCoreUltra1 => include_str!("baselines/intel_core_ultra1.toml"),
+        Platform::Framework13Amd7080 => include_str!("baselines/framework13_amd_7080.toml"),
+        Platform::Framework13AmdAi300 => include_str!("baselines/framework13_amd_ai300.toml"),
+        Platform::Framework16Amd7080 => include_str!("baselines/framework16_amd_7080.toml"),
+        Platform::Framework16AmdAi300 => include_str!("baselines/framework16_amd_ai300.toml"),
+        Platform::FrameworkDesktopAmdAiMax300 => {
+            include_str!("baselines/framework_desktop_amd_ai_max300.toml")
+        }
+        Platform::GenericFramework(..) | Platform::UnknownSystem => {
+            return BaselineConfig::default();
+        }
+    };
+    toml::from_str(config_str).unwrap_or_default()
+}
+
+/// Collected driver information for baseline updates
+#[derive(Debug, Default)]
+pub struct DetectedDrivers {
+    pub drivers: HashMap<String, String>,
+}
+
+impl DetectedDrivers {
+    /// Generate TOML baseline content from detected drivers
+    pub fn to_toml(&self) -> String {
+        let mut output = String::new();
+        output.push_str("# Driver baseline - auto-generated\n");
+        output.push_str("# Last updated: ");
+        output.push_str(&chrono::Local::now().format("%Y-%m-%d").to_string());
+        output.push_str("\n\n[versions]\n");
+
+        let mut sorted: Vec<_> = self.drivers.iter().collect();
+        sorted.sort_by_key(|(k, _)| k.as_str());
+
+        for (name, version) in sorted {
+            output.push_str(&format!("\"{}\" = \"{}\"\n", name, version));
+        }
+        output
+    }
+}
 
 // TODO:
 // - [ ] Critical
@@ -82,70 +153,12 @@ pub fn print_yellow_bangs() {
     }
 }
 
-const PNP_DRIVERS: &[&str] = &[
-    // Manufacturer              DeviceName                                                 HardWareID                                              DriverVersion
-    // ------------              ----------                                                 ----------                                              -------------
-    // Intel Chipset Raptor Lake Framework 12
-    // INTEL                     Intel(R) LPC Controller - 519D                        10.1.36.7
-    "Intel(R) LPC Controller - 519D",
-    // Goodix                    Framework Fingerprint Reader                               USB\VID_27C6&PID_609C&REV_0100                          3.12804.0.240
-    "Framework Fingerprint Reader",
-    // TODO: Wrong version
-    // Intel Corporation         Intel(R) Graphics Command Center                           SWC\101.5522_VEN8086_IGCC
-    // "Intel(R) Graphics Command Center",
-
-    // Intel Corporation         Intel(R) Wi-Fi 6E AX210 160MHz                             PCI\VEN_8086&DEV_2725&SUBSYS_00248086&REV_1A            23.60.0.10
-    "Intel(R) Wi-Fi 6E AX210 160MHz",
-    // Don't need, already in system_drivers
-    // Intel Corporation         Intel(R) Wireless Bluetooth(R)                             USB\VID_8087&PID_0032&REV_0000                          23.60.0.1
-    // "Intel(R) Wireless Bluetooth(R)",
-    // Intel Corporation         Intel(R) Wi-Fi 6E AX211 160MHz                        PCI\VEN_8086&DEV_51F1&SUBSYS_00948086&REV_01
-    "Intel(R) Wi-Fi 6E AX211 160MHz",
-    // Intel(R) Platform Monito… Intel(R) Platform Monitoring Technology (PMT) Driver       PCI\VEN_8086&DEV_7D0D&SUBSYS_0009F111&REV_01            3.1.2.2
-    "Intel(R) Platform Monitoring Technology (PMT) Driver",
-    // Also in system_drivers
-    // Not using the one here, because it doesn't show up when the card isn't plugged in
-    // Genesys Logic             Framework SD Expansion Card                                USB\VID_32AC&PID_0009&REV_0003                          4.5.10.201
-
-    // MediaTek, Inc.               RZ616 Wi-Fi 6E 160MHz                           PCI\VEN_14C3&DEV_0616&SUBSYS_E61614C3&REV_00            3.3.0.908
-    // Mediatek Inc.                RZ616 Bluetooth(R) Adapter                      USB\VID_0E8D&PID_E616&REV_0100&MI_00                    1.1037.0.395
-    "RZ616 Bluetooth(R) Adapter",
-    // MediaTek, Inc.               RZ717 WiFi 7 160MHz                             PCI\VEN_14C3&DEV_0717&SUBSYS_071714C3&REV_00                 5.4.0.1920
-    // Mediatek Inc.                RZ717 Bluetooth(R) Adapter                      USB\VID_0E8D&PID_0717&REV_0100&MI_00                         1.1037.0.433
-    "RZ717 Bluetooth(R) Adapter",
-    // For both of these WMI shows 31.0.24018.2001 instead of 23.40.18.02. But it's actually the same version
-    // 31.0.22024.17002 instead of 23.20.24.17
-    // Advanced Micro Devices, Inc. AMD Radeon(TM) 780M                             PCI\VEN_1002&DEV_15BF&SUBSYS_0005F111&REV_C1            31.0.24018.2001
-    "AMD Radeon(TM) 780M",
-    // Advanced Micro Devices, Inc. AMD Radeon(TM) RX 7700S                         PCI\VEN_1002&DEV_7480&SUBSYS_0007F111&REV_C1            31.0.24018.2001
-    "AMD Radeon(TM) RX 7700S",
-    // Framework                    Framework NE160QDM-NZ6                          MONITOR\BOE0BC9                                         1.0.0.0
-    "Framework NE160QDM-NZ6",
-    // Advanced Micro Devices, Inc  AMD DRTM Boot Driver                            ACPI\VEN_DRTM&DEV_0001                                       1.0.18.4
-    "AMD DRTM Boot Driver",
-    // Framework                 Framework EC                                          ACPI\VEN_FRMW&DEV_C004
-    "Framework EC",
-    // Framework Computer Inc    Framework Sensors                                     ACPI\VEN_FRMW&DEV_C006
-    "Framework Sensors",
-    // ILITEK                    ILITEK Wake On Touch Device                           ACPI\VEN_ILIT&DEV_2901
-    "ILITEK Wake On Touch Device",
-];
-
-const PRODUCTS: &[&str] = &[
-    // TODO: Can I rely on the IdentifyingNumber GUID?
-    // IdentifyingNumber                      Name                                                                      Version
-    // -----------------                      ----                                                                      -------
-    // {BAB97289-552B-49D5-B1E7-95DB4E4D2DEF} Intel(R) Chipset Device Software                                          10.1.19627.84…
-    "Intel(R) Chipset Device Software",
-    // {00000060-0230-1033-84C8-B8D95FA3C8C3} Intel(R) Wireless Bluetooth(R)                                            23.60.0.1
-    // {1C1EBF97-5EC2-4C01-BCFC-037D140796B4} Intel(R) Serial IO                                                        30.100.2405.44
-
-    // {35143df0-ba1c-4148-8744-137275e83211} AMD_Chipset_Drivers                                                       5.06.29.310
-    "AMD_Chipset_Drivers",
-];
-
-pub fn print_drivers() {
+/// Print drivers with optional baseline comparison
+pub fn print_drivers_with_baseline(platform: Option<&Platform>) {
     print_yellow_bangs();
+
+    let config = load_drivers_config();
+    let baseline = platform.map(load_baseline_for_platform).unwrap_or_default();
 
     println!("Drivers");
     let wmi_con = WMIConnection::new(COMLibrary::new().unwrap()).unwrap();
@@ -168,12 +181,11 @@ pub fn print_drivers() {
             "".to_string()
         };
 
-        // Skip those that we don't care about
-        if !PNP_DRIVERS.contains(&device_name.as_str()) {
-            continue;
+        // Find matching driver entry
+        if let Some(alias) = config.pnp_drivers.get(&device_name) {
+            println!("  {}", alias);
+            print_version_with_baseline(&version, alias, &baseline);
         }
-        println!("  {}", device_name);
-        println!("    Version: {}", version);
     }
 
     // Products
@@ -192,92 +204,15 @@ pub fn print_drivers() {
             "".to_string()
         };
 
-        // Skip those that we don't care about
-        if !PRODUCTS.contains(&name.as_str()) {
-            continue;
+        // Find matching product entry
+        if let Some(alias) = config.products.get(&name) {
+            println!("  {}", alias);
+            print_version_with_baseline(&version, alias, &baseline);
         }
-        println!("  {}", name);
-        println!("    Version: {}", version);
     }
 
     // System Drivers
-    //const system_drivers: HashMap<&str, Option<&str>> = HashMap::from([
-    let system_drivers = HashMap::from([
-        // [ ] 13 Goodix
-        // TODO: Can find via Win32_PnpSignedDriver, Manufacturer 'Goodix', DeviceName 'Framework Fingerprint Reader'
-        // HardwareID: USB\VID_27C6&PID_609C&REV_0100
-
-        // [ ] 12 Intel Platform Monitoring Technology
-        // Can find in PNP
-
-        // [x] 11 Intel PROSet Bluetooth
-        ("ibtusb", None), // Intel(R) Wireless Bluetooth(R)
-        // [ ] 10 Intel PROSet WiFi
-        // TODO: The first two show old version - Is the wrong version used?
-        // "Netwtw14",              // Intel® Smart Sound Technology BUS
-        // "Netwtw10",             // Intel® Smart Sound Technology BUS
-        // "Netwtw16",              // This one has the correct version, but it doesn't show up
-
-        // [x] 09 Realtek Audio
-        ("IntcAzAudAddService", None), // Service for Realtek HD Audio (WDM)
-        // [x] 08 Intel Smart Sound Technology
-        ("IntcAudioBus", None), // Intel® Smart Sound Technology BUS
-        //"IntcOED",               // Intel® Smart Sound Technology OED
-        //"IntcUSB",               // Intel® Smart Sound Technology for USB Audio
-
-        // [x] 07 Intel Dynamic Tuning Technology
-        ("ipf_acpi", Some("Intel Dynamic Tuning Technology")),
-        // "ipf_cpu",
-        // "ipf_lf",
-
-        // [x] 06 Intel NPU
-        ("npu", Some("Intel NPU")),
-        // [x] 05 Intel Graphics
-        ("igfxn", Some("Intel Graphics")), // igfxn
-        // [x] 04 Intel Serial IO
-        // Don't need to show GPIO and I2C versions, we don't need GPIO driver anyways
-        // "iaLPSS2_GPIO2_MTL",     // Serial IO GPIO Driver v2
-        // "iagpio",                // Intel Serial IO GPIO Controller Driver
-        // "iai2c",                 // Serial IO I2C Host Controller
-        // "iaLPSS2i_GPIO2"
-        // "iaLPSS2i_GPIO2_BXT_P",
-        // "iaLPSS2i_GPIO2_CNL",
-        // "iaLPSS2i_GPIO2_GLK",
-        ("iaLPSS2_I2C_MTL", Some("Intel Serial IO")), // Serial IO I2C Driver v2
-        // "iaLPSS2i_I2C",
-        // "iaLPSS2i_I2C_BXT_P",
-        // "iaLPSS2i_I2C_CNL",
-        // "iaLPSS2i_I2C_GLK",
-
-        // [ ] 03 Intel Management Engine
-        // TODO: Shows old version 2406.5.5.0 instead of 2409.5.63.0
-        ("MEIx64", None), // Intel(R) Management Engine Interface
-        // [x] 02 Intel GNA Scoring Accelerator
-        ("IntelGNA", None), // Intel(R) GNA Scoring Accelerator service
-        // [ ] 01 Intel Chipset
-        // TODO: How to find?
-        // Can't find it anywhere, not in Device Manager, not in Win32_SystemDriver, not in Win32_PnpSignedDriver
-
-        // Framework provided drivers
-        // Realtek USB FE/1GbE/2.5GbE NIC Family Windows 10 64-bit Driver
-        (
-            "rtux64w10",
-            Some("Realtek/Framework Ethernet Expansion Card"),
-        ),
-        // Genesys Logic Storage Driver
-        ("GeneStor", Some("Genesys/Framework SD Expansion Card")),
-        //"IntcAzAudAddService",   // Service for Realtek HD Audio (WDM)
-        //"intelpmax",             // Intel(R) Dynamic Device Peak Power Manager Driver
-        //"IntelPMT",              // Intel(R) Platform Monitoring Technology Service
-
-        // Mediatek PCI LE Extensible Wireless LAN Card Driver mtkwlex               3.3.0.0908                             C:\Windows\system32\drivers\mtkwl6ex.sys
-        ("mtkwlex", Some("RZ616 WiFi Driver")),
-        // Mediatek PCI LE Extensible Wireless LAN Card Driver                         mtkwecx              5.4.0.1920                             C:\Windows\system32\DriverStore\FileRepository\mtkwecx.inf_amd64_b64df836c89617f7\mtkwecx.sys
-        ("mtkwecx", Some("RZ717 WiFi Driver")),
-        // RZ616 and RZ717
-        // MTK BT Filter Driver                                MTKBTFilterx64        1.1037.0.395 TK                        C:\Windows\system32\drivers\mtkbtfilterx.sys
-        // ("MTKBTFilterx64", Some("RZ616/RZ717 Bluetooth Driver")),
-    ]);
+    let system_drivers = &config.system_drivers;
 
     let results: Vec<HashMap<String, Variant>> = wmi_con
         .raw_query("SELECT DisplayName,Name,PathName FROM Win32_SystemDriver")
@@ -299,12 +234,8 @@ pub fn print_drivers() {
             "".to_string()
         };
 
-        // select * from CIM_Datafile" & _ " where Name = '" & Replace(strPath, "\", "\\") &
-        // C:\Windows\system32\drivers\xinputhid.sys
-        // Get-WmiObject -query "SELECT Version FROM CIM_Datafile WHERE Name = 'C:\\Windows\\system32\\drivers\\xinputhid.sys'"
         if !path_name.starts_with("C:") {
             debug!("Skipping path_name: {:?}", path_name);
-            // TODO: Probably a UNC path, not sure how to handle it, let's skip it
             continue;
         }
         let query = format!(
@@ -313,31 +244,123 @@ pub fn print_drivers() {
         );
         let results: Vec<HashMap<String, Variant>> = wmi_con.raw_query(query).unwrap();
         let version = if let Variant::String(s) = &results[0]["Version"] {
-            s
+            s.clone()
         } else {
-            ""
+            "".to_string()
         };
 
-        // Skip those that we don't care about
-        let str_name: &str = &name;
-        //if let Ok(alias) = system_drivers.binary_search_by(|(k, _)| k.cmp(&str_name)).map(|x| system_drivers[x].1) {
-        if let Some(alias) = system_drivers.get(&str_name) {
-            let alias = if let Some(alias) = alias {
-                *alias
-            } else {
-                &display_name
-            };
+        if let Some(alias) = system_drivers.get(&name) {
             println!("  {}", alias);
             debug!("    Display: {}", display_name);
             debug!("    Name:    {}", name);
             debug!("    Path:    {}", path_name);
-            println!("    Version: {}", version);
-        } else {
-            //println!("Not found: {}", display_name);
-            //println!("    Name:    '{}'", name);
-            //debug!("    Path:    {}", path_name);
-            //println!("    Version: {}", version);
-            continue;
+            print_version_with_baseline(&version, alias, &baseline);
         }
     }
+}
+
+/// Print version with baseline comparison
+fn print_version_with_baseline(version: &str, alias: &str, baseline: &BaselineConfig) {
+    if let Some(expected) = baseline.versions.get(alias) {
+        if expected != "0.0.0.0" && version != expected {
+            println!("    Version: {} (expected: {})", version, expected);
+        } else {
+            println!("    Version: {}", version);
+        }
+    } else {
+        println!("    Version: {}", version);
+    }
+}
+
+/// Print drivers without baseline comparison (backwards compatible)
+pub fn print_drivers() {
+    print_drivers_with_baseline(None);
+}
+
+/// Collect all detected drivers (for generating baselines)
+pub fn collect_drivers() -> DetectedDrivers {
+    let config = load_drivers_config();
+    let mut detected = DetectedDrivers::default();
+    let wmi_con = WMIConnection::new(COMLibrary::new().unwrap()).unwrap();
+
+    // PNP Drivers
+    let results: Vec<HashMap<String, Variant>> = wmi_con
+        .raw_query(
+            "SELECT Manufacturer,DeviceName,HardwareID,DriverVersion FROM Win32_PnpSignedDriver",
+        )
+        .unwrap();
+    for val in results.iter() {
+        let device_name = if let Variant::String(s) = &val["DeviceName"] {
+            s.clone()
+        } else {
+            continue;
+        };
+        let version = if let Variant::String(s) = &val["DriverVersion"] {
+            s.clone()
+        } else {
+            continue;
+        };
+
+        if let Some(alias) = config.pnp_drivers.get(&device_name) {
+            detected.drivers.insert(alias.clone(), version);
+        }
+    }
+
+    // Products
+    let results: Vec<HashMap<String, Variant>> = wmi_con
+        .raw_query("SELECT IdentifyingNumber, Name, Version FROM Win32_Product")
+        .unwrap();
+    for val in results.iter() {
+        let name = if let Variant::String(s) = &val["Name"] {
+            s.clone()
+        } else {
+            continue;
+        };
+        let version = if let Variant::String(s) = &val["Version"] {
+            s.clone()
+        } else {
+            continue;
+        };
+
+        if let Some(alias) = config.products.get(&name) {
+            detected.drivers.insert(alias.clone(), version);
+        }
+    }
+
+    // System Drivers
+    let system_drivers = &config.system_drivers;
+    let results: Vec<HashMap<String, Variant>> = wmi_con
+        .raw_query("SELECT DisplayName,Name,PathName FROM Win32_SystemDriver")
+        .unwrap();
+    for val in results.iter() {
+        let name = if let Variant::String(s) = &val["Name"] {
+            s.clone()
+        } else {
+            continue;
+        };
+        let path_name = if let Variant::String(s) = &val["PathName"] {
+            s.clone()
+        } else {
+            continue;
+        };
+
+        if !path_name.starts_with("C:") {
+            continue;
+        }
+        let query = format!(
+            "SELECT Version FROM CIM_Datafile WHERE Name = '{}'",
+            path_name.replace("\\", "\\\\")
+        );
+        if let Ok(results) = wmi_con.raw_query::<HashMap<String, Variant>>(&query) {
+            if !results.is_empty() {
+                if let Variant::String(version) = &results[0]["Version"] {
+                    if let Some(alias) = system_drivers.get(&name) {
+                        detected.drivers.insert(alias.to_string(), version.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    detected
 }
