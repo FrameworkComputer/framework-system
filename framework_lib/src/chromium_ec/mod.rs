@@ -1498,6 +1498,19 @@ impl CrosEc {
         Ok(res.hibernation_delay)
     }
 
+    pub fn reset_s0ix_counter(&self) -> EcResult<()> {
+        EcRequestS0ixCounter {
+            flags: EC_S0IX_COUNTER_RESET,
+        }
+        .send_command(self)?;
+        Ok(())
+    }
+
+    pub fn get_s0ix_counter(&self) -> EcResult<u32> {
+        let res = EcRequestS0ixCounter { flags: 0 }.send_command(self)?;
+        Ok(res.s0ix_counter)
+    }
+
     /// Check features supported by the firmware
     pub fn get_features(&self) -> EcResult<()> {
         let data = EcRequestGetFeatures {}.send_command(self)?;

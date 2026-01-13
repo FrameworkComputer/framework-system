@@ -641,6 +641,25 @@ impl EcRequest<EcResponseHibernationDelay> for EcRequesetHibernationDelay {
     }
 }
 
+#[repr(C, packed)]
+pub struct EcRequestS0ixCounter {
+    /// If 0x01 then reset the counter, otherwise get it
+    pub flags: u32,
+}
+
+#[repr(C, packed)]
+pub struct EcResponseS0ixCounter {
+    pub s0ix_counter: u32,
+}
+
+pub const EC_S0IX_COUNTER_RESET: u32 = 0x01;
+
+impl EcRequest<EcResponseS0ixCounter> for EcRequestS0ixCounter {
+    fn command_id() -> EcCommands {
+        EcCommands::S0ixCounter
+    }
+}
+
 /// Supported features
 #[derive(Debug, FromPrimitive)]
 pub enum EcFeatureCode {
