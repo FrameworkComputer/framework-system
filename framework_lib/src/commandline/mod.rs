@@ -224,6 +224,7 @@ pub struct Cli {
     pub flash_gpu_descriptor: Option<(u8, String)>,
     pub flash_gpu_descriptor_file: Option<String>,
     pub dump_gpu_descriptor_file: Option<String>,
+    pub nvidia: bool,
     // UEFI only
     pub allupdate: bool,
     pub paginate: bool,
@@ -309,6 +310,7 @@ pub fn parse(args: &[String]) -> Cli {
             info: cli.info,
             // flash_gpu_descriptor
             // flash_gpu_descriptor_file
+            nvidia: cli.nvidia,
             // allupdate
             paginate: cli.paginate,
             // raw_command
@@ -775,6 +777,7 @@ fn print_versions(ec: &CrosEc) {
     print_nvidia_details();
 }
 
+/// Brief NVIDIA details for --version output
 #[cfg(feature = "nvidia")]
 fn print_nvidia_details() {
     let nvml = match Nvml::init() {
@@ -784,7 +787,6 @@ fn print_nvidia_details() {
             return;
         }
     };
-    // Get the first `Device` (GPU) in the system
     let device = match nvml.device_by_index(0) {
         Ok(device) => device,
         Err(err) => {
@@ -795,55 +797,191 @@ fn print_nvidia_details() {
 
     println!("NVIDIA GPU");
     println!(
-        "  Name:               {}",
+        "  Name:           {}",
         device.name().unwrap_or("Unknown".to_string())
     );
-    println!("  Architecture:       {:?}", device.architecture());
     println!(
-        "  VBIOS Version:      {}",
+        "  VBIOS Version:  {}",
+        device.vbios_version().unwrap_or("Unknown".to_string())
+    );
+}
+
+/// Detailed NVIDIA information for --nvidia command
+#[cfg(feature = "nvidia")]
+fn print_nvidia_info() {
+    let nvml = match Nvml::init() {
+        Ok(nvml) => nvml,
+        Err(err) => {
+            error!("Nvidia, library init fail: {:?}", err);
+            return;
+        }
+    };
+    let device = match nvml.device_by_index(0) {
+        Ok(device) => device,
+        Err(err) => {
+            error!("Nvidia, device not found: {:?}", err);
+            return;
+        }
+    };
+
+    println!("NVIDIA GPU");
+
+    // Basic identification
+    println!("Identification");
+    println!(
+        "  Name:              {}",
+        device.name().unwrap_or("Unknown".to_string())
+    );
+    if let Ok(arch) = device.architecture() {
+        println!("  Architecture:      {:?}", arch);
+    }
+    if let Ok(serial) = device.serial() {
+        println!("  Serial Number:     {}", serial);
+    }
+    if let Ok(part_number) = device.board_part_number() {
+        println!("  Part Number:       {}", part_number);
+    }
+    if let Ok(board_id) = device.board_id() {
+        println!("  Board ID:          {}", board_id);
+    }
+
+    // Firmware versions
+    println!("Firmware");
+    println!(
+        "  VBIOS Version:     {}",
         device.vbios_version().unwrap_or("Unknown".to_string())
     );
     println!(
-        "  INFO ROM Ver:       {}",
+        "  InfoROM Version:   {}",
         device
             .info_rom_image_version()
             .unwrap_or("Unknown".to_string())
     );
-    println!("  PCI Info:           {:X?}", device.pci_info());
-    println!("  Performance State:  {:?}", device.performance_state());
-    println!(
-        "  Pwr Mgmt Limit Def: {:?}mW",
-        device.power_management_limit_default()
-    );
-    println!(
-        "  Pwr Mgmt Limit:     {:?}mW",
-        device.power_management_limit()
-    );
-    println!(
-        "  Pwr Mgmt Limit Con: {:?}",
-        device.power_management_limit_constraints()
-    );
-    println!("  Pwr Usage:          {:?}mW", device.power_usage());
-    println!(
-        "  Total Energy:       {:?}mJ",
-        device.total_energy_consumption()
-    );
-    println!("  Serial Number:      {:?}", device.serial());
-    println!(
-        "  Throttle Reason:    {:?}",
-        device.current_throttle_reasons()
-    );
-    println!(
-        "  Temperature:        {:?}C",
-        device.temperature(TemperatureSensor::Gpu)
-    );
-    println!("  Util Rate:          {:?}", device.utilization_rates());
-    println!("  Memory Info:        {:?}", device.memory_info());
-    println!("  Part Number:        {:?}", device.board_part_number());
-    println!("  Board ID:           {:?}", device.board_id());
-    println!("  Num Fans:           {:?}", device.num_fans());
-    println!("  Display Active?:    {:?}", device.is_display_active());
-    println!("  Display Conn?:      {:?}", device.is_display_connected());
+
+    // PCI information
+    println!("PCI");
+    if let Ok(pci) = device.pci_info() {
+        println!("  Bus:               {:02X}", pci.bus);
+        println!("  Device:            {:02X}", pci.device);
+        println!("  Domain:            {:04X}", pci.domain);
+        println!("  Device ID:         {:04X}", pci.pci_device_id);
+        if let Some(sub_id) = pci.pci_sub_system_id {
+            println!("  Subsystem ID:      {:08X}", sub_id);
+        }
+    }
+
+    // Power information
+    println!("Power");
+    if let Ok(state) = device.performance_state() {
+        println!("  Performance State: {:?}", state);
+    }
+    if let Ok(power) = device.power_usage() {
+        println!("  Current Usage:     {:.2} W", power as f64 / 1000.0);
+    }
+    if let Ok(limit) = device.power_management_limit() {
+        println!("  Power Limit:       {:.2} W", limit as f64 / 1000.0);
+    }
+    if let Ok(default) = device.power_management_limit_default() {
+        println!("  Default Limit:     {:.2} W", default as f64 / 1000.0);
+    }
+    if let Ok(constraints) = device.power_management_limit_constraints() {
+        println!(
+            "  Min Limit:         {:.2} W",
+            constraints.min_limit as f64 / 1000.0
+        );
+        println!(
+            "  Max Limit:         {:.2} W",
+            constraints.max_limit as f64 / 1000.0
+        );
+    }
+    if let Ok(energy) = device.total_energy_consumption() {
+        println!("  Total Energy:      {:.2} J", energy as f64 / 1000.0);
+    }
+
+    // Thermal information
+    println!("Thermal");
+    if let Ok(temp) = device.temperature(TemperatureSensor::Gpu) {
+        println!("  GPU Temperature:   {}C", temp);
+    }
+    if let Ok(num_fans) = device.num_fans() {
+        println!("  Number of Fans:    {}", num_fans);
+    }
+
+    // Throttling
+    if let Ok(throttle) = device.current_throttle_reasons() {
+        println!("Throttle Reasons");
+        if throttle.is_empty() {
+            println!("  None");
+        } else {
+            if throttle.contains(nvml_wrapper::bitmasks::device::ThrottleReasons::GPU_IDLE) {
+                println!("  GPU Idle");
+            }
+            if throttle.contains(
+                nvml_wrapper::bitmasks::device::ThrottleReasons::APPLICATIONS_CLOCKS_SETTING,
+            ) {
+                println!("  Applications Clocks Setting");
+            }
+            if throttle.contains(nvml_wrapper::bitmasks::device::ThrottleReasons::SW_POWER_CAP) {
+                println!("  Software Power Cap");
+            }
+            if throttle.contains(nvml_wrapper::bitmasks::device::ThrottleReasons::HW_SLOWDOWN) {
+                println!("  Hardware Slowdown");
+            }
+            if throttle.contains(nvml_wrapper::bitmasks::device::ThrottleReasons::SYNC_BOOST) {
+                println!("  Sync Boost");
+            }
+            if throttle
+                .contains(nvml_wrapper::bitmasks::device::ThrottleReasons::SW_THERMAL_SLOWDOWN)
+            {
+                println!("  Software Thermal Slowdown");
+            }
+            if throttle
+                .contains(nvml_wrapper::bitmasks::device::ThrottleReasons::HW_THERMAL_SLOWDOWN)
+            {
+                println!("  Hardware Thermal Slowdown");
+            }
+            if throttle
+                .contains(nvml_wrapper::bitmasks::device::ThrottleReasons::HW_POWER_BRAKE_SLOWDOWN)
+            {
+                println!("  Hardware Power Brake Slowdown");
+            }
+            if throttle
+                .contains(nvml_wrapper::bitmasks::device::ThrottleReasons::DISPLAY_CLOCK_SETTING)
+            {
+                println!("  Display Clock Setting");
+            }
+        }
+    }
+
+    // Utilization
+    println!("Utilization");
+    if let Ok(util) = device.utilization_rates() {
+        println!("  GPU:               {}%", util.gpu);
+        println!("  Memory:            {}%", util.memory);
+    }
+
+    // Memory information
+    println!("Memory");
+    if let Ok(mem) = device.memory_info() {
+        let total_gb = mem.total as f64 / (1024.0 * 1024.0 * 1024.0);
+        let used_gb = mem.used as f64 / (1024.0 * 1024.0 * 1024.0);
+        let free_gb = mem.free as f64 / (1024.0 * 1024.0 * 1024.0);
+        println!("  Total:             {:.2} GB", total_gb);
+        println!("  Used:              {:.2} GB", used_gb);
+        println!("  Free:              {:.2} GB", free_gb);
+    }
+
+    // Display status
+    println!("Display");
+    if let Ok(active) = device.is_display_active() {
+        println!("  Active:            {}", if active { "Yes" } else { "No" });
+    }
+    if let Ok(connected) = device.is_display_connected() {
+        println!(
+            "  Connected:         {}",
+            if connected { "Yes" } else { "No" }
+        );
+    }
 }
 
 fn print_esrt() {
@@ -1197,6 +1335,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 println!("    Hdr CRC:     {:X}", { header.crc32 });
             }
         }
+    } else if args.nvidia {
+        #[cfg(feature = "nvidia")]
+        print_nvidia_info();
+        #[cfg(not(feature = "nvidia"))]
+        error!("Not built with nvidia feature");
     } else if let Some(maybe_limit) = args.charge_limit {
         print_err(handle_charge_limit(&ec, maybe_limit));
     } else if let Some((limit, soc)) = args.charge_current_limit {
@@ -1629,6 +1772,7 @@ Options:
       --inputdeck            Show status of the input deck
       --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
       --expansion-bay        Show status of the expansion bay (Framework 16 only)
+      --nvidia               Show NVIDIA GPU information (Framework 16 only)
       --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')
       --charge-current-limit [<VAL>] Get or set battery current charge limit (Percentage number as arg, e.g. '100')
       --get-gpio <GET_GPIO>  Get GPIO value by name or all, if no name provided

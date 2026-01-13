@@ -95,6 +95,7 @@ pub fn parse(args: &[String]) -> Cli {
         dump_gpu_descriptor_file: None,
         allupdate: false,
         info: false,
+        nvidia: false,
         raw_command: vec![],
     };
 
@@ -249,6 +250,9 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--expansion-bay" {
             cli.expansion_bay = true;
+            found_an_option = true;
+        } else if arg == "--nvidia" {
+            cli.nvidia = true;
             found_an_option = true;
         } else if arg == "--charge-limit" {
             cli.charge_limit = if args.len() > i + 1 {

@@ -288,6 +288,10 @@ struct ClapCli {
     /// File to dump the gpu EEPROM to
     #[arg(long)]
     dump_gpu_descriptor_file: Option<std::path::PathBuf>,
+
+    /// Show NVIDIA GPU information (Framework 16 only)
+    #[arg(long)]
+    nvidia: bool,
 }
 
 /// Parse a list of commandline arguments and return the struct
@@ -484,6 +488,7 @@ pub fn parse(args: &[String]) -> Cli {
         dump_gpu_descriptor_file: args
             .dump_gpu_descriptor_file
             .map(|x| x.into_os_string().into_string().unwrap()),
+        nvidia: args.nvidia,
         raw_command: vec![],
     }
 }
