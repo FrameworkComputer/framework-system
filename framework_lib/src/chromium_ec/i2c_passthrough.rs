@@ -49,9 +49,13 @@ impl EcI2cPassthruResponse {
         if self.i2c_status & (1 << 1) > 0 {
             return Err(EcError::DeviceError("I2C Transfer timeout".to_string()));
         }
-        // I'm not aware of any other errors, but there might be.
-        // But I don't think multiple errors can be indicated at the same time
-        assert_eq!(self.i2c_status, 0);
+        // Check for any other unknown error bits
+        if self.i2c_status != 0 {
+            return Err(EcError::DeviceError(format!(
+                "I2C Transfer failed with unknown status: 0x{:02X}",
+                self.i2c_status
+            )));
+        }
         Ok(())
     }
 }
@@ -221,7 +225,13 @@ pub fn i2c_write_block(
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
     let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
     util::assert_win_len(data.len(), size_of::<_EcI2cPassthruResponse>()); // No extra data other than the header
-    debug_assert_eq!(res.messages as usize, messages.len());
+
+    // Only assert message count if the transfer was successful
+    // On error (NAK/timeout), the EC may return 0 messages processed
+    if res.i2c_status == 0 {
+        debug_assert_eq!(res.messages as usize, messages.len());
+    }
+
     Ok(EcI2cPassthruResponse {
         i2c_status: res.i2c_status,
         data: vec![], // Writing doesn't return any data
@@ -267,7 +277,13 @@ pub fn i2c_write(
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
     let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
     util::assert_win_len(data.len(), size_of::<_EcI2cPassthruResponse>()); // No extra data other than the header
-    debug_assert_eq!(res.messages as usize, messages.len());
+
+    // Only assert message count if the transfer was successful
+    // On error (NAK/timeout), the EC may return 0 messages processed
+    if res.i2c_status == 0 {
+        debug_assert_eq!(res.messages as usize, messages.len());
+    }
+
     Ok(EcI2cPassthruResponse {
         i2c_status: res.i2c_status,
         data: vec![], // Writing doesn't return any data
