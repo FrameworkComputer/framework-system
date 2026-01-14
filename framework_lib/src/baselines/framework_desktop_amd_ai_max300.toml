@@ -1,0 +1,14 @@
+# Driver baseline for Framework Desktop AMD Ryzen AI Max 300
+# Last updated: 2026-01-14
+# NOTE: Placeholder versions - update with actual values
+
+[versions]
+# AMD Drivers
+"AMD Chipset Driver" = "0.0.0.0"
+"AMD Graphics Driver" = "0.0.0.0"
+
+# Realtek Drivers
+"Realtek Audio Driver" = "0.0.0.0"
+
+# Framework
+"Framework EC" = "0.0.0.0"

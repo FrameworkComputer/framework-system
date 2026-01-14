@@ -1,0 +1,26 @@
+# Driver baseline for Framework 12 Intel 13th Gen
+# Last updated: 2026-01-14
+# NOTE: Placeholder versions - update with actual values
+
+[versions]
+# Intel Drivers
+"Intel Chipset" = "10.1.19899.8597"
+"Intel Graphics" = "32.0.101.7026"
+"Intel WiFi Driver" = "23.160.1.1"
+"Intel Wireless Bluetooth" = "23.160.9.9"
+"Intel Smart Sound Technology" = "10.29.0.10981"
+"Intel Dynamic Tuning Technology" = "1.0.11700.1228"
+"Intel Serial IO" = "30.100.2417.30"
+"Intel Management Engine" = "2425.6.26.0"
+
+# Realtek Drivers
+"Realtek Audio Driver" = "6.0.9859.1"
+
+# Framework
+"Framework EC" = "0.0.0.6"
+"Framework Sensors" = "0.0.7.0"
+
+# "Realtek Audio Console" 1.53.374.0
+# "ILITEK Touch Device" 10.0.19041.868
+# GNA 3.5.0.1578
+# Intel HSA 1.100.5688.0

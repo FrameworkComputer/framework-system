@@ -1,0 +1,79 @@
+# Driver configuration for Framework systems
+# This file defines which drivers to detect and their display names
+
+# PNP Drivers - detected via Win32_PnpSignedDriver
+# Format: device_name = "display_alias"
+
+[pnp_drivers]
+# Framework Drivers
+"Framework EC" = "Framework EC"
+"Framework Fingerprint Reader" = "Goodix Fingerprint Driver"
+"Framework Sensors" = "Framework Sensors"
+"Framework NE160QDM-NZ6" = "Framework Panel"
+
+# AMD Drivers (for AMD platforms)
+"AMD Radeon(TM) 780M" = "AMD Graphics Driver"
+"AMD Radeon(TM) 860M Graphics" = "AMD Graphics Driver"
+"AMD Radeon(TM) RX 7700S" = "AMD Graphics Driver"
+"AMD DRTM Boot Driver" = "AMD DRTM Driver"
+
+# NVIDIA Drivers (for dGPU)
+"NVIDIA GeForce RTX 5070 Laptop GPU" = "NVIDIA Graphics Driver"
+
+# Realtek Drivers
+"Realtek PC Camera Driver" = "Camera Driver"
+"Realtek Hardware Support Application" = "Realtek Audio Console"
+
+# MediaTek Drivers
+"RZ616 Bluetooth(R) Adapter" = "RZ616 Bluetooth Driver"
+"RZ717 Bluetooth(R) Adapter" = "RZ717 Bluetooth Driver"
+
+# Microsoft Drivers
+"Windows Camera Effects" = "MEP Driver"
+
+# Intel Drivers (for Intel platforms)
+"Intel(R) LPC Controller - 519D" = "Intel Chipset"
+"Intel(R) Wi-Fi 6E AX210 160MHz" = "Intel WiFi Driver"
+"Intel(R) Wi-Fi 6E AX211 160MHz" = "Intel WiFi Driver"
+"Intel(R) Platform Monitoring Technology (PMT) Driver" = "Intel PMT Driver"
+
+# Other
+"ILITEK Wake On Touch Device" = "ILITEK Touch Device"
+
+# Products - detected via Win32_Product
+# Format: product_name = "display_alias"
+
+[products]
+"Intel(R) Chipset Device Software" = "Intel Chipset Driver"
+"AMD_Chipset_Drivers" = "AMD Chipset Driver"
+
+# System Drivers - detected via Win32_SystemDriver
+# Format: driver_name = "display_alias"
+
+[system_drivers]
+# Intel Drivers (for Intel platforms)
+ibtusb = "Intel Wireless Bluetooth"
+IntcAzAudAddService = "Realtek Audio Driver"
+IntcAudioBus = "Intel Smart Sound Technology"
+ipf_acpi = "Intel Dynamic Tuning Technology"
+npu = "Intel NPU"
+igfxn = "Intel Graphics"
+iaLPSS2_I2C_MTL = "Intel Serial IO"
+MEIx64 = "Intel Management Engine"
+IntelGNA = "Intel GNA Scoring Accelerator"
+
+# Framework Expansion Cards
+rtux64w10 = "Framework Ethernet Expansion Card"
+GeneStor = "Framework SD Expansion Card"
+
+# MediaTek WiFi Drivers
+mtkwlex = "RZ616 WiFi Driver"
+mtkwecx = "RZ717 WiFi Driver"
+
+# INF Drivers - detected via driver store INF file parsing
+# These are boot-only drivers not visible via WMI at runtime
+# Format: inf_name (without .inf) = "display_alias"
+
+[inf_drivers]
+amddrtm = "AMD DRTM Driver"
+rtextfw = "Realtek MEP Opt-in Driver"

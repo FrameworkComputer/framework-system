@@ -1,0 +1,23 @@
+# Driver baseline for Framework 16 AMD Ryzen 7080 Series
+# Last updated: 2026-01-14
+# NOTE: Placeholder versions - update with actual values
+
+[versions]
+# AMD Drivers
+"AMD Chipset Driver" = "0.0.0.0"
+"AMD Graphics Driver" = "0.0.0.0"
+
+# Realtek Drivers
+"Realtek Audio Driver" = "0.0.0.0"
+"Realtek Audio Console" = "0.0.0.0"
+"Camera Driver" = "0.0.0.0"
+
+# MediaTek Wireless
+"RZ616 WiFi Driver" = "0.0.0.0"
+"RZ616 Bluetooth Driver" = "0.0.0.0"
+
+# Goodix Fingerprint
+"Goodix Fingerprint Driver" = "0.0.0.0"
+
+# Framework
+"Framework EC" = "0.0.0.0"
