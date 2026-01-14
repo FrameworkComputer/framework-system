@@ -57,6 +57,8 @@ use crate::power;
 use crate::smbios;
 use crate::smbios::ConfigDigit0;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
+#[cfg(windows)]
+use crate::ssd_expansion_card;
 #[cfg(feature = "hidapi")]
 use crate::touchpad::print_touchpad_fw_ver;
 #[cfg(feature = "hidapi")]
@@ -660,6 +662,19 @@ fn print_versions(ec: &CrosEc) {
         }
     } else {
         println!("  Unknown")
+    }
+
+    #[cfg(windows)]
+    {
+        let ssd_cards = ssd_expansion_card::list_framework_ssd_cards();
+        if !ssd_cards.is_empty() {
+            println!("SSD Expansion Cards");
+            for (_path, info) in ssd_cards {
+                if let Ok(info) = info {
+                    println!("  {}:  {}", info.product_name, info.firmware_revision);
+                }
+            }
+        }
     }
 
     let has_retimer = matches!(

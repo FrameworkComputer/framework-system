@@ -21,6 +21,8 @@ pub mod camera;
 pub mod inputmodule;
 #[cfg(target_os = "linux")]
 pub mod nvme;
+#[cfg(windows)]
+pub mod ssd_expansion_card;
 #[cfg(feature = "hidapi")]
 pub mod touchpad;
 #[cfg(feature = "hidapi")]
