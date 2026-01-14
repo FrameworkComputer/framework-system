@@ -777,20 +777,36 @@ fn print_versions(ec: &CrosEc) {
     print_nvidia_details();
 }
 
+#[cfg(feature = "nvidia")]
+fn probably_has_nvidia() -> bool {
+    match smbios::get_platform().and_then(Platform::which_family) {
+        Some(PlatformFamily::Framework12) => false,
+        Some(PlatformFamily::Framework13) => false,
+        Some(PlatformFamily::FrameworkDesktop) => true,
+        Some(PlatformFamily::Framework16) => true,
+        _ => true,
+    }
+}
+
 /// Brief NVIDIA details for --version output
 #[cfg(feature = "nvidia")]
 fn print_nvidia_details() {
+    let probably_has_nvidia = probably_has_nvidia();
     let nvml = match Nvml::init() {
         Ok(nvml) => nvml,
         Err(err) => {
-            error!("Nvidia, library init fail: {:?}", err);
+            if probably_has_nvidia {
+                error!("Nvidia, library init fail: {:?}", err);
+            }
             return;
         }
     };
     let device = match nvml.device_by_index(0) {
         Ok(device) => device,
         Err(err) => {
-            error!("Nvidia, device not found: {:?}", err);
+            if probably_has_nvidia {
+                error!("Nvidia, device not found: {:?}", err);
+            }
             return;
         }
     };
@@ -809,17 +825,22 @@ fn print_nvidia_details() {
 /// Detailed NVIDIA information for --nvidia command
 #[cfg(feature = "nvidia")]
 fn print_nvidia_info() {
+    let probably_has_nvidia = probably_has_nvidia();
     let nvml = match Nvml::init() {
         Ok(nvml) => nvml,
         Err(err) => {
-            error!("Nvidia, library init fail: {:?}", err);
+            if probably_has_nvidia {
+                error!("Nvidia, library init fail: {:?}", err);
+            }
             return;
         }
     };
     let device = match nvml.device_by_index(0) {
         Ok(device) => device,
         Err(err) => {
-            error!("Nvidia, device not found: {:?}", err);
+            if probably_has_nvidia {
+                error!("Nvidia, device not found: {:?}", err);
+            }
             return;
         }
     };
