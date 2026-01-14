@@ -227,6 +227,7 @@ impl Default for CrosEc {
 /// Find out which drivers are available
 ///
 /// Depending on the availability we choose the first one as default
+#[allow(clippy::vec_init_then_push)]
 fn available_drivers() -> Vec<CrosEcDriverType> {
     let mut drivers = vec![];
 
