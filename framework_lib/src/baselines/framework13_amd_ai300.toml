@@ -4,23 +4,26 @@
 
 [versions]
 # AMD Drivers
-"AMD Chipset Driver" = "0.0.0.0"
-"AMD Graphics Driver" = "0.0.0.0"
+"AMD Chipset Driver" = "7.06.02.123"
+"AMD Graphics Driver" = "32.0.22021.1009"
+"AMD MEP_ext Driver" = "32.2.0.1"
+"AMD DRTM Driver" = "1.0.18.4"
 
 # Realtek Drivers
-"Realtek Audio Driver" = "0.0.0.0"
-"Realtek Audio Console" = "0.0.0.0"
-"Camera Driver" = "0.0.0.0"
+"Realtek Audio Driver" = "6.0.9859.1"
+"Realtek Audio Console" = "1.53.374.0"
+"Camera Driver" = "10.0.22000.20357"
+"Realtek MEP Opt-in Driver" = "10.0.22000.10003"
 
 # MediaTek Wireless
-"RZ717 WiFi Driver" = "0.0.0.0"
-"RZ717 Bluetooth Driver" = "0.0.0.0"
+"RZ717 WiFi Driver" = "5.6.0.4444"
+"RZ717 Bluetooth Driver" = "1.1043.0.555"
 
 # Goodix Fingerprint
-"Goodix Fingerprint Driver" = "0.0.0.0"
+"Goodix Fingerprint Driver" = "3.12804.1.270"
 
 # Microsoft
-"MEP Driver" = "0.0.0.0"
+"MEP Driver" = "2.0.16"
 
 # Framework
-"Framework EC" = "0.0.0.0"
+"Framework EC" = "0.0.0.6"
