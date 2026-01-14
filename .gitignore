@@ -16,3 +16,6 @@ result*
 
 # pre-commit
 .pre-commit-config.yaml
+
+# Claude Code
+tmpclaude*
