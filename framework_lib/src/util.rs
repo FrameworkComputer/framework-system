@@ -258,6 +258,22 @@ pub fn find_sequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
         .position(|window| window == needle)
 }
 
+/// Find all occurrences of a sequence of bytes in a long slice of bytes
+pub fn find_all_sequences(haystack: &[u8], needle: &[u8]) -> Vec<usize> {
+    let mut results = Vec::new();
+    let mut pos = 0;
+    while pos + needle.len() <= haystack.len() {
+        if let Some(offset) = find_sequence(&haystack[pos..], needle) {
+            let absolute_pos = pos + offset;
+            results.push(absolute_pos);
+            pos = absolute_pos + needle.len();
+        } else {
+            break;
+        }
+    }
+    results
+}
+
 /// Assert length of an EC response from the windows driver
 /// It's always 20 more than expected. TODO: Figure out why
 pub fn assert_win_len<N: Num + std::fmt::Debug + Ord + NumCast + Copy>(left: N, right: N) {
