@@ -84,14 +84,11 @@ On UEFI and FreeBSD raw port I/O is used - on Linux this can also be used as a f
     - [x] CCG5 PD (11th Gen TigerLake) (`--pd-bin`)
     - [x] CCG6 PD (Intel systems, Framework Desktop) (`--pd-bin`)
     - [x] CCG8 PD (AMD Laptops) (`--pd-bin`)
-    - [x] H2O BIOS Capsule (`--h2o-capsule`)
-      - [x] BIOS Version
-      - [x] EC Version
-      - [x] CCG5/CCG6/CCG8 PD Version
     - [x] UEFI Capsule (`--capsule`)
-  - [x] Parse metadata from capsule binary
-    - [x] Determine type (GUID) of capsule binary
-    - [x] Extract bitmap image from winux capsule to file
+      - [x] Determine type (GUID) of capsule binary
+      - [x] Extract embedded BIOS, EC, and PD versions
+      - [x] Extract bitmap image from winux capsule to file
+      - [x] Fallback to raw H2O BIOS files without capsule header
   - [x] Get firmware version from system (`--versions`)
     - [x] BIOS
     - [x] EC

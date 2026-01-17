@@ -57,7 +57,6 @@ pub fn parse(args: &[String]) -> Cli {
         flash_rw_ec: None,
         capsule: None,
         dump: None,
-        h2o_capsule: None,
         intrusion: false,
         inputdeck: false,
         inputdeck_mode: None,
@@ -595,14 +594,6 @@ pub fn parse(args: &[String]) -> Cli {
                 Some(args[i + 1].clone())
             } else {
                 println!("--dump requires extra argument to denote output file");
-                None
-            };
-            found_an_option = true;
-        } else if arg == "--h2o-capsule" {
-            cli.h2o_capsule = if args.len() > i + 1 {
-                Some(args[i + 1].clone())
-            } else {
-                println!("--h2o-capsule requires extra argument to denote input file");
                 None
             };
             found_an_option = true;
