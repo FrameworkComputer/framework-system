@@ -1832,53 +1832,93 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
     let header = capsule::parse_capsule_header(data)?;
     capsule::print_capsule_header(&header);
 
-    match GUID::from(header.capsule_guid) {
-        esrt::TGL_BIOS_GUID => {
-            println!("  Type:         Framework TGL Insyde BIOS");
+    let guid_kind = esrt::match_guid_kind(&header.capsule_guid);
+    match guid_kind {
+        esrt::FrameworkGuidKind::TglBios => {
+            println!("  Type:         Framework 13 TGL Insyde BIOS");
         }
-        esrt::ADL_BIOS_GUID => {
-            println!("  Type:         Framework ADL Insyde BIOS");
+        esrt::FrameworkGuidKind::AdlBios => {
+            println!("  Type:         Framework 13 ADL Insyde BIOS");
         }
-        esrt::RPL_BIOS_GUID => {
-            println!("  Type:         Framework RPL Insyde BIOS");
+        esrt::FrameworkGuidKind::RplBios => {
+            println!("  Type:         Framework 13 RPL Insyde BIOS");
         }
-        esrt::TGL_RETIMER01_GUID => {
-            println!("  Type:    Framework TGL Retimer01 (Right)");
+        esrt::FrameworkGuidKind::MtlBios => {
+            println!("  Type:         Framework 13 MTL Insyde BIOS");
         }
-        esrt::TGL_RETIMER23_GUID => {
-            println!("  Type:   Framework TGL Retimer23 (Left)");
+        esrt::FrameworkGuidKind::Fw12RplBios => {
+            println!("  Type:         Framework 12 RPL Insyde BIOS");
         }
-        esrt::ADL_RETIMER01_GUID => {
-            println!("  Type:    Framework ADL Retimer01 (Right)");
+        esrt::FrameworkGuidKind::Fl16Bios => {
+            println!("  Type:         Framework 16 AMD Insyde BIOS");
         }
-        esrt::ADL_RETIMER23_GUID => {
-            println!("  Type:   Framework ADL Retimer23 (Left)");
+        esrt::FrameworkGuidKind::Amd16Ai300Bios => {
+            println!("  Type:         Framework 16 AMD AI 300 Insyde BIOS");
         }
-        esrt::RPL_RETIMER01_GUID => {
-            println!("  Type:    Framework RPL Retimer01 (Right)");
+        esrt::FrameworkGuidKind::Amd13Ryzen7040Bios => {
+            println!("  Type:         Framework 13 AMD Ryzen 7040 Insyde BIOS");
         }
-        esrt::RPL_RETIMER23_GUID => {
-            println!("  Type:   Framework RPL Retimer23 (Left)");
+        esrt::FrameworkGuidKind::Amd13Ai300Bios => {
+            println!("  Type:         Framework 13 AMD AI 300 Insyde BIOS");
         }
-        esrt::WINUX_GUID => {
-            println!("  Type:            Windows UX capsule");
+        esrt::FrameworkGuidKind::DesktopAmdAi300Bios => {
+            println!("  Type:         Framework Desktop AMD AI 300 Insyde BIOS");
+        }
+        esrt::FrameworkGuidKind::TglRetimer01 => {
+            println!("  Type:         Framework TGL Retimer01 (Right)");
+        }
+        esrt::FrameworkGuidKind::TglRetimer23 => {
+            println!("  Type:         Framework TGL Retimer23 (Left)");
+        }
+        esrt::FrameworkGuidKind::AdlRetimer01 => {
+            println!("  Type:         Framework ADL Retimer01 (Right)");
+        }
+        esrt::FrameworkGuidKind::AdlRetimer23 => {
+            println!("  Type:         Framework ADL Retimer23 (Left)");
+        }
+        esrt::FrameworkGuidKind::RplRetimer01 => {
+            println!("  Type:         Framework RPL Retimer01 (Right)");
+        }
+        esrt::FrameworkGuidKind::RplRetimer23 => {
+            println!("  Type:         Framework RPL Retimer23 (Left)");
+        }
+        esrt::FrameworkGuidKind::MtlRetimer01 => {
+            println!("  Type:         Framework MTL Retimer01 (Right)");
+        }
+        esrt::FrameworkGuidKind::MtlRetimer23 => {
+            println!("  Type:         Framework MTL Retimer23 (Left)");
+        }
+        esrt::FrameworkGuidKind::RplCsme => {
+            println!("  Type:         Framework RPL CSME");
+        }
+        esrt::FrameworkGuidKind::RplUCsme => {
+            println!("  Type:         Framework RPL-U CSME");
+        }
+        esrt::FrameworkGuidKind::MtlCsme => {
+            println!("  Type:         Framework MTL CSME");
+        }
+        esrt::FrameworkGuidKind::WinUx => {
+            println!("  Type:         Windows UX capsule");
             let ux_header = capsule::parse_ux_header(data);
             capsule::print_ux_header(&ux_header);
         }
-        _ => {
+        esrt::FrameworkGuidKind::Unknown => {
             println!("  Type:                      Unknown");
         }
     }
 
-    match esrt::match_guid_kind(&header.capsule_guid) {
+    // Extract retimer version if this is a retimer capsule
+    match guid_kind {
         esrt::FrameworkGuidKind::TglRetimer01
         | esrt::FrameworkGuidKind::TglRetimer23
         | esrt::FrameworkGuidKind::AdlRetimer01
         | esrt::FrameworkGuidKind::AdlRetimer23
         | esrt::FrameworkGuidKind::RplRetimer01
-        | esrt::FrameworkGuidKind::RplRetimer23 => {
+        | esrt::FrameworkGuidKind::RplRetimer23
+        | esrt::FrameworkGuidKind::MtlRetimer01
+        | esrt::FrameworkGuidKind::MtlRetimer23 => {
             if let Some(ver) = find_retimer_version(data) {
-                println!("  Version:      {:>18?}", ver);
+                println!("  Retimer Version: {:>15}", ver);
             }
         }
         _ => {}
