@@ -8,7 +8,7 @@ readme = "README.md"
 license = "BSD-3-Clause"
 edition = "2021"
 # Minimum Supported Rust Version
-rust-version = "1.74"
+rust-version = "1.81"
 
 [[bin]]
 name = "uefitool"
