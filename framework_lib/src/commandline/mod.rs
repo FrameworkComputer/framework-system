@@ -1924,6 +1924,40 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
         _ => {}
     }
 
+    // Extract embedded firmware versions for BIOS capsules
+    match guid_kind {
+        esrt::FrameworkGuidKind::TglBios
+        | esrt::FrameworkGuidKind::AdlBios
+        | esrt::FrameworkGuidKind::RplBios
+        | esrt::FrameworkGuidKind::MtlBios
+        | esrt::FrameworkGuidKind::Fw12RplBios
+        | esrt::FrameworkGuidKind::Fl16Bios
+        | esrt::FrameworkGuidKind::Amd16Ai300Bios
+        | esrt::FrameworkGuidKind::Amd13Ryzen7040Bios
+        | esrt::FrameworkGuidKind::Amd13Ai300Bios
+        | esrt::FrameworkGuidKind::DesktopAmdAi300Bios => {
+            if let Some(cap) = find_bios_version(data) {
+                println!("BIOS");
+                println!("  Platform:     {:>18}", cap.platform);
+                println!("  Version:      {:>18}", cap.version);
+            }
+            if let Some(ec_bin) = find_ec_in_bios_cap(data) {
+                println!("Embedded EC");
+                if let Some(ver) = ec_binary::read_ec_version(ec_bin, true) {
+                    println!("  RO Version:   {:>18}", ver.version);
+                }
+                if let Some(ver) = ec_binary::read_ec_version(ec_bin, false) {
+                    println!("  RW Version:   {:>18}", ver.version);
+                }
+            }
+            if let Some(pd_bin) = find_pd_in_bios_cap(data) {
+                println!("Embedded PD");
+                analyze_ccgx_pd_fw(pd_bin);
+            }
+        }
+        _ => {}
+    }
+
     Some(header)
 }
 
