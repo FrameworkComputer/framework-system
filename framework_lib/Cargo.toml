@@ -20,7 +20,7 @@ uefi = [ "lazy_static/spin_no_std" ]
 nvidia = ["dep:nvml-wrapper"]
 
 [build-dependencies]
-built = { version = "0.8", features = ["chrono", "git2"] }
+built = { path = "C:/Users/zoid/built", features = ["chrono", "gix"] }
 
 [dependencies]
 lazy_static = "1.4.0"
