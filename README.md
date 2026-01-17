@@ -166,6 +166,9 @@ direnv shell
 # Fedora
 sudo dnf install systemd-devel hidapi-devel
 
+# Ubuntu
+sudo apt install rustup build-essential pkg-config libudev-dev libhidapi-dev
+
 # FreeBSD
 sudo pkg install rust hidapi pkgconf
 ```
