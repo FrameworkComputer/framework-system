@@ -67,8 +67,6 @@ Options:
           Parse UEFI Capsule information from binary file
       --dump <DUMP>
           Dump extracted UX capsule bitmap image to a file
-      --h2o-capsule <H2O_CAPSULE>
-          Parse UEFI Capsule information from binary file
       --dump-ec-flash <DUMP_EC_FLASH>
           Dump EC flash contents
       --flash-ec <FLASH_EC>
