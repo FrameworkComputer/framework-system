@@ -714,10 +714,11 @@ fn print_versions(ec: &CrosEc) {
         Ok(None) => {}
         Ok(Some(ver)) => {
             println!("Parade Retimers");
-            println!(
-                "  dGPU:           {:X}.{:X}.{:X}.{:X}",
-                ver[0], ver[1], ver[2], ver[3]
-            );
+            if let [a, b, c, d, ..] = ver.as_slice() {
+                println!("  dGPU:           {:X}.{:X}.{:X}.{:X}", a, b, c, d);
+            } else {
+                println!("  dGPU:           Unknown");
+            }
         }
         _err => {
             // Only Framework 16 has dGPU support (which has Parade Retimer)
