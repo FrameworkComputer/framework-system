@@ -21,8 +21,7 @@ nvidia = [ "framework_lib/nvidia" ]
 path = "../framework_lib"
 
 [build-dependencies]
-# Note: Only takes effect in release builds
-static_vcruntime = "2.0"
+static_vcruntime = "3.0"
 embed-resource = "3.0"
 winresource = "0.1.17"
 
