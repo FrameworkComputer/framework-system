@@ -51,19 +51,38 @@ pub fn find_ec_in_bios_cap(data: &[u8]) -> Option<&[u8]> {
 }
 
 pub fn find_pd_in_bios_cap(data: &[u8]) -> Option<&[u8]> {
-    // Just search for the first couple of bytes in PD binaries
-    // TODO: There's a second one but unless the capsule is bad, we can assume
-    // they're the same version
-    let ccg5_needle = &[0x00, 0x20, 0x00, 0x20, 0x11, 0x00];
-    let ccg6_needle = &[0x00, 0x40, 0x00, 0x20, 0x11, 0x00];
-    let ccg8_needle = &[0x00, 0x80, 0x00, 0x20, 0xAD, 0x0C];
-    if let Some(found_pd1) = util::find_sequence(data, ccg5_needle) {
-        Some(&data[found_pd1..found_pd1 + CCG5_PD_LEN])
-    } else if let Some(found_pd1) = util::find_sequence(data, ccg6_needle) {
-        Some(&data[found_pd1..found_pd1 + CCG6_PD_LEN])
-    } else if let Some(found_pd1) = util::find_sequence(data, ccg8_needle) {
-        Some(&data[found_pd1..found_pd1 + CCG8_PD_LEN])
-    } else {
-        None
+    find_all_pds_in_bios_cap(data).into_iter().next()
+}
+
+/// PD binary signatures and their corresponding lengths
+const CCG5_NEEDLE: &[u8] = &[0x00, 0x20, 0x00, 0x20, 0x11, 0x00];
+const CCG6_NEEDLE: &[u8] = &[0x00, 0x40, 0x00, 0x20, 0x11, 0x00];
+const CCG8_NEEDLE: &[u8] = &[0x00, 0x80, 0x00, 0x20, 0xAD, 0x0C];
+
+/// Find all PD firmware binaries embedded in a BIOS capsule
+pub fn find_all_pds_in_bios_cap(data: &[u8]) -> Vec<&[u8]> {
+    let mut results = Vec::new();
+
+    // Search for CCG5 PDs
+    for offset in util::find_all_sequences(data, CCG5_NEEDLE) {
+        if offset + CCG5_PD_LEN <= data.len() {
+            results.push(&data[offset..offset + CCG5_PD_LEN]);
+        }
     }
+
+    // Search for CCG6 PDs
+    for offset in util::find_all_sequences(data, CCG6_NEEDLE) {
+        if offset + CCG6_PD_LEN <= data.len() {
+            results.push(&data[offset..offset + CCG6_PD_LEN]);
+        }
+    }
+
+    // Search for CCG8 PDs
+    for offset in util::find_all_sequences(data, CCG8_NEEDLE) {
+        if offset + CCG8_PD_LEN <= data.len() {
+            results.push(&data[offset..offset + CCG8_PD_LEN]);
+        }
+    }
+
+    results
 }

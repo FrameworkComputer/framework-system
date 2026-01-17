@@ -28,7 +28,7 @@ use crate::built_info;
 use crate::camera::check_camera_version;
 use crate::capsule;
 use crate::capsule_content::{
-    find_bios_version, find_ec_in_bios_cap, find_pd_in_bios_cap, find_retimer_version,
+    find_all_pds_in_bios_cap, find_bios_version, find_ec_in_bios_cap, find_retimer_version,
 };
 use crate::ccgx::device::{FwMode, PdController, PdPort};
 #[cfg(feature = "hidapi")]
@@ -1348,9 +1348,10 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                     println!("Embedded EC");
                     analyze_ec_fw(ec_bin);
                 }
-                if let Some(pd_bin) = find_pd_in_bios_cap(&data) {
+                let pd_bins = find_all_pds_in_bios_cap(&data);
+                for (i, pd_bin) in pd_bins.iter().enumerate() {
                     found_any = true;
-                    println!("Embedded PD");
+                    println!("Embedded PD {}", i + 1);
                     analyze_ccgx_pd_fw(pd_bin);
                 }
                 if !found_any {
@@ -1935,8 +1936,9 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
                     println!("  RW Version:   {:>18}", ver.version);
                 }
             }
-            if let Some(pd_bin) = find_pd_in_bios_cap(data) {
-                println!("Embedded PD");
+            let pd_bins = find_all_pds_in_bios_cap(data);
+            for (i, pd_bin) in pd_bins.iter().enumerate() {
+                println!("Embedded PD {}", i + 1);
                 analyze_ccgx_pd_fw(pd_bin);
             }
         }
