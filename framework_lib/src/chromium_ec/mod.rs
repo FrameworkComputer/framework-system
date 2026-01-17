@@ -301,13 +301,16 @@ impl CrosEc {
         }
     }
 
-    pub fn cmd_version_supported(&self, cmd: u16, version: u8) -> EcResult<bool> {
-        let res = EcRequestGetCmdVersionsV1 { cmd: cmd.into() }.send_command(self);
+    pub fn cmd_version_supported(&self, cmd: u32, version: u8) -> EcResult<bool> {
+        let res = EcRequestGetCmdVersionsV1 { cmd }.send_command(self);
         let mask = if let Ok(res) = res {
             res.version_mask
-        } else {
-            let res = EcRequestGetCmdVersionsV0 { cmd: cmd as u8 }.send_command(self)?;
+        } else if let Ok(cmd) = u8::try_from(cmd) {
+            // V0 only supports 8-bit command IDs, so only fall back for commands <= 255
+            let res = EcRequestGetCmdVersionsV0 { cmd }.send_command(self)?;
             res.version_mask
+        } else {
+            return Ok(false);
         };
 
         Ok(mask & (1 << version) > 0)
