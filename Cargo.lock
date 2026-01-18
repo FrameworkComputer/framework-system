@@ -409,6 +409,7 @@ dependencies = [
  "smbios-lib",
  "spin 0.10.0",
  "uefi",
+ "uefi-raw",
  "windows",
  "windows-version",
  "winreg",
@@ -1501,8 +1502,9 @@ dependencies = [
 
 [[package]]
 name = "uefi"
-version = "0.35.0"
-source = "git+https://github.com/rust-osdev/uefi-rs?rev=1fcf4d84d5ed10fe76055469b6df01318eb35af8#1fcf4d84d5ed10fe76055469b6df01318eb35af8"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "71fe9058b73ee2b6559524af9e33199c13b2485ddbf3ad1181b68051cdc50c17"
 dependencies = [
  "bitflags 2.10.0",
  "cfg-if",
@@ -1516,9 +1518,9 @@ dependencies = [
 
 [[package]]
 name = "uefi-macros"
-version = "0.18.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3dad47b3af8f99116c0f6d4d669c439487d9aaf1c8d9480d686cda6f3a8aa23"
+checksum = "4687412b5ac74d245d5bfb1733ede50c31be19bf8a4b6a967a29b451bab49e67"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1527,8 +1529,9 @@ dependencies = [
 
 [[package]]
 name = "uefi-raw"
-version = "0.11.0"
-source = "git+https://github.com/rust-osdev/uefi-rs?rev=1fcf4d84d5ed10fe76055469b6df01318eb35af8#1fcf4d84d5ed10fe76055469b6df01318eb35af8"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f64fe59e11af447d12fd60a403c74106eb104309f34b4c6dbce6e927d97da9d"
 dependencies = [
  "bitflags 2.10.0",
  "uguid",
