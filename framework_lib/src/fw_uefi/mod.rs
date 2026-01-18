@@ -6,7 +6,8 @@ use uefi::table::cfg::ConfigTableEntry;
 #[allow(unused_imports)]
 use log::{debug, error, info, trace};
 use uefi::boot;
-use uefi::proto::shell::{Shell, ShellProtocol};
+use uefi::proto::shell::Shell;
+use uefi_raw::protocol::shell::ShellProtocol;
 
 pub mod fs;
 
@@ -17,7 +18,7 @@ pub fn shell_get_execution_break_flag() -> bool {
         boot::open_protocol_exclusive::<Shell>(handle).expect("Failed to open Shell protocol");
     unsafe {
         let proto: &ShellProtocol = std::mem::transmute(shell.get().unwrap());
-        (proto.get_page_break)()
+        (proto.get_page_break)().into()
     }
 }
 

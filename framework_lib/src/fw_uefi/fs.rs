@@ -1,7 +1,8 @@
 use alloc::vec;
 use alloc::vec::Vec;
 use uefi::prelude::*;
-use uefi::proto::shell::{Shell, ShellProtocol};
+use uefi::proto::shell::Shell;
+use uefi_raw::protocol::shell::ShellProtocol;
 //use uefi::proto::shell::FileOpenMode;
 use core::ffi::c_void;
 use core::mem::MaybeUninit;

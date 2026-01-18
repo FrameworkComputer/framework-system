@@ -19,7 +19,7 @@ default = [ ]
 readonly = [ "framework_lib/readonly" ]
 
 [dependencies]
-uefi = { version = "0.35", features = ["alloc"] }
+uefi = { version = "0.36.1", features = ["alloc"] }
 log = { version = "0.4", default-features = true }
 
 [dependencies.framework_lib]
