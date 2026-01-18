@@ -32,7 +32,7 @@ pub mod usbhub;
 
 #[cfg(feature = "uefi")]
 #[macro_use]
-extern crate uefi_services;
+extern crate uefi;
 
 pub mod capsule;
 pub mod capsule_content;
@@ -42,12 +42,12 @@ pub mod commandline;
 pub mod csme;
 pub mod ec_binary;
 pub mod esrt;
+#[cfg(feature = "uefi")]
+pub mod fw_uefi;
 mod os_specific;
 pub mod parade_retimer;
 pub mod power;
 pub mod smbios;
-#[cfg(feature = "uefi")]
-pub mod uefi;
 mod util;
 
 pub mod built_info {
