@@ -62,6 +62,8 @@ pub fn parse(args: &[String]) -> Cli {
         inputdeck: false,
         inputdeck_mode: None,
         expansion_bay: false,
+        charge_full: false,
+        charge_limit_disable: false,
         charge_limit: None,
         charge_current_limit: None,
         charge_rate_limit: None,
@@ -254,6 +256,11 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--nvidia" {
             cli.nvidia = true;
+        } else if arg == "--charge-full" {
+            cli.charge_full = true;
+            found_an_option = true;
+        } else if arg == "--charge-limit-disable" {
+            cli.charge_limit_disable = true;
             found_an_option = true;
         } else if arg == "--charge-limit" {
             cli.charge_limit = if args.len() > i + 1 {
