@@ -18,6 +18,7 @@ _framework_tool() {
 '--flash-gpu-descriptor=[]: :_default: :_default' \
 '--device=[]:DEVICE:(bios ec pd0 pd1 rtm01 rtm23 ac-left ac-right)' \
 '--compare-version=[]:COMPARE_VERSION:_default' \
+'--smartbattery=[Show detailed smart battery information, or load from dump file]::FILE:_files' \
 '*--fansetduty=[Set fan duty cycle (0-100%)]::FANSETDUTY:_default' \
 '*--fansetrpm=[Set fan RPM (limited by EC fan table max RPM)]::FANSETRPM:_default' \
 '--autofanctrl=[Turn on automatic fan speed control]::AUTOFANCTRL:_default' \
@@ -72,6 +73,7 @@ _framework_tool() {
 '--features[Show features support by the firmware]' \
 '--esrt[Display the UEFI ESRT table]' \
 '--power[Show current power status of battery and AC (Add -vv for more details)]' \
+'--smartbattery-auth[Authenticate smart battery (requires unseal and auth keys)]' \
 '--thermal[Print thermal information (Temperatures and Fan speed)]' \
 '--sensors[Print sensor information (ALS, G-Sensor)]' \
 '--pdports[Show USB-C PD port state]' \
