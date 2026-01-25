@@ -1038,6 +1038,174 @@ pub fn display_battery_data(data: &BatteryData) {
             }
         }
     }
+
+    // Print health analysis at the end
+    analyze_health(data);
+}
+
+/// Analyze battery health and print a summary
+pub fn analyze_health(data: &BatteryData) {
+    println!("\n=== Battery Health Analysis ===\n");
+
+    let mut issues: Vec<&str> = Vec::new();
+    let mut warnings: Vec<String> = Vec::new();
+
+    // Check Safety/PF status
+    if data.safety_status != 0 {
+        issues.push("Safety status flags active");
+    }
+    if data.pf_status != 0 {
+        issues.push("Permanent failure flags active");
+    }
+
+    // Check cell voltage balance (current)
+    let cells = [
+        data.cell_voltage1,
+        data.cell_voltage2,
+        data.cell_voltage3,
+        data.cell_voltage4,
+    ];
+    let max_cell = cells.iter().max().unwrap_or(&0);
+    let min_cell = cells.iter().min().unwrap_or(&0);
+    let cell_delta = max_cell - min_cell;
+    if cell_delta > 100 {
+        warnings.push(format!(
+            "Cell imbalance: {}mV difference (>100mV)",
+            cell_delta
+        ));
+    }
+
+    // Analyze lifetime data if available
+    if data.lifetime1.len() >= 32 {
+        let lt1 = &data.lifetime1;
+        let max_delta = u16::from_le_bytes([lt1[16], lt1[17]]);
+        if max_delta > 200 {
+            warnings.push(format!(
+                "Historical cell imbalance: {}mV max delta recorded",
+                max_delta
+            ));
+        }
+
+        // Check temperature extremes
+        let max_temp = lt1[26];
+        let min_temp = lt1[27];
+        if max_temp > 55 {
+            warnings.push(format!("High temperature recorded: {}C max", max_temp));
+        }
+        if min_temp < 5 {
+            warnings.push(format!("Low temperature recorded: {}C min", min_temp));
+        }
+    }
+
+    // Analyze safety events
+    if data.lifetime4.len() >= 32 {
+        let lt4 = &data.lifetime4;
+        let cov_events = u16::from_le_bytes([lt4[0], lt4[1]]);
+        let cuv_events = u16::from_le_bytes([lt4[4], lt4[5]]);
+        let ocd1_events = u16::from_le_bytes([lt4[8], lt4[9]]);
+        let ocd2_events = u16::from_le_bytes([lt4[12], lt4[13]]);
+        let occ1_events = u16::from_le_bytes([lt4[16], lt4[17]]);
+        let scd_events = u16::from_le_bytes([lt4[28], lt4[29]]);
+
+        if cov_events > 0 {
+            warnings.push(format!("{} cell over-voltage events", cov_events));
+        }
+        if cuv_events > 5 {
+            warnings.push(format!(
+                "{} cell under-voltage events (deep discharge)",
+                cuv_events
+            ));
+        }
+        if ocd1_events > 0 || ocd2_events > 0 {
+            warnings.push(format!(
+                "{} over-current discharge events",
+                ocd1_events + ocd2_events
+            ));
+        }
+        if occ1_events > 0 {
+            warnings.push(format!("{} over-current charge events", occ1_events));
+        }
+        if scd_events > 0 {
+            issues.push("Short-circuit events detected");
+        }
+    }
+
+    // Analyze gauging health
+    if data.lifetime5.len() >= 32 {
+        let lt5 = &data.lifetime5;
+        let valid_terminations = u16::from_le_bytes([lt5[16], lt5[17]]);
+        let ra_updates = u16::from_le_bytes([lt5[24], lt5[25]]);
+        let ra_fails = u16::from_le_bytes([lt5[28], lt5[29]]);
+
+        // Check charge termination ratio
+        if data.cycle_count > 10 && valid_terminations < (data.cycle_count * 8 / 10) {
+            warnings.push(format!(
+                "Low charge termination rate: {} terminations over {} cycles",
+                valid_terminations, data.cycle_count
+            ));
+        }
+
+        // Check resistance update failures
+        if ra_updates > 0 {
+            let fail_rate = (ra_fails as f32 / ra_updates as f32) * 100.0;
+            if fail_rate > 20.0 {
+                warnings.push(format!(
+                    "High resistance update fail rate: {:.1}%",
+                    fail_rate
+                ));
+            }
+        }
+    }
+
+    // Print results
+    if issues.is_empty() && warnings.is_empty() {
+        println!("Status: HEALTHY");
+        println!("  No issues detected. Battery is operating normally.");
+    } else if issues.is_empty() {
+        println!("Status: GOOD (with notes)");
+        for warning in &warnings {
+            println!("  Note: {}", warning);
+        }
+    } else {
+        println!("Status: NEEDS ATTENTION");
+        for issue in &issues {
+            println!("  Issue: {}", issue);
+        }
+        for warning in &warnings {
+            println!("  Note: {}", warning);
+        }
+    }
+
+    // Print summary stats
+    println!("\nSummary:");
+    println!("  Cycle count: {}", data.cycle_count);
+    if !data.state_of_health.is_empty() {
+        let soh_mah = u16::from_le_bytes([data.state_of_health[0], data.state_of_health[1]]);
+        let soh_mwh = u16::from_le_bytes([data.state_of_health[2], data.state_of_health[3]]);
+        println!(
+            "  Remaining capacity: {}mAh ({}.{:02}Wh)",
+            soh_mah,
+            soh_mwh / 100,
+            soh_mwh % 100
+        );
+    }
+    println!("  Current cell balance: {}mV spread", cell_delta);
+    if data.lifetime2.len() >= 20 {
+        let lt2 = &data.lifetime2;
+        let cb_times: Vec<f64> = [
+            u32::from_le_bytes([lt2[4], lt2[5], lt2[6], lt2[7]]),
+            u32::from_le_bytes([lt2[8], lt2[9], lt2[10], lt2[11]]),
+            u32::from_le_bytes([lt2[12], lt2[13], lt2[14], lt2[15]]),
+            u32::from_le_bytes([lt2[16], lt2[17], lt2[18], lt2[19]]),
+        ]
+        .iter()
+        .map(|&t| t as f64 / 3600.0)
+        .collect();
+        println!(
+            "  Cell balancing time: {:.1}h / {:.1}h / {:.1}h / {:.1}h",
+            cb_times[0], cb_times[1], cb_times[2], cb_times[3]
+        );
+    }
 }
 
 #[cfg(test)]
