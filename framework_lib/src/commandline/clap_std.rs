@@ -1,6 +1,8 @@
 //! Module to factor out commandline interaction
 //! This way we can use it in the regular OS commandline tool on Linux and Windows,
 //! as well as on the UEFI shell tool.
+use std::path::PathBuf;
+
 use clap::error::ErrorKind;
 use clap::Parser;
 use clap::{command, Arg, Args, FromArgMatches};
@@ -49,9 +51,9 @@ struct ClapCli {
     #[arg(long)]
     power: bool,
 
-    /// Show detailed smart battery information
-    #[arg(long)]
-    smartbattery: bool,
+    /// Show detailed smart battery information, or load from dump file
+    #[arg(long, value_name = "FILE")]
+    smartbattery: Option<Option<PathBuf>>,
 
     /// Print thermal information (Temperatures and Fan speed)
     #[arg(long)]
@@ -411,7 +413,9 @@ pub fn parse(args: &[String]) -> Cli {
         device: args.device,
         compare_version: args.compare_version,
         power: args.power,
-        smartbattery: args.smartbattery,
+        smartbattery: args
+            .smartbattery
+            .map(|opt| opt.map(|x| x.into_os_string().into_string().unwrap())),
         thermal: args.thermal,
         sensors: args.sensors,
         fansetduty,

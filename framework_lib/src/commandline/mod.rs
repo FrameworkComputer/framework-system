@@ -169,7 +169,7 @@ pub struct Cli {
     pub device: Option<HardwareDeviceType>,
     pub compare_version: Option<String>,
     pub power: bool,
-    pub smartbattery: bool,
+    pub smartbattery: Option<Option<String>>,
     pub thermal: bool,
     pub sensors: bool,
     pub fansetduty: Option<(Option<u32>, u32)>,
@@ -1501,11 +1501,26 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_board_ids(&ec);
     } else if args.power {
         return power::get_and_print_power_info(&ec);
-    } else if args.smartbattery {
+    } else if let Some(smartbattery_arg) = &args.smartbattery {
         #[cfg(not(feature = "uefi"))]
         {
-            let bat = SmartBattery::new();
-            print_err(bat.dump_data(&ec));
+            use crate::smart_battery::{display_battery_data, BatteryData};
+            use std::path::Path;
+
+            match smartbattery_arg {
+                Some(file_path) => {
+                    // Load from file
+                    match BatteryData::read_from_file(Path::new(file_path)) {
+                        Ok(data) => display_battery_data(&data),
+                        Err(e) => eprintln!("Failed to read battery dump: {}", e),
+                    }
+                }
+                None => {
+                    // Read from actual battery
+                    let bat = SmartBattery::new();
+                    print_err(bat.dump_data(&ec));
+                }
+            }
         }
     } else if args.thermal {
         power::print_thermal(&ec);
