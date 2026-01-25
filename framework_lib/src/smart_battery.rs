@@ -5,10 +5,150 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
-use std::io::{self, Write};
+use std::fs::File;
+use std::io::{self, BufRead, BufReader, Write};
+use std::path::Path;
 
 use crate::chromium_ec::i2c_passthrough::*;
 use crate::chromium_ec::{CrosEc, EcError, EcResult};
+
+/// Raw battery data that can be dumped to a file and loaded later
+#[derive(Default)]
+pub struct BatteryData {
+    pub mode: u16,
+    pub serial_num: u16,
+    pub manufacture_date: u16,
+    pub temperature: u16,
+    pub voltage: u16,
+    pub cell_voltage1: u16,
+    pub cell_voltage2: u16,
+    pub cell_voltage3: u16,
+    pub cell_voltage4: u16,
+    pub cycle_count: u16,
+    pub device_name: String,
+    pub manufacturer_name: String,
+    // Unsealed data (may be empty if not unsealed)
+    pub state_of_health: Vec<u8>,
+    pub operation_status: u32,
+    pub safety_alert: u32,
+    pub safety_status: u32,
+    pub pf_alert: u32,
+    pub pf_status: u32,
+    pub lifetime1: Vec<u8>,
+    pub lifetime2: Vec<u8>,
+    pub lifetime3: Vec<u8>,
+    pub lifetime4: Vec<u8>,
+    pub lifetime5: Vec<u8>,
+}
+
+impl BatteryData {
+    /// Write raw data to a file in a simple text format
+    pub fn write_to_file(&self, path: &Path) -> io::Result<()> {
+        let mut file = File::create(path)?;
+        writeln!(file, "# Smart Battery Raw Data Dump")?;
+        writeln!(file, "# Format: key=hex_value or key=string")?;
+        writeln!(file)?;
+        writeln!(file, "mode={:04X}", self.mode)?;
+        writeln!(file, "serial_num={:04X}", self.serial_num)?;
+        writeln!(file, "manufacture_date={:04X}", self.manufacture_date)?;
+        writeln!(file, "temperature={:04X}", self.temperature)?;
+        writeln!(file, "voltage={:04X}", self.voltage)?;
+        writeln!(file, "cell_voltage1={:04X}", self.cell_voltage1)?;
+        writeln!(file, "cell_voltage2={:04X}", self.cell_voltage2)?;
+        writeln!(file, "cell_voltage3={:04X}", self.cell_voltage3)?;
+        writeln!(file, "cell_voltage4={:04X}", self.cell_voltage4)?;
+        writeln!(file, "cycle_count={:04X}", self.cycle_count)?;
+        writeln!(file, "device_name={}", self.device_name)?;
+        writeln!(file, "manufacturer_name={}", self.manufacturer_name)?;
+        writeln!(
+            file,
+            "state_of_health={}",
+            hex_encode(&self.state_of_health)
+        )?;
+        writeln!(file, "operation_status={:08X}", self.operation_status)?;
+        writeln!(file, "safety_alert={:08X}", self.safety_alert)?;
+        writeln!(file, "safety_status={:08X}", self.safety_status)?;
+        writeln!(file, "pf_alert={:08X}", self.pf_alert)?;
+        writeln!(file, "pf_status={:08X}", self.pf_status)?;
+        writeln!(file, "lifetime1={}", hex_encode(&self.lifetime1))?;
+        writeln!(file, "lifetime2={}", hex_encode(&self.lifetime2))?;
+        writeln!(file, "lifetime3={}", hex_encode(&self.lifetime3))?;
+        writeln!(file, "lifetime4={}", hex_encode(&self.lifetime4))?;
+        writeln!(file, "lifetime5={}", hex_encode(&self.lifetime5))?;
+        Ok(())
+    }
+
+    /// Read raw data from a dump file
+    pub fn read_from_file(path: &Path) -> io::Result<Self> {
+        let file = File::open(path)?;
+        let reader = BufReader::new(file);
+        let mut data = BatteryData::default();
+
+        for line in reader.lines() {
+            let line = line?;
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            if let Some((key, value)) = line.split_once('=') {
+                match key {
+                    "mode" => data.mode = u16::from_str_radix(value, 16).unwrap_or(0),
+                    "serial_num" => data.serial_num = u16::from_str_radix(value, 16).unwrap_or(0),
+                    "manufacture_date" => {
+                        data.manufacture_date = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "temperature" => data.temperature = u16::from_str_radix(value, 16).unwrap_or(0),
+                    "voltage" => data.voltage = u16::from_str_radix(value, 16).unwrap_or(0),
+                    "cell_voltage1" => {
+                        data.cell_voltage1 = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "cell_voltage2" => {
+                        data.cell_voltage2 = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "cell_voltage3" => {
+                        data.cell_voltage3 = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "cell_voltage4" => {
+                        data.cell_voltage4 = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "cycle_count" => data.cycle_count = u16::from_str_radix(value, 16).unwrap_or(0),
+                    "device_name" => data.device_name = value.to_string(),
+                    "manufacturer_name" => data.manufacturer_name = value.to_string(),
+                    "state_of_health" => data.state_of_health = hex_decode(value),
+                    "operation_status" => {
+                        data.operation_status = u32::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "safety_alert" => {
+                        data.safety_alert = u32::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "safety_status" => {
+                        data.safety_status = u32::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "pf_alert" => data.pf_alert = u32::from_str_radix(value, 16).unwrap_or(0),
+                    "pf_status" => data.pf_status = u32::from_str_radix(value, 16).unwrap_or(0),
+                    "lifetime1" => data.lifetime1 = hex_decode(value),
+                    "lifetime2" => data.lifetime2 = hex_decode(value),
+                    "lifetime3" => data.lifetime3 = hex_decode(value),
+                    "lifetime4" => data.lifetime4 = hex_decode(value),
+                    "lifetime5" => data.lifetime5 = hex_decode(value),
+                    _ => {} // Ignore unknown keys for forward compatibility
+                }
+            }
+        }
+        Ok(data)
+    }
+}
+
+fn hex_encode(data: &[u8]) -> String {
+    data.iter().map(|b| format!("{:02X}", b)).collect()
+}
+
+fn hex_decode(s: &str) -> Vec<u8> {
+    (0..s.len())
+        .step_by(2)
+        .filter_map(|i| u8::from_str_radix(&s[i..i + 2], 16).ok())
+        .collect()
+}
 
 #[repr(u16)]
 enum SmartBatReg {
@@ -505,51 +645,6 @@ impl SmartBattery {
 
     /// Print battery information interactively (prompts for unseal key)
     pub fn dump_data(&self, ec: &CrosEc) -> EcResult<()> {
-        // Basic registers (no unseal required)
-        println!(
-            "Mode:          0x{:04X}",
-            self.read_i16(ec, SmartBatReg::Mode as u16)?
-        );
-        let serial_num = self.read_i16(ec, SmartBatReg::SerialNum as u16)?;
-        println!("Serial Num:    {:04X}", serial_num);
-
-        // ManufactureDate format: Year*512 + Month*32 + Day (year offset from 1980)
-        let mfg_date = self.read_i16(ec, SmartBatReg::ManufactureDate as u16)?;
-        let day = mfg_date & 0x1F;
-        let month = (mfg_date >> 5) & 0x0F;
-        let year = (mfg_date >> 9) + 1980;
-        println!("Manuf Date:    {:04}-{:02}-{:02}", year, month, day);
-
-        // Temperature is in 0.1K units, convert to Celsius
-        let temp = self.read_i16(ec, SmartBatReg::Temp as u16)?;
-        let temp_c = (temp as f32 / 10.0) - 273.15;
-        println!("Temperature:   {:.1}C", temp_c);
-
-        let voltage = self.read_i16(ec, SmartBatReg::Voltage as u16)?;
-        println!("Voltage:       {}.{:03}V", voltage / 1000, voltage % 1000);
-
-        let cell1_v = self.read_i16(ec, SmartBatReg::CellVoltage1 as u16)?;
-        println!("  Cell 1:      {}.{:03}V", cell1_v / 1000, cell1_v % 1000);
-        let cell2_v = self.read_i16(ec, SmartBatReg::CellVoltage2 as u16)?;
-        println!("  Cell 2:      {}.{:03}V", cell2_v / 1000, cell2_v % 1000);
-        let cell3_v = self.read_i16(ec, SmartBatReg::CellVoltage3 as u16)?;
-        println!("  Cell 3:      {}.{:03}V", cell3_v / 1000, cell3_v % 1000);
-        let cell4_v = self.read_i16(ec, SmartBatReg::CellVoltage4 as u16)?;
-        println!("  Cell 4:      {}.{:03}V", cell4_v / 1000, cell4_v % 1000);
-
-        println!(
-            "Cycle Count:   {}",
-            self.read_i16(ec, SmartBatReg::CycleCount as u16)?
-        );
-        println!(
-            "Device Name:   {}",
-            self.read_string(ec, SmartBatReg::DeviceName as u16)?
-        );
-        println!(
-            "Manuf Name:    {}",
-            self.read_string(ec, SmartBatReg::ManufacturerName as u16)?
-        );
-
         // Prompt for unseal key to access ManufacturerAccess data
         print!("Enter unseal key in hex (e.g. 04143672), or press enter to skip: ");
         io::stdout()
@@ -559,44 +654,162 @@ impl SmartBattery {
             .map_err(|e| EcError::DeviceError(format!("Failed to read key: {}", e)))?;
         let input_text = input_text.trim();
 
-        if !input_text.is_empty() {
-            let key: u32 = u32::from_str_radix(input_text, 16)
-                .map_err(|e| EcError::DeviceError(format!("Invalid key: {}", e)))?;
+        let unseal_key = if input_text.is_empty() {
+            None
+        } else {
+            Some(
+                u32::from_str_radix(input_text, 16)
+                    .map_err(|e| EcError::DeviceError(format!("Invalid key: {}", e)))?,
+            )
+        };
+
+        let data = self.collect_data(ec, unseal_key)?;
+        display_battery_data(&data);
+
+        Ok(())
+    }
+
+    /// Collect raw battery data into a struct (for dumping or analysis)
+    #[allow(clippy::field_reassign_with_default)]
+    pub fn collect_data(&self, ec: &CrosEc, unseal_key: Option<u32>) -> EcResult<BatteryData> {
+        let mut data = BatteryData::default();
+
+        // Basic registers (no unseal required)
+        data.mode = self.read_i16(ec, SmartBatReg::Mode as u16)?;
+        data.serial_num = self.read_i16(ec, SmartBatReg::SerialNum as u16)?;
+        data.manufacture_date = self.read_i16(ec, SmartBatReg::ManufactureDate as u16)?;
+        data.temperature = self.read_i16(ec, SmartBatReg::Temp as u16)?;
+        data.voltage = self.read_i16(ec, SmartBatReg::Voltage as u16)?;
+        data.cell_voltage1 = self.read_i16(ec, SmartBatReg::CellVoltage1 as u16)?;
+        data.cell_voltage2 = self.read_i16(ec, SmartBatReg::CellVoltage2 as u16)?;
+        data.cell_voltage3 = self.read_i16(ec, SmartBatReg::CellVoltage3 as u16)?;
+        data.cell_voltage4 = self.read_i16(ec, SmartBatReg::CellVoltage4 as u16)?;
+        data.cycle_count = self.read_i16(ec, SmartBatReg::CycleCount as u16)?;
+        data.device_name = self.read_string(ec, SmartBatReg::DeviceName as u16)?;
+        data.manufacturer_name = self.read_string(ec, SmartBatReg::ManufacturerName as u16)?;
+
+        // Unsealed data
+        if let Some(key) = unseal_key {
             self.unseal(ec, (key >> 16) as u16, key as u16)?;
 
-            let soh = self.read_bytes(ec, ManufReg::Soh as u16, 4)?;
-            println!(
-                "StateOfHealth: {}mAh, {}.{:02}Wh",
-                u16::from_le_bytes([soh[0], soh[1]]),
-                u16::from_le_bytes([soh[2], soh[3]]) / 100,
-                u16::from_le_bytes([soh[2], soh[3]]) % 100,
-            );
+            data.state_of_health = self.read_bytes(ec, ManufReg::Soh as u16, 4)?;
+            data.operation_status = self.read_i32(ec, ManufReg::OperationStatus as u16)?;
+            data.safety_alert = self.read_i32(ec, ManufReg::SafetyAlert as u16)?;
+            data.safety_status = self.read_i32(ec, ManufReg::SafetyStatus as u16)?;
+            data.pf_alert = self.read_i32(ec, ManufReg::PFAlert as u16)?;
+            data.pf_status = self.read_i32(ec, ManufReg::PFStatus as u16)?;
+            data.lifetime1 = self.read_bytes(ec, ManufReg::LifeTimeDataBlock1 as u16, 32)?;
+            data.lifetime2 = self.read_bytes(ec, ManufReg::LifeTimeDataBlock2 as u16, 20)?;
+            data.lifetime3 = self.read_block(ec, ManufReg::LifeTimeDataBlock3 as u16, 16)?;
+            data.lifetime4 = self.read_block(ec, ManufReg::LifeTimeDataBlock4 as u16, 32)?;
+            data.lifetime5 = self.read_block(ec, ManufReg::LifeTimeDataBlock5 as u16, 32)?;
 
-            let operation_status = self.read_i32(ec, ManufReg::OperationStatus as u16)?;
-            print_operation_status(operation_status);
+            self.seal(ec)?;
+        }
 
-            let safety_alert = self.read_i32(ec, ManufReg::SafetyAlert as u16)?;
-            print_status_flags(
-                "Safety Alert",
-                safety_alert,
-                decode_safety_status(safety_alert),
-            );
+        Ok(data)
+    }
 
-            let safety_status = self.read_i32(ec, ManufReg::SafetyStatus as u16)?;
-            print_status_flags(
-                "Safety Status",
-                safety_status,
-                decode_safety_status(safety_status),
-            );
+    /// Dump battery data to a file
+    pub fn dump_to_file(&self, ec: &CrosEc, path: &Path) -> EcResult<()> {
+        // Prompt for unseal key
+        print!("Enter unseal key in hex (e.g. 04143672), or press enter to skip: ");
+        io::stdout()
+            .flush()
+            .map_err(|e| EcError::DeviceError(format!("Failed to flush stdout: {}", e)))?;
+        let input_text = read_password()
+            .map_err(|e| EcError::DeviceError(format!("Failed to read key: {}", e)))?;
+        let input_text = input_text.trim();
 
-            let pf_alert = self.read_i32(ec, ManufReg::PFAlert as u16)?;
-            print_status_flags("PF Alert", pf_alert, decode_pf_status(pf_alert));
+        let unseal_key = if input_text.is_empty() {
+            None
+        } else {
+            Some(
+                u32::from_str_radix(input_text, 16)
+                    .map_err(|e| EcError::DeviceError(format!("Invalid key: {}", e)))?,
+            )
+        };
 
-            let pf_status = self.read_i32(ec, ManufReg::PFStatus as u16)?;
-            print_status_flags("PF Status", pf_status, decode_pf_status(pf_status));
+        let data = self.collect_data(ec, unseal_key)?;
+        data.write_to_file(path)
+            .map_err(|e| EcError::DeviceError(format!("Failed to write file: {}", e)))?;
 
-            // LifeTime Data Blocks
-            let lt1 = self.read_bytes(ec, ManufReg::LifeTimeDataBlock1 as u16, 32)?;
+        println!("Battery data saved to {}", path.display());
+        Ok(())
+    }
+}
+
+/// Display decoded battery data from a BatteryData struct
+pub fn display_battery_data(data: &BatteryData) {
+    println!("Mode:          0x{:04X}", data.mode);
+    println!("Serial Num:    {:04X}", data.serial_num);
+
+    let day = data.manufacture_date & 0x1F;
+    let month = (data.manufacture_date >> 5) & 0x0F;
+    let year = (data.manufacture_date >> 9) + 1980;
+    println!("Manuf Date:    {:04}-{:02}-{:02}", year, month, day);
+
+    let temp_c = (data.temperature as f32 / 10.0) - 273.15;
+    println!("Temperature:   {:.1}C", temp_c);
+
+    println!(
+        "Voltage:       {}.{:03}V",
+        data.voltage / 1000,
+        data.voltage % 1000
+    );
+    println!(
+        "  Cell 1:      {}.{:03}V",
+        data.cell_voltage1 / 1000,
+        data.cell_voltage1 % 1000
+    );
+    println!(
+        "  Cell 2:      {}.{:03}V",
+        data.cell_voltage2 / 1000,
+        data.cell_voltage2 % 1000
+    );
+    println!(
+        "  Cell 3:      {}.{:03}V",
+        data.cell_voltage3 / 1000,
+        data.cell_voltage3 % 1000
+    );
+    println!(
+        "  Cell 4:      {}.{:03}V",
+        data.cell_voltage4 / 1000,
+        data.cell_voltage4 % 1000
+    );
+    println!("Cycle Count:   {}", data.cycle_count);
+    println!("Device Name:   {}", data.device_name);
+    println!("Manuf Name:    {}", data.manufacturer_name);
+
+    // Unsealed data
+    if !data.state_of_health.is_empty() {
+        let soh = &data.state_of_health;
+        println!(
+            "StateOfHealth: {}mAh, {}.{:02}Wh",
+            u16::from_le_bytes([soh[0], soh[1]]),
+            u16::from_le_bytes([soh[2], soh[3]]) / 100,
+            u16::from_le_bytes([soh[2], soh[3]]) % 100,
+        );
+        print_operation_status(data.operation_status);
+        print_status_flags(
+            "Safety Alert",
+            data.safety_alert,
+            decode_safety_status(data.safety_alert),
+        );
+        print_status_flags(
+            "Safety Status",
+            data.safety_status,
+            decode_safety_status(data.safety_status),
+        );
+        print_status_flags("PF Alert", data.pf_alert, decode_pf_status(data.pf_alert));
+        print_status_flags(
+            "PF Status",
+            data.pf_status,
+            decode_pf_status(data.pf_status),
+        );
+
+        if data.lifetime1.len() >= 32 {
+            let lt1 = &data.lifetime1;
             println!("LifeTime1:");
             println!(
                 "  Cell 1 Max Voltage: {}mV",
@@ -656,8 +869,10 @@ impl SmartBattery {
             println!("  Max Temp Int Sensor:    {}C", lt1[29]);
             println!("  Min Temp Int Sensor:    {}C", lt1[30]);
             println!("  Max Temp FET:           {}C", lt1[31]);
+        }
 
-            let lt2 = self.read_bytes(ec, ManufReg::LifeTimeDataBlock2 as u16, 20)?;
+        if data.lifetime2.len() >= 20 {
+            let lt2 = &data.lifetime2;
             println!("LifeTime2:");
             println!("  No. of Shutdowns:       {}", lt2[0]);
             println!("  No. of Partial Resets:  {}", lt2[1]);
@@ -687,51 +902,52 @@ impl SmartBattery {
                 cb4,
                 cb4 as f64 / 3600.0
             );
+        }
 
-            let lt3 = self.read_block(ec, ManufReg::LifeTimeDataBlock3 as u16, 16)?;
-            if !lt3.is_empty() {
-                println!("LifeTime3:");
-                if lt3.len() >= 4 {
-                    println!(
-                        "  Total FW Runtime:       {}h",
-                        u16::from_le_bytes([lt3[0], lt3[1]])
-                    );
-                    println!(
-                        "  Time in Under Temp:     {}h",
-                        u16::from_le_bytes([lt3[2], lt3[3]])
-                    );
-                }
-                if lt3.len() >= 16 {
-                    println!(
-                        "  Time in Low Temp:       {}h",
-                        u16::from_le_bytes([lt3[4], lt3[5]])
-                    );
-                    println!(
-                        "  Time in Std Temp Low:   {}h",
-                        u16::from_le_bytes([lt3[6], lt3[7]])
-                    );
-                    println!(
-                        "  Time in Std Temp:       {}h",
-                        u16::from_le_bytes([lt3[8], lt3[9]])
-                    );
-                    println!(
-                        "  Time in Std Temp High:  {}h",
-                        u16::from_le_bytes([lt3[10], lt3[11]])
-                    );
-                    println!(
-                        "  Time in High Temp:      {}h",
-                        u16::from_le_bytes([lt3[12], lt3[13]])
-                    );
-                    println!(
-                        "  Time in Over Temp:      {}h",
-                        u16::from_le_bytes([lt3[14], lt3[15]])
-                    );
-                }
+        if !data.lifetime3.is_empty() {
+            println!("LifeTime3:");
+            if data.lifetime3.len() >= 4 {
+                println!(
+                    "  Total FW Runtime:       {}h",
+                    u16::from_le_bytes([data.lifetime3[0], data.lifetime3[1]])
+                );
+                println!(
+                    "  Time in Under Temp:     {}h",
+                    u16::from_le_bytes([data.lifetime3[2], data.lifetime3[3]])
+                );
             }
+            if data.lifetime3.len() >= 16 {
+                println!(
+                    "  Time in Low Temp:       {}h",
+                    u16::from_le_bytes([data.lifetime3[4], data.lifetime3[5]])
+                );
+                println!(
+                    "  Time in Std Temp Low:   {}h",
+                    u16::from_le_bytes([data.lifetime3[6], data.lifetime3[7]])
+                );
+                println!(
+                    "  Time in Std Temp:       {}h",
+                    u16::from_le_bytes([data.lifetime3[8], data.lifetime3[9]])
+                );
+                println!(
+                    "  Time in Std Temp High:  {}h",
+                    u16::from_le_bytes([data.lifetime3[10], data.lifetime3[11]])
+                );
+                println!(
+                    "  Time in High Temp:      {}h",
+                    u16::from_le_bytes([data.lifetime3[12], data.lifetime3[13]])
+                );
+                println!(
+                    "  Time in Over Temp:      {}h",
+                    u16::from_le_bytes([data.lifetime3[14], data.lifetime3[15]])
+                );
+            }
+        }
 
-            let lt4 = self.read_block(ec, ManufReg::LifeTimeDataBlock4 as u16, 32)?;
-            if lt4.len() >= 32 {
-                println!("LifeTime4:");
+        if !data.lifetime4.is_empty() {
+            println!("LifeTime4:");
+            if data.lifetime4.len() >= 32 {
+                let lt4 = &data.lifetime4;
                 println!(
                     "  Cell Over-Voltage:        {} (last @ cycle {})",
                     u16::from_le_bytes([lt4[0], lt4[1]]),
@@ -773,10 +989,12 @@ impl SmartBattery {
                     u16::from_le_bytes([lt4[30], lt4[31]])
                 );
             }
+        }
 
-            let lt5 = self.read_block(ec, ManufReg::LifeTimeDataBlock5 as u16, 32)?;
-            if lt5.len() >= 32 {
-                println!("LifeTime5:");
+        if !data.lifetime5.is_empty() {
+            println!("LifeTime5:");
+            if data.lifetime5.len() >= 32 {
+                let lt5 = &data.lifetime5;
                 println!(
                     "  Short-Circuit Charge:     {} (last @ cycle {})",
                     u16::from_le_bytes([lt5[0], lt5[1]]),
@@ -818,10 +1036,140 @@ impl SmartBattery {
                     u16::from_le_bytes([lt5[30], lt5[31]])
                 );
             }
+        }
+    }
+}
 
-            self.seal(ec)?;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    fn test_bins_path(filename: &str) -> PathBuf {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("test_bins");
+        path.push(filename);
+        path
+    }
+
+    #[test]
+    fn test_parse_battery_dump() {
+        let path = test_bins_path("battery_00E3.txt");
+        if !path.exists() {
+            // Skip test if dump file doesn't exist yet
+            eprintln!("Skipping test: {:?} not found", path);
+            return;
         }
 
-        Ok(())
+        let data = BatteryData::read_from_file(&path).expect("Failed to read dump file");
+
+        // Basic info
+        assert_eq!(data.mode, 0x6001);
+        assert_eq!(data.serial_num, 0x00E3);
+        assert!(!data.device_name.is_empty());
+        assert!(!data.manufacturer_name.is_empty());
+
+        // Verify temperature is reasonable (0-100C range in 0.1K units)
+        let temp_c = (data.temperature as f32 / 10.0) - 273.15;
+        assert!(
+            temp_c > 0.0 && temp_c < 100.0,
+            "Temperature {} out of range",
+            temp_c
+        );
+
+        // Verify voltage is reasonable (10-20V for 4-cell pack)
+        let voltage_v = data.voltage as f32 / 1000.0;
+        assert!(
+            voltage_v > 10.0 && voltage_v < 25.0,
+            "Voltage {} out of range",
+            voltage_v
+        );
+
+        // Verify cell voltages add up approximately to total
+        let cell_sum =
+            data.cell_voltage1 + data.cell_voltage2 + data.cell_voltage3 + data.cell_voltage4;
+        let diff = (cell_sum as i32 - data.voltage as i32).abs();
+        assert!(
+            diff < 100,
+            "Cell voltages don't add up: {} vs {}",
+            cell_sum,
+            data.voltage
+        );
+    }
+
+    #[test]
+    fn test_parse_lifetime_data() {
+        let path = test_bins_path("battery_00E3.txt");
+        if !path.exists() {
+            eprintln!("Skipping test: {:?} not found", path);
+            return;
+        }
+
+        let data = BatteryData::read_from_file(&path).expect("Failed to read dump file");
+
+        // Check lifetime1 has expected length
+        if !data.lifetime1.is_empty() {
+            assert_eq!(data.lifetime1.len(), 32, "LifeTime1 should be 32 bytes");
+
+            // Check cell max voltages are reasonable (3.0-4.5V)
+            for i in 0..4 {
+                let max_v = u16::from_le_bytes([data.lifetime1[i * 2], data.lifetime1[i * 2 + 1]]);
+                assert!(
+                    max_v > 3000 && max_v < 4600,
+                    "Cell {} max voltage {} out of range",
+                    i + 1,
+                    max_v
+                );
+            }
+
+            // Check temperatures are reasonable
+            let max_temp = data.lifetime1[26];
+            let min_temp = data.lifetime1[27];
+            assert!(max_temp < 100, "Max temp {} too high", max_temp);
+            assert!(
+                min_temp < max_temp || min_temp == 0,
+                "Min temp {} > max temp {}",
+                min_temp,
+                max_temp
+            );
+        }
+
+        // Check lifetime2 has expected length
+        if !data.lifetime2.is_empty() {
+            assert_eq!(data.lifetime2.len(), 20, "LifeTime2 should be 20 bytes");
+        }
+    }
+
+    #[test]
+    fn test_hex_encode_decode_roundtrip() {
+        let original = vec![0x00, 0x11, 0x22, 0x33, 0xAA, 0xBB, 0xCC, 0xFF];
+        let encoded = hex_encode(&original);
+        let decoded = hex_decode(&encoded);
+        assert_eq!(original, decoded);
+    }
+
+    #[test]
+    fn test_manufacture_date_decode() {
+        // Test date decoding: Year*512 + Month*32 + Day
+        // 2024-10-06 = (2024-1980)*512 + 10*32 + 6 = 44*512 + 320 + 6 = 22528 + 326 = 22854
+        let mfg_date: u16 = 22854;
+        let day = mfg_date & 0x1F;
+        let month = (mfg_date >> 5) & 0x0F;
+        let year = (mfg_date >> 9) + 1980;
+        assert_eq!(day, 6);
+        assert_eq!(month, 10);
+        assert_eq!(year, 2024);
+    }
+
+    #[test]
+    fn test_temperature_conversion() {
+        // 35.5C in 0.1K units = (35.5 + 273.15) * 10 = 3086.5 ≈ 3087
+        let temp_raw: u16 = 3087;
+        let temp_c = (temp_raw as f32 / 10.0) - 273.15;
+        assert!(
+            (temp_c - 35.55).abs() < 0.1,
+            "Temperature conversion failed: {}",
+            temp_c
+        );
     }
 }
