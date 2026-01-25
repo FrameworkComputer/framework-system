@@ -1,0 +1,26 @@
+# Smart Battery Raw Data Dump
+# Format: key=hex_value or key=string
+
+mode=6001
+serial_num=00E3
+manufacture_date=5946
+temperature=0BE4
+voltage=4590
+cell_voltage1=1163
+cell_voltage2=1164
+cell_voltage3=1164
+cell_voltage4=1164
+cycle_count=0051
+device_name=FRANDBAT01
+manufacturer_name=NVT
+state_of_health=A3153921
+operation_status=10000287
+safety_alert=00000000
+safety_status=00000000
+pf_alert=00000000
+pf_status=00000000
+lifetime1=7111731170117311E00A5B0A6B0AC60A61017915A7DFE5EA25E13B0F003E0C42
+lifetime2=0500050096950100CF670200AF740200B7940200
+lifetime3=27273C01
+lifetime4=0000000006004800000000000000000000000000000000000000000000000000
+lifetime5=000000000000000000000000000000005000510013005100860451007A005100
