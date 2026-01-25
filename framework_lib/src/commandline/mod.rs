@@ -168,6 +168,7 @@ pub struct Cli {
     pub compare_version: Option<String>,
     pub power: bool,
     pub smartbattery: Option<Option<String>>,
+    pub smartbattery_auth: bool,
     pub thermal: bool,
     pub sensors: bool,
     pub fansetduty: Option<(Option<u32>, u32)>,
@@ -1549,6 +1550,12 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                     print_err(bat.dump_data(&ec));
                 }
             }
+        }
+    } else if args.smartbattery_auth {
+        #[cfg(not(feature = "uefi"))]
+        {
+            let bat = SmartBattery::new();
+            print_err(bat.interactive_authenticate(&ec));
         }
     } else if args.thermal {
         power::print_thermal(&ec);
