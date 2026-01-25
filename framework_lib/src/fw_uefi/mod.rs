@@ -5,21 +5,41 @@ use uefi::table::cfg::ConfigTableEntry;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace};
-use uefi::boot;
+use uefi::boot::{self, OpenProtocolAttributes, OpenProtocolParams};
 use uefi::proto::shell::Shell;
 use uefi_raw::protocol::shell::ShellProtocol;
 
 pub mod fs;
 
+fn get_shell_protocol() -> &'static ShellProtocol {
+    let handle = boot::get_handle_for_protocol::<Shell>().expect("No Shell handles");
+
+    // Use GetProtocol instead of Exclusive since we're running inside the shell
+    let shell = unsafe {
+        boot::open_protocol::<Shell>(
+            OpenProtocolParams {
+                handle,
+                agent: boot::image_handle(),
+                controller: None,
+            },
+            OpenProtocolAttributes::GetProtocol,
+        )
+        .expect("Failed to open Shell protocol")
+    };
+
+    // SAFETY: The Shell wrapper contains the raw ShellProtocol
+    unsafe {
+        let proto: &ShellProtocol = core::mem::transmute(shell.get().unwrap());
+        // Leak to get 'static lifetime - protocol stays valid while shell is running
+        core::mem::forget(shell);
+        proto
+    }
+}
+
 /// Returns true when the execution break was requested, false otherwise
 pub fn shell_get_execution_break_flag() -> bool {
-    let handle = boot::get_handle_for_protocol::<Shell>().expect("No Shell handles");
-    let shell =
-        boot::open_protocol_exclusive::<Shell>(handle).expect("Failed to open Shell protocol");
-    unsafe {
-        let proto: &ShellProtocol = std::mem::transmute(shell.get().unwrap());
-        (proto.get_page_break)().into()
-    }
+    let shell = get_shell_protocol();
+    unsafe { (shell.get_page_break)().into() }
 }
 
 /// Enable pagination in UEFI shell
@@ -27,13 +47,8 @@ pub fn shell_get_execution_break_flag() -> bool {
 /// Pagination is handled by the UEFI shell environment automatically, whenever
 /// the application prints more than fits on the screen.
 pub fn enable_page_break() {
-    let handle = boot::get_handle_for_protocol::<Shell>().expect("No Shell handles");
-    let shell =
-        boot::open_protocol_exclusive::<Shell>(handle).expect("Failed to open Shell protocol");
-    unsafe {
-        let proto: &ShellProtocol = std::mem::transmute(shell.get().unwrap());
-        (proto.enable_page_break)()
-    }
+    let shell = get_shell_protocol();
+    unsafe { (shell.enable_page_break)() }
 }
 
 #[repr(C, packed)]

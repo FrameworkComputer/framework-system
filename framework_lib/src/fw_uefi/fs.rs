@@ -1,7 +1,7 @@
 use alloc::vec;
 use alloc::vec::Vec;
 use core::mem::MaybeUninit;
-use uefi::boot;
+use uefi::boot::{self, OpenProtocolAttributes, OpenProtocolParams};
 use uefi::proto::shell::Shell;
 use uefi::{CString16, Result, Status, StatusExt};
 use uefi_raw::protocol::file_system::FileMode;
@@ -10,8 +10,20 @@ use uefi_raw::protocol::shell_params::ShellFileHandle;
 
 fn get_shell_protocol() -> &'static ShellProtocol {
     let handle = boot::get_handle_for_protocol::<Shell>().expect("No Shell handles");
-    let shell =
-        boot::open_protocol_exclusive::<Shell>(handle).expect("Failed to open Shell protocol");
+
+    // Use GetProtocol instead of Exclusive since we're running inside the shell
+    let shell = unsafe {
+        boot::open_protocol::<Shell>(
+            OpenProtocolParams {
+                handle,
+                agent: boot::image_handle(),
+                controller: None,
+            },
+            OpenProtocolAttributes::GetProtocol,
+        )
+        .expect("Failed to open Shell protocol")
+    };
+
     // SAFETY: The Shell wrapper contains the raw ShellProtocol
     unsafe {
         let proto: &ShellProtocol = core::mem::transmute(shell.get().unwrap());
