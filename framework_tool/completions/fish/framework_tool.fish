@@ -8,6 +8,7 @@ rtm23\t''
 ac-left\t''
 ac-right\t''"
 complete -c framework_tool -l compare-version -r
+complete -c framework_tool -l smartbattery -d 'Show detailed smart battery information, or load from dump file' -r -F
 complete -c framework_tool -l fansetduty -d 'Set fan duty cycle (0-100%)' -r
 complete -c framework_tool -l fansetrpm -d 'Set fan RPM (limited by EC fan table max RPM)' -r
 complete -c framework_tool -l autofanctrl -d 'Turn on automatic fan speed control' -r
@@ -88,6 +89,7 @@ complete -c framework_tool -l version -d 'Show tool version information (Add -vv
 complete -c framework_tool -l features -d 'Show features support by the firmware'
 complete -c framework_tool -l esrt -d 'Display the UEFI ESRT table'
 complete -c framework_tool -l power -d 'Show current power status of battery and AC (Add -vv for more details)'
+complete -c framework_tool -l smartbattery-auth -d 'Authenticate smart battery (requires unseal and auth keys)'
 complete -c framework_tool -l thermal -d 'Print thermal information (Temperatures and Fan speed)'
 complete -c framework_tool -l sensors -d 'Print sensor information (ALS, G-Sensor)'
 complete -c framework_tool -l pdports -d 'Show USB-C PD port state'
