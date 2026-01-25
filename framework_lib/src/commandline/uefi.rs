@@ -36,6 +36,7 @@ pub fn parse(args: &[String]) -> Cli {
         compare_version: None,
         power: false,
         smartbattery: None,
+        smartbattery_auth: false,
         thermal: false,
         sensors: false,
         fansetduty: None,

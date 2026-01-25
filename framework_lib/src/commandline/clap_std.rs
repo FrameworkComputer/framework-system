@@ -55,6 +55,10 @@ struct ClapCli {
     #[arg(long, value_name = "FILE")]
     smartbattery: Option<Option<PathBuf>>,
 
+    /// Authenticate smart battery (requires unseal and auth keys)
+    #[arg(long)]
+    smartbattery_auth: bool,
+
     /// Print thermal information (Temperatures and Fan speed)
     #[arg(long)]
     thermal: bool,
@@ -416,6 +420,7 @@ pub fn parse(args: &[String]) -> Cli {
         smartbattery: args
             .smartbattery
             .map(|opt| opt.map(|x| x.into_os_string().into_string().unwrap())),
+        smartbattery_auth: args.smartbattery_auth,
         thermal: args.thermal,
         sensors: args.sensors,
         fansetduty,
