@@ -5,9 +5,13 @@
 use alloc::string::String;
 use alloc::vec::Vec;
 
+use rand::random;
+use sha1::{Digest, Sha1};
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::Path;
+use std::thread;
+use std::time::Duration;
 
 use crate::chromium_ec::i2c_passthrough::*;
 use crate::chromium_ec::{CrosEc, EcError, EcResult};
@@ -160,6 +164,7 @@ enum SmartBatReg {
     SerialNum = 0x1C,
     ManufacturerName = 0x20,
     DeviceName = 0x21,
+    Authenticate = 0x2F,
     CellVoltage1 = 0x3C,
     CellVoltage2 = 0x3D,
     CellVoltage3 = 0x3E,
@@ -456,6 +461,33 @@ fn print_operation_status(value: u32) {
     }
 }
 
+/// Calculates the HMAC using TI's specific nested SHA-1 method.
+/// Formula: SHA1( Key || SHA1( Key || Challenge ) )
+/// Note: TI batteries expect bytes in reversed order
+fn calculate_ti_hmac(key: &[u8; 16], challenge: &[u8; 20]) -> [u8; 20] {
+    // Reverse challenge bytes as per TI spec
+    let mut challenge_rev = *challenge;
+    challenge_rev.reverse();
+
+    // 1. Inner Hash: SHA1( Key + Challenge_reversed )
+    let mut inner_hasher = Sha1::new();
+    inner_hasher.update(key);
+    inner_hasher.update(challenge_rev);
+    let inner_digest = inner_hasher.finalize();
+
+    // 2. Outer Hash: SHA1( Key + Inner_Digest )
+    let mut outer_hasher = Sha1::new();
+    outer_hasher.update(key);
+    outer_hasher.update(inner_digest);
+    let outer_digest = outer_hasher.finalize();
+
+    // Convert GenericArray to standard [u8; 20] and reverse for output
+    let mut result = [0u8; 20];
+    result.copy_from_slice(&outer_digest);
+    result.reverse();
+    result
+}
+
 /// Reads a line from stdin without echoing (for sensitive input like keys)
 #[cfg(unix)]
 fn read_password() -> io::Result<String> {
@@ -641,6 +673,136 @@ impl SmartBattery {
         i2c_response.is_successful()?;
         let actual_len = i2c_response.data[0] as usize;
         Ok(i2c_response.data[1..=actual_len].to_vec())
+    }
+
+    /// Raw I2C read without SMBus block length prefix handling
+    fn read_raw(&self, ec: &CrosEc, addr: u16, len: u16) -> EcResult<Vec<u8>> {
+        let i2c_response = i2c_read(ec, self.i2c_port, self.i2c_addr >> 1, addr, len)?;
+        i2c_response.is_successful()?;
+        Ok(i2c_response.data.to_vec())
+    }
+
+    fn smbus_write_block(&self, ec: &CrosEc, reg: u8, data: &[u8]) -> EcResult<()> {
+        i2c_write_block(ec, self.i2c_port, self.i2c_addr >> 1, reg, data)?;
+        Ok(())
+    }
+
+    /// Authenticate the battery using SHA-1 HMAC challenge-response
+    pub fn authenticate_battery(&self, ec: &CrosEc, auth_key: &[u8; 16]) -> EcResult<bool> {
+        // 1. Generate a random 20-byte challenge
+        let challenge: [u8; 20] = random();
+
+        println!("Step 1: Sending Challenge...");
+
+        // SMBus Block Write format: [Byte_Count, Data...]
+        // The register address is handled by smbus_write_block
+        let mut write_buf = Vec::new();
+        write_buf.push(20); // Byte Count (0x14)
+        write_buf.extend_from_slice(&challenge);
+
+        self.smbus_write_block(ec, SmartBatReg::Authenticate as u8, &write_buf)?;
+
+        // 2. Wait for the gauge to calculate (Datasheet says 250ms)
+        println!("Step 2: Waiting 250ms...");
+        thread::sleep(Duration::from_millis(250));
+
+        // 3. Calculate expected result locally while waiting
+        let expected_response = calculate_ti_hmac(auth_key, &challenge);
+
+        // 4. Read Response from Authenticate register
+        // SMBus Block Read format: [Length] + [Data...]
+        println!("Step 3: Reading Response...");
+
+        // Read 21 bytes (1 byte length + 20 bytes signature) from Authenticate register
+        let raw_response = self.read_raw(ec, SmartBatReg::Authenticate as u16, 21)?;
+
+        // 5. Parse and Compare
+        // First byte is the length, should be 20
+        let response_len = raw_response[0] as usize;
+        if response_len != 20 {
+            return Err(EcError::DeviceError(format!(
+                "Expected 20-byte response, got {} bytes (first byte: 0x{:02X})",
+                response_len, raw_response[0]
+            )));
+        }
+
+        let device_response = &raw_response[1..21];
+
+        println!("Expected: {:02X?}", expected_response);
+        println!("Received: {:02X?}", device_response);
+
+        if device_response == expected_response {
+            println!("SUCCESS: Battery is genuine.");
+            Ok(true)
+        } else {
+            println!("FAILURE: Signature mismatch.");
+            Ok(false)
+        }
+    }
+
+    /// Interactive authentication - prompts for unseal key and authentication key
+    pub fn interactive_authenticate(&self, ec: &CrosEc) -> EcResult<()> {
+        // First, try to unseal the battery
+        println!("Some batteries require unsealing before authentication.");
+        print!("Unseal key in hex (e.g. 04143672), or enter to skip: ");
+        io::stdout()
+            .flush()
+            .map_err(|e| EcError::DeviceError(format!("Failed to flush stdout: {}", e)))?;
+
+        let unseal_input = read_password()
+            .map_err(|e| EcError::DeviceError(format!("Failed to read key: {}", e)))?;
+        let unseal_input = unseal_input.trim();
+        if !unseal_input.is_empty() {
+            let key: u32 = u32::from_str_radix(unseal_input, 16)
+                .map_err(|e| EcError::DeviceError(format!("Invalid unseal key: {}", e)))?;
+            println!("Unsealing battery...");
+            self.unseal(ec, (key >> 16) as u16, key as u16)?;
+            // Wait a bit after unsealing
+            thread::sleep(Duration::from_millis(100));
+        }
+
+        // Now prompt for authentication key
+        print!("Auth key in hex (32 chars, e.g. 00112233...EEFF): ");
+        io::stdout()
+            .flush()
+            .map_err(|e| EcError::DeviceError(format!("Failed to flush stdout: {}", e)))?;
+
+        let input_text = read_password()
+            .map_err(|e| EcError::DeviceError(format!("Failed to read key: {}", e)))?;
+        let input_text = input_text.trim();
+        if input_text.is_empty() {
+            println!("No key provided, aborting.");
+            return Ok(());
+        }
+
+        if input_text.len() != 32 {
+            return Err(EcError::DeviceError(format!(
+                "Key must be 32 hex characters (16 bytes), got {} characters",
+                input_text.len()
+            )));
+        }
+
+        let mut auth_key = [0u8; 16];
+        for i in 0..16 {
+            auth_key[i] = u8::from_str_radix(&input_text[i * 2..i * 2 + 2], 16).map_err(|e| {
+                EcError::DeviceError(format!("Invalid hex at position {}: {}", i * 2, e))
+            })?;
+        }
+
+        let result = self.authenticate_battery(ec, &auth_key)?;
+
+        // Re-seal the battery if we unsealed it
+        if !unseal_input.is_empty() {
+            println!("Re-sealing battery...");
+            self.seal(ec)?;
+        }
+
+        match result {
+            true => println!("Authentication successful - battery is genuine."),
+            false => println!("Authentication failed - battery signature mismatch."),
+        }
+
+        Ok(())
     }
 
     /// Print battery information interactively (prompts for unseal key)
