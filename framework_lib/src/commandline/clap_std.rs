@@ -49,6 +49,10 @@ struct ClapCli {
     #[arg(long)]
     power: bool,
 
+    /// Show detailed smart battery information
+    #[arg(long)]
+    smartbattery: bool,
+
     /// Print thermal information (Temperatures and Fan speed)
     #[arg(long)]
     thermal: bool,
@@ -407,6 +411,7 @@ pub fn parse(args: &[String]) -> Cli {
         device: args.device,
         compare_version: args.compare_version,
         power: args.power,
+        smartbattery: args.smartbattery,
         thermal: args.thermal,
         sensors: args.sensors,
         fansetduty,

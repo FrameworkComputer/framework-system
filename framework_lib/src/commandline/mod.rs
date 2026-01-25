@@ -55,6 +55,8 @@ use crate::nvme;
 use crate::os_specific;
 use crate::parade_retimer;
 use crate::power;
+#[cfg(not(feature = "uefi"))]
+use crate::smart_battery::SmartBattery;
 use crate::smbios;
 use crate::smbios::ConfigDigit0;
 use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
@@ -167,6 +169,7 @@ pub struct Cli {
     pub device: Option<HardwareDeviceType>,
     pub compare_version: Option<String>,
     pub power: bool,
+    pub smartbattery: bool,
     pub thermal: bool,
     pub sensors: bool,
     pub fansetduty: Option<(Option<u32>, u32)>,
@@ -1498,6 +1501,12 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_board_ids(&ec);
     } else if args.power {
         return power::get_and_print_power_info(&ec);
+    } else if args.smartbattery {
+        #[cfg(not(feature = "uefi"))]
+        {
+            let bat = SmartBattery::new();
+            print_err(bat.dump_data(&ec));
+        }
     } else if args.thermal {
         power::print_thermal(&ec);
     } else if args.sensors {

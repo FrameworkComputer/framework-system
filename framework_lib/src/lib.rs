@@ -45,6 +45,8 @@ pub mod esrt;
 mod os_specific;
 pub mod parade_retimer;
 pub mod power;
+#[cfg(not(feature = "uefi"))]
+pub mod smart_battery;
 pub mod smbios;
 #[cfg(feature = "uefi")]
 pub mod uefi;
