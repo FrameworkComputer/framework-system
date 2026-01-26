@@ -179,6 +179,16 @@ jobs:
     - name: Run cargo clippy
       run: cargo clippy -p framework_lib -p framework_tool -- -D warnings
 
+    - name: Check shell completions are up to date
+      run: |
+        cargo build -p framework_tool
+        ./target/debug/framework_tool --generate-completions bash > /tmp/bash_completions
+        ./target/debug/framework_tool --generate-completions zsh > /tmp/zsh_completions
+        ./target/debug/framework_tool --generate-completions fish > /tmp/fish_completions
+        diff completions/bash/framework_tool /tmp/bash_completions || { echo "Shell completions are out of date. See completions/README.md for regeneration instructions."; exit 1; }
+        diff completions/zsh/_framework_tool /tmp/zsh_completions || { echo "Shell completions are out of date. See completions/README.md for regeneration instructions."; exit 1; }
+        diff completions/fish/framework_tool.fish /tmp/fish_completions || { echo "Shell completions are out of date. See completions/README.md for regeneration instructions."; exit 1; }
+
   # Just make sure doc generation works
   doc:
     name: Generate docs
