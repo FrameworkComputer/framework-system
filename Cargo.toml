@@ -21,3 +21,8 @@ default-members = [
 
 [profile.release]
 lto = true
+
+[patch.crates-io]
+uefi = { path = "../uefi-rs/uefi" }
+uefi-macros = { path = "../uefi-rs/uefi-macros" }
+uefi-raw = { path = "../uefi-rs/uefi-raw" }
