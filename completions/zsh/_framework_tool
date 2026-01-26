@@ -1,55 +1,106 @@
 #compdef framework_tool
 
-local -a options
+autoload -U is-at-least
 
-options=(
-  '--flash-gpu-descriptor[]'
-  '-v[Increase logging verbosity]'
-  '-q[Decrease logging verbosity]'
-  '--versions[Show current firmware versions]'
-  '--version[Show tool version information (Add -vv for more details)]'
-  '--features[Show features supported by the firmware]'
-  '--esrt[Display the UEFI ESRT table]'
-  '--device[Specify device type]:device:(bios ec pd0 pd1 rtm01 rtm23 ac-left ac-right)'
-  '--compare-version[Specify version to compare]:compare_version'
-  '--power[Show current power status of battery and AC (Add -vv for more details)]'
-  '--thermal[Print thermal information (Temperatures and Fan speed)]'
-  '--sensors[Print sensor information (ALS, G-Sensor)]'
-  '--pdports[Show information about USB-C PD ports]'
-  '--info[Show info from SMBIOS (Only on UEFI)]'
-  '--pd-info[Show details about the PD controllers]'
-  '--dp-hdmi-info[Show details about connected DP or HDMI Expansion Cards]'
-  '--dp-hdmi-update[Update the DisplayPort or HDMI Expansion Card]:update_bin'
-  '--audio-card-info[Show details about connected Audio Expansion Cards (Needs root privileges)]'
-  '--privacy[Show privacy switch statuses (camera and microphone)]'
-  '--pd-bin[Parse versions from PD firmware binary file]:pd_bin'
-  '--ec-bin[Parse versions from EC firmware binary file]:ec_bin'
-  '--capsule[Parse UEFI Capsule information from binary file]:capsule'
-  '--dump[Dump extracted UX capsule bitmap image to a file]:dump'
-  '--ho2-capsule[Parse UEFI Capsule information from binary file]:ho2_capsule'
-  '--dump-ec-flash[Dump EC flash contents]:dump_ec_flash'
-  '--flash-ec[Flash EC with new firmware from file]:flash_ec'
-  '--flash-ro-ec[Flash EC with new RO firmware from file]:flash_ro_ec'
-  '--flash-rw-ec[Flash EC with new RW firmware from file]:flash_rw_ec'
-  '--intrusion[Show status of intrusion switch]'
-  '--inputdeck[Show status of the input deck]'
-  '--inputdeck-mode[Set input deck power mode]:inputdeck_mode:(auto off on)'
-  '--charge-limit[Get or set max charge limit]:charge_limit'
-  '--get-gpio[Get GPIO value by name]:get_gpio'
-  '--fp-led-level-gpio[Get or set fingerprint LED brightness level]:fp_led_level:(high medium low ultra-low auto)'
-  '--fp-brightness[Get or set fingerprint LED brightness]:fp_brightness'
-  '--kblight[Set keyboard backlight percentage or get, if no value provided]:kblight'
-  '--rgbkbd[Set the color of <key> to <RGB>.]'
-  '--tablet-mode[Set tablet mode override]:tablet_mode:(auto tablet laptop)'
-  '--touchscreen-enable[Enable/disable touchscreen]:touchscreen_enable:(true false)'
-  '--console[Get EC console, choose whether recent or to follow the output]:console:(recent follow)'
-  '--reboot-ec[Control EC RO/RW jump]:reboot_ec:(reboot jump-ro jump-rw cancel-jump disable-jump)'
-  '--hash[Hash a file of arbitrary data]:hash'
-  '--driver[Select which driver is used]:driver:(portio cros-ec windows)'
-  '--pd-addrs[Specify I2C addresses of the PD chips (Advanced)]:pd_addrs'
-  '--pd-ports[Specify I2C ports of the PD chips (Advanced)]:pd_ports'
-  '-t[Run self-test to check if interaction with EC is possible]'
-  '-h[Print help]'
-)
+_framework_tool() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
 
-_arguments -s -S $options
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" : \
+'--flash-gpu-descriptor=[]: :_default: :_default' \
+'--device=[]:DEVICE:(bios ec pd0 pd1 rtm01 rtm23 ac-left ac-right)' \
+'--compare-version=[]:COMPARE_VERSION:_default' \
+'*--fansetduty=[Set fan duty cycle (0-100%)]::FANSETDUTY:_default' \
+'*--fansetrpm=[Set fan RPM (limited by EC fan table max RPM)]::FANSETRPM:_default' \
+'--autofanctrl=[Turn on automatic fan speed control]::AUTOFANCTRL:_default' \
+'--pd-reset=[Reset a specific PD controller (for debugging only)]:PD_RESET:_default' \
+'--pd-disable=[Disable all ports on a specific PD controller (for debugging only)]:PD_DISABLE:_default' \
+'--pd-enable=[Enable all ports on a specific PD controller (for debugging only)]:PD_ENABLE:_default' \
+'--dp-hdmi-update=[Update the DisplayPort or HDMI Expansion Card]:UPDATE_BIN:_files' \
+'--pd-bin=[Parse versions from PD firmware binary file]:PD_BIN:_files' \
+'--ec-bin=[Parse versions from EC firmware binary file]:EC_BIN:_files' \
+'--capsule=[Parse UEFI Capsule information from binary file]:CAPSULE:_files' \
+'--dump=[Dump extracted UX capsule bitmap image to a file]:DUMP:_files' \
+'--h2o-capsule=[Parse UEFI Capsule information from binary file]:H2O_CAPSULE:_files' \
+'--dump-ec-flash=[Dump EC flash contents]:DUMP_EC_FLASH:_files' \
+'--flash-ec=[Flash EC (RO+RW) with new firmware from file - may render your hardware unbootable!]:FLASH_EC:_files' \
+'--flash-ro-ec=[Flash EC with new RO firmware from file - may render your hardware unbootable!]:FLASH_RO_EC:_files' \
+'--flash-rw-ec=[Flash EC with new RW firmware from file]:FLASH_RW_EC:_files' \
+'--inputdeck-mode=[Set input deck power mode \[possible values\: auto, off, on\] (Framework 16 only)]:INPUTDECK_MODE:(auto off on)' \
+'--charge-limit=[Get or set max charge limit]::CHARGE_LIMIT:_default' \
+'*--charge-current-limit=[Set max charge current limit]:CHARGE_CURRENT_LIMIT:_default' \
+'*--charge-rate-limit=[Set max charge current limit]:CHARGE_RATE_LIMIT:_default' \
+'--get-gpio=[Get GPIO value by name or all, if no name provided]::GET_GPIO:_default' \
+'--fp-led-level=[Get or set fingerprint LED brightness level]::FP_LED_LEVEL:(high medium low ultra-low auto)' \
+'--fp-brightness=[Get or set fingerprint LED brightness percentage]::FP_BRIGHTNESS:_default' \
+'--kblight=[Set keyboard backlight percentage or get, if no value provided]::KBLIGHT:_default' \
+'*--remap-key=[Remap a key by changing the scancode]:REMAP_KEY:_default:REMAP_KEY:_default:REMAP_KEY:_default' \
+'*--rgbkbd=[Set the color of <key> to <RGB>. Multiple colors for adjacent keys can be set at once. <key> <RGB> \[<RGB> ...\] Example\: 0 0xFF000 0x00FF00 0x0000FF]:START:_default:START:_default' \
+'--ps2-enable=[Control PS2 touchpad emulation (DEBUG COMMAND, if touchpad not working, reboot system)]:PS2_ENABLE:(true false)' \
+'--tablet-mode=[Set tablet mode override]:TABLET_MODE:(auto tablet laptop)' \
+'--touchscreen-enable=[Enable/disable touchscreen]:TOUCHSCREEN_ENABLE:(true false)' \
+'--console=[Get EC console, choose whether recent or to follow the output]:CONSOLE:(recent follow)' \
+'--reboot-ec=[Control EC RO/RW jump]:REBOOT_EC:(reboot jump-ro jump-rw cancel-jump disable-jump)' \
+'--ec-hib-delay=[Get or set EC hibernate delay (S5 to G3)]::EC_HIB_DELAY:_default' \
+'--hash=[Hash a file of arbitrary data]:HASH:_files' \
+'--driver=[Select which driver is used. By default portio is used]:DRIVER:(portio cros-ec windows)' \
+'*--pd-addrs=[Specify I2C addresses of the PD chips (Advanced)]:PD_ADDRS:_default:PD_ADDRS:_default:PD_ADDRS:_default' \
+'*--pd-ports=[Specify I2C ports of the PD chips (Advanced)]:PD_PORTS:_default:PD_PORTS:_default:PD_PORTS:_default' \
+'--flash-gpu-descriptor-file=[File to write to the gpu EEPROM]:FLASH_GPU_DESCRIPTOR_FILE:_files' \
+'--dump-gpu-descriptor-file=[File to dump the gpu EEPROM to]:DUMP_GPU_DESCRIPTOR_FILE:_files' \
+'--generate-completions=[Generate shell completions and print to stdout]:SHELL:(bash elvish fish powershell zsh)' \
+'*-v[Increase logging verbosity]' \
+'*--verbose[Increase logging verbosity]' \
+'(-v --verbose)*-q[Decrease logging verbosity]' \
+'(-v --verbose)*--quiet[Decrease logging verbosity]' \
+'--versions[List current firmware versions]' \
+'--version[Show tool version information (Add -vv for more details)]' \
+'--features[Show features support by the firmware]' \
+'--esrt[Display the UEFI ESRT table]' \
+'--power[Show current power status of battery and AC (Add -vv for more details)]' \
+'--thermal[Print thermal information (Temperatures and Fan speed)]' \
+'--sensors[Print sensor information (ALS, G-Sensor)]' \
+'--pdports[Show information about USB-C PD ports]' \
+'--info[Show info from SMBIOS (Only on UEFI)]' \
+'--pd-info[Show details about the PD controllers]' \
+'--dp-hdmi-info[Show details about connected DP or HDMI Expansion Cards]' \
+'--audio-card-info[Show details about connected Audio Expansion Cards (Needs root privileges)]' \
+'--privacy[Show privacy switch statuses (camera and microphone)]' \
+'--intrusion[Show status of intrusion switch]' \
+'--inputdeck[Show status of the input modules (Framework 16 only)]' \
+'--expansion-bay[Show status of the expansion bay (Framework 16 only)]' \
+'--stylus-battery[Check stylus battery level (USI 2.0 stylus only)]' \
+'--uptimeinfo[]' \
+'--s0ix-counter[]' \
+'-t[Run self-test to check if interaction with EC is possible]' \
+'--test[Run self-test to check if interaction with EC is possible]' \
+'--test-retimer[Run self-test to check if interaction with retimers is possible]' \
+'--boardid[Print all board IDs]' \
+'-f[Force execution of an unsafe command - may render your hardware unbootable!]' \
+'--force[Force execution of an unsafe command - may render your hardware unbootable!]' \
+'--dry-run[Simulate execution of a command (e.g. --flash-ec)]' \
+'--nvidia[Show NVIDIA GPU information (Framework 16 only)]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+}
+
+(( $+functions[_framework_tool_commands] )) ||
+_framework_tool_commands() {
+    local commands; commands=()
+    _describe -t commands 'framework_tool commands' commands "$@"
+}
+
+if [ "$funcstack[1]" = "_framework_tool" ]; then
+    _framework_tool "$@"
+else
+    compdef _framework_tool framework_tool
+fi

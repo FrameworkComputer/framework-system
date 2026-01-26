@@ -1,85 +1,214 @@
-#!/usr/bin/env bash
-
-# Bash completion for framework_tool
-
 _framework_tool() {
-    local options
-    options=(
-	"--flash-gpu-descriptor"
-        "-v" "--verbose"
-        "-q" "--quiet"
-        "--versions"
-        "--version"
-        "--features"
-        "--esrt"
-        "--device"
-        "--compare-version"
-        "--power"
-        "--thermal"
-        "--sensors"
-        "--pdports"
-        "--info"
-        "--pd-info"
-        "--dp-hdmi-info"
-        "--dp-hdmi-update"
-        "--audio-card-info"
-        "--privacy"
-        "--pd-bin"
-        "--ec-bin"
-        "--capsule"
-        "--dump"
-        "--ho2-capsule"
-        "--dump-ec-flash"
-        "--flash-ec"
-        "--flash-ro-ec"
-        "--flash-rw-ec"
-        "--intrusion"
-        "--inputdeck"
-        "--inputdeck-mode"
-        "--charge-limit"
-        "--get-gpio"
-	"--fp-led-level"
-        "--fp-brightness"
-        "--kblight"
-	"--rgbkbd"
-	"--tablet-mode"
-	"--touchscreen-enable"
-        "--console"
-        "--reboot-ec"
-        "--hash"
-        "--driver"
-        "--pd-addrs"
-        "--pd-ports"
-        "-t" "--test"
-        "-h" "--help"
-    )
-
-    local devices=("bios" "ec" "pd0" "pd1" "rtm01" "rtm23" "ac-left" "ac-right")
-    local inputdeck_modes=("auto" "off" "on")
-    local console_modes=("recent" "follow")
-    local drivers=("portio" "cros-ec" "windows")
-    local brightness_options=("high" "medium" "low" "ultra-low")
-
-    local current_word prev_word
-    current_word="${COMP_WORDS[COMP_CWORD]}"
-    prev_word="${COMP_WORDS[COMP_CWORD-1]}"
-
-    # Handle options
-    if [[ $COMP_CWORD -eq 1 ]]; then
-        COMPREPLY=( $(compgen -W "${options[*]}" -- "$current_word") )
-    elif [[ $prev_word == "--device" ]]; then
-        COMPREPLY=( $(compgen -W "${devices[*]}" -- "$current_word") )
-    elif [[ $prev_word == "--inputdeck-mode" ]]; then
-        COMPREPLY=( $(compgen -W "${inputdeck_modes[*]}" -- "$current_word") )
-    elif [[ $prev_word == "--console" ]]; then
-        COMPREPLY=( $(compgen -W "${console_modes[*]}" -- "$current_word") )
-    elif [[ $prev_word == "--driver" ]]; then
-        COMPREPLY=( $(compgen -W "${drivers[*]}" -- "$current_word") )
-    elif [[ $prev_word == "--fp-brightness" ]]; then
-        COMPREPLY=( $(compgen -W "${brightness_options[*]}" -- "$current_word") )
+    local i cur prev opts cmd
+    COMPREPLY=()
+    if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+        cur="$2"
+    else
+        cur="${COMP_WORDS[COMP_CWORD]}"
     fi
+    prev="$3"
+    cmd=""
+    opts=""
 
-    return 0
+    for i in "${COMP_WORDS[@]:0:COMP_CWORD}"
+    do
+        case "${cmd},${i}" in
+            ",$1")
+                cmd="framework_tool"
+                ;;
+            *)
+                ;;
+        esac
+    done
+
+    case "${cmd}" in
+        framework_tool)
+            opts="-v -q -t -f -h --flash-gpu-descriptor --verbose --quiet --versions --version --features --esrt --device --compare-version --power --thermal --sensors --fansetduty --fansetrpm --autofanctrl --pdports --info --pd-info --pd-reset --pd-disable --pd-enable --dp-hdmi-info --dp-hdmi-update --audio-card-info --privacy --pd-bin --ec-bin --capsule --dump --h2o-capsule --dump-ec-flash --flash-ec --flash-ro-ec --flash-rw-ec --intrusion --inputdeck --inputdeck-mode --expansion-bay --charge-limit --charge-current-limit --charge-rate-limit --get-gpio --fp-led-level --fp-brightness --kblight --remap-key --rgbkbd --ps2-enable --tablet-mode --touchscreen-enable --stylus-battery --console --reboot-ec --ec-hib-delay --uptimeinfo --s0ix-counter --hash --driver --pd-addrs --pd-ports --test --test-retimer --boardid --force --dry-run --flash-gpu-descriptor-file --dump-gpu-descriptor-file --nvidia --generate-completions --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --flash-gpu-descriptor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --device)
+                    COMPREPLY=($(compgen -W "bios ec pd0 pd1 rtm01 rtm23 ac-left ac-right" -- "${cur}"))
+                    return 0
+                    ;;
+                --compare-version)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --fansetduty)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --fansetrpm)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --autofanctrl)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --pd-reset)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --pd-disable)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --pd-enable)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --dp-hdmi-update)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --pd-bin)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --ec-bin)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --capsule)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --dump)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --h2o-capsule)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --dump-ec-flash)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --flash-ec)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --flash-ro-ec)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --flash-rw-ec)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --inputdeck-mode)
+                    COMPREPLY=($(compgen -W "auto off on" -- "${cur}"))
+                    return 0
+                    ;;
+                --charge-limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --charge-current-limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --charge-rate-limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --get-gpio)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --fp-led-level)
+                    COMPREPLY=($(compgen -W "high medium low ultra-low auto" -- "${cur}"))
+                    return 0
+                    ;;
+                --fp-brightness)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --kblight)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --remap-key)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --rgbkbd)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --ps2-enable)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --tablet-mode)
+                    COMPREPLY=($(compgen -W "auto tablet laptop" -- "${cur}"))
+                    return 0
+                    ;;
+                --touchscreen-enable)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --console)
+                    COMPREPLY=($(compgen -W "recent follow" -- "${cur}"))
+                    return 0
+                    ;;
+                --reboot-ec)
+                    COMPREPLY=($(compgen -W "reboot jump-ro jump-rw cancel-jump disable-jump" -- "${cur}"))
+                    return 0
+                    ;;
+                --ec-hib-delay)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --hash)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --driver)
+                    COMPREPLY=($(compgen -W "portio cros-ec windows" -- "${cur}"))
+                    return 0
+                    ;;
+                --pd-addrs)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --pd-ports)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --flash-gpu-descriptor-file)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --dump-gpu-descriptor-file)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --generate-completions)
+                    COMPREPLY=($(compgen -W "bash elvish fish powershell zsh" -- "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+    esac
 }
 
-complete -F _framework_tool framework_tool
+if [[ "${BASH_VERSINFO[0]}" -eq 4 && "${BASH_VERSINFO[1]}" -ge 4 || "${BASH_VERSINFO[0]}" -gt 4 ]]; then
+    complete -F _framework_tool -o nosort -o bashdefault -o default framework_tool
+else
+    complete -F _framework_tool -o bashdefault -o default framework_tool
+fi
