@@ -1,9 +1,12 @@
 //! Module to factor out commandline interaction
 //! This way we can use it in the regular OS commandline tool on Linux and Windows,
 //! as well as on the UEFI shell tool.
+use std::io;
+
 use clap::error::ErrorKind;
 use clap::Parser;
 use clap::{command, Arg, Args, FromArgMatches};
+use clap_complete::{generate, Shell};
 use clap_num::maybe_hex;
 
 use crate::chromium_ec::commands::SetGpuSerialMagic;
@@ -296,6 +299,10 @@ struct ClapCli {
     /// Show NVIDIA GPU information (Framework 16 only)
     #[arg(long)]
     nvidia: bool,
+
+    /// Generate shell completions and print to stdout
+    #[arg(long, value_name = "SHELL", hide = true)]
+    generate_completions: Option<Shell>,
 }
 
 /// Parse a list of commandline arguments and return the struct
@@ -306,6 +313,16 @@ pub fn parse(args: &[String]) -> Cli {
         .disable_version_flag(true);
     // Step 2 - Define args from derived struct
     let mut cli = ClapCli::augment_args(cli);
+
+    // Handle --generate-completions early (generates and exits)
+    if let Some(shell_arg) = args.iter().position(|a| a == "--generate-completions") {
+        if let Some(shell_str) = args.get(shell_arg + 1) {
+            if let Ok(shell) = shell_str.parse::<Shell>() {
+                generate(shell, &mut cli, "framework_tool", &mut io::stdout());
+                std::process::exit(0);
+            }
+        }
+    }
 
     // Step 3 - Parse args that can't be derived
     let matches = cli.clone().get_matches_from(args);
