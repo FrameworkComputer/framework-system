@@ -251,7 +251,7 @@ pub struct Esrt {
 // Current Entry Version
 pub const ESRT_FIRMWARE_RESOURCE_VERSION: u64 = 1;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ResourceType {
     Unknown = 0,
     SystemFirmware = 1,
@@ -262,7 +262,7 @@ pub enum ResourceType {
 }
 
 impl ResourceType {
-    fn from_int(i: u32) -> Self {
+    pub fn from_int(i: u32) -> Self {
         match i {
             1 => Self::SystemFirmware,
             2 => Self::DeviceFirmware,
