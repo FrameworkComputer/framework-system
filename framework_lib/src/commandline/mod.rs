@@ -1263,8 +1263,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     }
 
     // Must be run before any application code to set the config
-    if args.pd_addrs.is_some() && args.pd_ports.is_some() {
-        let platform = Platform::GenericFramework(args.pd_addrs.unwrap(), args.pd_ports.unwrap());
+    if let (Some(pd_addrs), Some(pd_ports)) = (args.pd_addrs, args.pd_ports) {
+        let platform = Platform::GenericFramework(pd_addrs, pd_ports);
         Config::set(platform);
     }
 
