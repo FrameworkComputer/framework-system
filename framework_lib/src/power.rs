@@ -616,17 +616,14 @@ fn print_battery_information(power_info: &PowerInfo) {
 pub fn check_update_ready(power_info: &PowerInfo) -> bool {
     // Checking if battery/AC conditions are enough for FW update
     // Either standalone mode or AC+20% charge
-    if power_info.battery.is_none()
-        || (power_info.ac_present && power_info.battery.as_ref().unwrap().charge_percentage > 20)
-    {
-        true
-    } else {
-        println!("Please plug in AC. If the battery is connected, charge it to at least 20% before proceeding.");
-        println!(
-            "Current charge is: {}%",
-            power_info.battery.as_ref().unwrap().charge_percentage
-        );
-        false
+    match &power_info.battery {
+        None => true,
+        Some(battery) if power_info.ac_present && battery.charge_percentage > 20 => true,
+        Some(battery) => {
+            println!("Please plug in AC. If the battery is connected, charge it to at least 20% before proceeding.");
+            println!("Current charge is: {}%", battery.charge_percentage);
+            false
+        }
     }
 }
 
