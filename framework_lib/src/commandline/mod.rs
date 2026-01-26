@@ -47,7 +47,7 @@ use crate::chromium_ec::{EcError, EcResult};
 #[cfg(target_os = "linux")]
 use crate::csme;
 use crate::ec_binary;
-use crate::esrt;
+use crate::esrt::{self, ResourceType};
 #[cfg(feature = "rusb")]
 use crate::inputmodule::check_inputmodule_version;
 #[cfg(target_os = "linux")]
@@ -707,6 +707,23 @@ fn print_versions(ec: &CrosEc) {
         if left_retimer.is_none() && right_retimer.is_none() {
             // This means there's a bug, we should've found one but didn't
             println!("  Unknown");
+        }
+    } else {
+        // If we don't know the GUID, print all the device firmwares in ESRT
+        println!("Intel Retimers (Potential)");
+        if let Some(esrt) = esrt::get_esrt() {
+            for entry in esrt.entries.iter() {
+                if ResourceType::from_int(entry.fw_type) != ResourceType::DeviceFirmware {
+                    continue;
+                }
+                println!("  GUID:          {}", entry.fw_class);
+                println!(
+                    "  Version:       0x{:X} ({})",
+                    entry.fw_version, entry.fw_version
+                );
+            }
+        } else {
+            println!("Could not find and parse ESRT table.");
         }
     }
     match parade_retimer::get_version(ec) {
