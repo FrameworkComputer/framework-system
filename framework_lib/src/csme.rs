@@ -753,9 +753,6 @@ mod tests {
 
     /// Load SMBIOS data from a dmidecode binary dump file
     /// Created with: sudo dmidecode --dump-bin smbios.bin
-    /// Default test SMBIOS dump filename
-    const SMBIOS_DUMP_FILE: &str = "marigold-smbios.bin";
-
     fn load_smbios_dump(filename: &str) -> Option<SMBiosData> {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("test_bins");
@@ -855,101 +852,78 @@ mod tests {
         assert!(bg.fpf_soc_lock);
     }
 
-    #[test]
-    fn test_me_fwsts_from_smbios_dump() {
-        let smbios = match load_smbios_dump(SMBIOS_DUMP_FILE) {
-            Some(s) => s,
-            None => {
-                println!("Skipping test - dump file not available");
-                return;
-            }
+    /// Generate tests for each SMBIOS dump file
+    macro_rules! smbios_dump_tests {
+        ($($name:ident: $file:expr),+ $(,)?) => {
+            $(
+                mod $name {
+                    use super::*;
+
+                    fn smbios() -> SMBiosData {
+                        load_smbios_dump($file)
+                            .unwrap_or_else(|| panic!("Dump file not found: {}", $file))
+                    }
+
+                    #[test]
+                    fn me_fwsts() {
+                        let smbios = smbios();
+                        let me_fwsts = me_fwsts_from_smbios(&smbios);
+                        assert!(me_fwsts.is_some(), "Should find ME FWSTS table");
+
+                        let me_fwsts = me_fwsts.unwrap();
+                        let mei1 = me_fwsts.mei1();
+                        assert!(mei1.is_some(), "Should find MEI1 component");
+
+                        let mei1 = mei1.unwrap();
+                        println!("Working State: {:?}", mei1.hfsts.working_state());
+                        println!("Operation Mode: {:?}", mei1.hfsts.operation_mode());
+                    }
+
+                    #[test]
+                    fn me_version() {
+                        let smbios = smbios();
+                        let me_version = me_version_from_smbios(&smbios);
+                        assert!(me_version.is_some(), "Should find ME version");
+                        let ver = me_version.unwrap();
+                        println!("ME Version: {}", ver);
+                        println!("ME Family: {}", MeFamily::from_version(ver.major as u32));
+                    }
+
+                    #[test]
+                    fn type14_handles() {
+                        let smbios = smbios();
+                        let handles = find_me_handles_from_type14(&smbios);
+                        assert!(!handles.is_empty(), "Should find ME handles from Type 14");
+                        for handle in &handles {
+                            println!("  Handle: 0x{:04X}", handle);
+                        }
+                    }
+
+                    #[test]
+                    fn bootguard() {
+                        let smbios = smbios();
+                        let me_fwsts = me_fwsts_from_smbios(&smbios);
+                        assert!(me_fwsts.is_some());
+
+                        let family = me_version_from_smbios(&smbios)
+                            .map(|v| MeFamily::from_version(v.major as u32))
+                            .unwrap_or(MeFamily::Csme16);
+
+                        let bootguard = me_fwsts.unwrap().bootguard_status(family);
+                        assert!(bootguard.is_some(), "Should have bootguard status");
+                        let bg = bootguard.unwrap();
+                        println!("Bootguard: enabled={}, acm_active={}", bg.enabled, bg.acm_active);
+                    }
+                }
+            )+
         };
-
-        // Test ME FWSTS parsing
-        let me_fwsts = me_fwsts_from_smbios(&smbios);
-        assert!(me_fwsts.is_some(), "Should find ME FWSTS table");
-
-        let me_fwsts = me_fwsts.unwrap();
-        let mei1 = me_fwsts.mei1();
-        assert!(mei1.is_some(), "Should find MEI1 component");
-
-        let mei1 = mei1.unwrap();
-        println!("Working State: {:?}", mei1.hfsts.working_state());
-        println!("Operation Mode: {:?}", mei1.hfsts.operation_mode());
-        println!("HFSTS1: 0x{:08X}", mei1.hfsts.hfsts1);
-        println!("HFSTS2: 0x{:08X}", mei1.hfsts.hfsts2);
-        println!("HFSTS3: 0x{:08X}", mei1.hfsts.hfsts3);
-        println!("HFSTS4: 0x{:08X}", mei1.hfsts.hfsts4);
-        println!("HFSTS5: 0x{:08X}", mei1.hfsts.hfsts5);
-        println!("HFSTS6: 0x{:08X}", mei1.hfsts.hfsts6);
     }
 
-    #[test]
-    fn test_me_version_from_smbios_dump() {
-        let smbios = match load_smbios_dump(SMBIOS_DUMP_FILE) {
-            Some(s) => s,
-            None => {
-                println!("Skipping test - dump file not available");
-                return;
-            }
-        };
-
-        let me_version = me_version_from_smbios(&smbios);
-        if let Some(ver) = me_version {
-            println!("ME Version: {}", ver);
-            println!("ME Family: {}", MeFamily::from_version(ver.major as u32));
-        } else {
-            println!("No ME version found in SMBIOS 0xDD tables");
-        }
-    }
-
-    #[test]
-    fn test_type14_handles_from_smbios_dump() {
-        let smbios = match load_smbios_dump(SMBIOS_DUMP_FILE) {
-            Some(s) => s,
-            None => {
-                println!("Skipping test - dump file not available");
-                return;
-            }
-        };
-
-        let handles = find_me_handles_from_type14(&smbios);
-        println!("ME Handles from Type 14: {:?}", handles);
-        for handle in &handles {
-            println!("  Handle: 0x{:04X}", handle);
-        }
-    }
-
-    #[test]
-    fn test_bootguard_status_from_dump() {
-        let smbios = match load_smbios_dump(SMBIOS_DUMP_FILE) {
-            Some(s) => s,
-            None => {
-                println!("Skipping test - dump file not available");
-                return;
-            }
-        };
-
-        let me_fwsts = me_fwsts_from_smbios(&smbios);
-        assert!(me_fwsts.is_some());
-
-        let me_fwsts = me_fwsts.unwrap();
-
-        // Determine ME family from version if available
-        let family = me_version_from_smbios(&smbios)
-            .map(|v| MeFamily::from_version(v.major as u32))
-            .unwrap_or(MeFamily::Csme16);
-
-        let bootguard = me_fwsts.bootguard_status(family);
-        if let Some(bg) = bootguard {
-            println!("Bootguard Status (family: {}):", family);
-            println!("  Enabled: {}", bg.enabled);
-            println!("  Verified Boot: {:?}", bg.verified_boot);
-            println!("  ACM Active: {}", bg.acm_active);
-            println!("  ACM Done: {:?}", bg.acm_done);
-            println!("  Policy: {:?}", bg.policy);
-            println!("  FPF SOC Lock: {}", bg.fpf_soc_lock);
-        }
+    smbios_dump_tests! {
+        marigold: "marigold-smbios.bin",
+        adl: "adl-smbios.bin",
+        iris: "iris-smbios.bin",
+        sunflower: "sunflower-smbios.bin",
     }
 
     #[test]
