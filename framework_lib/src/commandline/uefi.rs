@@ -225,7 +225,11 @@ pub fn parse(args: &[String]) -> Cli {
             cli.info = true;
             found_an_option = true;
         } else if arg == "--meinfo" {
-            cli.meinfo = Some(String::new());
+            cli.meinfo = if args.len() > i + 1 {
+                Some(Some(args[i + 1].clone()))
+            } else {
+                Some(None)
+            };
             found_an_option = true;
         } else if arg == "--intrusion" {
             cli.intrusion = true;
