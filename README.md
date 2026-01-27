@@ -170,7 +170,7 @@ sudo dnf install systemd-devel hidapi-devel
 sudo pkg install rust hidapi pkgconf
 
 # Ubuntu
-sudo apt install cargo libhidapi-dev libsystemd-dev libudev-dev libusb-1.0-0-dev pkg-config rustc
+sudo apt install rustup build-essential libhidapi-dev libsystemd-dev libudev-dev libusb-1.0-0-dev pkg-config
 ```
 
 ```sh
