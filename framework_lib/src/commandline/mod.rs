@@ -804,12 +804,21 @@ fn print_versions(ec: &CrosEc) {
 #[cfg(feature = "nvidia")]
 fn probably_has_nvidia() -> bool {
     match smbios::get_platform().and_then(Platform::which_family) {
-        Some(PlatformFamily::Framework12) => false,
-        Some(PlatformFamily::Framework13) => false,
-        Some(PlatformFamily::FrameworkDesktop) => true,
-        Some(PlatformFamily::Framework16) => true,
-        _ => true,
+        Some(PlatformFamily::Framework12) => return false,
+        Some(PlatformFamily::Framework13) => return false,
+        Some(PlatformFamily::FrameworkDesktop) => return false,
+        _ => {}
     }
+
+    // No Intel Framework system with nvidia so far
+    // TODO: Matching on PCI device would be better
+    if let Some(smbios) = get_smbios() {
+        if csme::me_version_from_smbios(&smbios).is_some() {
+            return false;
+        }
+    }
+
+    true
 }
 
 /// Brief NVIDIA details for --version output
