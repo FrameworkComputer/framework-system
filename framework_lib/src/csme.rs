@@ -743,3 +743,287 @@ pub fn csme_from_sysfs() -> io::Result<CsmeInfo> {
         ))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use smbioslib::SMBiosData;
+    use std::fs;
+    use std::path::PathBuf;
+
+    /// Load SMBIOS data from a dmidecode binary dump file
+    /// Created with: sudo dmidecode --dump-bin smbios.bin
+    /// Default test SMBIOS dump filename
+    const SMBIOS_DUMP_FILE: &str = "marigold-smbios.bin";
+
+    fn load_smbios_dump(filename: &str) -> Option<SMBiosData> {
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("test_bins");
+        path.push(filename);
+
+        match fs::read(&path) {
+            Ok(data) => Some(SMBiosData::from_vec_and_version(data, None)),
+            Err(_) => {
+                println!(
+                    "Test file not found: {:?}. Create with: sudo dmidecode --dump-bin {:?}",
+                    path, filename
+                );
+                None
+            }
+        }
+    }
+
+    /// Create synthetic SMBIOS data with ME FWSTS table for testing
+    fn create_synthetic_smbios_with_me() -> SMBiosData {
+        let mut data = Vec::new();
+
+        // Type 0xDB (219) - ME FWSTS table
+        // Header: type(1), length(1), handle(2)
+        // Data: version(1), count(1), records...
+        // Record: component(1), hfsts1-6 (6 * 4 = 24 bytes) = 25 bytes per record
+        let fwsts_type = 0xDBu8;
+        let fwsts_length = 6 + 25u8; // header(4) + version(1) + count(1) + 1 record(25)
+        let fwsts_handle: u16 = 0x0073;
+
+        data.push(fwsts_type);
+        data.push(fwsts_length);
+        data.extend_from_slice(&fwsts_handle.to_le_bytes());
+        data.push(0x01); // version = 1
+        data.push(0x01); // count = 1 record
+
+        // MEI1 record
+        data.push(0x01); // component = MEI1
+
+        // HFSTS1-6 (little-endian u32)
+        // HFSTS1: working_state=Normal(5), operation_mode=Normal(0)
+        let hfsts1: u32 = 0x00000005;
+        data.extend_from_slice(&hfsts1.to_le_bytes());
+        // HFSTS2
+        let hfsts2: u32 = 0x80000000;
+        data.extend_from_slice(&hfsts2.to_le_bytes());
+        // HFSTS3
+        let hfsts3: u32 = 0x00006B14;
+        data.extend_from_slice(&hfsts3.to_le_bytes());
+        // HFSTS4
+        let hfsts4: u32 = 0x00004000;
+        data.extend_from_slice(&hfsts4.to_le_bytes());
+        // HFSTS5
+        let hfsts5: u32 = 0x00000000;
+        data.extend_from_slice(&hfsts5.to_le_bytes());
+        // HFSTS6: bootguard enabled, verified boot, ACM active, FPF locked
+        // bit 0 = force_boot_guard_acm = 1
+        // bit 9 = verified_boot = 1 (0x200)
+        // bit 28 = boot_guard_disable = 0 (enabled)
+        // bit 30 = fpf_soc_lock = 1 (0x40000000)
+        let hfsts6: u32 = 0x40000201;
+        data.extend_from_slice(&hfsts6.to_le_bytes());
+
+        // String section: double-null terminator (no strings)
+        data.push(0x00);
+        data.push(0x00);
+
+        // Type 127 - End of Table
+        data.push(127u8); // type
+        data.push(4u8); // length (just header)
+        data.extend_from_slice(&0xFFFFu16.to_le_bytes()); // handle
+        data.push(0x00);
+        data.push(0x00);
+
+        SMBiosData::from_vec_and_version(data, None)
+    }
+
+    #[test]
+    fn test_parse_synthetic_me_fwsts() {
+        let smbios = create_synthetic_smbios_with_me();
+
+        let me_fwsts = me_fwsts_from_smbios(&smbios);
+        assert!(me_fwsts.is_some(), "Should find ME FWSTS table");
+
+        let me_fwsts = me_fwsts.unwrap();
+        let mei1 = me_fwsts.mei1();
+        assert!(mei1.is_some(), "Should find MEI1 component");
+
+        let mei1 = mei1.unwrap();
+        assert_eq!(mei1.hfsts.working_state(), MeWorkingState::Normal);
+        assert_eq!(mei1.hfsts.operation_mode(), MeOperationMode::Normal);
+
+        // Test bootguard status
+        let bg = mei1.hfsts.bootguard_csme11();
+        assert!(bg.enabled);
+        assert!(bg.acm_active);
+        assert_eq!(bg.verified_boot, Some(true));
+        assert!(bg.fpf_soc_lock);
+    }
+
+    #[test]
+    fn test_me_fwsts_from_smbios_dump() {
+        let smbios = match load_smbios_dump(SMBIOS_DUMP_FILE) {
+            Some(s) => s,
+            None => {
+                println!("Skipping test - dump file not available");
+                return;
+            }
+        };
+
+        // Test ME FWSTS parsing
+        let me_fwsts = me_fwsts_from_smbios(&smbios);
+        assert!(me_fwsts.is_some(), "Should find ME FWSTS table");
+
+        let me_fwsts = me_fwsts.unwrap();
+        let mei1 = me_fwsts.mei1();
+        assert!(mei1.is_some(), "Should find MEI1 component");
+
+        let mei1 = mei1.unwrap();
+        println!("Working State: {:?}", mei1.hfsts.working_state());
+        println!("Operation Mode: {:?}", mei1.hfsts.operation_mode());
+        println!("HFSTS1: 0x{:08X}", mei1.hfsts.hfsts1);
+        println!("HFSTS2: 0x{:08X}", mei1.hfsts.hfsts2);
+        println!("HFSTS3: 0x{:08X}", mei1.hfsts.hfsts3);
+        println!("HFSTS4: 0x{:08X}", mei1.hfsts.hfsts4);
+        println!("HFSTS5: 0x{:08X}", mei1.hfsts.hfsts5);
+        println!("HFSTS6: 0x{:08X}", mei1.hfsts.hfsts6);
+    }
+
+    #[test]
+    fn test_me_version_from_smbios_dump() {
+        let smbios = match load_smbios_dump(SMBIOS_DUMP_FILE) {
+            Some(s) => s,
+            None => {
+                println!("Skipping test - dump file not available");
+                return;
+            }
+        };
+
+        let me_version = me_version_from_smbios(&smbios);
+        if let Some(ver) = me_version {
+            println!("ME Version: {}", ver);
+            println!("ME Family: {}", MeFamily::from_version(ver.major as u32));
+        } else {
+            println!("No ME version found in SMBIOS 0xDD tables");
+        }
+    }
+
+    #[test]
+    fn test_type14_handles_from_smbios_dump() {
+        let smbios = match load_smbios_dump(SMBIOS_DUMP_FILE) {
+            Some(s) => s,
+            None => {
+                println!("Skipping test - dump file not available");
+                return;
+            }
+        };
+
+        let handles = find_me_handles_from_type14(&smbios);
+        println!("ME Handles from Type 14: {:?}", handles);
+        for handle in &handles {
+            println!("  Handle: 0x{:04X}", handle);
+        }
+    }
+
+    #[test]
+    fn test_bootguard_status_from_dump() {
+        let smbios = match load_smbios_dump(SMBIOS_DUMP_FILE) {
+            Some(s) => s,
+            None => {
+                println!("Skipping test - dump file not available");
+                return;
+            }
+        };
+
+        let me_fwsts = me_fwsts_from_smbios(&smbios);
+        assert!(me_fwsts.is_some());
+
+        let me_fwsts = me_fwsts.unwrap();
+
+        // Determine ME family from version if available
+        let family = me_version_from_smbios(&smbios)
+            .map(|v| MeFamily::from_version(v.major as u32))
+            .unwrap_or(MeFamily::Csme16);
+
+        let bootguard = me_fwsts.bootguard_status(family);
+        if let Some(bg) = bootguard {
+            println!("Bootguard Status (family: {}):", family);
+            println!("  Enabled: {}", bg.enabled);
+            println!("  Verified Boot: {:?}", bg.verified_boot);
+            println!("  ACM Active: {}", bg.acm_active);
+            println!("  ACM Done: {:?}", bg.acm_done);
+            println!("  Policy: {:?}", bg.policy);
+            println!("  FPF SOC Lock: {}", bg.fpf_soc_lock);
+        }
+    }
+
+    #[test]
+    fn test_hfsts_bitfield_parsing() {
+        // Test working state extraction (bits 0-3)
+        let hfsts_normal = HfStsRegisters {
+            hfsts1: 0x00000005, // Working state = Normal (5)
+            hfsts2: 0x00000000,
+            hfsts3: 0x00000000,
+            hfsts4: 0x00000000,
+            hfsts5: 0x00000000,
+            hfsts6: 0x00000000,
+        };
+        assert_eq!(hfsts_normal.working_state(), MeWorkingState::Normal);
+
+        // Test operation mode (bits 16-19 of HFSTS1)
+        let hfsts_debug = HfStsRegisters {
+            hfsts1: 0x00020000, // Operation mode = Debug (2)
+            hfsts2: 0x00000000,
+            hfsts3: 0x00000000,
+            hfsts4: 0x00000000,
+            hfsts5: 0x00000000,
+            hfsts6: 0x00000000,
+        };
+        assert_eq!(hfsts_debug.operation_mode(), MeOperationMode::Debug);
+
+        // Test bootguard parsing for CSME11 (uses HFSTS6)
+        let hfsts_bg = HfStsRegisters {
+            hfsts1: 0x00000000,
+            hfsts2: 0x00000000,
+            hfsts3: 0x00000000,
+            hfsts4: 0x00000000,
+            hfsts5: 0x00000000,
+            // bit 0 = force_boot_guard_acm = 1
+            // bit 9 = verified_boot = 1 (0x200)
+            // bit 28 = boot_guard_disable = 0 (enabled)
+            // bit 30 = fpf_soc_lock = 1 (0x40000000)
+            hfsts6: 0x40000201,
+        };
+        let bg = hfsts_bg.bootguard_csme11();
+        assert!(bg.enabled);
+        assert!(bg.acm_active);
+        assert_eq!(bg.verified_boot, Some(true));
+        assert!(bg.fpf_soc_lock);
+
+        // Test bootguard disabled
+        let hfsts_bg_disabled = HfStsRegisters {
+            hfsts1: 0x00000000,
+            hfsts2: 0x00000000,
+            hfsts3: 0x00000000,
+            hfsts4: 0x00000000,
+            hfsts5: 0x00000000,
+            hfsts6: 0x10000000, // bit 28 = boot_guard_disable = 1
+        };
+        let bg_disabled = hfsts_bg_disabled.bootguard_csme11();
+        assert!(!bg_disabled.enabled);
+
+        // Test CSME18 bootguard (uses HFSTS5)
+        let hfsts_csme18 = HfStsRegisters {
+            hfsts1: 0x00000000,
+            hfsts2: 0x00000000,
+            hfsts3: 0x00000000,
+            hfsts4: 0x00000000,
+            // bit 0 = btg_acm_active = 1
+            // bit 1 = valid (enabled) = 1
+            // bit 8 = acm_done_sts = 1
+            hfsts5: 0x00000103,
+            // bit 30 = fpf_soc_configuration_lock = 1
+            hfsts6: 0x40000000,
+        };
+        let bg_csme18 = hfsts_csme18.bootguard_csme18();
+        assert!(bg_csme18.enabled);
+        assert!(bg_csme18.acm_active);
+        assert_eq!(bg_csme18.acm_done, Some(true));
+        assert!(bg_csme18.fpf_soc_lock);
+    }
+}
