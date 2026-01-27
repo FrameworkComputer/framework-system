@@ -96,7 +96,7 @@ pub fn parse(args: &[String]) -> Cli {
         dump_gpu_descriptor_file: None,
         allupdate: false,
         info: false,
-        meinfo: false,
+        meinfo: None,
         nvidia: false,
         raw_command: vec![],
     };
@@ -225,7 +225,7 @@ pub fn parse(args: &[String]) -> Cli {
             cli.info = true;
             found_an_option = true;
         } else if arg == "--meinfo" {
-            cli.meinfo = true;
+            cli.meinfo = Some(String::new());
             found_an_option = true;
         } else if arg == "--intrusion" {
             cli.intrusion = true;

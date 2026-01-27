@@ -222,7 +222,7 @@ pub struct Cli {
     pub pd_ports: Option<(u8, u8, u8)>,
     pub help: bool,
     pub info: bool,
-    pub meinfo: bool,
+    pub meinfo: Option<Option<String>>,
     pub flash_gpu_descriptor: Option<(u8, String)>,
     pub flash_gpu_descriptor_file: Option<String>,
     pub dump_gpu_descriptor_file: Option<String>,
@@ -1531,9 +1531,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         power::get_and_print_pd_info(&ec);
     } else if args.info {
         smbios_info();
-    } else if args.meinfo {
+    } else if let Some(dump_path) = &args.meinfo {
         let verbose = args.verbosity.0 >= log::LevelFilter::Warn;
-        me_info(verbose);
+        me_info(verbose, dump_path.as_deref());
     } else if args.pd_info {
         print_pd_details(&ec);
     } else if let Some(pd) = args.pd_reset {
@@ -2136,8 +2136,18 @@ fn smbios_info() {
     }
 }
 
-fn me_info(verbose: bool) {
-    let smbios = get_smbios();
+fn me_info(verbose: bool, dump_path: Option<&str>) {
+    let smbios = if let Some(path) = dump_path {
+        match std::fs::read(path) {
+            Ok(data) => Some(smbioslib::SMBiosData::from_vec_and_version(data, None)),
+            Err(e) => {
+                error!("Failed to read SMBIOS dump file '{}': {}", path, e);
+                return;
+            }
+        }
+    } else {
+        get_smbios()
+    };
     if smbios.is_none() {
         error!("Failed to get SMBIOS data");
         return;
@@ -2147,20 +2157,23 @@ fn me_info(verbose: bool) {
     // Track ME family for bootguard parsing
     let mut me_family: Option<csme::MeFamily> = None;
 
-    // Try to get ME version from sysfs first (Linux only)
+    // Try to get ME version from sysfs first (Linux only, live system only)
     #[cfg(target_os = "linux")]
-    if let Ok(csme_info) = csme::csme_from_sysfs() {
-        println!("Intel ME Information (from sysfs)");
-        println!("  Enabled:          {}", csme_info.enabled);
-        println!("  Firmware Version: {}", csme_info.main_ver);
-        if csme_info.main_ver != csme_info.recovery_ver || csme_info.main_ver != csme_info.fitc_ver
-        {
-            println!("  Recovery Version: {}", csme_info.recovery_ver);
-            println!("  FITC Version:     {}", csme_info.fitc_ver);
+    if dump_path.is_none() {
+        if let Ok(csme_info) = csme::csme_from_sysfs() {
+            println!("Intel ME Information (from sysfs)");
+            println!("  Enabled:          {}", csme_info.enabled);
+            println!("  Firmware Version: {}", csme_info.main_ver);
+            if csme_info.main_ver != csme_info.recovery_ver
+                || csme_info.main_ver != csme_info.fitc_ver
+            {
+                println!("  Recovery Version: {}", csme_info.recovery_ver);
+                println!("  FITC Version:     {}", csme_info.fitc_ver);
+            }
+            let family = csme::MeFamily::from_version(csme_info.main_ver.major);
+            println!("  ME Family:        {}", family);
+            me_family = Some(family);
         }
-        let family = csme::MeFamily::from_version(csme_info.main_ver.major);
-        println!("  ME Family:        {}", family);
-        me_family = Some(family);
     }
 
     // Get ME version from SMBIOS type 0xDD (FVI)
