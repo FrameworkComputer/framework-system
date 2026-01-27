@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Framework System is a Rust library and CLI tool for interacting with Framework Computer hardware. It targets Linux, Windows, UEFI, and FreeBSD. The MSRV is 1.81.
 
+## Development and Testing advice
+
+Most commands must be run as root, try to run them with sudo, usually I have fingerprint sudo enabled, if that fails, ask me to run them and provide the output.
+
+By default build in debug mode that's way faster than `--release` builds.
+On every commit all builds, lints and tests must keep working.
+We also must not break other platforms (Windows, Linux, FreeBSD, UEFI).
+
 ## Build Commands
 
 ```bash
