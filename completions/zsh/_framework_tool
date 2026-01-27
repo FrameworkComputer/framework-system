@@ -21,6 +21,7 @@ _framework_tool() {
 '*--fansetduty=[Set fan duty cycle (0-100%)]::FANSETDUTY:_default' \
 '*--fansetrpm=[Set fan RPM (limited by EC fan table max RPM)]::FANSETRPM:_default' \
 '--autofanctrl=[Turn on automatic fan speed control]::AUTOFANCTRL:_default' \
+'--meinfo=[Show Intel ME information (from SMBIOS type 0xDB). Optionally provide a dmidecode binary dump file path]::MEINFO:_default' \
 '--pd-reset=[Reset a specific PD controller (for debugging only)]:PD_RESET:_default' \
 '--pd-disable=[Disable all ports on a specific PD controller (for debugging only)]:PD_DISABLE:_default' \
 '--pd-enable=[Enable all ports on a specific PD controller (for debugging only)]:PD_ENABLE:_default' \

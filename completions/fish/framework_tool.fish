@@ -11,6 +11,7 @@ complete -c framework_tool -l compare-version -r
 complete -c framework_tool -l fansetduty -d 'Set fan duty cycle (0-100%)' -r
 complete -c framework_tool -l fansetrpm -d 'Set fan RPM (limited by EC fan table max RPM)' -r
 complete -c framework_tool -l autofanctrl -d 'Turn on automatic fan speed control' -r
+complete -c framework_tool -l meinfo -d 'Show Intel ME information (from SMBIOS type 0xDB). Optionally provide a dmidecode binary dump file path' -r
 complete -c framework_tool -l pd-reset -d 'Reset a specific PD controller (for debugging only)' -r
 complete -c framework_tool -l pd-disable -d 'Disable all ports on a specific PD controller (for debugging only)' -r
 complete -c framework_tool -l pd-enable -d 'Enable all ports on a specific PD controller (for debugging only)' -r

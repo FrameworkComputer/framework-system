@@ -88,6 +88,66 @@ ESRT Entry 0
   Last Attempt Status:  Success
 ```
 
+## Intel ME Information
+
+Show Intel Management Engine status, including firmware version, bootguard
+configuration, and security status. This information is read from SMBIOS tables.
+
+On Linux, additional information is available from sysfs.
+
+```
+> sudo framework_tool --meinfo
+Intel ME Information (from sysfs)
+  Enabled:          true
+  Firmware Version: 0:18.0.15.2518
+  Recovery Version: 0:18.0.15.2518
+  FITC Version:     0:18.0.5.2141
+  ME Family:        CSME 18+
+Intel ME Status (SMBIOS Type 0xDB)
+  Working State:    Normal
+  Operation Mode:   Normal
+  Bootguard:
+    Enabled:        Yes
+    ACM Active:     Yes
+    ACM Done:       Yes
+    FPF SOC Lock:   No
+```
+
+Use `-v` for verbose output including raw HFSTS registers and SMBIOS handle information:
+
+```
+> sudo framework_tool --meinfo -v
+Intel ME Information (from sysfs)
+  Enabled:          true
+  Firmware Version: 0:18.0.15.2518
+  Recovery Version: 0:18.0.15.2518
+  FITC Version:     0:18.0.5.2141
+  ME Family:        CSME 18+
+ME Handles (from SMBIOS Type 14):
+  Handle: 0x002D
+  Handle: 0x002E
+  Handle: 0x002F
+  Handle: 0x0030
+  Handle: 0x0031
+  Handle: 0x0032
+  Handle: 0x0033
+Intel ME Status (SMBIOS Type 0xDB)
+  Working State:    Normal
+  Operation Mode:   Normal
+  Bootguard:
+    Enabled:        Yes
+    ACM Active:     Yes
+    ACM Done:       Yes
+    FPF SOC Lock:   No
+  HFSTS Registers:
+    HFSTS1: 0xA0000255
+    HFSTS2: 0x82108908
+    HFSTS3: 0x00000030
+    HFSTS4: 0x00000000
+    HFSTS5: 0x02F41F03
+    HFSTS6: 0x00000000
+```
+
 ## Manually overriding tablet mode status
 
 If you have a suspicion that the embedded controller does not control tablet
