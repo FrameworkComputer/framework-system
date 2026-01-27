@@ -82,6 +82,10 @@ struct ClapCli {
     #[arg(long)]
     info: bool,
 
+    /// Show Intel ME information (from SMBIOS type 0xDB)
+    #[arg(long)]
+    meinfo: bool,
+
     /// Show details about the PD controllers
     #[arg(long)]
     pd_info: bool,
@@ -503,6 +507,7 @@ pub fn parse(args: &[String]) -> Cli {
         // UEFI only - every command needs to implement a parameter to enable the pager
         paginate: false,
         info: args.info,
+        meinfo: args.meinfo,
         flash_gpu_descriptor,
         flash_gpu_descriptor_file: args
             .flash_gpu_descriptor_file

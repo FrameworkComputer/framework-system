@@ -44,7 +44,6 @@ use crate::chromium_ec::commands::TabletModeOverride;
 use crate::chromium_ec::EcResponseStatus;
 use crate::chromium_ec::{print_err, EcFlashType};
 use crate::chromium_ec::{EcError, EcResult};
-#[cfg(target_os = "linux")]
 use crate::csme;
 use crate::ec_binary;
 use crate::esrt::{self, ResourceType};
@@ -223,6 +222,7 @@ pub struct Cli {
     pub pd_ports: Option<(u8, u8, u8)>,
     pub help: bool,
     pub info: bool,
+    pub meinfo: bool,
     pub flash_gpu_descriptor: Option<(u8, String)>,
     pub flash_gpu_descriptor_file: Option<String>,
     pub dump_gpu_descriptor_file: Option<String>,
@@ -1531,6 +1531,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         power::get_and_print_pd_info(&ec);
     } else if args.info {
         smbios_info();
+    } else if args.meinfo {
+        let verbose = args.verbosity.0 >= log::LevelFilter::Warn;
+        me_info(verbose);
     } else if args.pd_info {
         print_pd_details(&ec);
     } else if let Some(pd) = args.pd_reset {
@@ -2130,6 +2133,116 @@ fn smbios_info() {
             }
             _ => {}
         }
+    }
+}
+
+fn me_info(verbose: bool) {
+    let smbios = get_smbios();
+    if smbios.is_none() {
+        error!("Failed to get SMBIOS data");
+        return;
+    }
+    let smbios = smbios.unwrap();
+
+    // Track ME family for bootguard parsing
+    let mut me_family: Option<csme::MeFamily> = None;
+
+    // Try to get ME version from sysfs first (Linux only)
+    #[cfg(target_os = "linux")]
+    if let Ok(csme_info) = csme::csme_from_sysfs() {
+        println!("Intel ME Information (from sysfs)");
+        println!("  Enabled:          {}", csme_info.enabled);
+        println!("  Firmware Version: {}", csme_info.main_ver);
+        if csme_info.main_ver != csme_info.recovery_ver || csme_info.main_ver != csme_info.fitc_ver
+        {
+            println!("  Recovery Version: {}", csme_info.recovery_ver);
+            println!("  FITC Version:     {}", csme_info.fitc_ver);
+        }
+        let family = csme::MeFamily::from_version(csme_info.main_ver.major);
+        println!("  ME Family:        {}", family);
+        me_family = Some(family);
+    }
+
+    // Get ME version from SMBIOS type 0xDD (FVI)
+    let smbios_version = csme::me_version_from_smbios(&smbios);
+    if let Some(ref fvi_version) = smbios_version {
+        // If sysfs wasn't available, use SMBIOS version as primary
+        if me_family.is_none() {
+            println!("Intel ME Version (from SMBIOS Type 0xDD)");
+            println!("  Firmware Version: {}", fvi_version);
+            let family = csme::MeFamily::from_version(fvi_version.major as u32);
+            println!("  ME Family:        {}", family);
+            me_family = Some(family);
+        } else if verbose {
+            // In verbose mode, also show SMBIOS version for comparison
+            println!("Intel ME Version (from SMBIOS Type 0xDD)");
+            println!("  Firmware Version: {}", fvi_version);
+        }
+    }
+
+    // Show handles found via Type 14 (Group Associations) - verbose only
+    if verbose {
+        let me_handles = csme::find_me_handles_from_type14(&smbios);
+        if !me_handles.is_empty() {
+            println!("ME Handles (from SMBIOS Type 14):");
+            for handle in &me_handles {
+                println!("  Handle: 0x{:04X}", handle);
+            }
+        }
+    }
+
+    // Parse SMBIOS type 0xDB for HFSTS registers
+    if let Some(me_fwsts) = csme::me_fwsts_from_smbios(&smbios) {
+        println!("Intel ME Status (SMBIOS Type 0xDB)");
+
+        if let Some(record) = me_fwsts.mei1() {
+            println!("  Working State:    {}", record.hfsts.working_state());
+            println!("  Operation Mode:   {}", record.hfsts.operation_mode());
+
+            // Parse bootguard status if we know the ME family
+            if let Some(family) = me_family {
+                if let Some(bootguard) = me_fwsts.bootguard_status(family) {
+                    println!("  Bootguard:");
+                    println!(
+                        "    Enabled:        {}",
+                        if bootguard.enabled { "Yes" } else { "No" }
+                    );
+                    if let Some(verified) = bootguard.verified_boot {
+                        println!(
+                            "    Verified Boot:  {}",
+                            if verified { "Yes" } else { "No" }
+                        );
+                    }
+                    println!(
+                        "    ACM Active:     {}",
+                        if bootguard.acm_active { "Yes" } else { "No" }
+                    );
+                    if let Some(done) = bootguard.acm_done {
+                        println!("    ACM Done:       {}", if done { "Yes" } else { "No" });
+                    }
+                    if let Some(ref policy) = bootguard.policy {
+                        println!("    Policy:         {}", policy);
+                    }
+                    println!(
+                        "    FPF SOC Lock:   {}",
+                        if bootguard.fpf_soc_lock { "Yes" } else { "No" }
+                    );
+                }
+            }
+
+            // Show raw HFSTS registers - verbose only
+            if verbose {
+                println!("  HFSTS Registers:");
+                println!("    HFSTS1: 0x{:08X}", record.hfsts.hfsts1);
+                println!("    HFSTS2: 0x{:08X}", record.hfsts.hfsts2);
+                println!("    HFSTS3: 0x{:08X}", record.hfsts.hfsts3);
+                println!("    HFSTS4: 0x{:08X}", record.hfsts.hfsts4);
+                println!("    HFSTS5: 0x{:08X}", record.hfsts.hfsts5);
+                println!("    HFSTS6: 0x{:08X}", record.hfsts.hfsts6);
+            }
+        }
+    } else {
+        error!("No Intel ME FWSTS table found in SMBIOS (type 0xDB)");
     }
 }
 
