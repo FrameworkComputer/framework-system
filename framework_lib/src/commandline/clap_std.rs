@@ -82,9 +82,10 @@ struct ClapCli {
     #[arg(long)]
     info: bool,
 
-    /// Show Intel ME information (from SMBIOS type 0xDB)
+    /// Show Intel ME information (from SMBIOS type 0xDB).
+    /// Optionally provide a dmidecode binary dump file path.
     #[arg(long)]
-    meinfo: bool,
+    meinfo: Option<Option<String>>,
 
     /// Show details about the PD controllers
     #[arg(long)]
