@@ -2138,13 +2138,17 @@ fn smbios_info() {
 
 fn me_info(verbose: bool, dump_path: Option<&str>) {
     let smbios = if let Some(path) = dump_path {
-        match std::fs::read(path) {
-            Ok(data) => Some(smbioslib::SMBiosData::from_vec_and_version(data, None)),
+        #[cfg(feature = "uefi")]
+        let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(path);
+        #[cfg(not(feature = "uefi"))]
+        let data = match std::fs::read(path) {
+            Ok(data) => Some(data),
             Err(e) => {
                 error!("Failed to read SMBIOS dump file '{}': {}", path, e);
-                return;
+                None
             }
-        }
+        };
+        data.map(|d| smbioslib::SMBiosData::from_vec_and_version(d, None))
     } else {
         get_smbios()
     };
