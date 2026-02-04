@@ -11,7 +11,7 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
 
 ### Linux
 
-- [NixOS](https://github.com/NixOS/nixpkgs/blob/nixos-25.05/pkgs/by-name/fr/framework-tool/package.nix)
+- NixOS/nixpkgs [![nixpkgs unstable package](https://repology.org/badge/version-for-repo/nix_unstable/framework-tool.svg)](https://repology.org/project/framework-tool/versions)
   - `nix-shell -p framework-tool`
 - [ArchLinux](https://archlinux.org/packages/extra/x86_64/framework-system/)
   - `pacman -S framework-system`
@@ -19,8 +19,10 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
   - No need to install - included in the base image
 - [Fedora (via the Terra repo)](https://github.com/terrapkg/packages/pull/8554)
   - Install the [Terra repository](https://terra.fyralabs.com/), then `dnf install framework-system`
-- [OpenSUSE](https://build.opensuse.org/package/show/openSUSE%3AFactory/framework_tool)
+- OpenSUSE [![openSUSE Tumbleweed package](https://repology.org/badge/version-for-repo/opensuse_tumbleweed/framework-tool.svg)](https://repology.org/project/framework-tool/versions)
   - `zypper install framework_tool`
+- Gentoo [![Gentoo package](https://repology.org/badge/version-for-repo/gentoo/framework-tool.svg)](https://repology.org/project/framework-tool/versions)
+  - `emerge framework_tool`
 - Others
   - Build from source
   - Or download [latest binary](https://github.com/FrameworkComputer/framework-system/releases/latest/download/framework_tool)
