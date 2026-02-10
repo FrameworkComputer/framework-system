@@ -1,71 +1,40 @@
 use alloc::vec::Vec;
 use core::slice;
-use uefi::table::boot::{OpenProtocolAttributes, OpenProtocolParams, ScopedProtocol, SearchType};
+use uefi::system::with_config_table;
+use uefi::table::cfg::ConfigTableEntry;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace};
+use uefi::boot::{self, OpenProtocolAttributes, OpenProtocolParams};
 use uefi::proto::shell::Shell;
-use uefi::table::cfg::{SMBIOS3_GUID, SMBIOS_GUID};
-use uefi::table::{Boot, SystemTable};
-use uefi::Identify;
+use uefi_raw::protocol::shell::ShellProtocol;
 
 pub mod fs;
 
-pub fn get_system_table() -> &'static SystemTable<Boot> {
-    unsafe { uefi_services::system_table().as_ref() }
-}
-
-fn find_shell_handle() -> Option<ScopedProtocol<'static, Shell>> {
-    let st = unsafe { uefi_services::system_table().as_ref() };
-    let boot_services = st.boot_services();
-    let shell_handles = boot_services.locate_handle_buffer(SearchType::ByProtocol(&Shell::GUID));
-    if let Ok(sh_buf) = shell_handles {
-        for handle in &*sh_buf {
-            return Some(unsafe {
-                boot_services
-                    .open_protocol::<Shell>(
-                        OpenProtocolParams {
-                            handle: *handle,
-                            agent: boot_services.image_handle(),
-                            controller: None,
-                        },
-                        OpenProtocolAttributes::GetProtocol,
-                    )
-                    .expect("Failed to open Shell handle")
-            });
-        }
-    } else {
-        panic!("No shell handle found!");
+/// Open the Shell protocol with non-exclusive GetProtocol access.
+///
+/// The shell itself already has this protocol open, so exclusive access would fail.
+unsafe fn open_shell_protocol() -> boot::ScopedProtocol<Shell> {
+    let handle = boot::get_handle_for_protocol::<Shell>().expect("No Shell handles");
+    unsafe {
+        boot::open_protocol::<Shell>(
+            OpenProtocolParams {
+                handle,
+                agent: boot::image_handle(),
+                controller: None,
+            },
+            OpenProtocolAttributes::GetProtocol,
+        )
+        .expect("Failed to open Shell protocol")
     }
-    None
 }
 
 /// Returns true when the execution break was requested, false otherwise
 pub fn shell_get_execution_break_flag() -> bool {
-    let st = unsafe { uefi_services::system_table().as_ref() };
-    let boot_services = st.boot_services();
-    let shell_handles = boot_services.locate_handle_buffer(SearchType::ByProtocol(&Shell::GUID));
-    if let Ok(sh_buf) = shell_handles {
-        for handle in &*sh_buf {
-            let shell_handle = unsafe {
-                boot_services
-                    .open_protocol::<Shell>(
-                        OpenProtocolParams {
-                            handle: *handle,
-                            agent: boot_services.image_handle(),
-                            controller: None,
-                        },
-                        OpenProtocolAttributes::GetProtocol,
-                    )
-                    .expect("Failed to open Shell handle")
-            };
-
-            let event = unsafe { shell_handle.execution_break.unsafe_clone() };
-            return boot_services.check_event(event).unwrap();
-        }
-        return false;
-    } else {
-        panic!("No shell handle found!");
+    let shell = unsafe { open_shell_protocol() };
+    unsafe {
+        let proto: &ShellProtocol = std::mem::transmute(shell.get().unwrap());
+        (proto.get_page_break)().into()
     }
 }
 
@@ -74,28 +43,10 @@ pub fn shell_get_execution_break_flag() -> bool {
 /// Pagination is handled by the UEFI shell environment automatically, whenever
 /// the application prints more than fits on the screen.
 pub fn enable_page_break() {
-    let st = unsafe { uefi_services::system_table().as_ref() };
-    let boot_services = st.boot_services();
-    let shell_handles = boot_services.locate_handle_buffer(SearchType::ByProtocol(&Shell::GUID));
-    if let Ok(sh_buf) = shell_handles {
-        for handle in &*sh_buf {
-            //trace!("Calling enable_page_break");
-            let shell_handle = unsafe {
-                boot_services
-                    .open_protocol::<Shell>(
-                        OpenProtocolParams {
-                            handle: *handle,
-                            agent: boot_services.image_handle(),
-                            controller: None,
-                        },
-                        OpenProtocolAttributes::GetProtocol,
-                    )
-                    .expect("Failed to open Shell handle")
-            };
-            shell_handle.enable_page_break();
-        }
-    } else {
-        panic!("No shell handle found!");
+    let shell = unsafe { open_shell_protocol() };
+    unsafe {
+        let proto: &ShellProtocol = std::mem::transmute(shell.get().unwrap());
+        (proto.enable_page_break)()
     }
 }
 
@@ -145,35 +96,35 @@ pub struct Smbios3 {
 }
 
 pub fn smbios_data() -> Option<Vec<u8>> {
-    let st = unsafe { uefi_services::system_table().as_ref() };
-    let config_tables = st.config_table();
+    with_config_table(|slice| {
+        for i in slice {
+            let table_data = match i.guid {
+                ConfigTableEntry::SMBIOS3_GUID => unsafe {
+                    let smbios = &*(i.address as *const Smbios3);
+                    debug!("SMBIOS3 valid: {:?}", smbios.anchor == *b"_SM3_");
+                    Some(slice::from_raw_parts(
+                        smbios.table_address as *const u8,
+                        smbios.table_length as usize,
+                    ))
+                },
+                ConfigTableEntry::SMBIOS_GUID => unsafe {
+                    let smbios = &*(i.address as *const Smbios);
+                    debug!("SMBIOS valid: {:?}", smbios.checksum_valid());
+                    Some(slice::from_raw_parts(
+                        smbios.table_address as *const u8,
+                        smbios.table_length as usize,
+                    ))
+                },
+                _ => None,
+            };
 
-    for table in config_tables {
-        let table_data = match table.guid {
-            SMBIOS3_GUID => unsafe {
-                let smbios = &*(table.address as *const Smbios3);
-                debug!("SMBIOS3 valid: {:?}", smbios.anchor == *b"_SM3_");
-                Some(slice::from_raw_parts(
-                    smbios.table_address as *const u8,
-                    smbios.table_length as usize,
-                ))
-            },
-            SMBIOS_GUID => unsafe {
-                let smbios = &*(table.address as *const Smbios);
-                debug!("SMBIOS valid: {:?}", smbios.checksum_valid());
-                Some(slice::from_raw_parts(
-                    smbios.table_address as *const u8,
-                    smbios.table_length as usize,
-                ))
-            },
-            _ => None,
-        };
-
-        if let Some(data) = table_data {
-            // Return directly here because there is only ever the old config
-            // table or the new V3 config table. Never both.
-            return Some(data.to_vec());
+            if let Some(data) = table_data {
+                // Return directly here because there is only ever the old config
+                // table or the new V3 config table. Never both.
+                return Some(data.to_vec());
+            }
         }
-    }
-    None
+
+        None
+    })
 }
