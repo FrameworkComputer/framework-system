@@ -47,7 +47,7 @@ pub mod parade_retimer;
 pub mod power;
 pub mod smbios;
 #[cfg(feature = "uefi")]
-pub mod uefi;
+pub mod fw_uefi;
 mod util;
 
 pub mod built_info {
