@@ -167,7 +167,9 @@ System dependencies
 ```
 # NixOS
 nix-shell --run fish -p cargo systemd udev hidapi pkg-config
-direnv shell
+# NixOS using flakes
+nix develop
+# Or build fully using flake, see section below
 
 # Fedora
 sudo dnf install systemd-devel hidapi-devel
@@ -178,6 +180,40 @@ sudo pkg install rust hidapi pkgconf
 # Ubuntu
 sudo apt install rustup build-essential libhidapi-dev libsystemd-dev libudev-dev libusb-1.0-0-dev pkg-config
 ```
+
+### Nix Flake
+
+If you have Nix with flakes enabled, you can build and develop without manually installing dependencies.
+
+Run directly from GitHub
+```sh
+# Run directly from GitHub
+nix run github.com:FrameworkComputer/framework-system -- --versions
+
+
+Build and run locally after cloning:
+
+```
+# Build the CLI tool (release)
+nix build .#tool
+
+# Build the CLI tool (debug)
+nix build .#tool-debug
+
+# Build the UEFI application (release)
+nix build .#uefi
+
+# Run the CLI tool directly
+nix run .#tool -- --help
+
+# Run the UEFI app in QEMU
+nix run .#qemu
+
+# Enter a development shell with all dependencies
+nix develop
+```
+
+### Building with Cargo
 
 ```sh
 # Running linter
