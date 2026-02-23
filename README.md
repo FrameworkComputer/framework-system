@@ -28,6 +28,8 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
   - Or download [latest binary](https://github.com/FrameworkComputer/framework-system/releases/latest/download/framework_tool)
 - ChromeOS
   - Build from source
+- Homebrew
+  - Add [this homebrew tap](https://github.com/ublue-os/homebrew-tap), then `brew install --cask framework-tool`
 
 ### Windows
 
