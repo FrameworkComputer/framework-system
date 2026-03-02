@@ -714,6 +714,7 @@ pub fn parse(args: &[String]) -> Cli {
                 let version = parse_hex_or_dec_u8(&args[i + 2]);
                 if let (Some(cmd_id), Some(version)) = (cmd_id, version) {
                     let mut data = Vec::new();
+                    let mut parse_error = false;
                     for j in (i + 3)..args.len() {
                         if args[j].starts_with('-') {
                             break;
@@ -722,10 +723,15 @@ pub fn parse(args: &[String]) -> Cli {
                             data.push(byte);
                         } else {
                             println!("Invalid data byte for --host-command: '{}'", args[j]);
+                            parse_error = true;
                             break;
                         }
                     }
-                    Some((cmd_id, version, data))
+                    if parse_error {
+                        None
+                    } else {
+                        Some((cmd_id, version, data))
+                    }
                 } else {
                     println!("Invalid values for --host-command. Usage: --host-command <CMD_ID> <VERSION> [DATA...]");
                     None
