@@ -278,6 +278,38 @@ Capsule Header
   Type:   Framework Retimer23 (Right)
 ```
 
+## Raw EC Host Commands
+
+Send an arbitrary EC host command by specifying a command ID, version, and
+optional payload bytes. The response is displayed in xxd-style hex+ASCII format.
+
+```
+# Send EC_CMD_GET_VERSION (0x0002) with version 0, no payload
+> sudo framework_tool --host-command 0x0002 0
+Response (120 bytes):
+00000000: 7375 6e66 6c6f 7765 722d 332e 302e 332d  sunflower-3.0.3-
+00000010: 3838 6664 6135 3400 0000 0000 0000 0000  88fda54.........
+00000020: 7375 6e66 6c6f 7765 722d 332e 302e 332d  sunflower-3.0.3-
+00000030: 3838 6664 6135 3400 0000 0000 0000 0000  88fda54.........
+00000040: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000050: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000060: 0100 0000 0000 0000 0000 0000 0000 0000  ................
+00000070: 0000 0000 0000 0000                      ........
+
+# Query supported versions of EC_CMD_GET_VERSION (0x0002)
+# EC_CMD_GET_CMD_VERSIONS (0x0008), version 0, payload: command ID byte
+# Command 2 supports version 0 and 1 (0b11 = 3)
+> framework_tool --host-command 0x0008 0 2
+Response (24 bytes):
+00000000: 0300 0000 0000 0000 0000 0000 0000 0000  ................
+00000010: 0000 0000 0000 0000                      ........
+# Command 1 only supports version 0 (0b01 = 1)
+> framework_tool --host-command 0x0008 0 1
+Response (24 bytes):
+00000000: 0100 0000 0000 0000 0000 0000 0000 0000  ................
+00000010: 0000 0000 0000 0000                      ........
+```
+
 ## Version Check
 
 Check if the firmware version is what you expect, returns exit code 0 on

@@ -43,7 +43,7 @@ use crate::chromium_ec::commands::RgbS;
 use crate::chromium_ec::commands::TabletModeOverride;
 use crate::chromium_ec::EcResponseStatus;
 use crate::chromium_ec::{print_err, EcFlashType};
-use crate::chromium_ec::{EcError, EcResult};
+use crate::chromium_ec::{CrosEcDriver, EcError, EcResult};
 use crate::csme;
 use crate::ec_binary;
 use crate::esrt::{self, ResourceType};
@@ -230,8 +230,7 @@ pub struct Cli {
     // UEFI only
     pub allupdate: bool,
     pub paginate: bool,
-    // TODO: This is not actually implemented yet
-    pub raw_command: Vec<String>,
+    pub host_command: Option<(u16, u8, Vec<u8>)>,
 }
 
 pub fn parse(args: &[String]) -> Cli {
@@ -316,7 +315,7 @@ pub fn parse(args: &[String]) -> Cli {
             nvidia: cli.nvidia,
             // allupdate
             paginate: cli.paginate,
-            // raw_command
+            // host_command
             ..Default::default()
         }
     } else {
@@ -1603,9 +1602,18 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         } else {
             println!("Not all EC versions support this comand.")
         };
-    // TODO:
-    //} else if arg == "-raw-command" {
-    //    raw_command(&args[1..]);
+    } else if let Some((command_id, command_version, ref data)) = args.host_command {
+        match ec.send_command(command_id, command_version, data) {
+            Ok(response) => {
+                println!("Response ({} bytes):", response.len());
+                if response.is_empty() {
+                    println!("  (empty)");
+                } else {
+                    util::print_multiline_buffer(&response, 0);
+                }
+            }
+            Err(e) => println!("EC command failed: {:?}", e),
+        }
     } else if let Some(pd_bin_path) = &args.pd_bin {
         #[cfg(feature = "uefi")]
         let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(pd_bin_path);

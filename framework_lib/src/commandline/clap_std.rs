@@ -305,6 +305,11 @@ struct ClapCli {
     #[arg(long)]
     nvidia: bool,
 
+    /// Send an EC host command. Args: <CMD_ID> <VERSION> [DATA...]
+    #[arg(long, value_parser=maybe_hex::<u16>)]
+    #[clap(num_args = 2..)]
+    host_command: Vec<u16>,
+
     /// Generate shell completions and print to stdout
     #[arg(long, value_name = "SHELL", hide = true)]
     generate_completions: Option<Shell>,
@@ -419,6 +424,37 @@ pub fn parse(args: &[String]) -> Cli {
         )),
         _ => None,
     };
+    let host_command = if args.host_command.len() >= 2 {
+        let cmd_ver = if let Ok(cmd_ver) = u8::try_from(args.host_command[1]) {
+            cmd_ver
+        } else {
+            cli.error(
+                ErrorKind::InvalidValue,
+                "Second argument of --host-command must be a one byte command version",
+            )
+            .exit();
+        };
+        Some((
+            args.host_command[0],
+            cmd_ver,
+            args.host_command[2..]
+                .iter()
+                .map(|&x| {
+                    if let Ok(x) = u8::try_from(x) {
+                        x
+                    } else {
+                        cli.error(
+                            ErrorKind::InvalidValue,
+                            "All payload values of --host-command must be one byte each",
+                        )
+                        .exit();
+                    }
+                })
+                .collect(),
+        ))
+    } else {
+        None
+    };
 
     Cli {
         verbosity: LogLevel(args.verbosity.log_level_filter()),
@@ -517,6 +553,6 @@ pub fn parse(args: &[String]) -> Cli {
             .dump_gpu_descriptor_file
             .map(|x| x.into_os_string().into_string().unwrap()),
         nvidia: args.nvidia,
-        raw_command: vec![],
+        host_command,
     }
 }

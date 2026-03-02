@@ -98,7 +98,7 @@ pub fn parse(args: &[String]) -> Cli {
         info: false,
         meinfo: None,
         nvidia: false,
-        raw_command: vec![],
+        host_command: None,
     };
 
     if args.len() == 0 {
@@ -708,8 +708,39 @@ pub fn parse(args: &[String]) -> Cli {
                 None
             };
             found_an_option = true;
-        } else if arg == "--raw-command" {
-            cli.raw_command = args[1..].to_vec();
+        } else if arg == "--host-command" {
+            cli.host_command = if args.len() > i + 2 {
+                let cmd_id = parse_hex_or_dec_u16(&args[i + 1]);
+                let version = parse_hex_or_dec_u8(&args[i + 2]);
+                if let (Some(cmd_id), Some(version)) = (cmd_id, version) {
+                    let mut data = Vec::new();
+                    let mut parse_error = false;
+                    for j in (i + 3)..args.len() {
+                        if args[j].starts_with('-') {
+                            break;
+                        }
+                        if let Some(byte) = parse_hex_or_dec_u8(&args[j]) {
+                            data.push(byte);
+                        } else {
+                            println!("Invalid data byte for --host-command: '{}'", args[j]);
+                            parse_error = true;
+                            break;
+                        }
+                    }
+                    if parse_error {
+                        None
+                    } else {
+                        Some((cmd_id, version, data))
+                    }
+                } else {
+                    println!("Invalid values for --host-command. Usage: --host-command <CMD_ID> <VERSION> [DATA...]");
+                    None
+                }
+            } else {
+                println!("--host-command requires at least two arguments: <CMD_ID> <VERSION>");
+                None
+            };
+            found_an_option = true;
         } else if arg == "--compare-version" {
             cli.compare_version = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
@@ -816,4 +847,20 @@ pub fn parse(args: &[String]) -> Cli {
     }
 
     cli
+}
+
+fn parse_hex_or_dec_u16(s: &str) -> Option<u16> {
+    if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
+        u16::from_str_radix(hex, 16).ok()
+    } else {
+        s.parse::<u16>().ok()
+    }
+}
+
+fn parse_hex_or_dec_u8(s: &str) -> Option<u8> {
+    if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
+        u8::from_str_radix(hex, 16).ok()
+    } else {
+        s.parse::<u8>().ok()
+    }
 }
