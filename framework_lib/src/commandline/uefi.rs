@@ -711,8 +711,8 @@ pub fn parse(args: &[String]) -> Cli {
         } else if arg == "--host-command" {
             cli.host_command = if args.len() > i + 2 {
                 let cmd_id = parse_hex_or_dec_u16(&args[i + 1]);
-                let version = args[i + 2].parse::<u8>();
-                if let (Some(cmd_id), Ok(version)) = (cmd_id, version) {
+                let version = parse_hex_or_dec_u8(&args[i + 2]);
+                if let (Some(cmd_id), Some(version)) = (cmd_id, version) {
                     let mut data = Vec::new();
                     for j in (i + 3)..args.len() {
                         if args[j].starts_with('-') {
