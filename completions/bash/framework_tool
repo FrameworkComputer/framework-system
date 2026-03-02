@@ -23,7 +23,7 @@ _framework_tool() {
 
     case "${cmd}" in
         framework_tool)
-            opts="-v -q -t -f -h --flash-gpu-descriptor --verbose --quiet --versions --version --features --esrt --device --compare-version --power --thermal --sensors --fansetduty --fansetrpm --autofanctrl --pdports --info --meinfo --pd-info --pd-reset --pd-disable --pd-enable --dp-hdmi-info --dp-hdmi-update --audio-card-info --privacy --pd-bin --ec-bin --capsule --dump --h2o-capsule --dump-ec-flash --flash-ec --flash-ro-ec --flash-rw-ec --intrusion --inputdeck --inputdeck-mode --expansion-bay --charge-limit --charge-current-limit --charge-rate-limit --get-gpio --fp-led-level --fp-brightness --kblight --remap-key --rgbkbd --ps2-enable --tablet-mode --touchscreen-enable --stylus-battery --console --reboot-ec --ec-hib-delay --uptimeinfo --s0ix-counter --hash --driver --pd-addrs --pd-ports --test --test-retimer --boardid --force --dry-run --flash-gpu-descriptor-file --dump-gpu-descriptor-file --nvidia --generate-completions --help"
+            opts="-v -q -t -f -h --flash-gpu-descriptor --verbose --quiet --versions --version --features --esrt --device --compare-version --power --thermal --sensors --fansetduty --fansetrpm --autofanctrl --pdports --info --meinfo --pd-info --pd-reset --pd-disable --pd-enable --dp-hdmi-info --dp-hdmi-update --audio-card-info --privacy --pd-bin --ec-bin --capsule --dump --h2o-capsule --dump-ec-flash --flash-ec --flash-ro-ec --flash-rw-ec --intrusion --inputdeck --inputdeck-mode --expansion-bay --charge-limit --charge-current-limit --charge-rate-limit --get-gpio --fp-led-level --fp-brightness --kblight --remap-key --rgbkbd --ps2-enable --tablet-mode --touchscreen-enable --stylus-battery --console --reboot-ec --ec-hib-delay --uptimeinfo --s0ix-counter --hash --driver --pd-addrs --pd-ports --test --test-retimer --boardid --force --dry-run --flash-gpu-descriptor-file --dump-gpu-descriptor-file --nvidia --host-command --generate-completions --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -194,6 +194,10 @@ _framework_tool() {
                     return 0
                     ;;
                 --dump-gpu-descriptor-file)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --host-command)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

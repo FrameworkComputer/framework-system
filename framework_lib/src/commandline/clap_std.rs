@@ -305,6 +305,11 @@ struct ClapCli {
     #[arg(long)]
     nvidia: bool,
 
+    /// Send an EC host command. Args: <CMD_ID> <VERSION> [DATA...]
+    #[arg(long, value_parser=maybe_hex::<u64>)]
+    #[clap(num_args = 2..)]
+    host_command: Vec<u64>,
+
     /// Generate shell completions and print to stdout
     #[arg(long, value_name = "SHELL", hide = true)]
     generate_completions: Option<Shell>,
@@ -419,6 +424,15 @@ pub fn parse(args: &[String]) -> Cli {
         )),
         _ => None,
     };
+    let host_command = if args.host_command.len() >= 2 {
+        Some((
+            args.host_command[0] as u16,
+            args.host_command[1] as u8,
+            args.host_command[2..].iter().map(|&x| x as u8).collect(),
+        ))
+    } else {
+        None
+    };
 
     Cli {
         verbosity: LogLevel(args.verbosity.log_level_filter()),
@@ -517,6 +531,6 @@ pub fn parse(args: &[String]) -> Cli {
             .dump_gpu_descriptor_file
             .map(|x| x.into_os_string().into_string().unwrap()),
         nvidia: args.nvidia,
-        raw_command: vec![],
+        host_command,
     }
 }
