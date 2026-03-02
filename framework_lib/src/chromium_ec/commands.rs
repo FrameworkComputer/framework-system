@@ -1502,6 +1502,10 @@ impl EcRequest<EcResponseChargeLimitControl> for EcRequestChargeLimitControl {
 /// TODO: Use this
 pub const EC_CHARGE_LIMIT_RESTORE: u8 = 0x7F;
 
+pub const PS2_EMULATION_AUTO: u8 = 0;
+pub const PS2_EMULATION_DISABLE: u8 = 1;
+pub const PS2_EMULATION_FORCE_ENABLE: u8 = 2;
+
 #[repr(C, packed)]
 pub struct EcRequestDisablePs2Emulation {
     pub disable: u8,
@@ -1510,6 +1514,28 @@ pub struct EcRequestDisablePs2Emulation {
 impl EcRequest<()> for EcRequestDisablePs2Emulation {
     fn command_id() -> EcCommands {
         EcCommands::DisablePs2Emulation
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestPs2EmulationControlV1 {
+    pub mode: u8,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy)]
+pub struct EcResponsePs2EmulationStatus {
+    pub emulation_disabled: u8,
+    pub host_driver_confirmed: u8,
+    pub detected_host_packet: u8,
+}
+
+impl EcRequest<EcResponsePs2EmulationStatus> for EcRequestPs2EmulationControlV1 {
+    fn command_id() -> EcCommands {
+        EcCommands::DisablePs2Emulation
+    }
+    fn command_version() -> u8 {
+        1
     }
 }
 

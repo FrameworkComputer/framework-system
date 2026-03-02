@@ -12,8 +12,8 @@ use clap_num::maybe_hex;
 use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::{
-    Cli, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg, LogLevel, RebootEcArg,
-    TabletModeArg,
+    Cli, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg, LogLevel, Ps2ModeArg,
+    RebootEcArg, TabletModeArg,
 };
 
 /// Swiss army knife for Framework laptops
@@ -213,10 +213,10 @@ struct ClapCli {
     #[arg(long, value_parser=maybe_hex::<u64>, value_names(["START", "HEXCOLOR"]))]
     rgbkbd: Vec<u64>,
 
-    /// Control PS2 touchpad emulation (DEBUG COMMAND, if touchpad not working, reboot system)
+    /// Control PS2 touchpad emulation (auto/disable/enable)
     #[clap(value_enum, hide(true))]
     #[arg(long)]
-    ps2_enable: Option<bool>,
+    ps2_mode: Option<Ps2ModeArg>,
 
     /// Set tablet mode override
     #[clap(value_enum)]
@@ -519,7 +519,7 @@ pub fn parse(args: &[String]) -> Cli {
         kblight: args.kblight,
         remap_key,
         rgbkbd: args.rgbkbd,
-        ps2_enable: args.ps2_enable,
+        ps2_mode: args.ps2_mode,
         tablet_mode: args.tablet_mode,
         touchscreen_enable: args.touchscreen_enable,
         stylus_battery: args.stylus_battery,

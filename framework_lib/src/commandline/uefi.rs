@@ -12,7 +12,7 @@ use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::{CrosEcDriverType, HardwareDeviceType};
 use crate::commandline::{Cli, LogLevel};
 
-use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, RebootEcArg, TabletModeArg};
+use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, Ps2ModeArg, RebootEcArg, TabletModeArg};
 
 /// Get commandline arguments from UEFI environment
 pub fn get_args(bs: &BootServices, image_handle: Handle) -> Vec<String> {
@@ -71,7 +71,7 @@ pub fn parse(args: &[String]) -> Cli {
         kblight: None,
         remap_key: None,
         rgbkbd: vec![],
-        ps2_enable: None,
+        ps2_mode: None,
         tablet_mode: None,
         touchscreen_enable: None,
         stylus_battery: false,
@@ -370,23 +370,25 @@ pub fn parse(args: &[String]) -> Cli {
                 println!("--rgbkbd requires at least 2 arguments, the start key and an RGB value");
                 vec![]
             }
-        } else if arg == "--ps2-enable" {
-            cli.ps2_enable = if args.len() > i + 1 {
-                let enable_arg = &args[i + 1];
-                if enable_arg == "true" {
-                    Some(true)
-                } else if enable_arg == "false" {
-                    Some(false)
+        } else if arg == "--ps2-mode" {
+            cli.ps2_mode = if args.len() > i + 1 {
+                let mode_arg = &args[i + 1];
+                if mode_arg == "auto" {
+                    Some(Ps2ModeArg::Auto)
+                } else if mode_arg == "disable" {
+                    Some(Ps2ModeArg::Disable)
+                } else if mode_arg == "enable" {
+                    Some(Ps2ModeArg::Enable)
                 } else {
                     println!(
-                        "Need to provide a value for --ps2-enable: '{}'. {}",
+                        "Need to provide a value for --ps2-mode: '{}'. {}",
                         args[i + 1],
-                        "Must be `true` or `false`",
+                        "Must be `auto`, `disable` or `enable`",
                     );
                     None
                 }
             } else {
-                println!("Need to provide a value for --tablet-mode. One of: `auto`, `tablet` or `laptop`");
+                println!("Need to provide a value for --ps2-mode. One of: `auto`, `disable` or `enable`");
                 None
             };
             found_an_option = true;

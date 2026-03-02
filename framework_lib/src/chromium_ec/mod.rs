@@ -745,6 +745,13 @@ impl CrosEc {
         .send_command(self)
     }
 
+    pub fn ps2_emulation_control(
+        &self,
+        mode: u8,
+    ) -> EcResult<EcResponsePs2EmulationStatus> {
+        EcRequestPs2EmulationControlV1 { mode }.send_command(self)
+    }
+
     pub fn fan_set_rpm(&self, fan: Option<u32>, rpm: u32) -> EcResult<()> {
         if let Some(fan_idx) = fan {
             EcRequestPwmSetFanTargetRpmV1 { rpm, fan_idx }.send_command(self)

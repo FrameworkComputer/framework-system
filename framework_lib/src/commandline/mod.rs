@@ -40,6 +40,7 @@ use crate::chromium_ec::commands::DeckStateMode;
 use crate::chromium_ec::commands::FpLedBrightnessLevel;
 use crate::chromium_ec::commands::RebootEcCmd;
 use crate::chromium_ec::commands::RgbS;
+use crate::chromium_ec::commands::{PS2_EMULATION_AUTO, PS2_EMULATION_DISABLE, PS2_EMULATION_FORCE_ENABLE};
 use crate::chromium_ec::commands::TabletModeOverride;
 use crate::chromium_ec::EcResponseStatus;
 use crate::chromium_ec::{print_err, EcFlashType};
@@ -79,6 +80,14 @@ use crate::chromium_ec::{CrosEc, CrosEcDriverType, HardwareDeviceType};
 
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
+
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Debug, PartialEq)]
+pub enum Ps2ModeArg {
+    Auto,
+    Disable,
+    Enable,
+}
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
 #[derive(Clone, Debug, PartialEq)]
@@ -208,7 +217,7 @@ pub struct Cli {
     pub kblight: Option<Option<u8>>,
     pub remap_key: Option<(u8, u8, u16)>,
     pub rgbkbd: Vec<u64>,
-    pub ps2_enable: Option<bool>,
+    pub ps2_mode: Option<Ps2ModeArg>,
     pub tablet_mode: Option<TabletModeArg>,
     pub touchscreen_enable: Option<bool>,
     pub stylus_battery: bool,
@@ -296,7 +305,7 @@ pub fn parse(args: &[String]) -> Cli {
             kblight: cli.kblight,
             remap_key: cli.remap_key,
             rgbkbd: cli.rgbkbd,
-            ps2_enable: cli.ps2_enable,
+            ps2_mode: cli.ps2_mode,
             // tablet_mode
             // touchscreen_enable
             stylus_battery: cli.stylus_battery,
@@ -1441,8 +1450,25 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             });
             ec.rgbkbd_set_color(start_key, colors.collect()).unwrap();
         }
-    } else if let Some(enable) = args.ps2_enable {
-        print_err(ec.ps2_emulation_enable(enable));
+    } else if let Some(ps2_arg) = &args.ps2_mode {
+        let mode = match ps2_arg {
+            Ps2ModeArg::Auto => PS2_EMULATION_AUTO,
+            Ps2ModeArg::Disable => PS2_EMULATION_DISABLE,
+            Ps2ModeArg::Enable => PS2_EMULATION_FORCE_ENABLE,
+        };
+        match ec.ps2_emulation_control(mode) {
+            Ok(status) => {
+                println!("PS2 Emulation:      {}", if status.emulation_disabled != 0 { "Disabled" } else { "Auto" });
+                println!("Host Driver:        {}", if status.host_driver_confirmed != 0 { "Confirmed" } else { "Not Confirmed" });
+                println!("Host I2C Activity:  {}", if status.detected_host_packet != 0 { "Detected" } else { "Not Detected" });
+            }
+            Err(e) => {
+                // Fall back to v0 if EC firmware doesn't support v1
+                println!("Note: EC firmware does not support status query ({:?})", e);
+                let enable = !matches!(ps2_arg, Ps2ModeArg::Disable);
+                print_err(ec.ps2_emulation_enable(enable));
+            }
+        }
     } else if let Some(tablet_arg) = &args.tablet_mode {
         let mode = match tablet_arg {
             TabletModeArg::Auto => TabletModeOverride::Default,
