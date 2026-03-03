@@ -23,6 +23,8 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
   - `zypper install framework_tool`
 - Gentoo [![Gentoo package](https://repology.org/badge/version-for-repo/gentoo/framework-tool.svg)](https://repology.org/project/framework-tool/versions)
   - `emerge framework_tool`
+- Rhino Linux [![Rhino Linux package](https://repology.org/badge/version-for-repo/pacstall/framework-system.svg)](https://repology.org/project/framework-system/versions)
+  - `pacstall -I framework-system-bin`
 - Others
   - Build from source
   - Or download [latest binary](https://github.com/FrameworkComputer/framework-system/releases/latest/download/framework_tool)
