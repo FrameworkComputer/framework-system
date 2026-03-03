@@ -275,7 +275,9 @@ impl ResourceType {
 }
 
 #[derive(Debug)]
-pub enum UpdateStatus {
+#[repr(u32)]
+/// All defined by EDK2
+pub enum GenericUpdateErr {
     Success = 0x00,
     Unsuccessful = 0x01,
     InsufficientResources = 0x02,
@@ -284,9 +286,10 @@ pub enum UpdateStatus {
     AuthError = 0x05,
     PowerEventAc = 0x06,
     PowerEventBattery = 0x07,
-    Reserved = 0xFF, // TODO: I added this, since there's no unknown type, is there?
+    UnsatisfiedDependencies = 0x08,
+    Unknown(u32),
 }
-impl UpdateStatus {
+impl GenericUpdateErr {
     fn from_int(i: u32) -> Self {
         match i {
             0 => Self::Success,
@@ -297,7 +300,114 @@ impl UpdateStatus {
             5 => Self::AuthError,
             6 => Self::PowerEventAc,
             7 => Self::PowerEventBattery,
-            _ => Self::Reserved,
+            i => Self::Unknown(i),
+        }
+    }
+}
+
+#[derive(Debug)]
+#[repr(u32)]
+pub enum IntelRetimerUpdateErr {
+    Success = 0x0000,
+    ImageTableNotProvided = 0x1900,
+    ImageParameterIsNull = 0x1901,
+    SignatureIsNotDetected = 0x1902,
+    RetimerCountHeaderIsZero = 0x1903,
+    OverOneRetimerCount = 0x1904,
+    PayloadSizeTooSmall = 0x1905,
+    PayloadIsOutOfBounds = 0x1906,
+    ImageNotProvided = 0x1907,
+    ProgressCallbackError = 0x1908,
+    TcssRetimerProtocolNotFound = 0x1909,
+    DriveTbtModeFailed = 0x190A,
+    Usb2hcProtocolNotFound = 0x190B,
+    PayloadIsOutOfBounds2 = 0x190C,
+    UnsupportFirmwareType = 0x190D,
+    InitializationFailed = 0x190E,
+    RestoreOriginalModeFailed = 0x190F,
+    UpdateFailed = 0x1910,
+    DeviceHandleNotFound = 0x1911,
+    TooFewRetimerInstances = 0x1912,
+    SendOfflineModeFailed = 0x1913,
+    DtbtImageTableNotProvided = 0x1980,
+    DtbtImageParameterIsNull = 0x1981,
+    DtbtSignatureIsNotDetected = 0x1982,
+    DtbtRetimerCountHeaderIsZero = 0x1983,
+    DtbtOverOneRetimerCount = 0x1984,
+    DtbtPayloadSizeTooSmall = 0x1985,
+    DtbtPayloadIsOutOfBounds = 0x1986,
+    DtbtImageNotProvided = 0x1987,
+    DtbtProgressCallbackError = 0x1988,
+    DtbtUsb2hcProtocolNotFound = 0x1989,
+    DtbtPayloadIsOutOfBounds2 = 0x198A,
+    DtbtUnsupportFirmwareType = 0x198B,
+    DtbtInitializationFailed = 0x198C,
+    DtbtUpdateFailed = 0x198D,
+    Unknown(u32),
+}
+impl IntelRetimerUpdateErr {
+    fn from_int(i: u32) -> Self {
+        match i {
+            0 => Self::Success,
+            i => Self::Unknown(i),
+        }
+    }
+}
+#[derive(Debug)]
+pub enum CsmeUpdateErr {
+    Success,
+    Unknown(u32),
+}
+impl CsmeUpdateErr {
+    fn from_int(i: u32) -> Self {
+        match i {
+            0 => Self::Success,
+            i => Self::Unknown(i),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum UpdateStatus {
+    Success,
+    /// Defined by EDK2
+    /// See EDK2 MdePkg/Include/Guid/SystemResourceTable.h
+    Generic(GenericUpdateErr),
+    /// Intel specific
+    IntelRetimer(IntelRetimerUpdateErr),
+    /// Intel specific
+    Csme(CsmeUpdateErr),
+    /// See EDK2 FmpDevicePkg/Include/LastAttemptStatus.h
+    FmpDxeErr(u32),
+    /// See EDK2 FmpDevicePkg/Include/LastAttemptStatus.h
+    FmpDependencyLib(u32),
+    Unknown(u32),
+}
+impl UpdateStatus {
+    fn from_int(i: u32, guid: FrameworkGuidKind) -> Self {
+        match (i, guid) {
+            (0, _) => Self::Success,
+            (0x1000..=0x107F, _) => Self::FmpDxeErr(i),
+            (0x10A0..=0x10BF, _) => Self::FmpDependencyLib(i),
+            (0..=8, _) => UpdateStatus::Generic(GenericUpdateErr::from_int(i)),
+            (
+                i,
+                FrameworkGuidKind::TglRetimer01
+                | FrameworkGuidKind::TglRetimer23
+                | FrameworkGuidKind::AdlRetimer01
+                | FrameworkGuidKind::AdlRetimer23
+                | FrameworkGuidKind::RplRetimer01
+                | FrameworkGuidKind::RplRetimer23
+                | FrameworkGuidKind::MtlRetimer01
+                | FrameworkGuidKind::MtlRetimer23,
+            ) => UpdateStatus::IntelRetimer(IntelRetimerUpdateErr::from_int(i)),
+            (
+                i,
+                FrameworkGuidKind::RplCsme
+                | FrameworkGuidKind::RplUCsme
+                | FrameworkGuidKind::MtlCsme,
+            ) => UpdateStatus::Csme(CsmeUpdateErr::from_int(i)),
+            _ => Self::Unknown(i),
         }
     }
 }
@@ -321,12 +431,10 @@ pub fn print_esrt(esrt: &Esrt) {
     println!("  ResourceVersion:      {}", esrt.resource_version);
 
     for (i, entry) in esrt.entries.iter().enumerate() {
+        let guid = match_guid_kind(&entry.fw_class);
         println!("ESRT Entry {}", i);
         println!("  GUID:                 {}", entry.fw_class);
-        println!(
-            "  GUID:                 {:?}",
-            match_guid_kind(&entry.fw_class)
-        );
+        println!("  GUID:                 {:?}", guid);
         println!(
             "  Type:                 {:?}",
             ResourceType::from_int(entry.fw_type)
@@ -346,7 +454,7 @@ pub fn print_esrt(esrt: &Esrt) {
         );
         println!(
             "  Last Attempt Status:  {:?}",
-            UpdateStatus::from_int(entry.last_attempt_status)
+            UpdateStatus::from_int(entry.last_attempt_status, guid)
         );
     }
 }
