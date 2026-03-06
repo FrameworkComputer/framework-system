@@ -206,11 +206,18 @@ nix build .#uefi
 # Run the CLI tool directly
 nix run .#tool -- --help
 
+# Cross-compile for Windows (from Linux, no Windows needed)
+nix build .#windows
+
 # Run the UEFI app in QEMU
 nix run .#qemu
 
 # Enter a development shell with all dependencies
 nix develop
+
+# Enter a cross-compilation shell for Windows
+nix develop .#cross-windows
+cargo build --target x86_64-pc-windows-gnu -p framework_tool
 ```
 
 ### Building with Cargo
