@@ -21,10 +21,21 @@
         # Read toolchain from rust-toolchain.toml
         rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
 
+        # Toolchain extended with Windows cross-compilation target
+        rustToolchainWindows = rustToolchain.override {
+          targets = [ "x86_64-pc-windows-gnu" ];
+        };
+
         # Create a custom rustPlatform with our toolchain
         rustPlatform = pkgs.makeRustPlatform {
           cargo = rustToolchain;
           rustc = rustToolchain;
+        };
+
+        # rustPlatform with Windows cross-compilation target
+        rustPlatformWindows = pkgs.makeRustPlatform {
+          cargo = rustToolchainWindows;
+          rustc = rustToolchainWindows;
         };
 
         # Common build inputs for OS builds
@@ -57,6 +68,7 @@
                 "framework_lib"
                 "framework_tool"
                 "framework_uefi"
+                "res"
                 ".cargo"
               ];
               includedFiles = [
@@ -129,6 +141,60 @@
             LIBGIT2_NO_VENDOR = "1";
           };
 
+        # MinGW cross-compiler for Windows builds
+        mingw = pkgs.pkgsCross.mingwW64.stdenv.cc;
+        mingwPthreads = pkgs.pkgsCross.mingwW64.windows.pthreads;
+
+        # Build function for Windows cross-compilation (Linux -> Windows)
+        buildFrameworkToolWindows = { release ? false }:
+          let
+            profile = if release then "release" else "debug";
+          in
+          rustPlatformWindows.buildRustPackage {
+            pname = "framework_tool";
+            version = "0.5.0";
+
+            src = buildSrc;
+
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+              outputHashes = gitDependencyHashes;
+            };
+
+            buildType = profile;
+            buildNoDefaultFeatures = true;
+
+            # Disable cargo-auditable as it's incompatible with cross-compilation
+            auditable = false;
+
+            buildPhase = ''
+              runHook preBuild
+              cargo build \
+                ${if release then "--release" else ""} \
+                --target x86_64-pc-windows-gnu \
+                -p framework_tool
+              runHook postBuild
+            '';
+
+            # Skip check phase - can't run .exe on Linux
+            doCheck = false;
+
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out/bin
+              cp target/x86_64-pc-windows-gnu/${profile}/framework_tool.exe $out/bin/
+              runHook postInstall
+            '';
+
+            nativeBuildInputs = [ mingw ];
+
+            CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER = "${mingw}/bin/x86_64-w64-mingw32-gcc";
+            CC_x86_64_pc_windows_gnu = "${mingw}/bin/x86_64-w64-mingw32-gcc";
+            CXX_x86_64_pc_windows_gnu = "${mingw}/bin/x86_64-w64-mingw32-g++";
+            AR_x86_64_pc_windows_gnu = "${mingw}/bin/x86_64-w64-mingw32-ar";
+            CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUSTFLAGS = "-L native=${mingwPthreads}/lib";
+          };
+
         # Build function for UEFI application
         buildFrameworkUefi = { release ? false, features ? [] }:
           let
@@ -186,6 +252,8 @@
         framework-tool-release = buildFrameworkTool { release = true; };
         framework-uefi-debug = buildFrameworkUefi { release = false; };
         framework-uefi-release = buildFrameworkUefi { release = true; };
+        framework-tool-windows = buildFrameworkToolWindows { release = true; };
+        framework-tool-windows-debug = buildFrameworkToolWindows { release = false; };
 
         # Wrapper script to run the UEFI build in an emulator
         run-qemu = pkgs.writeShellScriptBin "run-framework-uefi-qemu" ''
@@ -261,6 +329,8 @@
           tool-debug = framework-tool-debug;
           uefi = framework-uefi-release;
           uefi-debug = framework-uefi-debug;
+          windows = framework-tool-windows;
+          windows-debug = framework-tool-windows-debug;
           run-qemu = run-qemu;
           run-qemu-release = run-qemu-release;
         };
@@ -271,6 +341,21 @@
           tool = flake-utils.lib.mkApp { drv = framework-tool-release; exePath = "/bin/framework_tool"; };
           qemu = flake-utils.lib.mkApp { drv = run-qemu; };
           qemu-release = flake-utils.lib.mkApp { drv = run-qemu-release; };
+        };
+
+        devShells.cross-windows = pkgs.mkShell {
+          packages = [
+            rustToolchainWindows
+          ];
+
+          # Ensure build scripts (e.g. libgit2-sys) use the native host compiler
+          HOST_CC = "cc";
+
+          CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER = "${mingw}/bin/x86_64-w64-mingw32-gcc";
+          CC_x86_64_pc_windows_gnu = "${mingw}/bin/x86_64-w64-mingw32-gcc";
+          CXX_x86_64_pc_windows_gnu = "${mingw}/bin/x86_64-w64-mingw32-g++";
+          AR_x86_64_pc_windows_gnu = "${mingw}/bin/x86_64-w64-mingw32-ar";
+          CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUSTFLAGS = "-L native=${mingwPthreads}/lib";
         };
 
         devShells.default = pkgs.mkShell {
