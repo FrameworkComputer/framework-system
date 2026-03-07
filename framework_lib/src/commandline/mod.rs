@@ -47,6 +47,8 @@ use crate::chromium_ec::{CrosEcDriver, EcError, EcResult};
 use crate::csme;
 use crate::ec_binary;
 use crate::esrt::{self, ResourceType};
+#[cfg(feature = "uefi")]
+use crate::fw_uefi::enable_page_break;
 #[cfg(feature = "rusb")]
 use crate::inputmodule::check_inputmodule_version;
 #[cfg(target_os = "linux")]
@@ -61,8 +63,6 @@ use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
 use crate::touchpad::print_touchpad_fw_ver;
 #[cfg(feature = "hidapi")]
 use crate::touchscreen;
-#[cfg(feature = "uefi")]
-use crate::uefi::enable_page_break;
 #[cfg(feature = "rusb")]
 use crate::usbhub::check_usbhub_version;
 use crate::util::{self, Config, Platform, PlatformFamily};
@@ -1047,7 +1047,7 @@ fn print_esrt() {
 
 fn flash_ec(ec: &CrosEc, ec_bin_path: &str, flash_type: EcFlashType, dry_run: bool) {
     #[cfg(feature = "uefi")]
-    let data = crate::uefi::fs::shell_read_file(ec_bin_path);
+    let data = crate::fw_uefi::fs::shell_read_file(ec_bin_path);
     #[cfg(not(feature = "uefi"))]
     let data: Option<Vec<u8>> = {
         match fs::read(ec_bin_path) {
@@ -1082,7 +1082,7 @@ fn dump_ec_flash(ec: &CrosEc, dump_path: &str) {
     }
     #[cfg(feature = "uefi")]
     {
-        let ret = crate::uefi::fs::shell_write_file(dump_path, &flash_bin);
+        let ret = crate::fw_uefi::fs::shell_write_file(dump_path, &flash_bin);
         if ret.is_err() {
             println!("Failed to dump EC FW image.");
         }
@@ -1147,7 +1147,7 @@ fn dump_dgpu_eeprom(ec: &CrosEc, dump_path: &str) {
     }
     #[cfg(feature = "uefi")]
     {
-        if let Err(err) = crate::uefi::fs::shell_write_file(dump_path, &flash_bin) {
+        if let Err(err) = crate::fw_uefi::fs::shell_write_file(dump_path, &flash_bin) {
             error!("Failed to dump EC FW image: {:?}", err);
             return;
         }
@@ -1616,7 +1616,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(pd_bin_path) = &args.pd_bin {
         #[cfg(feature = "uefi")]
-        let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(pd_bin_path);
+        let data: Option<Vec<u8>> = crate::fw_uefi::fs::shell_read_file(pd_bin_path);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(pd_bin_path) {
             Ok(data) => Some(data),
@@ -1635,7 +1635,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(ec_bin_path) = &args.ec_bin {
         #[cfg(feature = "uefi")]
-        let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(ec_bin_path);
+        let data: Option<Vec<u8>> = crate::fw_uefi::fs::shell_read_file(ec_bin_path);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(ec_bin_path) {
             Ok(data) => Some(data),
@@ -1654,7 +1654,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(capsule_path) = &args.capsule {
         #[cfg(feature = "uefi")]
-        let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(capsule_path);
+        let data: Option<Vec<u8>> = crate::fw_uefi::fs::shell_read_file(capsule_path);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(capsule_path) {
             Ok(data) => Some(data),
@@ -1683,7 +1683,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(capsule_path) = &args.h2o_capsule {
         #[cfg(feature = "uefi")]
-        let data = crate::uefi::fs::shell_read_file(capsule_path);
+        let data = crate::fw_uefi::fs::shell_read_file(capsule_path);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(capsule_path) {
             Ok(data) => Some(data),
@@ -1736,7 +1736,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(hash_file) = &args.hash {
         println!("Hashing file: {}", hash_file);
         #[cfg(feature = "uefi")]
-        let data = crate::uefi::fs::shell_read_file(hash_file);
+        let data = crate::fw_uefi::fs::shell_read_file(hash_file);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(hash_file) {
             Ok(data) => Some(data),
@@ -1765,7 +1765,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             Some(PlatformFamily::Framework16) | None
         ) {
             #[cfg(feature = "uefi")]
-            let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(gpu_descriptor_file);
+            let data: Option<Vec<u8>> = crate::fw_uefi::fs::shell_read_file(gpu_descriptor_file);
             #[cfg(not(feature = "uefi"))]
             let data = match fs::read(gpu_descriptor_file) {
                 Ok(data) => Some(data),
@@ -2156,7 +2156,7 @@ fn smbios_info() {
 fn me_info(verbose: bool, dump_path: Option<&str>) {
     let smbios = if let Some(path) = dump_path {
         #[cfg(feature = "uefi")]
-        let data: Option<Vec<u8>> = crate::uefi::fs::shell_read_file(path);
+        let data: Option<Vec<u8>> = crate::fw_uefi::fs::shell_read_file(path);
         #[cfg(not(feature = "uefi"))]
         let data = match std::fs::read(path) {
             Ok(data) => Some(data),
