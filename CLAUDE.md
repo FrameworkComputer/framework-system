@@ -78,7 +78,7 @@ cargo run -- --completions fish > completions/fish/framework_tool.fish
 
 ### Custom Dependency Forks
 
-The project patches `uefi` and `uefi-services` via git (used for UEFI builds), and uses a custom fork of `smbios-lib` for no_std/UEFI support. See `[patch.crates-io]` in the root Cargo.toml.
+The project uses a custom fork of `smbios-lib` for no_std/UEFI support. See `[patch.crates-io]` in the root Cargo.toml. This can be removed once upstream `smbios-lib` supports no_std.
 
 ## CI Pipeline
 
