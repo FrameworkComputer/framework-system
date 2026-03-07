@@ -30,6 +30,8 @@ pub mod input_deck;
 #[cfg(not(windows))]
 mod portio;
 #[cfg(not(windows))]
+mod portio_hwio;
+#[cfg(not(windows))]
 mod portio_mec;
 #[allow(dead_code)]
 mod protocol;
