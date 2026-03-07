@@ -41,9 +41,7 @@ winget install framework_tool
 
 ### FreeBSD
 
-```
-sudo pkg install framework-system
-```
+> **Note:** FreeBSD support has been dropped. Use Linux or Windows instead.
 
 ## Features
 
@@ -57,11 +55,10 @@ The following operating environments are supported.
 - Linux
 - Windows
 - UEFI
-- FreeBSD
 
 Most functionality depends communication with the EC.
 For Linux and Windows there are dedicated drivers.
-On UEFI and FreeBSD raw port I/O is used - on Linux this can also be used as a fallback, if the driver is not available or not working.
+On UEFI raw port I/O is used - on Linux this can also be used as a fallback, if the driver is not available or not working.
 
 |                     | Port I/O | Linux | Windows |
 |---------------------|----------| ------|---------|
@@ -83,7 +80,7 @@ On UEFI and FreeBSD raw port I/O is used - on Linux this can also be used as a f
 ###### Firmware Information
 
   - [x] Show system information
-    - [x] ESRT table (UEFI, Linux, FreeBSD only) (`--esrt`)
+    - [x] ESRT table (UEFI, Linux only) (`--esrt`)
     - [x] SMBIOS
   - [x] Get firmware version from binary file
     - [x] EC (Legacy and Zephyr based) (`--ec-bin`)
@@ -104,8 +101,8 @@ On UEFI and FreeBSD raw port I/O is used - on Linux this can also be used as a f
     - [x] PD Controller
     - [x] ME (Only on Linux)
     - [x] Retimer
-    - [x] Touchpad (Linux, Windows, FreeBSD, not UEFI)
-    - [x] Touchscreen (Linux, Windows, FreeBSD, not UEFI)
+    - [x] Touchpad (Linux, Windows, not UEFI)
+    - [x] Touchscreen (Linux, Windows, not UEFI)
   - [x] Get Expansion Card Firmware (Not on UEFI so far)
     - [x] HDMI Expansion Card (`--dp-hdmi-info`)
     - [x] DisplayPort Expansion Card (`--dp-hdmi-info`)
@@ -145,7 +142,6 @@ All of these need EC communication support in order to work.
 - [x] Framework Desktop (AMD Ryzen AI Max 300)
 - [x] Port I/O communication on Linux
 - [x] Port I/O communication in UEFI
-- [x] Port I/O communication on FreeBSD
 - [x] Using `cros_ec` driver in Linux kernel
 - [x] Using [Framework EC Windows driver](https://github.com/FrameworkComputer/crosecbus) based on [coolstar's](https://github.com/coolstar/crosecbus)
 - [x] Using [DHowett's Windows CrosEC driver](https://github.com/DHowett/FrameworkWindowsUtils)
@@ -173,9 +169,6 @@ nix develop
 
 # Fedora
 sudo dnf install systemd-devel hidapi-devel
-
-# FreeBSD
-sudo pkg install rust hidapi pkgconf
 
 # Ubuntu
 sudo apt install rustup build-essential libhidapi-dev libsystemd-dev libudev-dev libusb-1.0-0-dev pkg-config

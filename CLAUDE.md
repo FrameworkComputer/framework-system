@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Framework System is a Rust library and CLI tool for interacting with Framework Computer hardware. It targets Linux, Windows, UEFI, and FreeBSD. The MSRV is 1.81.
+Framework System is a Rust library and CLI tool for interacting with Framework Computer hardware. It targets Linux, Windows, and UEFI. The MSRV is 1.81.
 
 ## Development and Testing advice
 
@@ -12,7 +12,7 @@ Most commands must be run as root, try to run them with sudo, usually I have fin
 
 By default build in debug mode that's way faster than `--release` builds.
 On every commit all builds, lints and tests must keep working.
-We also must not break other platforms (Windows, Linux, FreeBSD, UEFI).
+We also must not break other platforms (Windows, Linux, UEFI).
 
 ## Build Commands
 
@@ -53,7 +53,7 @@ cargo run -- --completions fish > completions/fish/framework_tool.fish
 
 ### Key Modules in framework_lib
 
-- `chromium_ec/` — Chrome EC controller communication. Multiple driver backends: `cros_ec` (Linux kernel), `portio` (direct I/O for UEFI/FreeBSD), `windows` (Windows driver). Commands defined in `commands.rs`.
+- `chromium_ec/` — Chrome EC controller communication. Multiple driver backends: `cros_ec` (Linux kernel), `portio` (direct I/O for UEFI), `windows` (Windows driver). Commands defined in `commands.rs`.
 - `ccgx/` — USB Power Delivery controller (CCG5/CCG6/CCG8) firmware parsing and device management. `binary.rs` handles firmware binary parsing.
 - `commandline/` — CLI implementation. `clap_std.rs` for std platforms (uses clap), `uefi.rs` for UEFI-specific parsing.
 - `smbios.rs` — SMBIOS table parsing for hardware identification.
@@ -63,7 +63,7 @@ cargo run -- --completions fish > completions/fish/framework_tool.fish
 
 ### Platform Abstraction Patterns
 
-- **OS-level:** `#[cfg(target_os = "linux")]`, `#[cfg(windows)]`, `#[cfg(target_os = "freebsd")]`
+- **OS-level:** `#[cfg(target_os = "linux")]`, `#[cfg(windows)]`
 - **Feature-level:** `#[cfg(feature = "rusb")]`, `#[cfg(feature = "hidapi")]`, `#[cfg(feature = "uefi")]`
 - **no_std compatibility:** UEFI builds use `#![no_std]` with `alloc`. `lazy_static` uses `spin::Mutex` for no_std, `std::sync::Mutex` for std. Custom `no_std_compat` wrapper bridges standard library types.
 
@@ -78,11 +78,11 @@ cargo run -- --completions fish > completions/fish/framework_tool.fish
 
 ### Custom Dependency Forks
 
-The project patches `uefi`, `uefi-services`, and uses custom forks of `smbios-lib` and `rust-hwio` for no_std/FreeBSD support. See `[patch.crates-io]` in the root Cargo.toml.
+The project patches `uefi` and `uefi-services` via git (used for UEFI builds), and uses a custom fork of `smbios-lib` for no_std/UEFI support. See `[patch.crates-io]` in the root Cargo.toml.
 
 ## CI Pipeline
 
-Runs on every push: Linux build, Windows build, UEFI build, FreeBSD build, tests, lints (clippy + fmt), doc generation. CI also verifies shell completions are up-to-date and that no untracked changes are introduced by the build.
+Runs on every push: Linux build, Windows build, UEFI build, tests, lints (clippy + fmt), doc generation. CI also verifies shell completions are up-to-date and that no untracked changes are introduced by the build.
 
 ## Test Binaries
 

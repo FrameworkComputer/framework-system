@@ -29,15 +29,6 @@ use winreg::enums::HKEY_LOCAL_MACHINE;
 #[cfg(target_os = "windows")]
 use winreg::RegKey;
 
-#[cfg(target_os = "freebsd")]
-use nix::ioctl_readwrite;
-#[cfg(target_os = "freebsd")]
-use std::fs::OpenOptions;
-#[cfg(target_os = "freebsd")]
-use std::os::fd::AsRawFd;
-#[cfg(target_os = "freebsd")]
-use std::os::unix::fs::OpenOptionsExt;
-
 pub const TGL_BIOS_GUID: GUID = GUID::build_from_components(
     0xb3bdb2e4,
     0xc5cb,
@@ -455,49 +446,6 @@ pub fn get_esrt() -> Option<Esrt> {
     Some(esrt_table)
 }
 
-#[cfg(target_os = "freebsd")]
-#[repr(C)]
-pub struct EfiGetTableIoc {
-    buf: *mut u8,
-    uuid: [u8; 16],
-    table_len: usize,
-    buf_len: usize,
-}
-#[cfg(target_os = "freebsd")]
-ioctl_readwrite!(efi_get_table, b'E', 1, EfiGetTableIoc);
-
-#[cfg(all(not(feature = "uefi"), target_os = "freebsd"))]
-pub fn get_esrt() -> Option<Esrt> {
-    let path = "/dev/efi";
-    let file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .custom_flags(libc::O_NONBLOCK)
-        .open(path)
-        .unwrap();
-
-    let mut buf: Vec<u8> = Vec::new();
-    let mut table = EfiGetTableIoc {
-        buf: std::ptr::null_mut(),
-        uuid: SYSTEM_RESOURCE_TABLE_GUID_BYTES,
-        table_len: 0,
-        buf_len: 0,
-    };
-    unsafe {
-        let fd = file.as_raw_fd();
-        if let Err(err) = efi_get_table(fd, &mut table) {
-            error!("Failed to access ESRT at {}: {:?}", path, err);
-            return None;
-        }
-        buf.resize(table.table_len, 0);
-        table.buf_len = table.table_len;
-        table.buf = buf.as_mut_ptr();
-
-        let _res = efi_get_table(fd, &mut table).unwrap();
-        esrt_from_buf(table.buf)
-    }
-}
-
 /// gEfiSystemResourceTableGuid from MdePkg/MdePkg.dec
 pub const SYSTEM_RESOURCE_TABLE_GUID: GUID = GUID::build_from_components(
     0xb122a263,
@@ -505,9 +453,6 @@ pub const SYSTEM_RESOURCE_TABLE_GUID: GUID = GUID::build_from_components(
     0x4f68,
     &[0x99, 0x29, 0x78, 0xf8, 0xb0, 0xd6, 0x21, 0x80],
 );
-pub const SYSTEM_RESOURCE_TABLE_GUID_BYTES: [u8; 16] = [
-    0x63, 0xa2, 0x22, 0xb1, 0x61, 0x36, 0x68, 0x4f, 0x99, 0x29, 0x78, 0xf8, 0xb0, 0xd6, 0x21, 0x80,
-];
 
 #[cfg(feature = "uefi")]
 pub fn get_esrt() -> Option<Esrt> {
@@ -530,7 +475,7 @@ pub fn get_esrt() -> Option<Esrt> {
 }
 
 /// Parse the ESRT table buffer
-#[cfg(any(feature = "uefi", target_os = "freebsd"))]
+#[cfg(feature = "uefi")]
 unsafe fn esrt_from_buf(ptr: *const u8) -> Option<Esrt> {
     let raw_esrt = &*(ptr as *const _Esrt);
     let mut esrt = Esrt {

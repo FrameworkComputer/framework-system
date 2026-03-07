@@ -20,8 +20,9 @@ default-members = [
 ]
 
 [patch.crates-io]
-uefi = { git = "https://github.com/FrameworkComputer/uefi-rs", branch = "merged" }
-uefi-services = { git = "https://github.com/FrameworkComputer/uefi-rs", branch = "merged" }
+# The crates.io smbios-lib requires std; this fork adds no_std support needed for UEFI builds.
+# Can be removed once upstream smbios-lib supports no_std.
+smbios-lib = { git = "https://github.com/FrameworkComputer/smbios-lib.git", branch = "no-std" }
 
 [profile.release]
 lto = true

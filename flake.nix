@@ -85,9 +85,7 @@
 
         # Git dependency output hashes
         gitDependencyHashes = {
-          "redox_hwio-0.1.6" = "sha256-knLIZ7yp42SQYk32NGq3SUGvJFVumFhD64Njr5TRdFs=";
           "smbios-lib-0.9.1" = "sha256-3L8JaA75j9Aaqg1z9lVs61m6CvXDeQprEFRq+UDCHQo=";
-          "uefi-0.20.0" = "sha256-2lUd2a+7NvS94LyAHE2BwGV4j6607mbPXE5htrwdz04=";
         };
 
         # Build function for the CLI tool (Linux/macOS)
