@@ -19,3 +19,6 @@ result*
 
 # Claude Code
 tmpclaude*
+
+# UEFI test artifacts
+dump.bmp
