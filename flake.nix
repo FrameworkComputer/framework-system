@@ -83,11 +83,6 @@
             isIncludedRoot || builtins.elem baseName includedFiles;
         };
 
-        # Git dependency output hashes
-        gitDependencyHashes = {
-          "smbios-lib-0.9.1" = "sha256-3L8JaA75j9Aaqg1z9lVs61m6CvXDeQprEFRq+UDCHQo=";
-        };
-
         # Build function for the CLI tool (Linux/macOS)
         buildFrameworkTool = { release ? false, features ? [] }:
           let
@@ -102,7 +97,6 @@
 
             cargoLock = {
               lockFile = ./Cargo.lock;
-              outputHashes = gitDependencyHashes;
             };
 
             buildType = profile;
@@ -156,7 +150,6 @@
 
             cargoLock = {
               lockFile = ./Cargo.lock;
-              outputHashes = gitDependencyHashes;
             };
 
             buildType = profile;
@@ -207,7 +200,6 @@
 
             cargoLock = {
               lockFile = ./Cargo.lock;
-              outputHashes = gitDependencyHashes;
             };
 
             buildType = profile;

@@ -2,14 +2,11 @@
 
 use std::prelude::v1::*;
 
-#[cfg(all(not(feature = "uefi"), not(target_os = "freebsd")))]
-use std::io::ErrorKind;
-
 use crate::util::Config;
 pub use crate::util::{Platform, PlatformFamily};
+use dmidecode::{EntryPoint, Structure};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
-use smbioslib::*;
 #[cfg(feature = "uefi")]
 use spin::Mutex;
 #[cfg(not(feature = "uefi"))]
@@ -23,6 +20,61 @@ static CACHED_PLATFORM: Mutex<Option<Option<Platform>>> = Mutex::new(None);
 
 // TODO: Should cache SMBIOS and values gotten from it
 // SMBIOS is fixed after boot. Oh, so maybe not cache when we're running in UEFI
+
+/// Wrapper around dmidecode's EntryPoint + raw table data.
+/// Owns the data and provides iteration over SMBIOS structures.
+pub struct SmbiosStore {
+    entry_point: EntryPoint,
+    table_data: Vec<u8>,
+}
+
+impl SmbiosStore {
+    /// Parse from raw table data with a synthetic entry point.
+    /// Used for tests, dump files, and Windows (where only table data is available).
+    pub fn from_table_data(data: Vec<u8>, major: u8, minor: u8) -> Option<Self> {
+        let ep_bytes = synthetic_entry_point_v3(major, minor, data.len() as u32);
+        let entry_point = EntryPoint::search(&ep_bytes).ok()?;
+        Some(SmbiosStore {
+            entry_point,
+            table_data: data,
+        })
+    }
+
+    /// Parse from entry point bytes + table data.
+    /// Used for Linux sysfs, FreeBSD, and UEFI where both are available separately.
+    pub fn from_parts(entry_point_bytes: &[u8], table_data: Vec<u8>) -> Option<Self> {
+        let entry_point = EntryPoint::search(entry_point_bytes).ok()?;
+        Some(SmbiosStore {
+            entry_point,
+            table_data,
+        })
+    }
+
+    /// Iterate SMBIOS structures
+    pub fn structures(&self) -> dmidecode::Structures<'_> {
+        self.entry_point.structures(&self.table_data)
+    }
+}
+
+/// Build a valid 24-byte SMBIOS v3 entry point with correct checksum.
+fn synthetic_entry_point_v3(major: u8, minor: u8, table_len: u32) -> [u8; 24] {
+    let mut ep = [0u8; 24];
+    ep[0..5].copy_from_slice(b"_SM3_");
+    // [5] = checksum (computed below)
+    ep[6] = 24; // length
+    ep[7] = major;
+    ep[8] = minor;
+    // [9] = docrev, [11] = reserved — left as 0
+    ep[10] = 1; // entry point revision
+    ep[12..16].copy_from_slice(&table_len.to_le_bytes());
+    // [16..24] = smbios_address — left as 0, we pass table data directly
+
+    // Compute checksum so all bytes sum to 0
+    let sum: u8 = ep.iter().fold(0u8, |acc, &b| acc.wrapping_add(b));
+    ep[5] = 0u8.wrapping_sub(sum);
+
+    ep
+}
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, FromPrimitive, Clone, Copy)]
@@ -69,151 +121,13 @@ pub fn is_framework() -> bool {
         return false;
     };
 
-    for undefined_struct in smbios.iter() {
-        if let DefinedStruct::SystemInformation(data) = undefined_struct.defined_struct() {
-            if let Some(manufacturer) = dmidecode_string_val(&data.manufacturer()) {
-                return manufacturer == "Framework";
-            }
+    for result in smbios.structures() {
+        if let Ok(Structure::System(sys)) = result {
+            return sys.manufacturer == "Framework";
         }
     }
 
     false
-}
-
-pub fn dmidecode_string_val(s: &SMBiosString) -> Option<String> {
-    match s.as_ref() {
-        Ok(val) if val.is_empty() => Some("Not Specified".to_owned()),
-        Ok(val) => Some(val.to_owned()),
-        Err(SMBiosStringError::FieldOutOfBounds) => None,
-        Err(SMBiosStringError::InvalidStringNumber(_)) => Some("<BAD INDEX>".to_owned()),
-        Err(SMBiosStringError::Utf8(val)) => {
-            Some(String::from_utf8_lossy(&val.clone().into_bytes()).to_string())
-        }
-    }
-}
-
-#[cfg(target_os = "freebsd")]
-#[repr(C)]
-pub struct Smbios3 {
-    pub anchor: [u8; 5],
-    pub checksum: u8,
-    pub length: u8,
-    pub major_version: u8,
-    pub minor_version: u8,
-    pub docrev: u8,
-    pub revision: u8,
-    _reserved: u8,
-    pub table_length: u32,
-    pub table_address: u64,
-}
-
-#[cfg(target_os = "freebsd")]
-#[repr(C, packed)]
-pub struct Smbios {
-    pub anchor: [u8; 4],
-    pub checksum: u8,
-    pub length: u8,
-    pub major_version: u8,
-    pub minor_version: u8,
-    pub max_structure_size: u16,
-    pub revision: u8,
-    pub formatted: [u8; 5],
-    pub inter_anchor: [u8; 5],
-    pub inter_checksum: u8,
-    pub table_length: u16,
-    pub table_address: u32,
-    pub structure_count: u16,
-    pub bcd_revision: u8,
-}
-
-#[cfg(target_os = "freebsd")]
-pub fn get_smbios() -> Option<SMBiosData> {
-    trace!("get_smbios() FreeBSD entry");
-    // Get the SMBIOS entrypoint address from the kernel environment
-    let addr_hex = kenv_get("hint.smbios.0.mem").ok()?;
-    let addr_hex = addr_hex.trim_start_matches("0x");
-    let addr = u64::from_str_radix(addr_hex, 16).unwrap();
-    trace!("SMBIOS Entrypoint Addr: {} 0x{:x}", addr_hex, addr);
-
-    let mut dev_mem = std::fs::File::open("/dev/mem").ok()?;
-    // Smbios struct is larger than Smbios3 struct
-    let mut header_buf = [0; std::mem::size_of::<Smbios>()];
-    dev_mem.seek(SeekFrom::Start(addr)).ok()?;
-    dev_mem.read_exact(&mut header_buf).ok()?;
-
-    let entrypoint = unsafe { &*(header_buf.as_ptr() as *const Smbios3) };
-
-    trace!("SMBIOS Anchor {:?} = ", entrypoint.anchor);
-    let (addr, len, version) = match entrypoint.anchor {
-        [b'_', b'S', b'M', b'3', b'_'] => {
-            trace!("_SM3_");
-            let entrypoint = unsafe { &*(header_buf.as_ptr() as *const Smbios3) };
-            let ver = Some(SMBiosVersion {
-                major: entrypoint.major_version,
-                minor: entrypoint.minor_version,
-                revision: 0,
-            });
-
-            (entrypoint.table_address, entrypoint.table_length, ver)
-        }
-        [b'_', b'S', b'M', b'_', _] => {
-            trace!("_SM_");
-            let entrypoint = unsafe { &*(header_buf.as_ptr() as *const Smbios) };
-            let ver = Some(SMBiosVersion {
-                major: entrypoint.major_version,
-                minor: entrypoint.minor_version,
-                revision: 0,
-            });
-
-            (
-                entrypoint.table_address as u64,
-                entrypoint.table_length as u32,
-                ver,
-            )
-        }
-        [b'_', b'D', b'M', b'I', b'_'] => {
-            error!("_DMI_ - UNSUPPORTED");
-            return None;
-        }
-        _ => {
-            error!(" Unknown - UNSUPPORTED");
-            return None;
-        }
-    };
-
-    // Get actual SMBIOS table data
-    let mut smbios_buf = vec![0; len as usize];
-    dev_mem.seek(SeekFrom::Start(addr)).ok()?;
-    dev_mem.read_exact(&mut smbios_buf).ok()?;
-
-    let smbios = SMBiosData::from_vec_and_version(smbios_buf, version);
-    Some(smbios)
-}
-
-#[cfg(feature = "uefi")]
-pub fn get_smbios() -> Option<SMBiosData> {
-    trace!("get_smbios() uefi entry");
-    let data = crate::fw_uefi::smbios_data().unwrap();
-    let version = None; // TODO: Maybe add the version here
-    let smbios = SMBiosData::from_vec_and_version(data, version);
-    Some(smbios)
-}
-// On Linux this reads either from /dev/mem or sysfs
-// On Windows from the kernel API
-#[cfg(all(not(feature = "uefi"), not(target_os = "freebsd")))]
-pub fn get_smbios() -> Option<SMBiosData> {
-    trace!("get_smbios() linux entry");
-    match smbioslib::table_load_from_device() {
-        Ok(data) => Some(data),
-        Err(ref e) if e.kind() == ErrorKind::PermissionDenied => {
-            println!("Must be root to get SMBIOS data.");
-            None
-        }
-        Err(err) => {
-            println!("Failed to get SMBIOS: {:?}", err);
-            None
-        }
-    }
 }
 
 pub fn get_product_name() -> Option<String> {
@@ -228,11 +142,10 @@ pub fn get_product_name() -> Option<String> {
         println!("Failed to find SMBIOS");
         return None;
     }
-    let mut smbios = smbios.into_iter().flatten();
-    smbios.find_map(|undefined_struct| {
-        if let DefinedStruct::SystemInformation(data) = undefined_struct.defined_struct() {
-            if let Some(product_name) = dmidecode_string_val(&data.product_name()) {
-                return Some(product_name.as_str().to_string());
+    smbios.unwrap().structures().find_map(|result| {
+        if let Ok(Structure::System(sys)) = result {
+            if !sys.product.is_empty() {
+                return Some(sys.product.to_string());
             }
         }
         None
@@ -240,21 +153,15 @@ pub fn get_product_name() -> Option<String> {
 }
 
 pub fn get_baseboard_version() -> Option<ConfigDigit0> {
-    // TODO: On FreeBSD we can short-circuit and avoid parsing SMBIOS
-    // #[cfg(target_os = "freebsd")]
-    // if let Ok(product) = kenv_get("smbios.system.product") {
-    //     return Some(product);
-    // }
-
     let smbios = get_smbios();
     if smbios.is_none() {
         error!("Failed to find SMBIOS");
         return None;
     }
-    let mut smbios = smbios.into_iter().flatten();
-    smbios.find_map(|undefined_struct| {
-        if let DefinedStruct::BaseBoardInformation(data) = undefined_struct.defined_struct() {
-            if let Some(version) = dmidecode_string_val(&data.version()) {
+    smbios.unwrap().structures().find_map(|result| {
+        if let Ok(Structure::BaseBoard(board)) = result {
+            let version = board.version;
+            if !version.is_empty() {
                 // Assumes it's ASCII, which is guaranteed by SMBIOS
                 let config_digit0 = &version[0..1];
                 let config_digit0 = u8::from_str_radix(config_digit0, 16);
@@ -324,6 +231,94 @@ pub fn get_platform() -> Option<Platform> {
     assert!(cached_platform.is_none());
     *cached_platform = Some(platform);
     platform
+}
+
+#[cfg(target_os = "freebsd")]
+pub fn get_smbios() -> Option<SmbiosStore> {
+    trace!("get_smbios() FreeBSD entry");
+    // Get the SMBIOS entrypoint address from the kernel environment
+    let addr_hex = kenv_get("hint.smbios.0.mem").ok()?;
+    let addr_hex = addr_hex.trim_start_matches("0x");
+    let addr = u64::from_str_radix(addr_hex, 16).unwrap();
+    trace!("SMBIOS Entrypoint Addr: {} 0x{:x}", addr_hex, addr);
+
+    let mut dev_mem = std::fs::File::open("/dev/mem").ok()?;
+    // Read enough bytes for either V2 (31 bytes) or V3 (24 bytes) entry point
+    let mut header_buf = [0u8; 32];
+    dev_mem.seek(SeekFrom::Start(addr)).ok()?;
+    dev_mem.read_exact(&mut header_buf).ok()?;
+
+    let entry = EntryPoint::search(&header_buf).ok()?;
+    let table_addr = entry.smbios_address();
+    let table_len = entry.smbios_len() as usize;
+
+    let mut table_data = vec![0u8; table_len];
+    dev_mem.seek(SeekFrom::Start(table_addr)).ok()?;
+    dev_mem.read_exact(&mut table_data).ok()?;
+
+    SmbiosStore::from_parts(&header_buf, table_data)
+}
+
+#[cfg(feature = "uefi")]
+pub fn get_smbios() -> Option<SmbiosStore> {
+    trace!("get_smbios() uefi entry");
+    let (ep_bytes, table_data) = crate::fw_uefi::smbios_data()?;
+    SmbiosStore::from_parts(&ep_bytes, table_data)
+}
+
+#[cfg(target_os = "linux")]
+pub fn get_smbios() -> Option<SmbiosStore> {
+    trace!("get_smbios() linux entry");
+    let ep_bytes = match std::fs::read("/sys/firmware/dmi/tables/smbios_entry_point") {
+        Ok(data) => data,
+        Err(ref e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+            println!("Must be root to get SMBIOS data.");
+            return None;
+        }
+        Err(err) => {
+            println!("Failed to get SMBIOS: {:?}", err);
+            return None;
+        }
+    };
+    let table_data = match std::fs::read("/sys/firmware/dmi/tables/DMI") {
+        Ok(data) => data,
+        Err(err) => {
+            println!("Failed to read SMBIOS table: {:?}", err);
+            return None;
+        }
+    };
+    SmbiosStore::from_parts(&ep_bytes, table_data)
+}
+
+#[cfg(windows)]
+pub fn get_smbios() -> Option<SmbiosStore> {
+    trace!("get_smbios() windows entry");
+    use windows::Win32::System::SystemInformation::{
+        GetSystemFirmwareTable, FIRMWARE_TABLE_PROVIDER,
+    };
+
+    let signature = FIRMWARE_TABLE_PROVIDER(u32::from_le_bytes(*b"RSMB"));
+    let size = unsafe { GetSystemFirmwareTable(signature, 0, None) };
+    if size == 0 {
+        println!("Failed to get SMBIOS table size");
+        return None;
+    }
+
+    let mut buf = vec![0u8; size as usize];
+    let written = unsafe { GetSystemFirmwareTable(signature, 0, Some(&mut buf)) };
+    if written == 0 {
+        println!("Failed to read SMBIOS table data");
+        return None;
+    }
+
+    // RSMB format: [Used20CallingMethod(1), Major(1), Minor(1), DmiRevision(1), Length(4), TableData...]
+    if buf.len() < 8 {
+        return None;
+    }
+    let major = buf[1];
+    let minor = buf[2];
+    let table_data = buf[8..].to_vec();
+    SmbiosStore::from_table_data(table_data, major, minor)
 }
 
 #[cfg(target_os = "freebsd")]
