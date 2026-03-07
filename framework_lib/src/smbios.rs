@@ -115,9 +115,7 @@ pub fn is_framework() -> bool {
         return maker == "Framework";
     }
 
-    let smbios = if let Some(smbios) = get_smbios() {
-        smbios
-    } else {
+    let Some(smbios) = get_smbios() else {
         return false;
     };
 
@@ -137,44 +135,38 @@ pub fn get_product_name() -> Option<String> {
         return Some(product);
     }
 
-    let smbios = get_smbios();
-    if smbios.is_none() {
+    let Some(smbios) = get_smbios() else {
         println!("Failed to find SMBIOS");
         return None;
-    }
-    smbios.unwrap().structures().find_map(|result| {
-        if let Ok(Structure::System(sys)) = result {
-            if !sys.product.is_empty() {
-                return Some(sys.product.to_string());
-            }
-        }
-        None
+    };
+    smbios.structures().find_map(|result| match result {
+        Ok(Structure::System(sys)) if !sys.product.is_empty() => Some(sys.product.to_string()),
+        _ => None,
     })
 }
 
 pub fn get_baseboard_version() -> Option<ConfigDigit0> {
-    let smbios = get_smbios();
-    if smbios.is_none() {
+    let Some(smbios) = get_smbios() else {
         error!("Failed to find SMBIOS");
         return None;
-    }
-    smbios.unwrap().structures().find_map(|result| {
-        if let Ok(Structure::BaseBoard(board)) = result {
-            let version = board.version;
-            if !version.is_empty() {
-                // Assumes it's ASCII, which is guaranteed by SMBIOS
-                let config_digit0 = &version[0..1];
-                let config_digit0 = u8::from_str_radix(config_digit0, 16);
-                if let Ok(version_config) =
-                    config_digit0.map(<ConfigDigit0 as FromPrimitive>::from_u8)
-                {
-                    return version_config;
-                } else {
-                    debug!("  Invalid BaseBoard Version: {}'", version);
-                }
+    };
+    smbios.structures().find_map(|result| {
+        let Ok(Structure::BaseBoard(board)) = result else {
+            return None;
+        };
+        let version = board.version;
+        if version.is_empty() {
+            return None;
+        }
+        // Assumes it's ASCII, which is guaranteed by SMBIOS
+        let config_digit0 = u8::from_str_radix(&version[0..1], 16);
+        match config_digit0.map(<ConfigDigit0 as FromPrimitive>::from_u8) {
+            Ok(version_config) => version_config,
+            Err(_) => {
+                debug!("  Invalid BaseBoard Version: {}'", version);
+                None
             }
         }
-        None
     })
 }
 
