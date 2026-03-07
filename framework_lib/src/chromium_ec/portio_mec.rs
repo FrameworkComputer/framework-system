@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 
 use log::Level;
 
-use hwio::{Io, Pio};
+use super::portio_hwio::{Io, Pio};
 #[cfg(target_os = "linux")]
 use libc::ioperm;
 
