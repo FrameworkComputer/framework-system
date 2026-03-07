@@ -1,11 +1,10 @@
+use super::portio_hwio::{Io, Pio};
 use crate::chromium_ec::{EcError, EcResponseStatus, EcResult};
 use alloc::format;
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::convert::TryInto;
-#[cfg(not(windows))]
-use hwio::{Io, Pio};
 #[cfg(target_os = "linux")]
 use libc::ioperm;
 use log::Level;
