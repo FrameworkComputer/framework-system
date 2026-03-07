@@ -1,132 +1,95 @@
 use alloc::vec;
 use alloc::vec::Vec;
-use uefi::prelude::*;
-use uefi::proto::shell::FileOpenMode;
-use uefi::Result;
+use core::mem::MaybeUninit;
+use uefi::boot::{self, OpenProtocolAttributes, OpenProtocolParams};
+use uefi::proto::shell::Shell;
+use uefi::{CString16, Result, Status, StatusExt};
+use uefi_raw::protocol::file_system::FileMode;
+use uefi_raw::protocol::shell::ShellProtocol;
+use uefi_raw::protocol::shell_params::ShellFileHandle;
 
-use super::find_shell_handle;
+fn get_shell_protocol() -> &'static ShellProtocol {
+    let handle = boot::get_handle_for_protocol::<Shell>().expect("No Shell handles");
 
-pub fn wstr(string: &str) -> Vec<u16> {
-    let mut wstring = vec![];
+    // Use GetProtocol instead of Exclusive since we're running inside the shell
+    let shell = unsafe {
+        boot::open_protocol::<Shell>(
+            OpenProtocolParams {
+                handle,
+                agent: boot::image_handle(),
+                controller: None,
+            },
+            OpenProtocolAttributes::GetProtocol,
+        )
+        .expect("Failed to open Shell protocol")
+    };
 
-    for c in string.chars() {
-        wstring.push(c as u16);
+    // SAFETY: The Shell wrapper contains the raw ShellProtocol
+    unsafe {
+        let proto: &ShellProtocol = core::mem::transmute(shell.get().unwrap());
+        // Leak to get 'static lifetime - protocol stays valid while shell is running
+        core::mem::forget(shell);
+        proto
     }
-    wstring.push(0);
-
-    wstring
 }
 
 pub fn shell_read_file(path: &str) -> Option<Vec<u8>> {
-    let shell = if let Some(shell) = find_shell_handle() {
-        shell
-    } else {
-        println!("Failed to open Shell Protocol");
-        return None;
-    };
+    let shell = get_shell_protocol();
+    let c_path = CString16::try_from(path).ok()?;
 
-    debug_assert_eq!(shell.major_version, 2);
-    debug_assert_eq!(shell.minor_version, 2);
+    unsafe {
+        let mut handle: MaybeUninit<ShellFileHandle> = MaybeUninit::zeroed();
+        let status = (shell.open_file_by_name)(
+            c_path.as_ptr().cast(),
+            handle.as_mut_ptr(),
+            FileMode::READ.bits(),
+        );
+        if status.is_error() {
+            return None;
+        }
 
-    let c_path = wstr(path);
-    let handle = shell.open_file_by_name(c_path.as_slice(), FileOpenMode::Read as u64);
+        let file_handle = handle.assume_init();
 
-    let handle = if let Ok(handle) = handle {
-        handle
-    } else {
-        println!("Failed to open file: {:?}", handle);
-        return None;
-    };
+        let mut file_size: u64 = 0;
+        let status = (shell.get_file_size)(file_handle, &mut file_size);
+        if status.is_error() {
+            let _ = (shell.close_file)(file_handle);
+            return None;
+        }
 
-    let handle = if let Some(handle) = handle {
-        handle
-    } else {
-        println!("Failed to open file: {:?}", handle);
-        return None;
-    };
-    let file_handle = handle;
+        let mut buffer: Vec<u8> = vec![0; file_size as usize];
+        let mut read_size = file_size as usize;
+        let status = (shell.read_file)(file_handle, &mut read_size, buffer.as_mut_ptr().cast());
 
-    let res = shell.get_file_size(file_handle);
-    let file_size = res.unwrap();
+        let _ = (shell.close_file)(file_handle);
 
-    let mut buffer: Vec<u8> = vec![0; file_size as usize];
-    let res = shell.read_file(file_handle, &mut buffer);
-    res.unwrap();
+        if status.is_error() {
+            return None;
+        }
 
-    //  TODO: Make it auto-close using Rust destructors
-    shell.close_file(file_handle).unwrap();
-
-    Some(buffer)
+        buffer.truncate(read_size);
+        Some(buffer)
+    }
 }
 
 pub fn shell_write_file(path: &str, data: &[u8]) -> Result {
-    let shell = if let Some(shell) = find_shell_handle() {
-        shell
-    } else {
-        println!("Failed to open Shell Protocol");
-        return Status::LOAD_ERROR.into();
-    };
+    let shell = get_shell_protocol();
+    let c_path =
+        CString16::try_from(path).map_err(|_| uefi::Error::from(Status::INVALID_PARAMETER))?;
 
-    debug_assert_eq!(shell.major_version, 2);
-    debug_assert_eq!(shell.minor_version, 2);
+    unsafe {
+        let mode = FileMode::READ | FileMode::WRITE | FileMode::CREATE;
+        let mut handle: MaybeUninit<ShellFileHandle> = MaybeUninit::zeroed();
+        (shell.open_file_by_name)(c_path.as_ptr().cast(), handle.as_mut_ptr(), mode.bits())
+            .to_result()?;
 
-    let mode = FileOpenMode::Read as u64 + FileOpenMode::Write as u64 + FileOpenMode::Create as u64;
-    let c_path = wstr(path);
-    let handle = shell.open_file_by_name(c_path.as_slice(), mode);
-    let handle = if let Ok(handle) = handle {
-        handle
-    } else {
-        println!("Failed to open file: {:?}", handle);
-        return Status::LOAD_ERROR.into();
-    };
-    let handle = if let Some(handle) = handle {
-        handle
-    } else {
-        println!("Failed to open file: {:?}", handle);
-        return Status::LOAD_ERROR.into();
-    };
-    let file_handle = handle;
+        let file_handle = handle.assume_init();
 
-    //// TODO: Free file_info buffer
-    //let file_info = (shell.0.GetFileInfo)(file_handle);
-    //if file_info.is_null() {
-    //    println!("Failed to get file info");
-    //    return ret;
-    //}
+        let mut write_size = data.len();
+        let status = (shell.write_file)(file_handle, &mut write_size, data.as_ptr() as *mut _);
 
-    //// Not sure if it's useful to set FileInfo
-    ////let mut file_info = unsafe {
-    ////    &mut *(file_info as *mut FileInfo)
-    ////};
-    ////println!("file_info.Size: {}", file_info.Size);
+        let _ = (shell.close_file)(file_handle);
 
-    ////if file_info.Size != 0 {
-    ////    file_info.Size = 0;
-    ////    let ret = (shell.0.SetFileInfo)(file_handle, file_info);
-    ////    if ret.0 != 0 {
-    ////        println!("Failed to set file info");
-    ////        return ret;
-    ////    }
-    ////}
-
-    //let mut buffer_size = data.len() as usize;
-    //let ret = (shell.0.WriteFile)(file_handle, &mut buffer_size, data.as_ptr());
-    //if ret.0 != 0 {
-    //    println!("Failed to write file");
-    //    return ret;
-    //}
-    //if buffer_size != data.len() {
-    //    println!(
-    //        "Failed to write whole buffer. Instead of {} wrote {} bytes.",
-    //        data.len(),
-    //        buffer_size
-    //    );
-    //    return Status(1);
-    //}
-
-    shell.write_file(file_handle, data).unwrap();
-
-    shell.close_file(file_handle).unwrap();
-
-    Status::SUCCESS.into()
+        status.to_result()
+    }
 }
