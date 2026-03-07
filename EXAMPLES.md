@@ -673,39 +673,139 @@ Stylus Battery Strength: 77%
 
 ## Remap keyboard
 
-Note that the keyboard matrix on Framework 12 and Framework 13 are
-different.
-The scancodes are the same.
+The below information should be correct for all current (as of 06/2025) Intel and AMD Framework 13's.
 
-- Left-Ctrl 0x0014
-- Left-Alt 0x0014
-- Tab 0x0058
+For the Framework 16, use [VIA](https://keyboard.frame.work).
 
-### Framework 12
+For the Framework 12, there is a different keyboard matrix, but the scancodes are the same.
 
-```
-# Remap capslock key as left-ctrl
-> framework_tool --remap-key 6 15 0x0014
+### General Instructions
 
-# Swap left-ctrl and alt
-> framework_tool --remap-key 1 14 0x0011
-> framework_tool --remap-key 6 13 0x0014
-```
-
-### Framework 13
+To remap keys on your keyboard, you will run the command:
 
 ```
-# Remap capslock key as left-ctrl
-> framework_tool --remap-key 4 4 0x0014
-
-# Swap left-ctrl and alt
-> framework_tool --remap-key 1 12 0x0011
-> framework_tool --remap-key 1 3 0x0014
+sudo framework_tool --remap-key [Y] [X] [SCANCODE]
 ```
 
-### Framework 16
+-   **Y** is the row of the keyboard matrix for the key that you want to remap
+-   **X** is the column of the keyboard matrix for the key that you want to remap
+-   **SCANCODE** is the scancode that you want the key to send
 
-It's not controlled by the EC, use https://keyboard.frame.work.
+### Specific Examples
+
+#### FW13
+
+Set **Caps Lock** to be **Esc**:
+
+```
+> sudo framework_tool --remap-key 4 4 0x0076
+```
+
+Set **Enter** to be **Enter** (for example to fix it if you broke it):
+
+```
+> sudo framework_tool --remap-key 1 14 0x005a
+```
+
+Swap **L_Alt** and **L_Control**:
+
+```
+> sudo framework_tool --remap-key 1 12 0x0011
+> sudo framework_tool --remap-key 1 3 0x0014
+```
+
+#### FW12
+
+set **Caps Lock** to be **Esc**:
+
+```
+> sudo framework_tool --remap-key 6 15 0x0076
+```
+
+Swap **L_Alt** and **L_Control**:
+
+```
+> sudo framework_tool --remap-key 1 14 0x0011
+> sudo framework_tool --remap-key 6 13 0x0014
+```
+
+### Finding Keycodes and Matrix Addresses
+
+-   Mr. Howett put together a wonderul [map of the matrix](https://www.howett.net/data/framework_matrix/) for the FW13 here.
+-   The actual embedded controller source code contains a table that looks just the same to the matrix (albiet rotated). It can be found [here](https://github.com/FrameworkComputer/EmbeddedController/blob/f6620a8200e8d1b349078710b271540b5b8a1a18/board/hx30/keyboard_customization.c#L25).
+-   Some scancodes can be found in the embedded controller [source code](https://github.com/FrameworkComputer/EmbeddedController/blob/f6620a8200e8d1b349078710b271540b5b8a1a18/include/keyboard_8042_sharedlib.h#L106) and some can be found in [the original list from the kernel](http://kbd-project.org/docs/scancodes/scancodes-10.html#ss10.6).
+    -   A full breakdown of all possible scancodes is [available](http://kbd-project.org/docs/scancodes/scancodes-1.html) but won't be useful to most users.
+-   The Framework 12 wiring matrix was taken from [here](https://github.com/FrameworkComputer/Framework-Laptop-12/tree/main/InputCover#keyboard-matrix)
+
+#### Scancodes
+
+|ScanCode  |    Key     |  ScanCode |       Key    |     ScanCode   |        Key          | ScanCode  |          Key         |
+|----------|------------|-----------|--------------|----------------|---------------------|-----------|----------------------|
+|0x000e    |   ` ~      |0x004b     |      L       |    0x0075      |   KP-8 / Up         | 0x0017    |          F14         |
+|0x0016    |    1 !     |  0x004c   |       ; :    |      0x0073    |        KP-5         | 0x001f    |          F15         |
+|0x001e    |    2 @     |  0x0052   |      ' "     |    0x0072      |  KP-2 / Down        | 0xe038    |         BACK         |
+|0x0026    |   3 #      | 0x0000    |   non-US-1   |     0x0070     |    KP-0 / Ins       |  0xe020   |         REFRESH      |
+|0x0025    |   4 $      | 0x005a    |     Enter    |     0x007c     |      KP-*           | 0xe030    |        FORWARD       |
+|0x002e    |    5 %     |  0x0012   |     LShift   |      0x007d    |    KP-9 / PgUp      | 0xe01d    |      FULLSCREEN      |
+|0x0036    |   6 ^      | 0x001a    |       Z      |     0x0074     |   KP-6 / Right      |  0xe024   |        OVERVIEW      |
+|0x003d    |    7 &     |  0x0022   |        X     |      0x007a    |    KP-3 / PgDn      | 0xe02d    |       SNAPSHOT       |
+|0x003e    |   8 *      | 0x0021    |       C      |     0x0071     |    KP-. / Del       |  0xe02c   |     BRIGHTNESS_DOWN  |
+|0x0046    |    9 (     |  0x002a   |        V     |      0x007b    |       KP--          |  0xe035   |      BRIGHTNESS_UP   |
+|0x0045    |    0 )     |  0x0032   |        B     |      0x0079    |        KP-+         | 0xe03c    |  PRIVACY_SCRN_TOGGLE |
+|0x004e    |   - _      |0x0031     |      N       |  0x00e0-5a     |    KP-Enter         | 0xe023    |      VOLUME_MUTE     |
+|0x0055    |    = +     |  0x003a   |        M     |      0x0076    |        Esc          | 0xe021    |      VOLUME_DOWN     |
+|0x0066    | Backspace  |  0x0041   |      , <     |     0x0005     |        F1           |  0xe032   |        VOLUME_UP     |
+|0x000d    |    Tab     |  0x0049   |      . >     |     0x0006     |        F2           |  0xe043   |    KBD_BKLIGHT_DOWN  |
+|0x0015    |     Q      |  0x004a   |       / ?    |      0x0004    |         F3          | 0xe044    |    KBD_BKLIGHT_UP    |
+|0x001d    |     W      |  0x0059   |     RShift   |      0x000c    |         F4          | 0xe04d    |      NEXT_TRACK      |
+|0x0024    |     E      |  0x0014   |      LCtrl   |      0x0003    |         F5          | 0xe015    |      PREV_TRACK      |
+|0x002d    |     R      |  0x0011   |      LAlt    |      0x000b    |         F6          | 0xe054    |      PLAY_PAUSE      |
+|0x002c    |     T      |  0x0029   |      space   |      0x0083    |         F7          | 0xe075    |          UP          |
+|0x0035    |     Y      |  0x00e0-11|      RAlt    |      0x000a    |         F8          | 0xe072    |         DOWN         |
+|0x003c    |     U      |  0x00e0-14|      RCtrl   |      0x0001    |         F9          | 0xe06b    |         LEFT         |
+|0x0043    |     I      |  e0-70    |     Insert   |      0x0009    |        F10          | 0xe074    |         RIGHT        |
+|0x0044    |     O      |  e0-71    |     Delete   |      0x0078    |        F11          | 0x0014    |       LEFT_CTRL      |
+|0x004d    |     P      |  e0-6c    |      Home    |      0x0007    |        F12          | 0xe014    |      RIGHT_CTRL      |
+|0x0054    |   [ {      | e0-69     |      End     |   0x00e0-7c    |      PrtScr         |  0x0011   |        LEFT_ALT      |
+|0x005b    |   ] }      | e0-7d     |     PgUp     |     0x0084     |    Alt+SysRq        |  0xe011   |        RIGHT_ALT     |
+|0x005d    |   \ \|      |  e0-7a    |    PgDn      |    0x007e      |   ScrollLock        |   0xe01f  |         LEFT_WIN     |
+|0x0058    | CapsLock   |  e0-6b    |      Left    |   0x00e1-14-77 |       Pause         | 0xe027    |       RIGHT_WIN      |
+|0x001c    |     A      |  e0-75    |       Up     |    0x00e0-7e   |     Ctrl+Break      | 0xe02f    |         MENU         |
+|0x001b    |     S      |  e0-72    |      Down    |    0x00e0-1f   |  LWin (USB: LGUI)   | 0xe037    |         POWER        |
+|0x0023    |     D      |  e0-74    |      Right   |    0x00e0-27   |  RWin (USB: RGUI)   | 0x0077    |        NUMLOCK       |
+|0x002b    |     F      |  0x0077   |     NumLock  |    0x00e0-2f   |        Menu         | 0x0058    |       CAPSLOCK       |
+|0x0034    |     G      |  0x006c   |   KP-7 / Home|    0x00e0-3f   |       Sleep         | 0x007e    |      SCROLL_LOCK     |
+|0x0033    |     H      |  0x006b   |   KP-4 / Left|    0x00e0-37   |       Power         | 0xe07e    |      CTRL_BREAK      |
+|0x003b    |     J      |  0x0069   |   KP-1 / End |      e0-5e     |        Wake         | 0xe076    |       RECOVERY       |
+|0x0042    |     K      |  0x00e0-4a|      KP-/    |      0x000f    |        F13
+
+#### Wiring Matrix
+
+##### FrameWork 13
+
+|   |  0  |    1     |    2     |  3   |       4       |      5       | 6 | 7 |       8     |    9   |        10       |         11        |   12  |       13      |        14      |        15      |
+|---|-----|----------|----------|------|---------------|--------------|---|---|-------------|--------|-----------------|-------------------|-------|---------------|----------------|----------------|
+| 0 |  c  |  Delete  |    q     | RAlt |   KP Enter    |      x       |v  |m  |      .      | RShift |      Comma      | Katakana Hiragana | RCtrl |       /       |       '        |     Yen        |
+| 1 | KP- |  KP Ins  |   KP0    | LAlt |     Space     |      z       |b  |n  |    Down     | LShift |      KP*        |     Henkan        |LCtrl  |     Up        |    Enter       |Bright. Up F8   |
+| 2 | KP+ |   KP9    |    Fn    |      |       e       | Vol. Down F2 |g  |h  |     \       |        |Bright. Down F7  |       KP8         |       |     -         |Scan Code e016  |    Right       |
+| 3 | KP2 |  LMeta   |   Tab    |      | Audio Prev F4 |   Mute F1    |t  |y  |      o      |        |  Audio Next F6  |    Project F9     |       | Framework F12 |      End       | Scan Code e01a |
+| 4 | KP3 |   KP7    |    `     |      |  Caps Lock    |      s       |5  |6  | RF Kill F10 |        |  Play Pause F5  |      Ro Kana      |       |       0       |    + =         |                |
+| 5 | KP. |   Home   |    1     |      |       3       |      2       |4  |7  |      9      |        |        8        |       102nd       |       |       p       |       BS       |      KP4       |
+| 6 | KP1 | Page Up  | Muhenkan |      |  Vol. Up F3   |      w       |r  |u  | PrtScr F11  |        |        i        |       Left        |       |      [        |      ]         |    KP5         |
+| 7 | KP/ | Num Lock |    a     |      |   Page Down   |    Escape    |f  |j  |      l      |        |        k        |       Menu        |       |       ;       |       d        |      KP6       |
+
+##### FrameWork 12
+
+|     |Col 0|Col 1|Col 2|Col 3|Col 4|Col 5|Col 6|Col 7|Col 8|Col 9|Col10|Col11|Col12|Col13|Col14|Col15|Col16|Col17|
+|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
+|Row 0|     | F11 | F1  | B   | F10 | N   |     |     | =   |     |RAlt |     |     |     |     |     | FN  |     |
+|Row 1|     | ESC | F4  | G   | F7  | F12 | H   |     | '   | F9  |     | Bsp |     |     |LCtrl|     |     |     |
+|Row 2|     | TAB | F3  | T   | F6  | ]   | Y   |     | [   | Del |     | F8  |     |     |     |     |     |     |
+|Row 3| WIN | `   | F2  | 5   | S   |     | -   |     | 6   |     |     | |   |     |     |RCtrl|     |     |     |
+|Row 4|     | A   | D   | F   | F5  | K   | J   |     | ;   | L   |     |Enter|     |     |     |     |     |     |
+|Row 5|     | 1   | ,   | >   | /   | C   |Space|LShft| X   | V   |     | M   |     |     |     |     |     |     |
+|Row 6|     | Z   | 3   | 4   | 2   | 8   | 0   |     | 7   | 9   |     | Down|Left |LAlt |     |CapsL|     |     |
+|Row 7|     | U   | I   | O   | P   | Q   | W   |RShft| E   | R   |     | Up  |Right|     |     |     |     |     |
 
 ## Advanced commands
 
