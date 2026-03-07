@@ -4,7 +4,6 @@
 //! - Linux sysfs: reads from /sys/class/mei
 //! - SMBIOS type 0xDB: OEM table with HFSTS registers (works on any platform)
 
-use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::fmt;
 #[cfg(target_os = "linux")]
@@ -14,7 +13,8 @@ use std::io;
 #[cfg(target_os = "linux")]
 use std::path::Path;
 
-use smbioslib::{DefinedStruct, UndefinedStruct};
+use crate::smbios::SmbiosStore;
+use dmidecode::{InfoType, RawStructure, Structure};
 
 /// SMBIOS type for ME Firmware Status (FWSTS) table
 pub const SMBIOS_TYPE_ME_FWSTS: u8 = 0xDB;
@@ -397,14 +397,14 @@ impl MeSmbiosInfo {
 /// - Offset 6+: records, each 25 bytes:
 ///   - 1 byte: component name
 ///   - 24 bytes: 6 x u32le HFSTS registers
-pub fn parse_me_fwsts(undefined_struct: &UndefinedStruct) -> Option<MeSmbiosInfo> {
+pub fn parse_me_fwsts(raw: &RawStructure) -> Option<MeSmbiosInfo> {
     // Verify this is type 0xDB
-    if undefined_struct.header.struct_type() != SMBIOS_TYPE_ME_FWSTS {
+    if raw.info != InfoType::Oem(SMBIOS_TYPE_ME_FWSTS) {
         return None;
     }
 
-    let length = undefined_struct.header.length() as usize;
-    let handle = *undefined_struct.header.handle();
+    let length = raw.length as usize;
+    let handle = raw.handle;
 
     // Minimum header size: 6 bytes (type, length, handle, version, count)
     if length < 6 {
@@ -412,8 +412,8 @@ pub fn parse_me_fwsts(undefined_struct: &UndefinedStruct) -> Option<MeSmbiosInfo
     }
 
     // Get version and count from offsets 4 and 5
-    let version = undefined_struct.get_field_byte(4)?;
-    let count = undefined_struct.get_field_byte(5)?;
+    let version = raw.get::<u8>(4).ok()?;
+    let count = raw.get::<u8>(5).ok()?;
 
     // Version should be 0x01
     if version != 0x01 {
@@ -432,15 +432,15 @@ pub fn parse_me_fwsts(undefined_struct: &UndefinedStruct) -> Option<MeSmbiosInfo
             break;
         }
 
-        let component = MeComponent::from(undefined_struct.get_field_byte(record_offset)?);
+        let component = MeComponent::from(raw.get::<u8>(record_offset).ok()?);
 
         // Parse 6 HFSTS registers (u32le each)
-        let hfsts1 = undefined_struct.get_field_dword(record_offset + 1)?;
-        let hfsts2 = undefined_struct.get_field_dword(record_offset + 5)?;
-        let hfsts3 = undefined_struct.get_field_dword(record_offset + 9)?;
-        let hfsts4 = undefined_struct.get_field_dword(record_offset + 13)?;
-        let hfsts5 = undefined_struct.get_field_dword(record_offset + 17)?;
-        let hfsts6 = undefined_struct.get_field_dword(record_offset + 21)?;
+        let hfsts1 = raw.get::<u32>(record_offset + 1).ok()?;
+        let hfsts2 = raw.get::<u32>(record_offset + 5).ok()?;
+        let hfsts3 = raw.get::<u32>(record_offset + 9).ok()?;
+        let hfsts4 = raw.get::<u32>(record_offset + 13).ok()?;
+        let hfsts5 = raw.get::<u32>(record_offset + 17).ok()?;
+        let hfsts6 = raw.get::<u32>(record_offset + 21).ok()?;
 
         records.push(MeFwstsRecord {
             component,
@@ -492,19 +492,18 @@ impl fmt::Display for MeFviVersion {
 ///
 /// Looks for Group Associations with "$MEI" or "Firmware Version Info" group name
 /// and returns the handles they point to.
-pub fn find_me_handles_from_type14(smbios: &smbioslib::SMBiosData) -> Vec<u16> {
+pub fn find_me_handles_from_type14(smbios: &SmbiosStore) -> Vec<u16> {
     let mut handles = Vec::new();
 
-    for undefined_struct in smbios.iter() {
-        if let DefinedStruct::GroupAssociations(group) = undefined_struct.defined_struct() {
+    for result in smbios.structures() {
+        if let Ok(Structure::GroupAssociations(group)) = result {
             // Check if this group is ME-related
-            let group_name = group.group_name().to_string();
-            if group_name.contains("$MEI") || group_name.contains("Firmware Version Info") {
+            if group.group_name.contains("$MEI")
+                || group.group_name.contains("Firmware Version Info")
+            {
                 // Collect all handles from this group
-                for item in group.item_iterator() {
-                    if let Some(handle) = item.item_handle() {
-                        handles.push(*handle);
-                    }
+                for item in group.items {
+                    handles.push(item.handle);
                 }
             }
         }
@@ -514,7 +513,7 @@ pub fn find_me_handles_from_type14(smbios: &smbioslib::SMBiosData) -> Vec<u16> {
 }
 
 /// Get ME version from SMBIOS type 0xDD (FVI) tables
-pub fn me_version_from_smbios(smbios: &smbioslib::SMBiosData) -> Option<MeFviVersion> {
+pub fn me_version_from_smbios(smbios: &SmbiosStore) -> Option<MeFviVersion> {
     // First try to find handles from Type 14
     let handles = find_me_handles_from_type14(smbios);
 
@@ -523,11 +522,13 @@ pub fn me_version_from_smbios(smbios: &smbioslib::SMBiosData) -> Option<MeFviVer
     // and return the one with the highest major version (most likely the actual ME version)
     let mut best_version: Option<MeFviVersion> = None;
 
-    for undefined_struct in smbios.iter() {
-        if let Some(version) = parse_me_fvi_version(undefined_struct, &handles) {
-            // Keep the version with the highest major number
-            if best_version.is_none() || version.major > best_version.as_ref().unwrap().major {
-                best_version = Some(version);
+    for result in smbios.structures() {
+        if let Ok(Structure::Other(ref raw)) = result {
+            if let Some(version) = parse_me_fvi_version(raw, &handles) {
+                // Keep the version with the highest major number
+                if best_version.is_none() || version.major > best_version.as_ref().unwrap().major {
+                    best_version = Some(version);
+                }
             }
         }
     }
@@ -538,16 +539,13 @@ pub fn me_version_from_smbios(smbios: &smbioslib::SMBiosData) -> Option<MeFviVer
 /// Parse ME version from FVI table
 /// Returns the highest major version found from components 1, 2, or 3
 /// (ME version is typically higher than reference code versions)
-fn parse_me_fvi_version(
-    undefined_struct: &UndefinedStruct,
-    valid_handles: &[u16],
-) -> Option<MeFviVersion> {
-    if undefined_struct.header.struct_type() != SMBIOS_TYPE_ME_FVI {
+fn parse_me_fvi_version(raw: &RawStructure, valid_handles: &[u16]) -> Option<MeFviVersion> {
+    if raw.info != InfoType::Oem(SMBIOS_TYPE_ME_FVI) {
         return None;
     }
 
-    let handle = *undefined_struct.header.handle();
-    let length = undefined_struct.header.length() as usize;
+    let handle = raw.handle;
+    let length = raw.length as usize;
 
     let is_valid_handle = if valid_handles.is_empty() {
         handle == SMBIOS_DD_HANDLE_ME || handle == SMBIOS_DD_HANDLE_ME2
@@ -559,7 +557,7 @@ fn parse_me_fvi_version(
         return None;
     }
 
-    let count = undefined_struct.get_field_byte(4)?;
+    let count = raw.get::<u8>(4).ok()?;
     if count == 0 {
         return None;
     }
@@ -575,14 +573,14 @@ fn parse_me_fvi_version(
             break;
         }
 
-        let component_name = undefined_struct.get_field_byte(offset)?;
+        let component_name = raw.get::<u8>(offset).ok()?;
 
         // Check components 1, 2, and 3 - ME version location varies by system
         if component_name == 1 || component_name == 2 || component_name == 3 {
-            let major = undefined_struct.get_field_byte(offset + 2)?;
-            let minor = undefined_struct.get_field_byte(offset + 3)?;
-            let patch = undefined_struct.get_field_byte(offset + 4)?;
-            let build = undefined_struct.get_field_word(offset + 5)?;
+            let major = raw.get::<u8>(offset + 2).ok()?;
+            let minor = raw.get::<u8>(offset + 3).ok()?;
+            let patch = raw.get::<u8>(offset + 4).ok()?;
+            let build = raw.get::<u16>(offset + 5).ok()?;
 
             // Skip invalid versions (all 0xFF)
             if major == 0xFF && minor == 0xFF && patch == 0xFF {
@@ -605,15 +603,17 @@ fn parse_me_fvi_version(
 }
 
 /// Get ME FWSTS info from SMBIOS tables
-pub fn me_fwsts_from_smbios(smbios: &smbioslib::SMBiosData) -> Option<MeSmbiosInfo> {
+pub fn me_fwsts_from_smbios(smbios: &SmbiosStore) -> Option<MeSmbiosInfo> {
     // For type 0xDB, we look for any table with MEI1 component
     // (unlike 0xDD, the 0xDB table doesn't need handle validation from Type 14)
-    for undefined_struct in smbios.iter() {
-        if undefined_struct.header.struct_type() == SMBIOS_TYPE_ME_FWSTS {
-            if let Some(info) = parse_me_fwsts(undefined_struct) {
-                // Only return if we found a MEI1 record
-                if info.mei1().is_some() {
-                    return Some(info);
+    for result in smbios.structures() {
+        if let Ok(Structure::Other(ref raw)) = result {
+            if raw.info == InfoType::Oem(SMBIOS_TYPE_ME_FWSTS) {
+                if let Some(info) = parse_me_fwsts(raw) {
+                    // Only return if we found a MEI1 record
+                    if info.mei1().is_some() {
+                        return Some(info);
+                    }
                 }
             }
         }
@@ -747,19 +747,19 @@ pub fn csme_from_sysfs() -> io::Result<CsmeInfo> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use smbioslib::SMBiosData;
+    use crate::smbios::SmbiosStore;
     use std::fs;
     use std::path::PathBuf;
 
     /// Load SMBIOS data from a dmidecode binary dump file
     /// Created with: sudo dmidecode --dump-bin smbios.bin
-    fn load_smbios_dump(filename: &str) -> Option<SMBiosData> {
+    fn load_smbios_dump(filename: &str) -> Option<SmbiosStore> {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("test_bins");
         path.push(filename);
 
         match fs::read(&path) {
-            Ok(data) => Some(SMBiosData::from_vec_and_version(data, None)),
+            Ok(data) => SmbiosStore::from_table_data(data, 3, 0),
             Err(_) => {
                 println!(
                     "Test file not found: {:?}. Create with: sudo dmidecode --dump-bin {:?}",
@@ -771,7 +771,7 @@ mod tests {
     }
 
     /// Create synthetic SMBIOS data with ME FWSTS table for testing
-    fn create_synthetic_smbios_with_me() -> SMBiosData {
+    fn create_synthetic_smbios_with_me() -> SmbiosStore {
         let mut data = Vec::new();
 
         // Type 0xDB (219) - ME FWSTS table
@@ -826,7 +826,7 @@ mod tests {
         data.push(0x00);
         data.push(0x00);
 
-        SMBiosData::from_vec_and_version(data, None)
+        SmbiosStore::from_table_data(data, 3, 0).unwrap()
     }
 
     #[test]
@@ -859,7 +859,7 @@ mod tests {
                 mod $name {
                     use super::*;
 
-                    fn smbios() -> SMBiosData {
+                    fn smbios() -> SmbiosStore {
                         load_smbios_dump($file)
                             .unwrap_or_else(|| panic!("Dump file not found: {}", $file))
                     }

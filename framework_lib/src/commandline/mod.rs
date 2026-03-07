@@ -58,7 +58,7 @@ use crate::parade_retimer;
 use crate::power;
 use crate::smbios;
 use crate::smbios::ConfigDigit0;
-use crate::smbios::{dmidecode_string_val, get_smbios, is_framework};
+use crate::smbios::{get_smbios, is_framework};
 #[cfg(feature = "hidapi")]
 use crate::touchpad::print_touchpad_fw_ver;
 #[cfg(feature = "hidapi")]
@@ -66,11 +66,10 @@ use crate::touchscreen;
 #[cfg(feature = "rusb")]
 use crate::usbhub::check_usbhub_version;
 use crate::util::{self, Config, Platform, PlatformFamily};
+use dmidecode::Structure;
 #[cfg(feature = "hidapi")]
 use hidapi::HidApi;
 use sha2::{Digest, Sha256, Sha384, Sha512};
-//use smbioslib::*;
-use smbioslib::{DefinedStruct, SMBiosInformation};
 
 #[cfg(feature = "nvidia")]
 use nvml_wrapper::{enum_wrappers::device::TemperatureSensor, Nvml};
@@ -495,10 +494,12 @@ fn print_versions(ec: &CrosEc) {
     }
     println!("UEFI BIOS");
     if let Some(smbios) = get_smbios() {
-        let bios_entries = smbios.collect::<SMBiosInformation>();
-        if let Some(bios) = bios_entries.first() {
-            println!("  Version:        {}", bios.version());
-            println!("  Release Date:   {}", bios.release_date());
+        if let Some(bios) = smbios.structures().find_map(|r| match r {
+            Ok(Structure::Bios(b)) => Some(b),
+            _ => None,
+        }) {
+            println!("  Version:        {}", bios.bios_version);
+            println!("  Release Date:   {}", bios.bios_release_date);
         } else {
             println!("  Version:        Unknown");
         }
@@ -1159,15 +1160,17 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
     println!("Target Version {:?}", version);
 
     if let Some(smbios) = get_smbios() {
-        let bios_entries = smbios.collect::<SMBiosInformation>();
-        let bios = bios_entries.first().unwrap();
-
-        if device == Some(HardwareDeviceType::BIOS) {
-            println!("Comparing BIOS version {:?}", bios.version().to_string());
-            if version.to_uppercase() == bios.version().to_string().to_uppercase() {
-                return 0;
-            } else {
-                return 1;
+        if let Some(bios) = smbios.structures().find_map(|r| match r {
+            Ok(Structure::Bios(b)) => Some(b),
+            _ => None,
+        }) {
+            if device == Some(HardwareDeviceType::BIOS) {
+                println!("Comparing BIOS version {:?}", bios.bios_version);
+                if version.to_uppercase() == bios.bios_version.to_uppercase() {
+                    return 0;
+                } else {
+                    return 1;
+                }
             }
         }
     }
@@ -2071,23 +2074,24 @@ fn smbios_info() {
         error!("Failed to find SMBIOS");
         return;
     }
-    for undefined_struct in smbios.unwrap().iter() {
-        match undefined_struct.defined_struct() {
-            DefinedStruct::Information(data) => {
+    for result in smbios.unwrap().structures() {
+        match result {
+            Ok(Structure::Bios(data)) => {
                 println!("BIOS Information");
-                if let Some(vendor) = dmidecode_string_val(&data.vendor()) {
-                    println!("  Vendor:       {}", vendor);
+                if !data.vendor.is_empty() {
+                    println!("  Vendor:       {}", data.vendor);
                 }
-                if let Some(version) = dmidecode_string_val(&data.version()) {
-                    println!("  Version:      {}", version);
+                if !data.bios_version.is_empty() {
+                    println!("  Version:      {}", data.bios_version);
                 }
-                if let Some(release_date) = dmidecode_string_val(&data.release_date()) {
-                    println!("  Release Date: {}", release_date);
+                if !data.bios_release_date.is_empty() {
+                    println!("  Release Date: {}", data.bios_release_date);
                 }
             }
-            DefinedStruct::SystemInformation(data) => {
+            Ok(Structure::System(data)) => {
                 println!("System Information");
-                if let Some(version) = dmidecode_string_val(&data.version()) {
+                if !data.version.is_empty() {
+                    let version = data.version;
                     // Assumes it's ASCII, which is guaranteed by SMBIOS
                     let config_digit0 = &version[0..1];
                     let config_digit0 = u8::from_str_radix(config_digit0, 16);
@@ -2099,34 +2103,37 @@ fn smbios_info() {
                         println!("  Version:      '{}'", version);
                     }
                 }
-                if let Some(manufacturer) = dmidecode_string_val(&data.manufacturer()) {
-                    println!("  Manufacturer: {}", manufacturer);
+                if !data.manufacturer.is_empty() {
+                    println!("  Manufacturer: {}", data.manufacturer);
                 }
-                if let Some(product_name) = dmidecode_string_val(&data.product_name()) {
-                    println!("  Product Name: {}", product_name);
+                if !data.product.is_empty() {
+                    println!("  Product Name: {}", data.product);
                 }
-                if let Some(wake_up_type) = data.wakeup_type() {
-                    println!("  Wake-Up-Type: {:?}", wake_up_type.value);
+                if let Some(wakeup) = data.wakeup {
+                    println!("  Wake-Up-Type: {:?}", wakeup);
                 }
-                if let Some(sku_number) = dmidecode_string_val(&data.sku_number()) {
-                    println!("  SKU Number:   {}", sku_number);
+                if let Some(sku) = data.sku {
+                    if !sku.is_empty() {
+                        println!("  SKU Number:   {}", sku);
+                    }
                 }
-                if let Some(sn) = dmidecode_string_val(&data.serial_number()) {
-                    println!("  Serial Number:{}", sn);
+                if !data.serial.is_empty() {
+                    println!("  Serial Number:{}", data.serial);
                 }
-                if let Some(family) = dmidecode_string_val(&data.family()) {
-                    println!("  Family:       {}", family);
+                if let Some(family) = data.family {
+                    if !family.is_empty() {
+                        println!("  Family:       {}", family);
+                    }
                 }
             }
-            DefinedStruct::SystemChassisInformation(data) => {
+            Ok(Structure::Enclosure(data)) => {
                 println!("System Chassis Information");
-                if let Some(chassis) = data.chassis_type() {
-                    println!("  Type:         {}", chassis);
-                }
+                println!("  Type:         {}", data.enclosure_type);
             }
-            DefinedStruct::BaseBoardInformation(data) => {
+            Ok(Structure::BaseBoard(data)) => {
                 println!("BaseBoard Information");
-                if let Some(version) = dmidecode_string_val(&data.version()) {
+                if !data.version.is_empty() {
+                    let version = data.version;
                     // Assumes it's ASCII, which is guaranteed by SMBIOS
                     let config_digit0 = &version[0..1];
                     let config_digit0 = u8::from_str_radix(config_digit0, 16);
@@ -2138,14 +2145,14 @@ fn smbios_info() {
                         println!("  Version:      '{}'", version);
                     }
                 }
-                if let Some(manufacturer) = dmidecode_string_val(&data.manufacturer()) {
-                    println!("  Manufacturer: {}", manufacturer);
+                if !data.manufacturer.is_empty() {
+                    println!("  Manufacturer: {}", data.manufacturer);
                 }
-                if let Some(product_name) = dmidecode_string_val(&data.product()) {
-                    println!("  Product:      {}", product_name);
+                if !data.product.is_empty() {
+                    println!("  Product:      {}", data.product);
                 }
-                if let Some(sn) = dmidecode_string_val(&data.serial_number()) {
-                    println!("  Serial Number:{}", sn);
+                if !data.serial.is_empty() {
+                    println!("  Serial Number:{}", data.serial);
                 }
             }
             _ => {}
@@ -2165,7 +2172,7 @@ fn me_info(verbose: bool, dump_path: Option<&str>) {
                 None
             }
         };
-        data.map(|d| smbioslib::SMBiosData::from_vec_and_version(d, None))
+        data.and_then(|d| smbios::SmbiosStore::from_table_data(d, 3, 0))
     } else {
         get_smbios()
     };
