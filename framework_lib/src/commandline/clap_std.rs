@@ -78,7 +78,7 @@ struct ClapCli {
     #[arg(long)]
     pdports: bool,
 
-    /// Show info from SMBIOS (Only on UEFI)
+    /// Show info from SMBIOS
     #[arg(long)]
     info: bool,
 
@@ -86,6 +86,10 @@ struct ClapCli {
     /// Optionally provide a dmidecode binary dump file path.
     #[arg(long)]
     meinfo: Option<Option<String>>,
+
+    /// Show info about system serial numbers
+    #[arg(long)]
+    serialnums: bool,
 
     /// Show details about the PD controllers
     #[arg(long)]
@@ -552,6 +556,7 @@ pub fn parse(args: &[String]) -> Cli {
         dump_gpu_descriptor_file: args
             .dump_gpu_descriptor_file
             .map(|x| x.into_os_string().into_string().unwrap()),
+        serialnums: args.serialnums,
         nvidia: args.nvidia,
         host_command,
     }
