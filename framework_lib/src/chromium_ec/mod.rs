@@ -335,10 +335,19 @@ impl CrosEc {
 
     pub fn flash_version(&self) -> Option<(String, String, EcCurrentImage)> {
         // Unlock SPI
-        // TODO: Lock flash again again
-        let _data = EcRequestFlashNotify { flags: 0 }.send_command(self).ok()?;
+        let _data = EcRequestFlashNotify {
+            flags: MecFlashNotify::AccessSpi as u8,
+        }
+        .send_command(self)
+        .ok()?;
 
         let v = EcRequestGetVersion {}.send_command(self).ok()?;
+
+        // Lock SPI
+        let _ = EcRequestFlashNotify {
+            flags: MecFlashNotify::AccessSpiDone as u8,
+        }
+        .send_command(self);
 
         let curr = match v.current_image {
             1 => EcCurrentImage::RO,
