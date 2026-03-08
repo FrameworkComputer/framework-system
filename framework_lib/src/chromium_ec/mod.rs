@@ -793,7 +793,7 @@ impl CrosEc {
     /// | Start | End   | Size  | Region      |
     /// | 00000 | 3BFFF | 3C000 | RO Region   |
     /// | 3C000 | 3FFFF | 04000 | Preserved   |
-    /// | 40000 | 3C000 | 39000 | RO Region   |
+    /// | 40000 | 78FFF | 39000 | RW Region   |
     /// | 79000 | 79FFF | 01000 | Preserved   |
     /// | 80000 | 80FFF | 01000 | Flash Flags |
     ///
@@ -801,8 +801,8 @@ impl CrosEc {
     /// | Start | End   | Size  | Region      |
     /// | 00000 | 3BFFF | 3C000 | RO Region   |
     /// | 3C000 | 3FFFF | 04000 | Preserved   |
-    /// | 40000 | 3C000 | 39000 | RO Region   |
-    /// | 79000 | 79FFF | 01000 | Flash Flags |
+    /// | 40000 | 78FFF | 39000 | RW Region   |
+    /// | 7F000 | 7FFFF | 01000 | Flash Flags |
     pub fn reflash(&self, data: &[u8], ft: EcFlashType, dry_run: bool) -> EcResult<()> {
         let mut res = Ok(());
 
@@ -926,7 +926,7 @@ impl CrosEc {
                 println!("  RO verify success");
             } else {
                 error!("RO verify fail!");
-                res = Err(EcError::DeviceError("RW verify fail!".to_string()));
+                res = Err(EcError::DeviceError("RO verify fail!".to_string()));
             }
         }
 
