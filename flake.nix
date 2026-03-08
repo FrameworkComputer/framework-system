@@ -91,7 +91,7 @@
           in
           rustPlatform.buildRustPackage {
             pname = "framework_tool";
-            version = "0.5.0";
+            version = "0.6.0";
 
             src = buildSrc;
 
@@ -144,7 +144,7 @@
           in
           rustPlatformWindows.buildRustPackage {
             pname = "framework_tool";
-            version = "0.5.0";
+            version = "0.6.0";
 
             src = buildSrc;
 
@@ -194,7 +194,7 @@
           in
           rustPlatform.buildRustPackage {
             pname = "framework_uefi";
-            version = "0.5.0";
+            version = "0.6.0";
 
             src = buildSrc;
 
