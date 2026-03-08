@@ -79,7 +79,7 @@ fn init() {
         return;
     }
     match std::fs::File::open(DEV_PATH) {
-        Err(why) => println!("Failed to open {}. Because: {:?}", DEV_PATH, why),
+        Err(why) => eprintln!("Failed to open {}. Because: {:?}", DEV_PATH, why),
         Ok(file) => *device = Some(file),
     };
     // 2. Read max 80 bytes and check if equal to "1.0.0"

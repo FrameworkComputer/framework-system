@@ -975,7 +975,7 @@ impl CrosEc {
             if !dry_run {
                 let res = self.write_ec_flash_chunk(addr + offset as u32, chunk);
                 if let Err(err) = res {
-                    println!("  Failed to write chunk: {:?}", err);
+                    eprintln!("  Failed to write chunk: {:?}", err);
                     return Err(err);
                 }
             }
@@ -1062,7 +1062,7 @@ impl CrosEc {
                 // TODO: We don't want to crash here. But returning no data doesn't seem optimal
                 // either
                 // return Err(EcError::DeviceError("Execution interrupted".to_string()));
-                println!("Execution interrupted");
+                eprintln!("Execution interrupted");
                 return Ok(vec![]);
             }
 
@@ -1142,7 +1142,7 @@ impl CrosEc {
         // TODO: Does zephyr always start like this?
         let zephyr_start = [0x5E, 0x4D, 0x3B, 0x2A];
         if data[0..4] != legacy_start && data[0..4] != zephyr_start {
-            println!("      INVALID start");
+            eprintln!("      INVALID start");
             res = Err(EcError::DeviceError("INVALID start".to_string()));
         }
         // Legacy EC is all 0xFF until the end of the row
@@ -1150,7 +1150,7 @@ impl CrosEc {
         let legacy_comp = !data[4..].iter().all(|x| *x == 0xFF);
         let zephyr_comp = !data[0x20..0x40].iter().all(|x| *x == 0x00);
         if legacy_comp && zephyr_comp {
-            println!("      INVALID end");
+            eprintln!("      INVALID end");
             res = Err(EcError::DeviceError("INVALID end".to_string()));
         }
 
@@ -1175,13 +1175,13 @@ impl CrosEc {
         // let legacy_start = []; // TODO
         // let zephyr_start = [0x80, 0x7D, 0x0C, 0x20];
         // if data[0..4] != legacy_start && data[0..4] != zephyr_start {
-        //     println!("      INVALID start");
+        //     eprintln!("      INVALID start");
         //     res = Err(EcError::DeviceError("INVALID start".to_string()));
         // }
         // let legacy_comp = !data[4..].iter().all(|x| *x == 0xFF);
         // let zephyr_comp = !data[0x20..0x2C].iter().all(|x| *x == 0x00);
         // if legacy_comp && zephyr_comp {
-        //     println!("      INVALID end");
+        //     eprintln!("      INVALID end");
         //     res = Err(EcError::DeviceError("INVALID end".to_string()));
         // }
 
@@ -1224,7 +1224,7 @@ impl CrosEc {
             println!("      Erased flash flags");
             res = Err(EcError::DeviceError("Erased flash flags".to_string()));
         } else {
-            println!("      INVALID flash flags: {:02X?}", &data[0..12]);
+            eprintln!("      INVALID flash flags: {:02X?}", &data[0..12]);
             // TODO: Disable error until I confirm flash flags on MEC
             // res = Err(EcError::DeviceError("INVALID flash flags".to_string()));
         }
