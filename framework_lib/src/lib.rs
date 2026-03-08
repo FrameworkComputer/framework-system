@@ -31,8 +31,22 @@ pub mod touchscreen_win;
 pub mod usbhub;
 
 #[cfg(feature = "uefi")]
-#[macro_use]
 extern crate uefi;
+
+// Override uefi crate's print!/println! macros with non-panicking versions.
+// The uefi crate's versions call .expect() on write results, which crashes
+// when the UEFI shell returns an error after 'q' is pressed during -b pagination.
+#[cfg(feature = "uefi")]
+macro_rules! print {
+    ($($arg:tt)*) => ($crate::fw_uefi::_print_safe(core::format_args!($($arg)*)));
+}
+#[cfg(feature = "uefi")]
+macro_rules! println {
+    () => ($crate::fw_uefi::_print_safe(core::format_args!("\n")));
+    ($($arg:tt)*) => ($crate::fw_uefi::_print_safe(
+        core::format_args!("{}\n", core::format_args!($($arg)*))
+    ));
+}
 
 pub mod capsule;
 pub mod capsule_content;
