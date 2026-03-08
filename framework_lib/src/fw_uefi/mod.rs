@@ -11,6 +11,19 @@ use uefi_raw::protocol::shell::ShellProtocol;
 
 pub mod fs;
 
+/// Non-panicking print helper for UEFI.
+///
+/// The uefi crate's `println!` calls `.expect()` on write results, which
+/// panics when the UEFI shell's ConsoleLogger returns an error (e.g. after
+/// the user presses 'q' during `-b` page break mode). This version silently
+/// ignores write errors to avoid crashing.
+#[doc(hidden)]
+pub fn _print_safe(args: core::fmt::Arguments) {
+    uefi::system::with_stdout(|stdout| {
+        let _ = core::fmt::Write::write_fmt(stdout, args);
+    });
+}
+
 fn get_shell_protocol() -> &'static ShellProtocol {
     let handle = boot::get_handle_for_protocol::<Shell>().expect("No Shell handles");
 
