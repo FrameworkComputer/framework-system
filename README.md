@@ -189,7 +189,7 @@ Run directly from GitHub
 ```sh
 # Run directly from GitHub
 nix run github.com:FrameworkComputer/framework-system -- --versions
-
+```
 
 Build and run locally after cloning:
 
