@@ -43,7 +43,7 @@ uefi-raw = "0.13"
 plain = "0.2.3"
 
 [target.'cfg(windows)'.dependencies]
-wmi = "0.18"
+wmi = "~0.17.3"
 env_logger = "0.11"
 clap = { version = "4.5", features = ["derive", "cargo"] }
 clap-num = { version = "1.2.0" }
