@@ -336,6 +336,7 @@
         devShells.cross-windows = pkgs.mkShell {
           packages = [
             rustToolchainWindows
+            mingw
           ];
 
           # Ensure build scripts (e.g. libgit2-sys) use the native host compiler
