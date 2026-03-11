@@ -1359,7 +1359,7 @@ impl CrosEc {
                 // Force power to the GPU if we are writing the EEPROM
                 let res = self.set_gpio("gpu_3v_5v_en", true);
                 if let Err(err) = res {
-                    error!("Failed to set ALW power to GPU off {:?}", err);
+                    error!("Failed to set ALW power to GPU on {:?}", err);
                     return Err(err);
                 }
                 println!("Forcing Power to GPU");
