@@ -1356,15 +1356,20 @@ impl CrosEc {
         if let Ok(ExpansionBayBoard::DualInterposer) = info.expansion_bay_board() {
             // If bay power is on already, we don't need to enable/disable it
             if !self.get_gpio("gpu_3v_5v_en")? {
-                // Force power to the GPU if we are writing the EEPROM
-                let res = self.set_gpio("gpu_3v_5v_en", true);
-                if let Err(err) = res {
-                    error!("Failed to set ALW power to GPU on {:?}", err);
-                    return Err(err);
+                println!("Expansion Bay Power is Off");
+                if dry_run {
+                    println!("Forcing Power to Expansion Bay (skip - dry-run)");
+                } else {
+                    // Force power to the GPU if we are writing the EEPROM
+                    let res = self.set_gpio("gpu_3v_5v_en", true);
+                    if let Err(err) = res {
+                        error!("Failed to set ALW power to GPU on {:?}", err);
+                        return Err(err);
+                    }
+                    println!("Forcing Power to Expansion Bay");
+                    os_specific::sleep(100_000);
+                    force_power = true;
                 }
-                println!("Forcing Power to GPU");
-                os_specific::sleep(100_000);
-                force_power = true;
             }
         }
 
