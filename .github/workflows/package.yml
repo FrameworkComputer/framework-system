@@ -1,0 +1,70 @@
+name: Build Linux Packages
+
+on:
+  push:
+#    tags:
+#      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-deb:
+    name: Build .deb
+    runs-on: ubuntu-24.04
+#    env:
+#      CARGO_NET_GIT_FETCH_WITH_CLI: true
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libudev-dev
+
+    - name: Setup Rust toolchain
+      run: rustup show
+
+    - name: Install cargo-deb
+      run: cargo install cargo-deb
+
+    - name: Build .deb package
+      run: cargo deb -p framework_tool
+
+    - name: Upload .deb package
+      uses: actions/upload-artifact@v6
+      with:
+        name: framework-tool-deb
+        path: target/debian/*.deb
+
+  build-rpm:
+    name: Build .rpm
+    runs-on: ubuntu-24.04
+#    env:
+#      CARGO_NET_GIT_FETCH_WITH_CLI: true
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libudev-dev
+
+    - name: Setup Rust toolchain
+      run: rustup show
+
+    - name: Install cargo-generate-rpm
+      run: cargo install cargo-generate-rpm
+
+    - name: Build release binary
+      run: cargo build -p framework_tool --release --features nvidia
+
+    - name: Strip binary
+      run: strip -s target/release/framework_tool
+
+    - name: Build .rpm package
+      run: cargo generate-rpm -p framework_tool
+
+    - name: Upload .rpm package
+      uses: actions/upload-artifact@v6
+      with:
+        name: framework-tool-rpm
+        path: target/generate-rpm/*.rpm
