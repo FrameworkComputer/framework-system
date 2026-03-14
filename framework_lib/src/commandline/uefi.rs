@@ -406,7 +406,7 @@ pub fn parse(args: &[String]) -> Cli {
                     None
                 }
             } else {
-                println!("Need to provide a value for --tablet-mode. One of: `auto`, `tablet` or `laptop`");
+                println!("Need to provide a value for --ps2-enable. Must be `true` or `false`");
                 None
             };
             found_an_option = true;
@@ -521,7 +521,7 @@ pub fn parse(args: &[String]) -> Cli {
                         Some(Some(delay))
                     }
                 } else {
-                    println!("Invalid value for --fp-brightness. Must be amount in seconds >0");
+                    println!("Invalid value for --ec-hib-delay. Must be amount in seconds >0");
                     None
                 }
             } else {
@@ -724,7 +724,7 @@ pub fn parse(args: &[String]) -> Cli {
                     None
                 }
             } else {
-                println!("--pd-ports requires two arguments, one for each port");
+                println!("--pd-ports requires three arguments, one for each port");
                 None
             };
             found_an_option = true;
@@ -793,7 +793,7 @@ pub fn parse(args: &[String]) -> Cli {
                     None
                 }
             } else {
-                println!("Need to provide a value for --console. Possible values: bios, ec, pd0, pd1, rtm01, rtm23, ac-left, ac-right");
+                println!("Need to provide a value for --device. Possible values: bios, ec, pd0, pd1, rtm01, rtm23, ac-left, ac-right");
                 None
             };
             found_an_option = true;
