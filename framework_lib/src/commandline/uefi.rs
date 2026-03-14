@@ -205,7 +205,7 @@ pub fn parse(args: &[String]) -> Cli {
                 None
             };
             found_an_option = true;
-        } else if arg == "--autofanctrol" {
+        } else if arg == "--autofanctrl" {
             cli.autofanctrl = if args.len() > i + 1 {
                 if let Ok(fan_id) = args[i + 1].parse::<u8>() {
                     Some(Some(fan_id))
