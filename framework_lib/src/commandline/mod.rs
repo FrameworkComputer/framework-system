@@ -1857,6 +1857,8 @@ Options:
       --fp-led-level [<VAL>] Get or set fingerprint LED brightness level [possible values: high, medium, low]
       --fp-brightness [<VAL>]Get or set fingerprint LED brightness percentage
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
+      --remap-key <ROW> <COL> <SCANCODE>
+                             Remap a key by changing the scancode
       --rgbkbd <START> <HEXCOLOR> [<HEXCOLOR> ...]
                              Set the color of a key to RGB. Multiple colors for adjacent keys can be set at once
       --tablet-mode <MODE>   Set tablet mode override [possible values: auto, tablet, laptop]
