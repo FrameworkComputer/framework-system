@@ -537,7 +537,7 @@ pub fn parse(args: &[String]) -> Cli {
         } else if arg == "-t" || arg == "--test" {
             cli.test = true;
             found_an_option = true;
-        } else if arg == "-t" || arg == "--test-retimer" {
+        } else if arg == "--test-retimer" {
             cli.test_retimer = true;
             found_an_option = true;
         } else if arg == "--boardid" {
