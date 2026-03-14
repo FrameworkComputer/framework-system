@@ -363,6 +363,20 @@ pub fn parse(args: &[String]) -> Cli {
                 Some(None)
             };
             found_an_option = true;
+        } else if arg == "--remap-key" {
+            if args.len() > i + 3 {
+                let row = parse_hex_or_dec_u8(&args[i + 1]);
+                let col = parse_hex_or_dec_u8(&args[i + 2]);
+                let scancode = parse_hex_or_dec_u16(&args[i + 3]);
+                if let (Some(row), Some(col), Some(scancode)) = (row, col, scancode) {
+                    cli.remap_key = Some((row, col, scancode));
+                } else {
+                    println!("Invalid values for --remap-key. Must be: <ROW> <COL> <SCANCODE>");
+                }
+            } else {
+                println!("--remap-key requires 3 arguments: <ROW> <COL> <SCANCODE>");
+            }
+            found_an_option = true;
         } else if arg == "--rgbkbd" {
             cli.rgbkbd = if args.len() > i + 2 {
                 let mut colors = Vec::<u64>::new();
