@@ -388,7 +388,8 @@ pub fn parse(args: &[String]) -> Cli {
             } else {
                 println!("--rgbkbd requires at least 2 arguments, the start key and an RGB value");
                 vec![]
-            }
+            };
+            found_an_option = true;
         } else if arg == "--ps2-enable" {
             cli.ps2_enable = if args.len() > i + 1 {
                 let enable_arg = &args[i + 1];
@@ -795,6 +796,7 @@ pub fn parse(args: &[String]) -> Cli {
                 println!("Need to provide a value for --console. Possible values: bios, ec, pd0, pd1, rtm01, rtm23, ac-left, ac-right");
                 None
             };
+            found_an_option = true;
         } else if arg == "--flash-gpu-descriptor" {
             cli.flash_gpu_descriptor = if args.len() > i + 2 {
                 let sn = args[i + 2].to_string();
