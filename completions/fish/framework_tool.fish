@@ -56,6 +56,8 @@ jump-rw\t''
 cancel-jump\t''
 disable-jump\t''"
 complete -c framework_tool -l ec-hib-delay -d 'Get or set EC hibernate delay (S5 to G3)' -r
+complete -c framework_tool -l get-uefi-var -d 'Get a UEFI variable by name and optionally GUID (GUID auto-resolved for well-known names)' -r
+complete -c framework_tool -l set-uefi-var -d 'Set a UEFI variable from file (NAME [GUID] FILEPATH, GUID auto-resolved for well-known names)' -r
 complete -c framework_tool -l hash -d 'Hash a file of arbitrary data' -r -F
 complete -c framework_tool -l driver -d 'Select which driver is used. By default portio is used' -r -f -a "portio\t''
 cros-ec\t''
@@ -91,6 +93,7 @@ complete -c framework_tool -l expansion-bay -d 'Show status of the expansion bay
 complete -c framework_tool -l stylus-battery -d 'Check stylus battery level (USI 2.0 stylus only)'
 complete -c framework_tool -l uptimeinfo
 complete -c framework_tool -l s0ix-counter
+complete -c framework_tool -l list-uefi-vars -d 'List all UEFI variables'
 complete -c framework_tool -s t -l test -d 'Run self-test to check if interaction with EC is possible'
 complete -c framework_tool -l test-retimer -d 'Run self-test to check if interaction with retimers is possible'
 complete -c framework_tool -l boardid -d 'Print all board IDs'

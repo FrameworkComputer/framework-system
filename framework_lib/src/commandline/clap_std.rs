@@ -254,9 +254,19 @@ struct ClapCli {
     #[arg(long)]
     s0ix_counter: bool,
 
-    /// Set UEFI variable (name, file path)
+    /// List all UEFI variables
     #[arg(long)]
-    set_uefi_var: Option<std::path::PathBuf>,
+    list_uefi_vars: bool,
+
+    /// Get a UEFI variable by name and optionally GUID (GUID auto-resolved for well-known names)
+    #[clap(num_args = 1..=2)]
+    #[arg(long, value_names(["NAME", "GUID"]))]
+    get_uefi_var: Vec<String>,
+
+    /// Set a UEFI variable from file (NAME [GUID] FILEPATH, GUID auto-resolved for well-known names)
+    #[clap(num_args = 2..=3)]
+    #[arg(long, value_names(["NAME", "GUID", "FILEPATH"]))]
+    set_uefi_var: Vec<String>,
 
     /// Hash a file of arbitrary data
     #[arg(long)]
@@ -428,6 +438,53 @@ pub fn parse(args: &[String]) -> Cli {
         )),
         _ => None,
     };
+    let get_uefi_var = match args.get_uefi_var.len() {
+        2 => Some((args.get_uefi_var[0].clone(), args.get_uefi_var[1].clone())),
+        1 => {
+            let name = &args.get_uefi_var[0];
+            if let Some(guid) = crate::os_specific::known_uefi_guid(name) {
+                Some((name.clone(), guid.to_string()))
+            } else {
+                cli.error(
+                    ErrorKind::MissingRequiredArgument,
+                    format!(
+                        "Unknown UEFI variable '{}'. Please provide the GUID explicitly.",
+                        name
+                    ),
+                )
+                .exit();
+            }
+        }
+        0 => None,
+        // Checked by clap
+        _ => unreachable!(),
+    };
+    let set_uefi_var = match args.set_uefi_var.len() {
+        3 => Some((
+            args.set_uefi_var[0].clone(),
+            args.set_uefi_var[1].clone(),
+            args.set_uefi_var[2].clone(),
+        )),
+        2 => {
+            let name = &args.set_uefi_var[0];
+            if let Some(guid) = crate::os_specific::known_uefi_guid(name) {
+                Some((name.clone(), guid.to_string(), args.set_uefi_var[1].clone()))
+            } else {
+                cli.error(
+                    ErrorKind::MissingRequiredArgument,
+                    format!(
+                        "Unknown UEFI variable '{}'. Please provide the GUID explicitly.",
+                        name
+                    ),
+                )
+                .exit();
+            }
+        }
+        0 => None,
+        // Checked by clap
+        _ => unreachable!(),
+    };
+
     let host_command = if args.host_command.len() >= 2 {
         let cmd_ver = if let Ok(cmd_ver) = u8::try_from(args.host_command[1]) {
             cmd_ver
@@ -532,7 +589,9 @@ pub fn parse(args: &[String]) -> Cli {
         ec_hib_delay: args.ec_hib_delay,
         uptimeinfo: args.uptimeinfo,
         s0ix_counter: args.s0ix_counter,
-        set_uefi_var: args.set_uefi_var,
+        list_uefi_vars: args.list_uefi_vars,
+        get_uefi_var,
+        set_uefi_var,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         pd_addrs,

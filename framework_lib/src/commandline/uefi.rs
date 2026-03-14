@@ -85,6 +85,9 @@ pub fn parse(args: &[String]) -> Cli {
         ec_hib_delay: None,
         uptimeinfo: false,
         s0ix_counter: false,
+        list_uefi_vars: false,
+        get_uefi_var: None,
+        set_uefi_var: None,
         hash: None,
         // This is the only driver that works on UEFI
         driver: Some(CrosEcDriverType::Portio),
@@ -668,6 +671,82 @@ pub fn parse(args: &[String]) -> Cli {
                 Some(args[i + 1].clone())
             } else {
                 println!("--hash requires extra argument to denote input file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--list-uefi-vars" {
+            cli.list_uefi_vars = true;
+            found_an_option = true;
+        } else if arg == "--get-uefi-var" {
+            cli.get_uefi_var = if args.len() > i + 2 {
+                // Check if second arg looks like a GUID (contains '-') or is the next flag
+                if !args[i + 2].starts_with('-') && args[i + 2].contains('-') {
+                    Some((args[i + 1].clone(), args[i + 2].clone()))
+                } else {
+                    // Only name given, try lookup
+                    let name = &args[i + 1];
+                    if let Some(guid) = crate::os_specific::known_uefi_guid(name) {
+                        Some((name.clone(), guid.into()))
+                    } else {
+                        println!(
+                            "Unknown UEFI variable '{}'. Please provide the GUID explicitly.",
+                            name
+                        );
+                        None
+                    }
+                }
+            } else if args.len() > i + 1 {
+                let name = &args[i + 1];
+                if let Some(guid) = crate::os_specific::known_uefi_guid(name) {
+                    Some((name.clone(), guid.into()))
+                } else {
+                    println!(
+                        "Unknown UEFI variable '{}'. Please provide the GUID explicitly.",
+                        name
+                    );
+                    None
+                }
+            } else {
+                println!("--get-uefi-var requires at least one argument: NAME [GUID]");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--set-uefi-var" {
+            cli.set_uefi_var = if args.len() > i + 3 {
+                // Check if second arg looks like a GUID
+                if !args[i + 2].starts_with('-') && args[i + 2].contains('-') {
+                    Some((
+                        args[i + 1].clone(),
+                        args[i + 2].clone(),
+                        args[i + 3].clone(),
+                    ))
+                } else {
+                    // Only name + filepath given, try lookup
+                    let name = &args[i + 1];
+                    if let Some(guid) = crate::os_specific::known_uefi_guid(name) {
+                        Some((name.clone(), guid.into(), args[i + 2].clone()))
+                    } else {
+                        println!(
+                            "Unknown UEFI variable '{}'. Please provide the GUID explicitly.",
+                            name
+                        );
+                        None
+                    }
+                }
+            } else if args.len() > i + 2 {
+                // Two args: name + filepath, try GUID lookup
+                let name = &args[i + 1];
+                if let Some(guid) = crate::os_specific::known_uefi_guid(name) {
+                    Some((name.clone(), guid.into(), args[i + 2].clone()))
+                } else {
+                    println!(
+                        "Unknown UEFI variable '{}'. Please provide the GUID explicitly.",
+                        name
+                    );
+                    None
+                }
+            } else {
+                println!("--set-uefi-var requires at least two arguments: NAME [GUID] FILEPATH");
                 None
             };
             found_an_option = true;

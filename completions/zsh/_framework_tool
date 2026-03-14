@@ -51,6 +51,8 @@ _framework_tool() {
 '--console=[Get EC console, choose whether recent or to follow the output]:CONSOLE:(recent follow)' \
 '--reboot-ec=[Control EC RO/RW jump]:REBOOT_EC:(reboot jump-ro jump-rw cancel-jump disable-jump)' \
 '--ec-hib-delay=[Get or set EC hibernate delay (S5 to G3)]::EC_HIB_DELAY:_default' \
+'*--get-uefi-var=[Get a UEFI variable by name and optionally GUID (GUID auto-resolved for well-known names)]:NAME:_default' \
+'*--set-uefi-var=[Set a UEFI variable from file (NAME \[GUID\] FILEPATH, GUID auto-resolved for well-known names)]:NAME:_default:NAME:_default' \
 '--hash=[Hash a file of arbitrary data]:HASH:_files' \
 '--driver=[Select which driver is used. By default portio is used]:DRIVER:(portio cros-ec windows)' \
 '*--pd-addrs=[Specify I2C addresses of the PD chips (Advanced)]:PD_ADDRS:_default:PD_ADDRS:_default:PD_ADDRS:_default' \
@@ -82,6 +84,7 @@ _framework_tool() {
 '--stylus-battery[Check stylus battery level (USI 2.0 stylus only)]' \
 '--uptimeinfo[]' \
 '--s0ix-counter[]' \
+'--list-uefi-vars[List all UEFI variables]' \
 '-t[Run self-test to check if interaction with EC is possible]' \
 '--test[Run self-test to check if interaction with EC is possible]' \
 '--test-retimer[Run self-test to check if interaction with retimers is possible]' \

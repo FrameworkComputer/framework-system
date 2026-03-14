@@ -216,7 +216,9 @@ pub struct Cli {
     pub ec_hib_delay: Option<Option<u32>>,
     pub uptimeinfo: bool,
     pub s0ix_counter: bool,
-    pub set_uefi_var: Option<std::path::PathBuf>,
+    pub list_uefi_vars: bool,
+    pub get_uefi_var: Option<(String, String)>,
+    pub set_uefi_var: Option<(String, String, String)>,
     pub hash: Option<String>,
     pub pd_addrs: Option<(u16, u16, u16)>,
     pub pd_ports: Option<(u8, u8, u8)>,
@@ -305,6 +307,9 @@ pub fn parse(args: &[String]) -> Cli {
             // ec_hib_delay
             uptimeinfo: cli.uptimeinfo,
             s0ix_counter: cli.s0ix_counter,
+            // list_uefi_vars
+            // get_uefi_var
+            // set_uefi_var
             hash: cli.hash,
             pd_addrs: cli.pd_addrs,
             pd_ports: cli.pd_ports,
@@ -1511,24 +1516,81 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         } else {
             println!("s0ix_counter: Unknown");
         }
-    } else if let Some(filepath) = &args.set_uefi_var {
+    } else if args.list_uefi_vars {
+        if let Some(vars) = os_specific::list_uefi_vars() {
+            for (name, guid) in &vars {
+                println!("{} {}", name, guid);
+            }
+            println!("\nTotal: {} variables", vars.len());
+        } else {
+            println!("Failed to list UEFI variables");
+        }
+    } else if let Some((name, guid)) = &args.get_uefi_var {
+        if let Some((data, attributes)) = os_specific::get_uefi_var(name, guid) {
+            println!("Variable: {}", name);
+            println!("GUID:     {}", guid);
+            println!("Attrs:    0x{:08X}", attributes);
+            println!("Size:     {} B", data.len());
+            println!();
+            // Print hex dump
+            for (i, chunk) in data.chunks(16).enumerate() {
+                print!("{:08X}  ", i * 16);
+                for (j, byte) in chunk.iter().enumerate() {
+                    print!("{:02X} ", byte);
+                    if j == 7 {
+                        print!(" ");
+                    }
+                }
+                // Pad if last line is short
+                if chunk.len() < 16 {
+                    for j in chunk.len()..16 {
+                        print!("   ");
+                        if j == 7 {
+                            print!(" ");
+                        }
+                    }
+                }
+                print!(" |");
+                for byte in chunk {
+                    if byte.is_ascii_graphic() || *byte == b' ' {
+                        print!("{}", *byte as char);
+                    } else {
+                        print!(".");
+                    }
+                }
+                println!("|");
+            }
+        } else {
+            println!("Failed to read UEFI variable '{}' ({})", name, guid);
+        }
+    } else if let Some((name, guid, filepath)) = &args.set_uefi_var {
         #[cfg(feature = "uefi")]
         let data = crate::uefi::fs::shell_read_file(filepath);
         #[cfg(not(feature = "uefi"))]
         let data = match fs::read(filepath) {
             Ok(data) => Some(data),
-            // TODO: Perhaps a more user-friendly error
             Err(e) => {
-                println!("Error {:?}", e);
+                println!("Error reading file: {:?}", e);
                 None
             }
         };
         if let Some(data) = data {
-            println!("File");
-            println!("  Size:       {:>20} B", data.len());
-            println!("  Size:       {:>20} KB", data.len() / 1024);
-            os_specific::get_dbx();
-            //os_specific::set_dbx(&data);
+            // Read existing attributes if the variable already exists, otherwise use sensible defaults
+            let attrs = if let Some((_, existing_attrs)) = os_specific::get_uefi_var(name, guid) {
+                existing_attrs
+            } else {
+                os_specific::EFI_VARIABLE_NON_VOLATILE
+                    | os_specific::EFI_VARIABLE_BOOTSERVICE_ACCESS
+                    | os_specific::EFI_VARIABLE_RUNTIME_ACCESS
+            };
+            println!("Setting UEFI variable '{}' ({})", name, guid);
+            println!("  Attrs:     0x{:08X}", attrs);
+            println!("  Data size: {} B", data.len());
+            if os_specific::set_uefi_var(name, guid, &data, attrs).is_some() {
+                println!("  Success");
+            } else {
+                println!("  Failed to set UEFI variable");
+            }
         }
     } else if args.test {
         println!("Self-Test");
