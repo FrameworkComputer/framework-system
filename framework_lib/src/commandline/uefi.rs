@@ -571,7 +571,7 @@ pub fn parse(args: &[String]) -> Cli {
             };
             found_an_option = true;
         } else if arg == "--pd-disable" {
-            cli.pd_reset = if args.len() > i + 1 {
+            cli.pd_disable = if args.len() > i + 1 {
                 if let Ok(pd) = args[i + 1].parse::<u8>() {
                     Some(pd)
                 } else {
