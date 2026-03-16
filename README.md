@@ -32,6 +32,8 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
   - Build from source
 - Homebrew
   - Add [this homebrew tap](https://github.com/ublue-os/homebrew-tap), then `brew install --cask framework-tool`
+- Cargo (Any distro)
+  - `cargo install --locked framework_tool`
 
 ### Windows
 
