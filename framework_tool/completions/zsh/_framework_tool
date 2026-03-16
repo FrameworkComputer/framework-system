@@ -41,6 +41,7 @@ _framework_tool() {
 '*--charge-current-limit=[Set max charge current limit]:CHARGE_CURRENT_LIMIT:_default' \
 '*--charge-rate-limit=[Set max charge current limit]:CHARGE_RATE_LIMIT:_default' \
 '--get-gpio=[Get GPIO value by name or all, if no name provided]::GET_GPIO:_default' \
+'*--set-gpio=[Set GPIO value by name. Args\: <NAME> <0|1> (Dangerous, requires --force)]:NAME:_default:NAME:_default' \
 '--fp-led-level=[Get or set fingerprint LED brightness level]::FP_LED_LEVEL:(high medium low ultra-low auto)' \
 '--fp-brightness=[Get or set fingerprint LED brightness percentage]::FP_BRIGHTNESS:_default' \
 '--kblight=[Set keyboard backlight percentage or get, if no value provided]::KBLIGHT:_default' \

@@ -34,6 +34,7 @@ complete -c framework_tool -l charge-limit -d 'Get or set max charge limit' -r
 complete -c framework_tool -l charge-current-limit -d 'Set max charge current limit' -r
 complete -c framework_tool -l charge-rate-limit -d 'Set max charge current limit' -r
 complete -c framework_tool -l get-gpio -d 'Get GPIO value by name or all, if no name provided' -r
+complete -c framework_tool -l set-gpio -d 'Set GPIO value by name. Args: <NAME> <0|1> (Dangerous, requires --force)' -r
 complete -c framework_tool -l fp-led-level -d 'Get or set fingerprint LED brightness level' -r -f -a "high\t''
 medium\t''
 low\t''

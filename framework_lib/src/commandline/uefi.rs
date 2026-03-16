@@ -73,6 +73,7 @@ pub fn parse(args: &[String]) -> Cli {
         charge_current_limit: None,
         charge_rate_limit: None,
         get_gpio: None,
+        set_gpio: None,
         fp_led_level: None,
         fp_brightness: None,
         kblight: None,
@@ -356,6 +357,13 @@ pub fn parse(args: &[String]) -> Cli {
             } else {
                 Some(None)
             };
+            found_an_option = true;
+        } else if arg == "--set-gpio" {
+            if args.len() > i + 2 {
+                cli.set_gpio = Some((args[i + 1].clone(), args[i + 2].clone()));
+            } else {
+                println!("--set-gpio requires two arguments: <NAME> <0|1>");
+            }
             found_an_option = true;
         } else if arg == "--kblight" {
             cli.kblight = if args.len() > i + 1 {

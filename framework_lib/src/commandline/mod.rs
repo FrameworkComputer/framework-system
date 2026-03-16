@@ -225,6 +225,7 @@ pub struct Cli {
     pub charge_current_limit: Option<(u32, Option<u32>)>,
     pub charge_rate_limit: Option<(f32, Option<f32>)>,
     pub get_gpio: Option<Option<String>>,
+    pub set_gpio: Option<(String, String)>,
     pub fp_led_level: Option<Option<FpBrightnessArg>>,
     pub fp_brightness: Option<Option<u8>>,
     pub kblight: Option<Option<u8>>,
@@ -317,6 +318,7 @@ pub fn parse(args: &[String]) -> Cli {
             // charge_current_limit
             // charge_rate_limit
             get_gpio: cli.get_gpio,
+            // set_gpio
             fp_led_level: cli.fp_led_level,
             fp_brightness: cli.fp_brightness,
             kblight: cli.kblight,
@@ -1459,6 +1461,20 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         } else {
             print_err(ec.get_all_gpios());
         }
+    } else if let Some((gpio_name, gpio_value)) = &args.set_gpio {
+        if args.force {
+            let value = match gpio_value.as_str() {
+                "0" => false,
+                "1" => true,
+                _ => {
+                    error!("GPIO value must be 0 or 1");
+                    return 1;
+                }
+            };
+            print_err(ec.set_gpio(gpio_name, value));
+        } else {
+            error!("--set-gpio is a dangerous command that can brick or burn your system. Not supported without --force");
+        }
     } else if let Some(maybe_led_level) = &args.fp_led_level {
         print_err(handle_fp_led_level(&ec, *maybe_led_level));
     } else if let Some(maybe_brightness) = &args.fp_brightness {
@@ -1926,6 +1942,7 @@ Options:
       --charge-current-limit [<VAL>] Get or set battery current charge limit (Percentage number as arg, e.g. '100')
       --charge-rate-limit [<VAL>]   Set max charge rate limit
       --get-gpio <GET_GPIO>  Get GPIO value by name or all, if no name provided
+      --set-gpio <NAME> <0|1>  Set GPIO value by name (Dangerous, requires --force)
       --fp-led-level [<VAL>] Get or set fingerprint LED brightness level [possible values: high, medium, low]
       --fp-brightness [<VAL>]Get or set fingerprint LED brightness percentage
       --kblight [<KBLIGHT>]  Set keyboard backlight percentage or get, if no value provided
