@@ -20,7 +20,6 @@ complete -c framework_tool -l pd-bin -d 'Parse versions from PD firmware binary 
 complete -c framework_tool -l ec-bin -d 'Parse versions from EC firmware binary file' -r -F
 complete -c framework_tool -l capsule -d 'Parse UEFI Capsule information from binary file' -r -F
 complete -c framework_tool -l dump -d 'Dump extracted UX capsule bitmap image to a file' -r -F
-complete -c framework_tool -l h2o-capsule -d 'Parse UEFI Capsule information from binary file' -r -F
 complete -c framework_tool -l dump-ec-flash -d 'Dump EC flash contents' -r -F
 complete -c framework_tool -l flash-ec -d 'Flash EC (RO+RW) with new firmware from file - may render your hardware unbootable!' -r -F
 complete -c framework_tool -l flash-ro-ec -d 'Flash EC with new RO firmware from file - may render your hardware unbootable!' -r -F

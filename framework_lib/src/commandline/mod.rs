@@ -28,7 +28,7 @@ use crate::built_info;
 use crate::camera::check_camera_version;
 use crate::capsule;
 use crate::capsule_content::{
-    find_bios_version, find_ec_in_bios_cap, find_pd_in_bios_cap, find_retimer_version,
+    find_all_pds_in_bios_cap, find_bios_version, find_ec_in_bios_cap, find_retimer_version,
 };
 use crate::ccgx::device::{FwMode, PdController, PdPort};
 #[cfg(feature = "hidapi")]
@@ -183,7 +183,6 @@ pub struct Cli {
     pub ec_bin: Option<String>,
     pub capsule: Option<String>,
     pub dump: Option<String>,
-    pub h2o_capsule: Option<String>,
     pub dump_ec_flash: Option<String>,
     pub flash_ec: Option<String>,
     pub flash_ro_ec: Option<String>,
@@ -271,7 +270,6 @@ pub fn parse(args: &[String]) -> Cli {
             ec_bin: cli.ec_bin,
             capsule: cli.capsule,
             dump: cli.dump,
-            h2o_capsule: cli.h2o_capsule,
             // dump_ec_flash
             // flash_ec
             // flash_ro_ec
@@ -1681,41 +1679,30 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                     }
                 }
             } else {
-                println!("Capsule is invalid.");
-            }
-        }
-    } else if let Some(capsule_path) = &args.h2o_capsule {
-        #[cfg(feature = "uefi")]
-        let data = crate::fw_uefi::fs::shell_read_file(capsule_path);
-        #[cfg(not(feature = "uefi"))]
-        let data = match fs::read(capsule_path) {
-            Ok(data) => Some(data),
-            // TODO: Perhaps a more user-friendly error
-            Err(e) => {
-                println!("Error {:?}", e);
-                None
-            }
-        };
-
-        if let Some(data) = data {
-            println!("File");
-            println!("  Size:       {:>20} B", data.len());
-            println!("  Size:       {:>20} KB", data.len() / 1024);
-            if let Some(cap) = find_bios_version(&data) {
-                println!("  BIOS Platform:{:>18}", cap.platform);
-                println!("  BIOS Version: {:>18}", cap.version);
-            }
-            if let Some(ec_bin) = find_ec_in_bios_cap(&data) {
-                debug!("Found EC binary in BIOS capsule");
-                analyze_ec_fw(ec_bin);
-            } else {
-                debug!("Didn't find EC binary in BIOS capsule");
-            }
-            if let Some(pd_bin) = find_pd_in_bios_cap(&data) {
-                debug!("Found PD binary in BIOS capsule");
-                analyze_ccgx_pd_fw(pd_bin);
-            } else {
-                debug!("Didn't find PD binary in BIOS capsule");
+                // No valid capsule header - try to extract embedded firmware directly
+                // This handles raw H2O BIOS files that aren't wrapped in a UEFI capsule
+                println!("No valid capsule header, searching for embedded firmware...");
+                let mut found_any = false;
+                if let Some(cap) = find_bios_version(&data) {
+                    found_any = true;
+                    println!("BIOS");
+                    println!("  Platform:     {:>18}", cap.platform);
+                    println!("  Version:      {:>18}", cap.version);
+                }
+                if let Some(ec_bin) = find_ec_in_bios_cap(&data) {
+                    found_any = true;
+                    println!("Embedded EC");
+                    analyze_ec_fw(ec_bin);
+                }
+                let pd_bins = find_all_pds_in_bios_cap(&data);
+                for (i, pd_bin) in pd_bins.iter().enumerate() {
+                    found_any = true;
+                    println!("Embedded PD {}", i + 1);
+                    analyze_ccgx_pd_fw(pd_bin);
+                }
+                if !found_any {
+                    println!("No embedded firmware found.");
+                }
             }
         }
     } else if let Some(dump_path) = &args.dump_ec_flash {
@@ -1836,7 +1823,6 @@ Options:
       --ec-bin <EC_BIN>      Parse versions from EC firmware binary file
       --capsule <CAPSULE>    Parse UEFI Capsule information from binary file
       --dump <DUMP>          Dump extracted UX capsule bitmap image to a file
-      --h2o-capsule <H2O_CAPSULE>      Parse UEFI Capsule information from binary file
       --dump-ec-flash <DUMP_EC_FLASH>  Dump EC flash contents
       --flash-ec <FLASH_EC>            Flash EC with new firmware from file
       --flash-ro-ec <FLASH_EC>         Flash EC with new firmware from file
@@ -2364,53 +2350,128 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
     let header = capsule::parse_capsule_header(data)?;
     capsule::print_capsule_header(&header);
 
-    match GUID::from(header.capsule_guid) {
-        esrt::TGL_BIOS_GUID => {
-            println!("  Type:         Framework TGL Insyde BIOS");
+    let guid_kind = esrt::match_guid_kind(&header.capsule_guid);
+    match guid_kind {
+        esrt::FrameworkGuidKind::TglBios => {
+            println!("  Type:         Framework 13 TGL Insyde BIOS");
         }
-        esrt::ADL_BIOS_GUID => {
-            println!("  Type:         Framework ADL Insyde BIOS");
+        esrt::FrameworkGuidKind::AdlBios => {
+            println!("  Type:         Framework 13 ADL Insyde BIOS");
         }
-        esrt::RPL_BIOS_GUID => {
-            println!("  Type:         Framework RPL Insyde BIOS");
+        esrt::FrameworkGuidKind::RplBios => {
+            println!("  Type:         Framework 13 RPL Insyde BIOS");
         }
-        esrt::TGL_RETIMER01_GUID => {
-            println!("  Type:    Framework TGL Retimer01 (Right)");
+        esrt::FrameworkGuidKind::MtlBios => {
+            println!("  Type:         Framework 13 MTL Insyde BIOS");
         }
-        esrt::TGL_RETIMER23_GUID => {
-            println!("  Type:   Framework TGL Retimer23 (Left)");
+        esrt::FrameworkGuidKind::Fw12RplBios => {
+            println!("  Type:         Framework 12 RPL Insyde BIOS");
         }
-        esrt::ADL_RETIMER01_GUID => {
-            println!("  Type:    Framework ADL Retimer01 (Right)");
+        esrt::FrameworkGuidKind::Fl16Bios => {
+            println!("  Type:         Framework 16 AMD Insyde BIOS");
         }
-        esrt::ADL_RETIMER23_GUID => {
-            println!("  Type:   Framework ADL Retimer23 (Left)");
+        esrt::FrameworkGuidKind::Amd16Ai300Bios => {
+            println!("  Type:         Framework 16 AMD AI 300 Insyde BIOS");
         }
-        esrt::RPL_RETIMER01_GUID => {
-            println!("  Type:    Framework RPL Retimer01 (Right)");
+        esrt::FrameworkGuidKind::Amd13Ryzen7040Bios => {
+            println!("  Type:         Framework 13 AMD Ryzen 7040 Insyde BIOS");
         }
-        esrt::RPL_RETIMER23_GUID => {
-            println!("  Type:   Framework RPL Retimer23 (Left)");
+        esrt::FrameworkGuidKind::Amd13Ai300Bios => {
+            println!("  Type:         Framework 13 AMD AI 300 Insyde BIOS");
         }
-        esrt::WINUX_GUID => {
-            println!("  Type:            Windows UX capsule");
+        esrt::FrameworkGuidKind::DesktopAmdAi300Bios => {
+            println!("  Type:         Framework Desktop AMD AI 300 Insyde BIOS");
+        }
+        esrt::FrameworkGuidKind::TglRetimer01 => {
+            println!("  Type:         Framework TGL Retimer01 (Right)");
+        }
+        esrt::FrameworkGuidKind::TglRetimer23 => {
+            println!("  Type:         Framework TGL Retimer23 (Left)");
+        }
+        esrt::FrameworkGuidKind::AdlRetimer01 => {
+            println!("  Type:         Framework ADL Retimer01 (Right)");
+        }
+        esrt::FrameworkGuidKind::AdlRetimer23 => {
+            println!("  Type:         Framework ADL Retimer23 (Left)");
+        }
+        esrt::FrameworkGuidKind::RplRetimer01 => {
+            println!("  Type:         Framework RPL Retimer01 (Right)");
+        }
+        esrt::FrameworkGuidKind::RplRetimer23 => {
+            println!("  Type:         Framework RPL Retimer23 (Left)");
+        }
+        esrt::FrameworkGuidKind::MtlRetimer01 => {
+            println!("  Type:         Framework MTL Retimer01 (Right)");
+        }
+        esrt::FrameworkGuidKind::MtlRetimer23 => {
+            println!("  Type:         Framework MTL Retimer23 (Left)");
+        }
+        esrt::FrameworkGuidKind::RplCsme => {
+            println!("  Type:         Framework RPL CSME");
+        }
+        esrt::FrameworkGuidKind::RplUCsme => {
+            println!("  Type:         Framework RPL-U CSME");
+        }
+        esrt::FrameworkGuidKind::MtlCsme => {
+            println!("  Type:         Framework MTL CSME");
+        }
+        esrt::FrameworkGuidKind::WinUx => {
+            println!("  Type:         Windows UX capsule");
             let ux_header = capsule::parse_ux_header(data);
             capsule::print_ux_header(&ux_header);
         }
-        _ => {
+        esrt::FrameworkGuidKind::Unknown => {
             println!("  Type:                      Unknown");
         }
     }
 
-    match esrt::match_guid_kind(&header.capsule_guid) {
+    // Extract retimer version if this is a retimer capsule
+    match guid_kind {
         esrt::FrameworkGuidKind::TglRetimer01
         | esrt::FrameworkGuidKind::TglRetimer23
         | esrt::FrameworkGuidKind::AdlRetimer01
         | esrt::FrameworkGuidKind::AdlRetimer23
         | esrt::FrameworkGuidKind::RplRetimer01
-        | esrt::FrameworkGuidKind::RplRetimer23 => {
+        | esrt::FrameworkGuidKind::RplRetimer23
+        | esrt::FrameworkGuidKind::MtlRetimer01
+        | esrt::FrameworkGuidKind::MtlRetimer23 => {
             if let Some(ver) = find_retimer_version(data) {
-                println!("  Version:      {:>18?}", ver);
+                println!("  Retimer Version: {:>15}", ver);
+            }
+        }
+        _ => {}
+    }
+
+    // Extract embedded firmware versions for BIOS capsules
+    match guid_kind {
+        esrt::FrameworkGuidKind::TglBios
+        | esrt::FrameworkGuidKind::AdlBios
+        | esrt::FrameworkGuidKind::RplBios
+        | esrt::FrameworkGuidKind::MtlBios
+        | esrt::FrameworkGuidKind::Fw12RplBios
+        | esrt::FrameworkGuidKind::Fl16Bios
+        | esrt::FrameworkGuidKind::Amd16Ai300Bios
+        | esrt::FrameworkGuidKind::Amd13Ryzen7040Bios
+        | esrt::FrameworkGuidKind::Amd13Ai300Bios
+        | esrt::FrameworkGuidKind::DesktopAmdAi300Bios => {
+            if let Some(cap) = find_bios_version(data) {
+                println!("BIOS");
+                println!("  Platform:     {:>18}", cap.platform);
+                println!("  Version:      {:>18}", cap.version);
+            }
+            if let Some(ec_bin) = find_ec_in_bios_cap(data) {
+                println!("Embedded EC");
+                if let Some(ver) = ec_binary::read_ec_version(ec_bin, true) {
+                    println!("  RO Version:   {:>18}", ver.version);
+                }
+                if let Some(ver) = ec_binary::read_ec_version(ec_bin, false) {
+                    println!("  RW Version:   {:>18}", ver.version);
+                }
+            }
+            let pd_bins = find_all_pds_in_bios_cap(data);
+            for (i, pd_bin) in pd_bins.iter().enumerate() {
+                println!("Embedded PD {}", i + 1);
+                analyze_ccgx_pd_fw(pd_bin);
             }
         }
         _ => {}
