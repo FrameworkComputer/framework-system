@@ -61,6 +61,10 @@ use crate::smbios::ConfigDigit0;
 use crate::smbios::{get_smbios, is_framework};
 #[cfg(feature = "hidapi")]
 use crate::touchpad::print_touchpad_fw_ver;
+#[cfg(target_os = "linux")]
+use crate::touchpad_ptp;
+#[cfg(all(feature = "hidapi", windows))]
+use crate::touchpad_ptp_win;
 #[cfg(feature = "hidapi")]
 use crate::touchscreen;
 #[cfg(feature = "rusb")]
@@ -131,6 +135,13 @@ pub enum InputDeckModeArg {
     Auto,
     Off,
     On,
+}
+
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum PtpModeArg {
+    Mouse,
+    Ptp,
 }
 impl From<InputDeckModeArg> for DeckStateMode {
     fn from(w: InputDeckModeArg) -> DeckStateMode {
@@ -213,6 +224,7 @@ pub struct Cli {
     pub tablet_mode: Option<TabletModeArg>,
     pub touchscreen_enable: Option<bool>,
     pub stylus_battery: bool,
+    pub ptp_mode: Option<Option<PtpModeArg>>,
     pub console: Option<ConsoleArg>,
     pub reboot_ec: Option<RebootEcArg>,
     pub ec_hib_delay: Option<Option<u32>>,
@@ -303,6 +315,7 @@ pub fn parse(args: &[String]) -> Cli {
             // tablet_mode
             // touchscreen_enable
             stylus_battery: cli.stylus_battery,
+            // ptp_mode
             console: cli.console,
             reboot_ec: cli.reboot_ec,
             // ec_hib_delay
@@ -1481,6 +1494,50 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_stylus_battery_level();
         #[cfg(not(feature = "hidapi"))]
         error!("Not build with hidapi feature");
+    } else if let Some(ptp_arg) = &args.ptp_mode {
+        #[cfg(target_os = "linux")]
+        match ptp_arg {
+            None => match touchpad_ptp::get_ptp_mode() {
+                Some(0) => println!("mouse"),
+                Some(3) => println!("ptp"),
+                Some(v) => println!("unknown ({})", v),
+                None => error!("Failed to read PTP mode"),
+            },
+            Some(PtpModeArg::Mouse) => {
+                if touchpad_ptp::set_ptp_mode(0).is_none() {
+                    error!("Failed to set PTP mode to mouse");
+                }
+            }
+            Some(PtpModeArg::Ptp) => {
+                if touchpad_ptp::set_ptp_mode(3).is_none() {
+                    error!("Failed to set PTP mode to ptp");
+                }
+            }
+        }
+        #[cfg(all(feature = "hidapi", windows))]
+        match ptp_arg {
+            None => match touchpad_ptp_win::get_ptp_mode() {
+                Some(0) => println!("mouse"),
+                Some(3) => println!("ptp"),
+                Some(v) => println!("unknown ({})", v),
+                None => error!("Failed to read PTP mode"),
+            },
+            Some(PtpModeArg::Mouse) => {
+                if touchpad_ptp_win::set_ptp_mode(0).is_none() {
+                    error!("Failed to set PTP mode to mouse");
+                }
+            }
+            Some(PtpModeArg::Ptp) => {
+                if touchpad_ptp_win::set_ptp_mode(3).is_none() {
+                    error!("Failed to set PTP mode to ptp");
+                }
+            }
+        }
+        #[cfg(not(any(target_os = "linux", all(feature = "hidapi", windows))))]
+        {
+            let _ = ptp_arg;
+            error!("PTP mode not supported on this platform");
+        }
     } else if let Some(console_arg) = &args.console {
         match console_arg {
             ConsoleArg::Follow => {

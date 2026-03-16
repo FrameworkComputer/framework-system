@@ -12,8 +12,8 @@ use clap_num::maybe_hex;
 use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::{
-    Cli, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg, LogLevel, RebootEcArg,
-    TabletModeArg,
+    Cli, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg, LogLevel, PtpModeArg,
+    RebootEcArg, TabletModeArg,
 };
 
 /// Swiss army knife for Framework laptops
@@ -240,6 +240,11 @@ struct ClapCli {
     #[clap(value_enum)]
     #[arg(long)]
     stylus_battery: bool,
+
+    /// Get or set precision touchpad mode
+    #[clap(value_enum)]
+    #[arg(long)]
+    ptp_mode: Option<Option<PtpModeArg>>,
 
     /// Get EC console, choose whether recent or to follow the output
     #[clap(value_enum)]
@@ -535,6 +540,7 @@ pub fn parse(args: &[String]) -> Cli {
         tablet_mode: args.tablet_mode,
         touchscreen_enable: args.touchscreen_enable,
         stylus_battery: args.stylus_battery,
+        ptp_mode: args.ptp_mode,
         console: args.console,
         reboot_ec: args.reboot_ec,
         ec_hib_delay: args.ec_hib_delay,
