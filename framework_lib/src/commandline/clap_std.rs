@@ -163,11 +163,11 @@ struct ClapCli {
     #[arg(long)]
     intrusion: bool,
 
-    /// Show status of the input modules (Framework 16 only)
+    /// Show status of the input modules
     #[arg(long)]
     inputdeck: bool,
 
-    /// Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
+    /// Set input deck power mode [possible values: auto, off, on] (Framework 13 and 16)
     #[arg(long)]
     inputdeck_mode: Option<InputDeckModeArg>,
 
