@@ -25,7 +25,7 @@ complete -c framework_tool -l dump-ec-flash -d 'Dump EC flash contents' -r -F
 complete -c framework_tool -l flash-ec -d 'Flash EC (RO+RW) with new firmware from file - may render your hardware unbootable!' -r -F
 complete -c framework_tool -l flash-ro-ec -d 'Flash EC with new RO firmware from file - may render your hardware unbootable!' -r -F
 complete -c framework_tool -l flash-rw-ec -d 'Flash EC with new RW firmware from file' -r -F
-complete -c framework_tool -l inputdeck-mode -d 'Set input deck power mode [possible values: auto, off, on] (Framework 16 only)' -r -f -a "auto\t''
+complete -c framework_tool -l inputdeck-mode -d 'Set input deck power mode [possible values: auto, off, on] (Framework 13 and 16)' -r -f -a "auto\t''
 off\t''
 on\t''"
 complete -c framework_tool -l charge-limit -d 'Get or set max charge limit' -r
@@ -86,7 +86,7 @@ complete -c framework_tool -l dp-hdmi-info -d 'Show details about connected DP o
 complete -c framework_tool -l audio-card-info -d 'Show details about connected Audio Expansion Cards (Needs root privileges)'
 complete -c framework_tool -l privacy -d 'Show privacy switch statuses (camera and microphone)'
 complete -c framework_tool -l intrusion -d 'Show status of intrusion switch'
-complete -c framework_tool -l inputdeck -d 'Show status of the input modules (Framework 16 only)'
+complete -c framework_tool -l inputdeck -d 'Show status of the input modules'
 complete -c framework_tool -l expansion-bay -d 'Show status of the expansion bay (Framework 16 only)'
 complete -c framework_tool -l stylus-battery -d 'Check stylus battery level (USI 2.0 stylus only)'
 complete -c framework_tool -l uptimeinfo

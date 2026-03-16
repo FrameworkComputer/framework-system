@@ -1847,7 +1847,7 @@ Options:
       --s0ix-counter         Show S0ix counter
       --intrusion            Show status of intrusion switch
       --inputdeck            Show status of the input deck
-      --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
+      --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Framework 13 and 16)
       --expansion-bay        Show status of the expansion bay (Framework 16 only)
       --nvidia               Show NVIDIA GPU information (Framework 16 only)
       --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')

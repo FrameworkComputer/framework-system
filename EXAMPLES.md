@@ -80,9 +80,9 @@ Options:
       --intrusion
           Show status of intrusion switch
       --inputdeck
-          Show status of the input modules (Framework 16 only)
+          Show status of the input modules
       --inputdeck-mode <INPUTDECK_MODE>
-          Set input deck power mode [possible values: auto, off, on] (Framework 16 only) [possible values: auto, off, on]
+          Set input deck power mode [possible values: auto, off, on] (Framework 13 and 16) [possible values: auto, off, on]
       --expansion-bay
           Show status of the expansion bay (Framework 16 only)
       --charge-limit [<CHARGE_LIMIT>]
