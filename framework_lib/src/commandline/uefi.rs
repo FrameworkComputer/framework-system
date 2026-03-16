@@ -80,6 +80,7 @@ pub fn parse(args: &[String]) -> Cli {
         tablet_mode: None,
         touchscreen_enable: None,
         stylus_battery: false,
+        ptp_mode: None,
         console: None,
         reboot_ec: None,
         ec_hib_delay: None,

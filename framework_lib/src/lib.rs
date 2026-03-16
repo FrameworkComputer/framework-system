@@ -23,6 +23,10 @@ pub mod inputmodule;
 pub mod nvme;
 #[cfg(feature = "hidapi")]
 pub mod touchpad;
+#[cfg(target_os = "linux")]
+pub mod touchpad_ptp;
+#[cfg(all(feature = "hidapi", windows))]
+pub mod touchpad_ptp_win;
 #[cfg(feature = "hidapi")]
 pub mod touchscreen;
 #[cfg(all(feature = "hidapi", windows))]
