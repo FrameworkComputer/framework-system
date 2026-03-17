@@ -189,6 +189,11 @@ struct ClapCli {
     #[arg(long)]
     get_gpio: Option<Option<String>>,
 
+    /// Set GPIO value by name. Args: <NAME> <0|1> (Dangerous, requires --force)
+    #[arg(long, value_names(["NAME", "VALUE"]))]
+    #[clap(num_args = 2)]
+    set_gpio: Vec<String>,
+
     /// Get or set fingerprint LED brightness level
     #[arg(long)]
     fp_led_level: Option<Option<FpBrightnessArg>>,
@@ -424,6 +429,10 @@ pub fn parse(args: &[String]) -> Cli {
         )),
         _ => None,
     };
+    let set_gpio = match args.set_gpio.len() {
+        2 => Some((args.set_gpio[0].clone(), args.set_gpio[1].clone())),
+        _ => None,
+    };
     let host_command = if args.host_command.len() >= 2 {
         let cmd_ver = if let Ok(cmd_ver) = u8::try_from(args.host_command[1]) {
             cmd_ver
@@ -514,6 +523,7 @@ pub fn parse(args: &[String]) -> Cli {
         charge_current_limit,
         charge_rate_limit,
         get_gpio: args.get_gpio,
+        set_gpio,
         fp_led_level: args.fp_led_level,
         fp_brightness: args.fp_brightness,
         kblight: args.kblight,
