@@ -136,6 +136,7 @@ pub struct InputDeckStatus {
     pub state: InputDeckState,
     pub hubboard_present: bool,
     pub touchpad_present: bool,
+    pub touchpad_id: u8,
     pub top_row: TopRowPositions,
 }
 
@@ -177,16 +178,20 @@ impl InputDeckStatus {
 
 impl From<EcResponseDeckState> for InputDeckStatus {
     fn from(item: EcResponseDeckState) -> Self {
+        let tp_id = InputModuleType::from(item.board_id[InputDeckMux::Touchpad as usize]);
+        let tp_present = !matches!(
+            tp_id,
+            InputModuleType::Short | InputModuleType::Disconnected
+        );
+
         InputDeckStatus {
             state: InputDeckState::from(item.deck_state),
             hubboard_present: matches!(
                 InputModuleType::from(item.board_id[InputDeckMux::HubBoard as usize],),
                 InputModuleType::HubBoard
             ),
-            touchpad_present: matches!(
-                InputModuleType::from(item.board_id[InputDeckMux::Touchpad as usize],),
-                InputModuleType::Touchpad
-            ),
+            touchpad_present: tp_present,
+            touchpad_id: item.board_id[InputDeckMux::Touchpad as usize],
             top_row: TopRowPositions {
                 pos0: InputModuleType::from(item.board_id[InputDeckMux::TopRow0 as usize]),
                 pos1: InputModuleType::from(item.board_id[InputDeckMux::TopRow1 as usize]),
