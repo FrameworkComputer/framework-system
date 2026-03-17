@@ -597,14 +597,14 @@ impl SmartBattery {
             self.i2c_port,
             self.i2c_addr >> 1,
             0x00,
-            &key1.to_le_bytes(),
+            &key2.to_le_bytes(),
         )?;
         i2c_write_block(
             ec,
             self.i2c_port,
             self.i2c_addr >> 1,
             0x00,
-            &key2.to_le_bytes(),
+            &key1.to_le_bytes(),
         )?;
         Ok(())
     }
