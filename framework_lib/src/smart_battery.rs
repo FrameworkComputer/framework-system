@@ -1049,7 +1049,30 @@ impl SmartBattery {
         data.design_voltage = self.read_i16(ec, SmartBatReg::DesignVoltage as u16)?;
         data.device_chemistry = self.read_string(ec, SmartBatReg::DeviceChemistry as u16)?;
 
-        // Unsealed data
+        // ManufacturerAccess block reads (typically readable in SEALED mode)
+        data.state_of_health = self.read_bytes(ec, ManufReg::Soh as u16, 4).unwrap_or_default();
+        data.operation_status = self.read_i32(ec, ManufReg::OperationStatus as u16).unwrap_or(0);
+        data.safety_alert = self.read_i32(ec, ManufReg::SafetyAlert as u16).unwrap_or(0);
+        data.safety_status = self.read_i32(ec, ManufReg::SafetyStatus as u16).unwrap_or(0);
+        data.pf_alert = self.read_i32(ec, ManufReg::PFAlert as u16).unwrap_or(0);
+        data.pf_status = self.read_i32(ec, ManufReg::PFStatus as u16).unwrap_or(0);
+        data.lifetime1 = self
+            .read_bytes(ec, ManufReg::LifeTimeDataBlock1 as u16, 32)
+            .unwrap_or_default();
+        data.lifetime2 = self
+            .read_bytes(ec, ManufReg::LifeTimeDataBlock2 as u16, 20)
+            .unwrap_or_default();
+        data.lifetime3 = self
+            .read_block(ec, ManufReg::LifeTimeDataBlock3 as u16, 16)
+            .unwrap_or_default();
+        data.lifetime4 = self
+            .read_block(ec, ManufReg::LifeTimeDataBlock4 as u16, 32)
+            .unwrap_or_default();
+        data.lifetime5 = self
+            .read_block(ec, ManufReg::LifeTimeDataBlock5 as u16, 32)
+            .unwrap_or_default();
+
+        // Unseal for registers that need it (re-read with full access)
         if let Some(key) = unseal_key {
             self.unseal(ec, (key >> 16) as u16, key as u16)?;
 
@@ -1110,14 +1133,38 @@ fn is_r3(data: &BatteryData) -> bool {
 
 /// Display decoded battery data from a BatteryData struct
 pub fn display_battery_data(data: &BatteryData) {
-    println!("Mode:          0x{:04X}", data.mode);
+    // Identity
+    println!("Device Name:   {}", data.device_name);
+    println!("Manuf Name:    {}", data.manufacturer_name);
     println!("Serial Num:    {:04X}", data.serial_num);
-
     let day = data.manufacture_date & 0x1F;
     let month = (data.manufacture_date >> 5) & 0x0F;
     let year = (data.manufacture_date >> 9) + 1980;
     println!("Manuf Date:    {:04}-{:02}-{:02}", year, month, day);
+    if !data.device_chemistry.is_empty() {
+        println!("Chemistry:     {}", data.device_chemistry);
+    }
+    if data.firmware_version.len() >= 6 {
+        // MAC 0x0002 response: [subcmd_echo(2), device_num(2), fw_ver(2), build(2), ...]
+        let fw = &data.firmware_version;
+        let device_num = u16::from_le_bytes([fw[2], fw[3]]);
+        let fw_major = fw[5];
+        let fw_minor = fw[4];
+        let build = if fw.len() >= 8 {
+            format!(" Build=0x{:04X}", u16::from_le_bytes([fw[6], fw[7]]))
+        } else {
+            String::new()
+        };
+        println!(
+            "FW Version:    Device=0x{:04X} FW={:02}.{:02}{}",
+            device_num, fw_major, fw_minor, build
+        );
+    } else if !data.firmware_version.is_empty() {
+        println!("FW Version:    {}", hex_encode(&data.firmware_version));
+    }
+    println!("Mode:          0x{:04X}", data.mode);
 
+    // Dynamic state
     let temp_c = (data.temperature as f32 / 10.0) - 273.15;
     println!("Temperature:   {:.1}C", temp_c);
 
@@ -1186,18 +1233,15 @@ pub fn display_battery_data(data: &BatteryData) {
         );
     }
 
-    // Charging info (only if battery is requesting charge)
-    if data.charging_current > 0 {
+    // Charging info (only if actually charging — DSG bit clear)
+    let is_discharging = data.battery_status & (1 << 6) != 0;
+    if data.charging_current > 0 && !is_discharging {
         println!(
             "Charging:      {:.3}A @ {}.{:03}V",
             data.charging_current as f32 / 1000.0,
             data.charging_voltage / 1000,
             data.charging_voltage % 1000
         );
-    }
-
-    if !data.device_chemistry.is_empty() {
-        println!("Chemistry:     {}", data.device_chemistry);
     }
 
     // Battery status
@@ -1213,26 +1257,6 @@ pub fn display_battery_data(data: &BatteryData) {
     }
 
     println!("Cycle Count:   {}", data.cycle_count);
-    println!("Device Name:   {}", data.device_name);
-    println!("Manuf Name:    {}", data.manufacturer_name);
-    if data.firmware_version.len() >= 6 {
-        // MAC 0x0002 response: [subcmd_echo(2), device_num(2), fw_ver(2), build(2), ...]
-        let fw = &data.firmware_version;
-        let device_num = u16::from_le_bytes([fw[2], fw[3]]);
-        let fw_major = fw[5];
-        let fw_minor = fw[4];
-        let build = if fw.len() >= 8 {
-            format!(" Build=0x{:04X}", u16::from_le_bytes([fw[6], fw[7]]))
-        } else {
-            String::new()
-        };
-        println!(
-            "FW Version:    Device=0x{:04X} FW={:02}.{:02}{}",
-            device_num, fw_major, fw_minor, build
-        );
-    } else if !data.firmware_version.is_empty() {
-        println!("FW Version:    {}", hex_encode(&data.firmware_version));
-    }
 
     // Unsealed data
     if !data.state_of_health.is_empty() {
