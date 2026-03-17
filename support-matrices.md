@@ -42,7 +42,7 @@
 | `--privacy`              | EC Communication | All Laptops       |
 | `--intrusion`            | EC Communication | All Laptops       |
 | `--inputdeck`            | EC Communication | All Laptops       |
-| `--inputdeck-mode`       | EC Communication | Framework 16      |
+| `--inputdeck-mode`       | EC Communication | Framework 13, 16  |
 | `--console`              | EC Communication | All               |
 | `--get-gpio`             | EC Communication | All               |
 | `--kblight`              | EC Communication | Framework 13      |

@@ -672,6 +672,12 @@ impl CrosEc {
 
         println!("Input Deck");
         println!("  Chassis Closed:      {}", !intrusion.currently_open);
+
+        if let Ok(status) = self.get_input_deck_status() {
+            println!("  Deck State:          {:?}", status.state);
+            println!("  Touchpad present:    {}", status.touchpad_present);
+        }
+
         println!(
             "  Audio Daughterboard: {}",
             if let Some(audio) = audio {

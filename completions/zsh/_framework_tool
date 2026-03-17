@@ -35,7 +35,7 @@ _framework_tool() {
 '--flash-ec=[Flash EC (RO+RW) with new firmware from file - may render your hardware unbootable!]:FLASH_EC:_files' \
 '--flash-ro-ec=[Flash EC with new RO firmware from file - may render your hardware unbootable!]:FLASH_RO_EC:_files' \
 '--flash-rw-ec=[Flash EC with new RW firmware from file]:FLASH_RW_EC:_files' \
-'--inputdeck-mode=[Set input deck power mode \[possible values\: auto, off, on\] (Framework 16 only)]:INPUTDECK_MODE:(auto off on)' \
+'--inputdeck-mode=[Set input deck power mode \[possible values\: auto, off, on\] (Framework 13 and 16)]:INPUTDECK_MODE:(auto off on)' \
 '--charge-limit=[Get or set max charge limit]::CHARGE_LIMIT:_default' \
 '*--charge-current-limit=[Set max charge current limit]:CHARGE_CURRENT_LIMIT:_default' \
 '*--charge-rate-limit=[Set max charge current limit]:CHARGE_RATE_LIMIT:_default' \
@@ -77,7 +77,7 @@ _framework_tool() {
 '--audio-card-info[Show details about connected Audio Expansion Cards (Needs root privileges)]' \
 '--privacy[Show privacy switch statuses (camera and microphone)]' \
 '--intrusion[Show status of intrusion switch]' \
-'--inputdeck[Show status of the input modules (Framework 16 only)]' \
+'--inputdeck[Show status of the input modules]' \
 '--expansion-bay[Show status of the expansion bay (Framework 16 only)]' \
 '--stylus-battery[Check stylus battery level (USI 2.0 stylus only)]' \
 '--uptimeinfo[]' \
