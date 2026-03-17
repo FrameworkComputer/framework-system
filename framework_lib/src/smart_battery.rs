@@ -1558,6 +1558,36 @@ pub fn analyze_health(data: &BatteryData) {
         issues.push("Permanent failure flags active");
     }
 
+    // Check battery status alarm flags
+    if data.battery_status & (1 << 15) != 0 {
+        issues.push("Over-Charged Alarm active");
+    }
+    if data.battery_status & (1 << 12) != 0 {
+        issues.push("Over Temperature Alarm active");
+    }
+    if data.battery_status & (1 << 14) != 0 {
+        warnings.push("Terminate Charge Alarm active".to_string());
+    }
+    if data.battery_status & (1 << 11) != 0 {
+        warnings.push("Terminate Discharge Alarm active".to_string());
+    }
+    if data.battery_status & (1 << 4) != 0 {
+        warnings.push("Battery is fully discharged".to_string());
+    }
+
+    // Check capacity retention
+    if data.design_capacity > 0 && data.full_charge_capacity > 0 {
+        let retention =
+            (data.full_charge_capacity as f32 / data.design_capacity as f32) * 100.0;
+        if retention < 50.0 {
+            issues.push("Severe capacity degradation (<50%)");
+        } else if retention < 70.0 {
+            warnings.push(format!("Significant capacity degradation: {:.0}%", retention));
+        } else if retention < 80.0 {
+            warnings.push(format!("Moderate capacity degradation: {:.0}%", retention));
+        }
+    }
+
     // Check cell voltage balance (current)
     let cells = [
         data.cell_voltage1,
@@ -1679,11 +1709,29 @@ pub fn analyze_health(data: &BatteryData) {
     // Print summary stats
     println!("\nSummary:");
     println!("  Cycle count: {}", data.cycle_count);
+    if data.design_capacity > 0 && data.full_charge_capacity > 0 {
+        let capacity_10mwh = data.mode & 0x8000 != 0;
+        let retention =
+            (data.full_charge_capacity as f32 / data.design_capacity as f32) * 100.0;
+        if capacity_10mwh {
+            println!(
+                "  Capacity: {:.2} / {:.2} Wh ({:.0}%)",
+                data.full_charge_capacity as f32 / 100.0,
+                data.design_capacity as f32 / 100.0,
+                retention
+            );
+        } else {
+            println!(
+                "  Capacity: {} / {} mAh ({:.0}%)",
+                data.full_charge_capacity, data.design_capacity, retention
+            );
+        }
+    }
     if !data.state_of_health.is_empty() {
         let soh_mah = u16::from_le_bytes([data.state_of_health[0], data.state_of_health[1]]);
         let soh_cwh = u16::from_le_bytes([data.state_of_health[2], data.state_of_health[3]]);
         println!(
-            "  Full charge capacity: {}mAh ({}.{:02}Wh)",
+            "  State of Health: {}mAh ({}.{:02}Wh)",
             soh_mah,
             soh_cwh / 100,
             soh_cwh % 100
