@@ -723,16 +723,34 @@ impl CrosEc {
         Ok(InputDeckStatus::from(status))
     }
 
+    fn has_pwmtype_kblight(&self) -> bool {
+        // Returns EcError::Response(EcResponseStatus::InvalidParameter) on some early systems
+        EcRequestPwmGetDuty {
+            pwm_type: PwmType::KbLight as u8,
+            index: 0,
+        }
+        .send_command(self)
+        .is_ok()
+    }
+
     /// Change the keyboard baclight brightness
     ///
     /// # Arguments
     /// * `percent` - An integer from 0 to 100. 0 being off, 100 being full brightness
     pub fn set_keyboard_backlight(&self, percent: u8) {
         debug_assert!(percent <= 100);
-        let res = EcRequestPwmSetDuty {
-            duty: percent as u16 * (PWM_MAX_DUTY / 100),
-            pwm_type: PwmType::KbLight as u8,
-            index: 0,
+        let res = if self.has_pwmtype_kblight() {
+            EcRequestPwmSetDuty {
+                duty: percent as u16 * (PWM_MAX_DUTY / 100),
+                pwm_type: PwmType::KbLight as u8,
+                index: 0,
+            }
+        } else {
+            EcRequestPwmSetDuty {
+                duty: percent as u16 * (PWM_MAX_DUTY / 100),
+                pwm_type: PwmType::Generic as u8,
+                index: 1,
+            }
         }
         .send_command(self);
         debug_assert!(res.is_ok());
@@ -740,9 +758,16 @@ impl CrosEc {
 
     /// Check the current brightness of the keyboard backlight
     pub fn get_keyboard_backlight(&self) -> EcResult<u8> {
-        let kblight = EcRequestPwmGetDuty {
-            pwm_type: PwmType::KbLight as u8,
-            index: 0,
+        let kblight = if self.has_pwmtype_kblight() {
+            EcRequestPwmGetDuty {
+                pwm_type: PwmType::KbLight as u8,
+                index: 0,
+            }
+        } else {
+            EcRequestPwmGetDuty {
+                pwm_type: PwmType::Generic as u8,
+                index: 1,
+            }
         }
         .send_command(self)?;
 
