@@ -43,6 +43,7 @@ pub struct BatteryData {
     pub lifetime3: Vec<u8>,
     pub lifetime4: Vec<u8>,
     pub lifetime5: Vec<u8>,
+    pub firmware_version: Vec<u8>, // MAC 0x0002 response (up to 14 bytes)
 }
 
 impl BatteryData {
@@ -79,6 +80,11 @@ impl BatteryData {
         writeln!(file, "lifetime3={}", hex_encode(&self.lifetime3))?;
         writeln!(file, "lifetime4={}", hex_encode(&self.lifetime4))?;
         writeln!(file, "lifetime5={}", hex_encode(&self.lifetime5))?;
+        writeln!(
+            file,
+            "firmware_version={}",
+            hex_encode(&self.firmware_version)
+        )?;
         Ok(())
     }
 
@@ -135,6 +141,7 @@ impl BatteryData {
                     "lifetime3" => data.lifetime3 = hex_decode(value),
                     "lifetime4" => data.lifetime4 = hex_decode(value),
                     "lifetime5" => data.lifetime5 = hex_decode(value),
+                    "firmware_version" => data.firmware_version = hex_decode(value),
                     _ => {} // Ignore unknown keys for forward compatibility
                 }
             }
@@ -165,10 +172,10 @@ enum SmartBatReg {
     ManufacturerName = 0x20,
     DeviceName = 0x21,
     Authenticate = 0x2F,
-    CellVoltage1 = 0x3C,
-    CellVoltage2 = 0x3D,
-    CellVoltage3 = 0x3E,
-    CellVoltage4 = 0x3F,
+    CellVoltage4 = 0x3C,
+    CellVoltage3 = 0x3D,
+    CellVoltage2 = 0x3E,
+    CellVoltage1 = 0x3F,
 }
 
 /// ManufacturerAccess block registers
@@ -190,11 +197,11 @@ enum ManufReg {
 }
 
 /// Decode OperationStatus register bits (BQ40z50)
-/// Based on TI bq40z50 device definitions
-fn decode_operation_status(value: u32) -> Vec<&'static str> {
+/// Based on TI bq40z50-R2 (SLUUA43A) and bq40z50-R3 (SLUUBU5A) datasheets
+fn decode_operation_status(value: u32, is_r3: bool) -> Vec<&'static str> {
     let mut flags = Vec::new();
     if value & (1 << 0) != 0 {
-        flags.push("PRES (Cell Voltages OK)");
+        flags.push("PRES (System Present Low)");
     }
     if value & (1 << 1) != 0 {
         flags.push("DSG (Discharge FET On)");
@@ -205,8 +212,14 @@ fn decode_operation_status(value: u32) -> Vec<&'static str> {
     if value & (1 << 3) != 0 {
         flags.push("PCHG (Precharge FET On)");
     }
+    if value & (1 << 4) != 0 && is_r3 {
+        flags.push("ACTHR (Accumulated Charge Threshold)");
+    }
     if value & (1 << 5) != 0 {
         flags.push("FUSE (Fuse Active)");
+    }
+    if value & (1 << 6) != 0 && is_r3 {
+        flags.push("EMSHUT (Emergency FET Shutdown)");
     }
     if value & (1 << 7) != 0 {
         flags.push("BTP_INT (Battery Trip Point)");
@@ -277,13 +290,23 @@ fn decode_operation_status(value: u32) -> Vec<&'static str> {
         flags.push("CB (Cell Balancing)");
     }
     if value & (1 << 29) != 0 {
-        flags.push("EMSHUT (Emergency Shutdown)");
+        if is_r3 {
+            flags.push("DISCONN (System Disconnect)");
+        } else {
+            flags.push("EMSHUT (Emergency Shutdown)");
+        }
+    }
+    if value & (1 << 30) != 0 && is_r3 {
+        flags.push("PSSHUT (Power Saving Shutdown)");
+    }
+    if value & (1 << 31) != 0 && is_r3 {
+        flags.push("IOSHUT (IO-Based Shutdown)");
     }
     flags
 }
 
 /// Decode SafetyAlert/SafetyStatus register bits (BQ40z50)
-/// Based on TI BQ40z50 Technical Reference Manual
+/// Based on TI bq40z50-R2 (SLUUA43A) and bq40z50-R3 (SLUUBU5A) datasheets
 fn decode_safety_status(value: u32) -> Vec<&'static str> {
     let mut flags = Vec::new();
     if value & (1 << 0) != 0 {
@@ -304,14 +327,23 @@ fn decode_safety_status(value: u32) -> Vec<&'static str> {
     if value & (1 << 5) != 0 {
         flags.push("OCD2 (Over-Current Discharge Tier2)");
     }
+    if value & (1 << 6) != 0 {
+        flags.push("AOLD (Overload in Discharge)");
+    }
     if value & (1 << 7) != 0 {
-        flags.push("OCDL (Over-Current Discharge Latch)");
+        flags.push("AOLDL (Overload in Discharge Latch)");
+    }
+    if value & (1 << 8) != 0 {
+        flags.push("ASCC (Short-Circuit Charge)");
     }
     if value & (1 << 9) != 0 {
-        flags.push("SCCL (Short-Circuit Charge Latch)");
+        flags.push("ASCCL (Short-Circuit Charge Latch)");
+    }
+    if value & (1 << 10) != 0 {
+        flags.push("ASCD (Short-Circuit Discharge)");
     }
     if value & (1 << 11) != 0 {
-        flags.push("SCDL (Short-Circuit Discharge Latch)");
+        flags.push("ASCDL (Short-Circuit Discharge Latch)");
     }
     if value & (1 << 12) != 0 {
         flags.push("OTC (Over-Temp Charge)");
@@ -355,13 +387,20 @@ fn decode_safety_status(value: u32) -> Vec<&'static str> {
     if value & (1 << 27) != 0 {
         flags.push("UTD (Under-Temp Discharge)");
     }
+    if value & (1 << 28) != 0 {
+        flags.push("COVL (Cell Over-Voltage Latch)");
+    }
+    if value & (1 << 29) != 0 {
+        flags.push("OCDL (Over-Current Discharge Latch)");
+    }
     flags
 }
 
 /// Decode PFAlert/PFStatus register bits (BQ40z50)
-/// Based on TI BQ40z50 Technical Reference Manual
-fn decode_pf_status(value: u32) -> Vec<&'static str> {
+/// Based on TI bq40z50-R2 (SLUUA43A) and bq40z50-R3 (SLUUBU5A) datasheets
+fn decode_pf_status(value: u32, is_r3: bool) -> Vec<&'static str> {
     let mut flags = Vec::new();
+    // Lower 16 bits (PFAlert 0x0052 / PFStatus 0x0053)
     if value & (1 << 0) != 0 {
         flags.push("SUV (Safety Cell Under-Voltage)");
     }
@@ -378,64 +417,87 @@ fn decode_pf_status(value: u32) -> Vec<&'static str> {
         flags.push("SOT (Safety Over-Temp Cell)");
     }
     if value & (1 << 5) != 0 {
-        flags.push("SOTF (Safety Over-Temp FET)");
+        flags.push("COVL (Cell Over-Voltage Latch)");
     }
     if value & (1 << 6) != 0 {
-        flags.push("VIMR (Voltage Imbalance at Rest)");
+        flags.push("SOTF (Safety Over-Temp FET)");
     }
     if value & (1 << 7) != 0 {
-        flags.push("VIMA (Voltage Imbalance Active)");
-    }
-    if value & (1 << 8) != 0 {
         flags.push("QIM (QMax Imbalance)");
     }
-    if value & (1 << 9) != 0 {
+    if value & (1 << 8) != 0 {
         flags.push("CB (Cell Balancing Failure)");
     }
-    if value & (1 << 10) != 0 {
+    if value & (1 << 9) != 0 {
         flags.push("IMP (Impedance Failure)");
     }
-    if value & (1 << 11) != 0 {
+    if value & (1 << 10) != 0 {
         flags.push("CD (Coulomb Counter Failure)");
     }
+    if value & (1 << 11) != 0 {
+        flags.push("VIMR (Voltage Imbalance at Rest)");
+    }
     if value & (1 << 12) != 0 {
-        flags.push("FUSE (Chemical Fuse Failure)");
+        flags.push("VIMA (Voltage Imbalance Active)");
     }
     if value & (1 << 13) != 0 {
-        flags.push("AFER (AFE Register Failure)");
+        flags.push("AOLDL (Overload in Discharge Latch)");
     }
     if value & (1 << 14) != 0 {
-        flags.push("AFEC (AFE Communication Failure)");
+        flags.push("ASCCL (Short-Circuit Charge Latch)");
     }
     if value & (1 << 15) != 0 {
-        flags.push("2LVL (Second Level Safety)");
+        flags.push("ASCDL (Short-Circuit Discharge Latch)");
     }
+    // Upper 16 bits
     if value & (1 << 16) != 0 {
-        flags.push("PTC (Open PTC Failure)");
-    }
-    if value & (1 << 17) != 0 {
         flags.push("CFETF (Charge FET Failure)");
     }
-    if value & (1 << 18) != 0 {
+    if value & (1 << 17) != 0 {
         flags.push("DFETF (Discharge FET Failure)");
     }
+    if value & (1 << 18) != 0 {
+        flags.push("OCDL (Over-Current Discharge Latch)");
+    }
     if value & (1 << 19) != 0 {
-        flags.push("TS1 (Open Thermistor TS1)");
+        flags.push("FUSE (Chemical Fuse Failure)");
     }
     if value & (1 << 20) != 0 {
-        flags.push("TS2 (Open Thermistor TS2)");
+        flags.push("AFER (AFE Register Failure)");
     }
     if value & (1 << 21) != 0 {
-        flags.push("TS3 (Open Thermistor TS3)");
+        flags.push("AFEC (AFE Communication Failure)");
     }
     if value & (1 << 22) != 0 {
-        flags.push("TS4 (Open Thermistor TS4)");
+        flags.push("2LVL (Second Level Safety)");
     }
     if value & (1 << 23) != 0 {
-        flags.push("DFW (Data Flash Wearout)");
+        flags.push("PTC (Open PTC Failure)");
     }
     if value & (1 << 24) != 0 {
-        flags.push("HWMX (HW Max Cell Voltage)");
+        flags.push("IFC (Instruction Flash Checksum)");
+    }
+    if value & (1 << 25) != 0 {
+        if is_r3 {
+            flags.push("FORCE (Manual PF)");
+        } else {
+            flags.push("OPNCELL (Open Cell Voltage Connection)");
+        }
+    }
+    if value & (1 << 26) != 0 {
+        flags.push("DFW (Data Flash Wearout)");
+    }
+    if value & (1 << 28) != 0 {
+        flags.push("TS1 (Open Thermistor TS1)");
+    }
+    if value & (1 << 29) != 0 {
+        flags.push("TS2 (Open Thermistor TS2)");
+    }
+    if value & (1 << 30) != 0 {
+        flags.push("TS3 (Open Thermistor TS3)");
+    }
+    if value & (1 << 31) != 0 {
+        flags.push("TS4 (Open Thermistor TS4)");
     }
     flags
 }
@@ -453,8 +515,8 @@ fn print_status_flags(label: &str, value: u32, flags: Vec<&str>) {
 }
 
 /// Print operation status flags on multiple lines
-fn print_operation_status(value: u32) {
-    let flags = decode_operation_status(value);
+fn print_operation_status(value: u32, is_r3: bool) {
+    let flags = decode_operation_status(value, is_r3);
     println!("Operation Status: 0x{:08X}", value);
     for flag in flags {
         println!("  - {}", flag);
@@ -687,6 +749,13 @@ impl SmartBattery {
         Ok(())
     }
 
+    /// Read a ManufacturerAccess block command by writing the sub-command
+    /// to register 0x00 and reading the response from 0x44
+    fn mac_read(&self, ec: &CrosEc, subcmd: u16, max_len: u16) -> EcResult<Vec<u8>> {
+        self.smbus_write_block(ec, 0x00, &subcmd.to_le_bytes())?;
+        self.read_block(ec, 0x44, max_len)
+    }
+
     /// Authenticate the battery using SHA-1 HMAC challenge-response
     pub fn authenticate_battery(&self, ec: &CrosEc, auth_key: &[u8; 16]) -> EcResult<bool> {
         // 1. Generate a random 20-byte challenge
@@ -842,10 +911,14 @@ impl SmartBattery {
         data.manufacture_date = self.read_i16(ec, SmartBatReg::ManufactureDate as u16)?;
         data.temperature = self.read_i16(ec, SmartBatReg::Temp as u16)?;
         data.voltage = self.read_i16(ec, SmartBatReg::Voltage as u16)?;
+        // Per datasheet: 0x3C=Cell4, 0x3D=Cell3, 0x3E=Cell2, 0x3F=Cell1
         data.cell_voltage1 = self.read_i16(ec, SmartBatReg::CellVoltage1 as u16)?;
         data.cell_voltage2 = self.read_i16(ec, SmartBatReg::CellVoltage2 as u16)?;
         data.cell_voltage3 = self.read_i16(ec, SmartBatReg::CellVoltage3 as u16)?;
         data.cell_voltage4 = self.read_i16(ec, SmartBatReg::CellVoltage4 as u16)?;
+
+        // Read firmware version (MAC 0x0002, available in SEALED mode)
+        data.firmware_version = self.mac_read(ec, 0x0002, 14).unwrap_or_default();
         data.cycle_count = self.read_i16(ec, SmartBatReg::CycleCount as u16)?;
         data.device_name = self.read_string(ec, SmartBatReg::DeviceName as u16)?;
         data.manufacturer_name = self.read_string(ec, SmartBatReg::ManufacturerName as u16)?;
@@ -901,6 +974,14 @@ impl SmartBattery {
     }
 }
 
+/// Determine if the battery is bq40z50-R3 based on available data.
+/// R3 returns 4-byte LifeTime3 (1×u32), R2 returns 16-byte (8×u16).
+/// Defaults to R3 when no lifetime data is available.
+fn is_r3(data: &BatteryData) -> bool {
+    // TODO: Use firmware_version device number once R2/R3 values are confirmed
+    data.lifetime3.len() != 16
+}
+
 /// Display decoded battery data from a BatteryData struct
 pub fn display_battery_data(data: &BatteryData) {
     println!("Mode:          0x{:04X}", data.mode);
@@ -942,6 +1023,9 @@ pub fn display_battery_data(data: &BatteryData) {
     println!("Cycle Count:   {}", data.cycle_count);
     println!("Device Name:   {}", data.device_name);
     println!("Manuf Name:    {}", data.manufacturer_name);
+    if !data.firmware_version.is_empty() {
+        println!("FW Version:    {}", hex_encode(&data.firmware_version));
+    }
 
     // Unsealed data
     if !data.state_of_health.is_empty() {
@@ -952,7 +1036,8 @@ pub fn display_battery_data(data: &BatteryData) {
             u16::from_le_bytes([soh[2], soh[3]]) / 100,
             u16::from_le_bytes([soh[2], soh[3]]) % 100,
         );
-        print_operation_status(data.operation_status);
+        let r3 = is_r3(data);
+        print_operation_status(data.operation_status, r3);
         print_status_flags(
             "Safety Alert",
             data.safety_alert,
@@ -963,11 +1048,15 @@ pub fn display_battery_data(data: &BatteryData) {
             data.safety_status,
             decode_safety_status(data.safety_status),
         );
-        print_status_flags("PF Alert", data.pf_alert, decode_pf_status(data.pf_alert));
+        print_status_flags(
+            "PF Alert",
+            data.pf_alert,
+            decode_pf_status(data.pf_alert, r3),
+        );
         print_status_flags(
             "PF Status",
             data.pf_status,
-            decode_pf_status(data.pf_status),
+            decode_pf_status(data.pf_status, r3),
         );
 
         if data.lifetime1.len() >= 32 {
@@ -1068,40 +1157,58 @@ pub fn display_battery_data(data: &BatteryData) {
 
         if !data.lifetime3.is_empty() {
             println!("LifeTime3:");
-            if data.lifetime3.len() >= 4 {
+            if data.lifetime3.len() == 4 {
+                // R3 format: 1×u32 Total FW Runtime in seconds
+                let runtime_s = u32::from_le_bytes([
+                    data.lifetime3[0],
+                    data.lifetime3[1],
+                    data.lifetime3[2],
+                    data.lifetime3[3],
+                ]);
+                println!(
+                    "  Total FW Runtime:       {}s ({:.1}h)",
+                    runtime_s,
+                    runtime_s as f64 / 3600.0
+                );
+            } else if data.lifetime3.len() == 16 {
+                // R2 format: 8×u16 (runtime + 7 temperature time bins)
+                let lt3 = &data.lifetime3;
                 println!(
                     "  Total FW Runtime:       {}h",
-                    u16::from_le_bytes([data.lifetime3[0], data.lifetime3[1]])
+                    u16::from_le_bytes([lt3[0], lt3[1]])
                 );
                 println!(
                     "  Time in Under Temp:     {}h",
-                    u16::from_le_bytes([data.lifetime3[2], data.lifetime3[3]])
+                    u16::from_le_bytes([lt3[2], lt3[3]])
                 );
-            }
-            if data.lifetime3.len() >= 16 {
                 println!(
                     "  Time in Low Temp:       {}h",
-                    u16::from_le_bytes([data.lifetime3[4], data.lifetime3[5]])
+                    u16::from_le_bytes([lt3[4], lt3[5]])
                 );
                 println!(
                     "  Time in Std Temp Low:   {}h",
-                    u16::from_le_bytes([data.lifetime3[6], data.lifetime3[7]])
+                    u16::from_le_bytes([lt3[6], lt3[7]])
                 );
                 println!(
                     "  Time in Std Temp:       {}h",
-                    u16::from_le_bytes([data.lifetime3[8], data.lifetime3[9]])
+                    u16::from_le_bytes([lt3[8], lt3[9]])
                 );
                 println!(
                     "  Time in Std Temp High:  {}h",
-                    u16::from_le_bytes([data.lifetime3[10], data.lifetime3[11]])
+                    u16::from_le_bytes([lt3[10], lt3[11]])
                 );
                 println!(
                     "  Time in High Temp:      {}h",
-                    u16::from_le_bytes([data.lifetime3[12], data.lifetime3[13]])
+                    u16::from_le_bytes([lt3[12], lt3[13]])
                 );
                 println!(
                     "  Time in Over Temp:      {}h",
-                    u16::from_le_bytes([data.lifetime3[14], data.lifetime3[15]])
+                    u16::from_le_bytes([lt3[14], lt3[15]])
+                );
+            } else {
+                println!(
+                    "  Raw: {}",
+                    hex_encode(&data.lifetime3)
                 );
             }
         }
@@ -1141,7 +1248,7 @@ pub fn display_battery_data(data: &BatteryData) {
                     u16::from_le_bytes([lt4[22], lt4[23]])
                 );
                 println!(
-                    "  Open Load Detection:      {} (last @ cycle {})",
+                    "  Overload in Discharge:    {} (last @ cycle {})",
                     u16::from_le_bytes([lt4[24], lt4[25]]),
                     u16::from_le_bytes([lt4[26], lt4[27]])
                 );
@@ -1193,7 +1300,7 @@ pub fn display_battery_data(data: &BatteryData) {
                     u16::from_le_bytes([lt5[26], lt5[27]])
                 );
                 println!(
-                    "  Resistance Update Fails:  {} (last @ cycle {})",
+                    "  Ra Disable:               {} (last @ cycle {})",
                     u16::from_le_bytes([lt5[28], lt5[29]]),
                     u16::from_le_bytes([lt5[30], lt5[31]])
                 );
@@ -1343,12 +1450,12 @@ pub fn analyze_health(data: &BatteryData) {
     println!("  Cycle count: {}", data.cycle_count);
     if !data.state_of_health.is_empty() {
         let soh_mah = u16::from_le_bytes([data.state_of_health[0], data.state_of_health[1]]);
-        let soh_mwh = u16::from_le_bytes([data.state_of_health[2], data.state_of_health[3]]);
+        let soh_cwh = u16::from_le_bytes([data.state_of_health[2], data.state_of_health[3]]);
         println!(
-            "  Remaining capacity: {}mAh ({}.{:02}Wh)",
+            "  Full charge capacity: {}mAh ({}.{:02}Wh)",
             soh_mah,
-            soh_mwh / 100,
-            soh_mwh % 100
+            soh_cwh / 100,
+            soh_cwh % 100
         );
     }
     println!("  Current cell balance: {}mV spread", cell_delta);
