@@ -31,6 +31,18 @@ pub struct BatteryData {
     pub cycle_count: u16,
     pub device_name: String,
     pub manufacturer_name: String,
+    pub current: u16,
+    pub avg_current: u16,
+    pub rel_state_of_charge: u16,
+    pub abs_state_of_charge: u16,
+    pub remaining_capacity: u16,
+    pub full_charge_capacity: u16,
+    pub charging_current: u16,
+    pub charging_voltage: u16,
+    pub battery_status: u16,
+    pub design_capacity: u16,
+    pub design_voltage: u16,
+    pub device_chemistry: String,
     // Unsealed data (may be empty if not unsealed)
     pub state_of_health: Vec<u8>,
     pub operation_status: u32,
@@ -65,6 +77,18 @@ impl BatteryData {
         writeln!(file, "cycle_count={:04X}", self.cycle_count)?;
         writeln!(file, "device_name={}", self.device_name)?;
         writeln!(file, "manufacturer_name={}", self.manufacturer_name)?;
+        writeln!(file, "current={:04X}", self.current)?;
+        writeln!(file, "avg_current={:04X}", self.avg_current)?;
+        writeln!(file, "rel_state_of_charge={:04X}", self.rel_state_of_charge)?;
+        writeln!(file, "abs_state_of_charge={:04X}", self.abs_state_of_charge)?;
+        writeln!(file, "remaining_capacity={:04X}", self.remaining_capacity)?;
+        writeln!(file, "full_charge_capacity={:04X}", self.full_charge_capacity)?;
+        writeln!(file, "charging_current={:04X}", self.charging_current)?;
+        writeln!(file, "charging_voltage={:04X}", self.charging_voltage)?;
+        writeln!(file, "battery_status={:04X}", self.battery_status)?;
+        writeln!(file, "design_capacity={:04X}", self.design_capacity)?;
+        writeln!(file, "design_voltage={:04X}", self.design_voltage)?;
+        writeln!(file, "device_chemistry={}", self.device_chemistry)?;
         writeln!(
             file,
             "state_of_health={}",
@@ -124,6 +148,38 @@ impl BatteryData {
                     "cycle_count" => data.cycle_count = u16::from_str_radix(value, 16).unwrap_or(0),
                     "device_name" => data.device_name = value.to_string(),
                     "manufacturer_name" => data.manufacturer_name = value.to_string(),
+                    "current" => data.current = u16::from_str_radix(value, 16).unwrap_or(0),
+                    "avg_current" => {
+                        data.avg_current = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "rel_state_of_charge" => {
+                        data.rel_state_of_charge = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "abs_state_of_charge" => {
+                        data.abs_state_of_charge = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "remaining_capacity" => {
+                        data.remaining_capacity = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "full_charge_capacity" => {
+                        data.full_charge_capacity = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "charging_current" => {
+                        data.charging_current = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "charging_voltage" => {
+                        data.charging_voltage = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "battery_status" => {
+                        data.battery_status = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "design_capacity" => {
+                        data.design_capacity = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "design_voltage" => {
+                        data.design_voltage = u16::from_str_radix(value, 16).unwrap_or(0)
+                    }
+                    "device_chemistry" => data.device_chemistry = value.to_string(),
                     "state_of_health" => data.state_of_health = hex_decode(value),
                     "operation_status" => {
                         data.operation_status = u32::from_str_radix(value, 16).unwrap_or(0)
@@ -166,11 +222,23 @@ enum SmartBatReg {
     Mode = 0x03,
     Temp = 0x08,
     Voltage = 0x09,
+    Current = 0x0A,
+    AverageCurrent = 0x0B,
+    RelativeStateOfCharge = 0x0D,
+    AbsoluteStateOfCharge = 0x0E,
+    RemainingCapacity = 0x0F,
+    FullChargeCapacity = 0x10,
+    ChargingCurrent = 0x14,
+    ChargingVoltage = 0x15,
+    BatteryStatus = 0x16,
     CycleCount = 0x17,
+    DesignCapacity = 0x18,
+    DesignVoltage = 0x19,
     ManufactureDate = 0x1B,
     SerialNum = 0x1C,
     ManufacturerName = 0x20,
     DeviceName = 0x21,
+    DeviceChemistry = 0x22,
     Authenticate = 0x2F,
     CellVoltage4 = 0x3C,
     CellVoltage3 = 0x3D,
@@ -498,6 +566,52 @@ fn decode_pf_status(value: u32, is_r3: bool) -> Vec<&'static str> {
     }
     if value & (1 << 31) != 0 {
         flags.push("TS4 (Open Thermistor TS4)");
+    }
+    flags
+}
+
+/// Decode BatteryStatus register bits (SBS spec)
+fn decode_battery_status(value: u16) -> Vec<&'static str> {
+    let mut flags = Vec::new();
+    // Error code (bits 0-3)
+    match value & 0x0F {
+        0 => {}
+        1 => flags.push("EC=Busy"),
+        3 => flags.push("EC=Unsupported"),
+        4 => flags.push("EC=AccessDenied"),
+        5 => flags.push("EC=Overflow"),
+        7 => flags.push("EC=Unknown"),
+        _ => flags.push("EC=Reserved"),
+    }
+    if value & (1 << 4) != 0 {
+        flags.push("FD (Fully Discharged)");
+    }
+    if value & (1 << 5) != 0 {
+        flags.push("FC (Fully Charged)");
+    }
+    if value & (1 << 6) != 0 {
+        flags.push("DSG (Discharging)");
+    }
+    if value & (1 << 7) != 0 {
+        flags.push("INIT (Initialization)");
+    }
+    if value & (1 << 8) != 0 {
+        flags.push("RTA (Remaining Time Alarm)");
+    }
+    if value & (1 << 9) != 0 {
+        flags.push("RCA (Remaining Capacity Alarm)");
+    }
+    if value & (1 << 11) != 0 {
+        flags.push("TDA (Terminate Discharge Alarm)");
+    }
+    if value & (1 << 12) != 0 {
+        flags.push("OTA (Over Temperature Alarm)");
+    }
+    if value & (1 << 14) != 0 {
+        flags.push("TCA (Terminate Charge Alarm)");
+    }
+    if value & (1 << 15) != 0 {
+        flags.push("OCA (Over-Charged Alarm)");
     }
     flags
 }
@@ -922,6 +1036,18 @@ impl SmartBattery {
         data.cycle_count = self.read_i16(ec, SmartBatReg::CycleCount as u16)?;
         data.device_name = self.read_string(ec, SmartBatReg::DeviceName as u16)?;
         data.manufacturer_name = self.read_string(ec, SmartBatReg::ManufacturerName as u16)?;
+        data.current = self.read_i16(ec, SmartBatReg::Current as u16)?;
+        data.avg_current = self.read_i16(ec, SmartBatReg::AverageCurrent as u16)?;
+        data.rel_state_of_charge = self.read_i16(ec, SmartBatReg::RelativeStateOfCharge as u16)?;
+        data.abs_state_of_charge = self.read_i16(ec, SmartBatReg::AbsoluteStateOfCharge as u16)?;
+        data.remaining_capacity = self.read_i16(ec, SmartBatReg::RemainingCapacity as u16)?;
+        data.full_charge_capacity = self.read_i16(ec, SmartBatReg::FullChargeCapacity as u16)?;
+        data.charging_current = self.read_i16(ec, SmartBatReg::ChargingCurrent as u16)?;
+        data.charging_voltage = self.read_i16(ec, SmartBatReg::ChargingVoltage as u16)?;
+        data.battery_status = self.read_i16(ec, SmartBatReg::BatteryStatus as u16)?;
+        data.design_capacity = self.read_i16(ec, SmartBatReg::DesignCapacity as u16)?;
+        data.design_voltage = self.read_i16(ec, SmartBatReg::DesignVoltage as u16)?;
+        data.device_chemistry = self.read_string(ec, SmartBatReg::DeviceChemistry as u16)?;
 
         // Unsealed data
         if let Some(key) = unseal_key {
@@ -1020,6 +1146,72 @@ pub fn display_battery_data(data: &BatteryData) {
         data.cell_voltage4 / 1000,
         data.cell_voltage4 % 1000
     );
+
+    // Current
+    let current_ma = data.current as i16;
+    let avg_current_ma = data.avg_current as i16;
+    println!(
+        "Current:       {:.3}A (avg {:.3}A)",
+        current_ma as f32 / 1000.0,
+        avg_current_ma as f32 / 1000.0
+    );
+
+    // Charge state - check CAPACITY_MODE (bit 15 of mode)
+    let capacity_10mwh = data.mode & 0x8000 != 0;
+    if capacity_10mwh {
+        println!(
+            "Charge:        {}% ({:.2} / {:.2} Wh)",
+            data.rel_state_of_charge,
+            data.remaining_capacity as f32 / 100.0,
+            data.full_charge_capacity as f32 / 100.0
+        );
+        println!(
+            "Design:        {:.2}Wh @ {}.{:03}V",
+            data.design_capacity as f32 / 100.0,
+            data.design_voltage / 1000,
+            data.design_voltage % 1000
+        );
+    } else {
+        println!(
+            "Charge:        {}% ({} / {} mAh)",
+            data.rel_state_of_charge,
+            data.remaining_capacity,
+            data.full_charge_capacity
+        );
+        println!(
+            "Design:        {}mAh @ {}.{:03}V",
+            data.design_capacity,
+            data.design_voltage / 1000,
+            data.design_voltage % 1000
+        );
+    }
+
+    // Charging info (only if battery is requesting charge)
+    if data.charging_current > 0 {
+        println!(
+            "Charging:      {:.3}A @ {}.{:03}V",
+            data.charging_current as f32 / 1000.0,
+            data.charging_voltage / 1000,
+            data.charging_voltage % 1000
+        );
+    }
+
+    if !data.device_chemistry.is_empty() {
+        println!("Chemistry:     {}", data.device_chemistry);
+    }
+
+    // Battery status
+    let status_flags = decode_battery_status(data.battery_status);
+    if status_flags.is_empty() {
+        println!("Bat Status:    0x{:04X}", data.battery_status);
+    } else {
+        println!(
+            "Bat Status:    0x{:04X} [{}]",
+            data.battery_status,
+            status_flags.join(", ")
+        );
+    }
+
     println!("Cycle Count:   {}", data.cycle_count);
     println!("Device Name:   {}", data.device_name);
     println!("Manuf Name:    {}", data.manufacturer_name);
