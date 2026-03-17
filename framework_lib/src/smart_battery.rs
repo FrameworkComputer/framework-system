@@ -1023,7 +1023,22 @@ pub fn display_battery_data(data: &BatteryData) {
     println!("Cycle Count:   {}", data.cycle_count);
     println!("Device Name:   {}", data.device_name);
     println!("Manuf Name:    {}", data.manufacturer_name);
-    if !data.firmware_version.is_empty() {
+    if data.firmware_version.len() >= 6 {
+        // MAC 0x0002 response: [subcmd_echo(2), device_num(2), fw_ver(2), build(2), ...]
+        let fw = &data.firmware_version;
+        let device_num = u16::from_le_bytes([fw[2], fw[3]]);
+        let fw_major = fw[5];
+        let fw_minor = fw[4];
+        let build = if fw.len() >= 8 {
+            format!(" Build=0x{:04X}", u16::from_le_bytes([fw[6], fw[7]]))
+        } else {
+            String::new()
+        };
+        println!(
+            "FW Version:    Device=0x{:04X} FW={:02}.{:02}{}",
+            device_num, fw_major, fw_minor, build
+        );
+    } else if !data.firmware_version.is_empty() {
         println!("FW Version:    {}", hex_encode(&data.firmware_version));
     }
 
