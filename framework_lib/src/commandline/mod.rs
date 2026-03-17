@@ -1360,7 +1360,15 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 if ec.get_gpio("sleep_l").is_ok() {
                     ec.print_fw16_inputdeck_status()
                 } else {
-                    println!("  Unable to tell");
+                    if let Ok(status) = ec.get_input_deck_status() {
+                        println!("  Deck State:          {:?}", status.state);
+                        println!(
+                            "  Touchpad present:    {} ({})",
+                            status.touchpad_present, status.touchpad_id
+                        );
+                    } else {
+                        println!("  Unable to tell");
+                    }
                     Ok(())
                 }
             }
