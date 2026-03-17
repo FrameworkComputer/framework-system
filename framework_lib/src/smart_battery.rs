@@ -1180,10 +1180,10 @@ pub fn display_battery_data(data: &BatteryData) {
                     data.lifetime3[2],
                     data.lifetime3[3],
                 ]);
+                let hours = runtime_s as f64 / 3600.0;
                 println!(
-                    "  Total FW Runtime:       {}s ({:.1}h)",
-                    runtime_s,
-                    runtime_s as f64 / 3600.0
+                    "  Total FW Runtime:       {}s ({:.1}h / {:.1}d)",
+                    runtime_s, hours, hours / 24.0
                 );
             } else if data.lifetime3.len() == 16 {
                 // R2 format: 8×u16 (runtime + 7 temperature time bins)
