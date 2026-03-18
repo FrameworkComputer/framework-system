@@ -1,0 +1,55 @@
+name: framework-tool
+base: core24
+adopt-info: framework-tool
+summary: CLI tool to inspect and control Framework Computer systems
+description: |
+  framework_tool is a CLI utility to interact with Framework Computer laptop
+  and desktop firmware and hardware. Features include:
+  .
+  - Firmware inspection and updates (BIOS, EC, PD controllers, retimers)
+  - System status monitoring (power, thermal, sensors, USB-C ports)
+  - Hardware configuration (keyboard backlight, battery charge limits, fan control)
+  - Expansion card management (HDMI/DP/audio cards)
+  - Framework 16 specific features (input deck, expansion bay)
+  - NVIDIA GPU support
+  .
+  Note: Most features require root privileges (sudo framework-tool ...).
+
+grade: stable
+confinement: classic
+compression: lzo
+
+parts:
+  framework-tool:
+    plugin: rust
+    source: .
+    build-packages:
+      - libhidapi-dev
+      - libusb-1.0-0-dev
+      - libudev-dev
+      - pkg-config
+    stage-packages:
+      - libhidapi-hidraw0
+      - libusb-1.0-0
+      - libudev1
+    override-pull: |
+      craftctl default
+      VERSION=$(craftctl get version)
+      if [ -z $VERSION ]; then
+        VERSION=$(git describe --tags --abbrev=10)
+        craftctl set version=$VERSION
+      fi
+    override-build: |
+      cd "${CRAFT_PART_SRC}"
+      cargo build --release -p framework_tool --features nvidia
+      install -Dm755 target/release/framework_tool "${CRAFT_PART_INSTALL}/bin/framework_tool"
+      install -Dm644 "${CRAFT_PART_SRC}/completions/bash/framework_tool" \
+        "${CRAFT_PART_INSTALL}/share/bash-completion/completions/framework_tool"
+      install -Dm644 "${CRAFT_PART_SRC}/completions/zsh/_framework_tool" \
+        "${CRAFT_PART_INSTALL}/share/zsh/site-functions/_framework_tool"
+      install -Dm644 "${CRAFT_PART_SRC}/completions/fish/framework_tool.fish" \
+        "${CRAFT_PART_INSTALL}/share/fish/vendor_completions.d/framework_tool.fish"
+
+apps:
+  framework-tool:
+    command: bin/framework_tool
