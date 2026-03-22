@@ -8,6 +8,7 @@
 6. Notify distribution maintainers (See README)
 7. Do winget release (See below)
 8. Do crates.io release (See below)
+9. Do freebsd release (See below)
 
 ## winget
 
@@ -49,4 +50,38 @@ Publish
 ```
 cargo publish -p framework_lib
 cargo publish -p framework_tool
+
+## FreeBSD
+
+```
+# One time
+git clone https://github.com/freebsd/freebsd-ports
+cd freebsd-ports/sysutils/framework-system
+sudo chown -R $(whoami) /var/db/ports
+
+cd sysutils/framework-system
+
+git checkout -b framework-system-v0.5.0
+
+# Edit DISTVERSION=0.5.0 and remove PORTREVISION
+nvim sysutils/framework-system/Makefile
+
+# Generate the hash of the package source
+make makesum
+
+# Regenerate the dependency information
+make cargo-crates > Makefile.crates
+
+# Generate the hash of the package dependencies
+make makesum
+
+# Build
+make -V BUILD_DEPENDS
+make clean
+make BATCH=yes build
+
+# Checking if everything is ok
+make package
+make stage-qa
+make check-plist
 ```
