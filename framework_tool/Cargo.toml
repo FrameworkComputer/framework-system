@@ -44,9 +44,9 @@ priority = "optional"
 features = ["nvidia"]
 assets = [
     ["target/release/framework_tool", "usr/bin/", "755"],
-    ["../completions/bash/framework_tool", "usr/share/bash-completion/completions/framework_tool", "644"],
-    ["../completions/zsh/_framework_tool", "usr/share/zsh/site-functions/_framework_tool", "644"],
-    ["../completions/fish/framework_tool.fish", "usr/share/fish/vendor_completions.d/framework_tool.fish", "644"],
+    ["completions/bash/framework_tool", "usr/share/bash-completion/completions/framework_tool", "644"],
+    ["completions/zsh/_framework_tool", "usr/share/zsh/site-functions/_framework_tool", "644"],
+    ["completions/fish/framework_tool.fish", "usr/share/fish/vendor_completions.d/framework_tool.fish", "644"],
     ["../LICENSE.md", "usr/share/doc/framework-tool/LICENSE.md", "644"],
     ["../README.md", "usr/share/doc/framework-tool/README.md", "644"],
 ]
@@ -54,9 +54,9 @@ assets = [
 [package.metadata.generate-rpm]
 assets = [
     { source = "target/release/framework_tool", dest = "/usr/bin/framework_tool", mode = "755" },
-    { source = "../completions/bash/framework_tool", dest = "/usr/share/bash-completion/completions/framework_tool", mode = "644" },
-    { source = "../completions/zsh/_framework_tool", dest = "/usr/share/zsh/site-functions/_framework_tool", mode = "644" },
-    { source = "../completions/fish/framework_tool.fish", dest = "/usr/share/fish/vendor_completions.d/framework_tool.fish", mode = "644" },
+    { source = "completions/bash/framework_tool", dest = "/usr/share/bash-completion/completions/framework_tool", mode = "644" },
+    { source = "completions/zsh/_framework_tool", dest = "/usr/share/zsh/site-functions/_framework_tool", mode = "644" },
+    { source = "completions/fish/framework_tool.fish", dest = "/usr/share/fish/vendor_completions.d/framework_tool.fish", mode = "644" },
     { source = "../LICENSE.md", dest = "/usr/share/doc/framework-tool/LICENSE.md", mode = "644", doc = true },
     { source = "../README.md", dest = "/usr/share/doc/framework-tool/README.md", mode = "644", doc = true },
 ]

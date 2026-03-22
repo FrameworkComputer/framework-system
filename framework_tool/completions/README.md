@@ -8,9 +8,9 @@ If you modify the CLI arguments, regenerate completions:
 
 ```bash
 cargo build
-./target/debug/framework_tool --generate-completions bash > completions/bash/framework_tool
-./target/debug/framework_tool --generate-completions zsh > completions/zsh/_framework_tool
-./target/debug/framework_tool --generate-completions fish > completions/fish/framework_tool.fish
+./target/debug/framework_tool --generate-completions bash > framework_tool/completions/bash/framework_tool
+./target/debug/framework_tool --generate-completions zsh > framework_tool/completions/zsh/_framework_tool
+./target/debug/framework_tool --generate-completions fish > framework_tool/completions/fish/framework_tool.fish
 ```
 
 ## Testing
@@ -20,21 +20,21 @@ cargo build
 **Bash:**
 ```bash
 export PATH="$PWD/target/debug:$PATH"
-source completions/bash/framework_tool
+source framework_tool/completions/bash/framework_tool
 framework_tool --<TAB>
 ```
 
 **Zsh:**
 ```zsh
 export PATH="$PWD/target/debug:$PATH"
-source completions/zsh/_framework_tool
+source framework_tool/completions/zsh/_framework_tool
 framework_tool --<TAB>
 ```
 
 **Fish:**
 ```fish
 fish_add_path $PWD/target/debug
-source completions/fish/framework_tool.fish
+source framework_tool/completions/fish/framework_tool.fish
 framework_tool --<TAB>
 ```
 
