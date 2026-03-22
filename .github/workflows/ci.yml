@@ -204,9 +204,9 @@ jobs:
         ./target/debug/framework_tool --generate-completions bash > /tmp/bash_completions
         ./target/debug/framework_tool --generate-completions zsh > /tmp/zsh_completions
         ./target/debug/framework_tool --generate-completions fish > /tmp/fish_completions
-        diff completions/bash/framework_tool /tmp/bash_completions || { echo "Shell completions are out of date. See completions/README.md for regeneration instructions."; exit 1; }
-        diff completions/zsh/_framework_tool /tmp/zsh_completions || { echo "Shell completions are out of date. See completions/README.md for regeneration instructions."; exit 1; }
-        diff completions/fish/framework_tool.fish /tmp/fish_completions || { echo "Shell completions are out of date. See completions/README.md for regeneration instructions."; exit 1; }
+        diff framework_tool/completions/bash/framework_tool /tmp/bash_completions || { echo "Shell completions are out of date. See framework_tool/completions/README.md for regeneration instructions."; exit 1; }
+        diff framework_tool/completions/zsh/_framework_tool /tmp/zsh_completions || { echo "Shell completions are out of date. See framework_tool/completions/README.md for regeneration instructions."; exit 1; }
+        diff framework_tool/completions/fish/framework_tool.fish /tmp/fish_completions || { echo "Shell completions are out of date. See framework_tool/completions/README.md for regeneration instructions."; exit 1; }
 
   # Just make sure doc generation works
   doc:
