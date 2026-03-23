@@ -38,7 +38,7 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
 ### Windows
 
 ```
-winget install framework_tool
+winget install framework_tool --source winget
 ```
 
 ### FreeBSD
