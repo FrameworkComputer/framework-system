@@ -13,7 +13,7 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
 
 - NixOS/nixpkgs [![nixpkgs unstable package](https://repology.org/badge/version-for-repo/nix_unstable/framework-tool.svg)](https://repology.org/project/framework-tool/versions)
   - `nix-shell -p framework-tool`
-- [ArchLinux](https://archlinux.org/packages/extra/x86_64/framework-system/)
+- [ArchLinux](https://archlinux.org/packages/extra/x86_64/framework-system/) [![Arch Linux package](https://repology.org/badge/version-for-repo/arch/framework-system.svg)](https://repology.org/project/framework-system/versions)
   - `pacman -S framework-system`
 - [Bazzite](https://github.com/ublue-os/bazzite/pull/3026)
   - No need to install - included in the base image
@@ -25,6 +25,13 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
   - `emerge framework_tool`
 - Rhino Linux [![Rhino Linux package](https://repology.org/badge/version-for-repo/pacstall/framework-system.svg)](https://repology.org/project/framework-system/versions)
   - `pacstall -I framework-system-bin`
+- [![Void Linux x86_64 package](https://repology.org/badge/version-for-repo/void_x86_64/framework-system.svg)](https://repology.org/project/framework-system/versions)
+  - `sudo xbps-install -S framework-system`
+- Manjaro
+  - [![Manjaro Stable package](https://repology.org/badge/version-for-repo/manjaro_stable/framework-system.svg)](https://repology.org/project/framework-system/versions)
+  - [![Manjaro Testing package](https://repology.org/badge/version-for-repo/manjaro_testing/framework-system.svg)](https://repology.org/project/framework-system/versions)
+  - [![Manjaro Unstable package](https://repology.org/badge/version-for-repo/manjaro_unstable/framework-system.svg)](https://repology.org/project/framework-system/versions)
+  - `pacman -S framework-system`
 - Others
   - Build from source
   - Or download [latest binary](https://github.com/FrameworkComputer/framework-system/releases/latest/download/framework_tool)
@@ -42,6 +49,8 @@ winget install framework_tool
 ```
 
 ### FreeBSD
+
+[![FreeBSD port](https://repology.org/badge/version-for-repo/freebsd/framework-system.svg)](https://repology.org/project/framework-system/versions)
 
 ```
 sudo pkg install framework-system
