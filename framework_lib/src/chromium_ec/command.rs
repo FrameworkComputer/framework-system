@@ -90,7 +90,7 @@ pub enum EcCommands {
     PriavcySwitchesCheckMode = 0x3E14,
     /// Not used by this library
     ChassisCounter = 0x3E15,
-    /// Check the status of the input module deck (Framework 13 and 16)
+    /// Check the status of the input module deck (Laptop 12, 13, 16)
     CheckDeckState = 0x3E16,
     /// Not used by this library
     GetSimpleVersion = 0x3E17,
