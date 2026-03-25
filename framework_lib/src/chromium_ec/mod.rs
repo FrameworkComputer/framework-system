@@ -650,6 +650,11 @@ impl CrosEc {
         println!("  Audio Daughterboard: {} ({:?})", is_present(audio.is_some()), audio);
         println!("  Touchpad:            {} ({:?})", is_present(tp.is_some()), tp);
 
+        if let Ok(status) = self.get_input_deck_status() {
+            println!("  Deck State:          {:?}", status.state);
+            println!("  Touchpad present:    {}", status.touchpad_present);
+        }
+
         Ok(())
     }
 
