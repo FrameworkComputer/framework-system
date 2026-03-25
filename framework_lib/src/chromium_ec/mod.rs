@@ -64,7 +64,8 @@ const EC_MEMMAP_SIZE: u16 = 0xFF;
 /// representing 'EC' in ASCII (0x20 == 'E', 0x21 == 'C')
 const EC_MEMMAP_ID: u16 = 0x20;
 
-const FLASH_BASE: u32 = 0x0; // 0x80000
+const FLASH_BASE: u32 = 0x0;
+const FLASH_SIZE: u32 = 0x80000;
 const FLASH_RO_BASE: u32 = 0x0;
 const FLASH_RO_SIZE: u32 = 0x3C000;
 const FLASH_RW_BASE: u32 = 0x40000;
@@ -76,6 +77,7 @@ const FLASH_PROGRAM_OFFSET: u32 = 0x1000;
 #[derive(Clone, Debug, PartialEq)]
 pub enum EcFlashType {
     Full,
+    Both,
     Ro,
     Rw,
 }
@@ -817,7 +819,7 @@ impl CrosEc {
             ));
         };
 
-        if ft == EcFlashType::Full || ft == EcFlashType::Ro {
+        if matches!(ft, EcFlashType::Full | EcFlashType::Both | EcFlashType::Ro) {
             if let Some(version) = ec_binary::read_ec_version(data, true) {
                 println!("EC RO Version in File: {:?}", version.version);
                 if version.details.platform != platform {
@@ -832,7 +834,7 @@ impl CrosEc {
                 ));
             }
         }
-        if ft == EcFlashType::Full || ft == EcFlashType::Rw {
+        if matches!(ft, EcFlashType::Full | EcFlashType::Both | EcFlashType::Rw) {
             if let Some(version) = ec_binary::read_ec_version(data, false) {
                 println!("EC RW Version in File: {:?}", version.version);
                 if version.details.platform != platform {
@@ -874,7 +876,41 @@ impl CrosEc {
         // 2. Read back two rows and make sure it's all 0xFF
         // 3. Write each row (128B) individually
 
-        if ft == EcFlashType::Full || ft == EcFlashType::Rw {
+        if ft == EcFlashType::Full {
+            if data.len() < FLASH_SIZE as usize {
+                return Err(EcError::DeviceError(format!(
+                    "Firmware file too small for full flash. Expected {} bytes, got {}",
+                    FLASH_SIZE,
+                    data.len()
+                )));
+            }
+            let data = &data[..FLASH_SIZE as usize];
+
+            println!(
+                "Erasing full flash{}",
+                if dry_run { " (DRY RUN)" } else { "" }
+            );
+            self.erase_ec_flash(FLASH_BASE, FLASH_SIZE, dry_run, info.erase_block_size)?;
+            println!("  Done");
+
+            println!(
+                "Writing full flash{}",
+                if dry_run { " (DRY RUN)" } else { "" }
+            );
+            self.write_ec_flash(FLASH_BASE, data, dry_run)?;
+            println!("  Done");
+
+            println!("Verifying full flash region");
+            let flash_data = self.read_ec_flash(FLASH_BASE, FLASH_SIZE)?;
+            if data == flash_data {
+                println!("  flash verify success");
+            } else {
+                error!("Flash verify fail!");
+                res = Err(EcError::DeviceError("Flash verify fail!".to_string()));
+            }
+        }
+
+        if ft == EcFlashType::Both || ft == EcFlashType::Rw {
             let rw_data = &data[FLASH_RW_BASE as usize..(FLASH_RW_BASE + FLASH_RW_SIZE) as usize];
 
             println!(
@@ -906,7 +942,7 @@ impl CrosEc {
             }
         }
 
-        if ft == EcFlashType::Full || ft == EcFlashType::Ro {
+        if ft == EcFlashType::Both || ft == EcFlashType::Ro {
             let ro_data = &data[FLASH_RO_BASE as usize..(FLASH_RO_BASE + FLASH_RO_SIZE) as usize];
 
             println!("Erasing RO region");

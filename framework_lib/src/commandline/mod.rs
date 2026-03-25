@@ -185,6 +185,7 @@ pub struct Cli {
     pub dump: Option<String>,
     pub h2o_capsule: Option<String>,
     pub dump_ec_flash: Option<String>,
+    pub flash_full_ec: Option<String>,
     pub flash_ec: Option<String>,
     pub flash_ro_ec: Option<String>,
     pub flash_rw_ec: Option<String>,
@@ -273,6 +274,7 @@ pub fn parse(args: &[String]) -> Cli {
             dump: cli.dump,
             h2o_capsule: cli.h2o_capsule,
             // dump_ec_flash
+            // flash_full_ec
             // flash_ec
             // flash_ro_ec
             // flash_rw_ec
@@ -1722,9 +1724,15 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         println!("Dumping to {}", dump_path);
         // TODO: Should have progress indicator
         dump_ec_flash(&ec, dump_path);
-    } else if let Some(ec_bin_path) = &args.flash_ec {
+    } else if let Some(ec_bin_path) = &args.flash_full_ec {
         if args.force {
             flash_ec(&ec, ec_bin_path, EcFlashType::Full, args.dry_run);
+        } else {
+            error!("Flashing full EC flash is unsafe. Use --flash-ec instead");
+        }
+    } else if let Some(ec_bin_path) = &args.flash_ec {
+        if args.force {
+            flash_ec(&ec, ec_bin_path, EcFlashType::Both, args.dry_run);
         } else {
             error!("Flashing EC RO region is unsafe. Use --flash-ec-rw instead");
         }

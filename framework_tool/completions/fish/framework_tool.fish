@@ -22,6 +22,7 @@ complete -c framework_tool -l capsule -d 'Parse UEFI Capsule information from bi
 complete -c framework_tool -l dump -d 'Dump extracted UX capsule bitmap image to a file' -r -F
 complete -c framework_tool -l h2o-capsule -d 'Parse UEFI Capsule information from binary file' -r -F
 complete -c framework_tool -l dump-ec-flash -d 'Dump EC flash contents' -r -F
+complete -c framework_tool -l flash-full-ec -d 'Flash full EC flash with new firmware from file - may render your hardware unbootable!' -r -F
 complete -c framework_tool -l flash-ec -d 'Flash EC (RO+RW) with new firmware from file - may render your hardware unbootable!' -r -F
 complete -c framework_tool -l flash-ro-ec -d 'Flash EC with new RO firmware from file - may render your hardware unbootable!' -r -F
 complete -c framework_tool -l flash-rw-ec -d 'Flash EC with new RW firmware from file' -r -F

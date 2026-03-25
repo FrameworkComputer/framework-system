@@ -32,6 +32,7 @@ _framework_tool() {
 '--dump=[Dump extracted UX capsule bitmap image to a file]:DUMP:_files' \
 '--h2o-capsule=[Parse UEFI Capsule information from binary file]:H2O_CAPSULE:_files' \
 '--dump-ec-flash=[Dump EC flash contents]:DUMP_EC_FLASH:_files' \
+'--flash-full-ec=[Flash full EC flash with new firmware from file - may render your hardware unbootable!]:FLASH_FULL_EC:_files' \
 '--flash-ec=[Flash EC (RO+RW) with new firmware from file - may render your hardware unbootable!]:FLASH_EC:_files' \
 '--flash-ro-ec=[Flash EC with new RO firmware from file - may render your hardware unbootable!]:FLASH_RO_EC:_files' \
 '--flash-rw-ec=[Flash EC with new RW firmware from file]:FLASH_RW_EC:_files' \

@@ -143,6 +143,10 @@ struct ClapCli {
     #[arg(long)]
     dump_ec_flash: Option<std::path::PathBuf>,
 
+    /// Flash full EC flash with new firmware from file - may render your hardware unbootable!
+    #[arg(long)]
+    flash_full_ec: Option<std::path::PathBuf>,
+
     /// Flash EC (RO+RW) with new firmware from file - may render your hardware unbootable!
     #[arg(long)]
     flash_ec: Option<std::path::PathBuf>,
@@ -496,6 +500,9 @@ pub fn parse(args: &[String]) -> Cli {
             .map(|x| x.into_os_string().into_string().unwrap()),
         dump_ec_flash: args
             .dump_ec_flash
+            .map(|x| x.into_os_string().into_string().unwrap()),
+        flash_full_ec: args
+            .flash_full_ec
             .map(|x| x.into_os_string().into_string().unwrap()),
         flash_ec: args
             .flash_ec
