@@ -363,8 +363,12 @@ Input Deck
 > framework_tool --inputdeck
 Input Deck
   Chassis Closed:      true
-  Audio Daughterboard: Present
-  Touchpad:            Present
+  Audio Daughterboard: Present (7)
+    ADC Value          1056mV
+  Touchpad:            Present (7)
+    ADC Value          1042mV
+  Deck State:          On
+  Touchpad present:    true
 ```
 
 ### On Framework 16
