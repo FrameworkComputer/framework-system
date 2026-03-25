@@ -27,11 +27,11 @@ pub mod commands;
 mod cros_ec;
 pub mod i2c_passthrough;
 pub mod input_deck;
-#[cfg(not(windows))]
+#[cfg(all(not(windows), any(target_arch = "x86", target_arch = "x86_64")))]
 mod portio;
-#[cfg(not(windows))]
+#[cfg(all(not(windows), any(target_arch = "x86", target_arch = "x86_64")))]
 mod portio_hwio;
-#[cfg(not(windows))]
+#[cfg(all(not(windows), any(target_arch = "x86", target_arch = "x86_64")))]
 mod portio_mec;
 #[allow(dead_code)]
 mod protocol;
@@ -241,7 +241,7 @@ fn available_drivers() -> Vec<CrosEcDriverType> {
         drivers.push(CrosEcDriverType::CrosEc);
     }
 
-    #[cfg(not(windows))]
+    #[cfg(all(not(windows), any(target_arch = "x86", target_arch = "x86_64")))]
     drivers.push(CrosEcDriverType::Portio);
 
     drivers
@@ -1861,7 +1861,7 @@ impl CrosEcDriver for CrosEc {
 
         // TODO: Change this function to return EcResult instead and print the error only in UI code
         print_err(match self.driver {
-            #[cfg(not(windows))]
+            #[cfg(all(not(windows), any(target_arch = "x86", target_arch = "x86_64")))]
             CrosEcDriverType::Portio => portio::read_memory(offset, length),
             #[cfg(windows)]
             CrosEcDriverType::Windows => windows::read_memory(offset, length),
@@ -1883,7 +1883,7 @@ impl CrosEcDriver for CrosEc {
         }
 
         match self.driver {
-            #[cfg(not(windows))]
+            #[cfg(all(not(windows), any(target_arch = "x86", target_arch = "x86_64")))]
             CrosEcDriverType::Portio => portio::send_command(command, command_version, data),
             #[cfg(windows)]
             CrosEcDriverType::Windows => windows::send_command(command, command_version, data),
