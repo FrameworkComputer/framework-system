@@ -646,9 +646,42 @@ impl CrosEc {
 
         println!("Input Deck");
         println!("  Chassis Closed:      {}", !intrusion.currently_open);
-        println!("  Power Button Board:  {} ({:?})", is_present(pwrbtn.is_some()), pwrbtn);
-        println!("  Audio Daughterboard: {} ({:?})", is_present(audio.is_some()), audio);
-        println!("  Touchpad:            {} ({:?})", is_present(tp.is_some()), tp);
+        println!(
+            "  Power Button Board:  {}",
+            if let Some(pwrbtn) = pwrbtn {
+                format!("{} ({})", is_present(true), pwrbtn)
+            } else {
+                is_present(false).to_string()
+            }
+        );
+        println!(
+            "    ADC Value (mV)     {:?}",
+            self.adc_read(Framework12Adc::PowerButtonBoardId as u8)
+        );
+        println!(
+            "  Audio Daughterboard: {}",
+            if let Some(audio) = audio {
+                format!("{} ({})", is_present(true), audio)
+            } else {
+                is_present(false).to_string()
+            }
+        );
+        println!(
+            "    ADC Value (mV)     {:?}",
+            self.adc_read(Framework12Adc::AudioBoardId as u8)
+        );
+        println!(
+            "  Touchpad:            {}",
+            if let Some(tp) = tp {
+                format!("{} ({})", is_present(true), tp)
+            } else {
+                is_present(false).to_string()
+            }
+        );
+        println!(
+            "    ADC Value (mV)     {:?}",
+            self.adc_read(Framework12Adc::TouchpadBoardId as u8)
+        );
 
         if let Ok(status) = self.get_input_deck_status() {
             println!("  Deck State:          {:?}", status.state);
