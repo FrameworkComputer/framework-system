@@ -349,9 +349,12 @@ ESRT Entry 3
 > framework_tool --inputdeck
 Input Deck
   Chassis Closed:      true
-  Power Button Board:  Present
-  Audio Daughterboard: Present
-  Touchpad:            Present
+  Power Button Board:  Present (10)
+    ADC Value          1655mV
+  Audio Daughterboard: Present (2)
+    ADC Value          0302mV
+  Touchpad:            Present (10)
+    ADC Value          1655mV
 ```
 
 ### On Framework 13
