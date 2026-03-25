@@ -57,6 +57,7 @@ pub fn parse(args: &[String]) -> Cli {
         pd_bin: None,
         ec_bin: None,
         dump_ec_flash: None,
+        flash_full_ec: None,
         flash_ec: None,
         flash_ro_ec: None,
         flash_rw_ec: None,
@@ -651,6 +652,14 @@ pub fn parse(args: &[String]) -> Cli {
                 Some(args[i + 1].clone())
             } else {
                 println!("--dump-ec-flash requires extra argument to denote output file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--flash-full-ec" {
+            cli.flash_full_ec = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--flash-full-ec requires extra argument to denote input file");
                 None
             };
             found_an_option = true;
