@@ -167,7 +167,7 @@ struct ClapCli {
     #[arg(long)]
     inputdeck: bool,
 
-    /// Set input deck power mode [possible values: auto, off, on] (Framework 13 and 16)
+    /// Set input deck power mode [possible values: auto, off, on] (Laptop 12, 13, 16)
     #[arg(long)]
     inputdeck_mode: Option<InputDeckModeArg>,
 
