@@ -11,7 +11,7 @@
 use std::prelude::v1::*;
 
 use core::prelude::rust_2021::derive;
-use guid_create::CGuid;
+use guid_create::{CGuid, GUID};
 #[cfg(not(feature = "uefi"))]
 use std::fs::File;
 #[cfg(not(feature = "uefi"))]
@@ -112,10 +112,22 @@ fn print_capsule_flags(flags: u32) {
     }
 }
 
+fn read_capsule_header(data: &[u8]) -> EfiCapsuleHeader {
+    EfiCapsuleHeader {
+        capsule_guid: CGuid::from(GUID::build_from_components(
+            u32::from_le_bytes(data[0..4].try_into().unwrap()),
+            u16::from_le_bytes(data[4..6].try_into().unwrap()),
+            u16::from_le_bytes(data[6..8].try_into().unwrap()),
+            data[8..16].try_into().unwrap(),
+        )),
+        header_size: u32::from_le_bytes(data[16..20].try_into().unwrap()),
+        flags: u32::from_le_bytes(data[20..24].try_into().unwrap()),
+        capsule_image_size: u32::from_le_bytes(data[24..28].try_into().unwrap()),
+    }
+}
+
 pub fn parse_capsule_header(data: &[u8]) -> Option<EfiCapsuleHeader> {
-    let header_len = std::mem::size_of::<EfiCapsuleHeader>();
-    let header: EfiCapsuleHeader =
-        unsafe { std::ptr::read(data[0..header_len].as_ptr() as *const _) };
+    let header = read_capsule_header(data);
     if header.is_valid(data) {
         Some(header)
     } else {
@@ -141,10 +153,20 @@ pub fn print_capsule_header(header: &EfiCapsuleHeader) {
 }
 
 pub fn parse_ux_header(data: &[u8]) -> DisplayCapsule {
-    let header_len = std::mem::size_of::<DisplayCapsule>();
-    let header: DisplayCapsule =
-        unsafe { std::ptr::read(data[0..header_len].as_ptr() as *const _) };
-    header
+    let capsule_header = read_capsule_header(data);
+    let p = &data[std::mem::size_of::<EfiCapsuleHeader>()..];
+    DisplayCapsule {
+        capsule_header,
+        image_payload: DisplayPayload {
+            version: p[0],
+            checksum: p[1],
+            image_type: p[2],
+            reserved: p[3],
+            mode: u32::from_le_bytes(p[4..8].try_into().unwrap()),
+            offset_x: u32::from_le_bytes(p[8..12].try_into().unwrap()),
+            offset_y: u32::from_le_bytes(p[12..16].try_into().unwrap()),
+        },
+    }
 }
 pub fn print_ux_header(header: &DisplayCapsule) {
     let header_len = std::mem::size_of::<DisplayCapsule>();

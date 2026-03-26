@@ -16,19 +16,21 @@ const EC_RW_VER_OFFSET_ZEPHYR: usize = 0x40140;
 pub const EC_LEN: usize = 0x8_0000;
 
 use regex;
+use zerocopy::byteorder::little_endian::U32;
+use zerocopy::{FromBytes, KnownLayout};
 
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
 // Defined in EC code as `struct image_data` in include/cros_version.h
-#[derive(Clone, Copy, Debug)]
+#[derive(FromBytes, KnownLayout, Clone, Copy, Debug)]
 #[repr(C, packed)]
 struct _ImageVersionData {
-    cookie1: u32,
+    cookie1: U32,
     version: [u8; 32],
-    size: u32,
-    rollback_version: u32,
-    cookie2: u32,
+    size: U32,
+    rollback_version: U32,
+    cookie2: U32,
 }
 /// Version Information about an EC FW binary
 #[derive(Debug, PartialEq)]
@@ -79,8 +81,8 @@ fn parse_ec_version(data: &_ImageVersionData) -> Option<ImageVersionData> {
         .trim_end_matches(char::from(0));
     Some(ImageVersionData {
         version: version.to_string(),
-        size: data.size,
-        rollback_version: data.rollback_version,
+        size: data.size.get(),
+        rollback_version: data.rollback_version.get(),
         details: parse_ec_version_str(version)?,
     })
 }
@@ -151,18 +153,17 @@ pub fn read_ec_version(data: &[u8], ro: bool) -> Option<ImageVersionData> {
     } else {
         EC_RW_VER_OFFSET
     };
-    if data.len() < offset + core::mem::size_of::<_ImageVersionData>() {
-        return None;
-    }
-    let v: _ImageVersionData = unsafe { std::ptr::read(data[offset..].as_ptr() as *const _) };
-    if v.cookie1 != CROS_EC_IMAGE_DATA_COOKIE1 {
-        debug!("Failed to find legacy Cookie 1. Found: {:X?}", {
-            v.cookie1
-        });
-    } else if v.cookie2 != CROS_EC_IMAGE_DATA_COOKIE2 {
-        debug!("Failed to find legacy Cookie 2. Found: {:X?}", {
-            v.cookie2
-        });
+    let (v, _) = _ImageVersionData::read_from_prefix(data.get(offset..)?).ok()?;
+    if v.cookie1.get() != CROS_EC_IMAGE_DATA_COOKIE1 {
+        debug!(
+            "Failed to find legacy Cookie 1. Found: {:X?}",
+            v.cookie1.get()
+        );
+    } else if v.cookie2.get() != CROS_EC_IMAGE_DATA_COOKIE2 {
+        debug!(
+            "Failed to find legacy Cookie 2. Found: {:X?}",
+            v.cookie2.get()
+        );
     } else {
         return parse_ec_version(&v);
     }
@@ -173,19 +174,17 @@ pub fn read_ec_version(data: &[u8], ro: bool) -> Option<ImageVersionData> {
     } else {
         EC_RW_VER_OFFSET_ZEPHYR
     };
-    if data.len() < offset_zephyr + core::mem::size_of::<_ImageVersionData>() {
-        return None;
-    }
-    let v: _ImageVersionData =
-        unsafe { std::ptr::read(data[offset_zephyr..].as_ptr() as *const _) };
-    if v.cookie1 != CROS_EC_IMAGE_DATA_COOKIE1 {
-        debug!("Failed to find Zephyr Cookie 1. Found: {:X?}", {
-            v.cookie1
-        });
-    } else if v.cookie2 != CROS_EC_IMAGE_DATA_COOKIE2 {
-        debug!("Failed to find Zephyr Cookie 2. Found: {:X?}", {
-            v.cookie2
-        });
+    let (v, _) = _ImageVersionData::read_from_prefix(data.get(offset_zephyr..)?).ok()?;
+    if v.cookie1.get() != CROS_EC_IMAGE_DATA_COOKIE1 {
+        debug!(
+            "Failed to find Zephyr Cookie 1. Found: {:X?}",
+            v.cookie1.get()
+        );
+    } else if v.cookie2.get() != CROS_EC_IMAGE_DATA_COOKIE2 {
+        debug!(
+            "Failed to find Zephyr Cookie 2. Found: {:X?}",
+            v.cookie2.get()
+        );
     } else {
         return parse_ec_version(&v);
     }
@@ -204,11 +203,11 @@ mod tests {
     fn can_parse() {
         let ver_chars: &[u8] = b"hx30_v0.0.1-7a61a89\0\0\0\0\0\0\0\0\0\0\0\0\0";
         let data = _ImageVersionData {
-            cookie1: CROS_EC_IMAGE_DATA_COOKIE1,
+            cookie1: U32::new(CROS_EC_IMAGE_DATA_COOKIE1),
             version: ver_chars.try_into().unwrap(),
-            size: 2868,
-            rollback_version: 0,
-            cookie2: CROS_EC_IMAGE_DATA_COOKIE1,
+            size: U32::new(2868),
+            rollback_version: U32::new(0),
+            cookie2: U32::new(CROS_EC_IMAGE_DATA_COOKIE1),
         };
         debug_assert_eq!(
             parse_ec_version(&data),

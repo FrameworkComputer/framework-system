@@ -9,6 +9,8 @@ use alloc::vec::Vec;
 use core::prelude::rust_2021::derive;
 use num_derive::FromPrimitive;
 use std::fmt;
+use zerocopy::byteorder::little_endian::{U16, U32};
+use zerocopy::{FromBytes, KnownLayout};
 
 use crate::chromium_ec::{CrosEc, EcResult};
 use crate::smbios;
@@ -33,18 +35,18 @@ const METADATA_MAGIC: u16 = u16::from_le_bytes([b'Y', b'C']); // CY (Cypress)
 const CCG8_METADATA_MAGIC: u16 = u16::from_le_bytes([b'F', b'I']); // IF (Infineon)
 
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(FromBytes, KnownLayout, Debug, Copy, Clone)]
 struct CyAcdMetadata {
     /// Offset 00: Single Byte FW Checksum
     _fw_checksum: u8,
     /// Offset 01: FW Entry Address
     _fw_entry: u32,
     /// Offset 05: Last Flash row of Bootloader or previous firmware
-    boot_last_row: u16,
+    boot_last_row: U16,
     /// Offset 07: Reserved
     _reserved1: [u8; 2],
     /// Offset 09: Size of Firmware
-    fw_size: u32,
+    fw_size: U32,
     /// Offset 0D: Reserved
     _reserved2: [u8; 3],
     /// Offset 10: Creator specific field
@@ -56,7 +58,7 @@ struct CyAcdMetadata {
     /// Offset 14: Creator specific field
     _boot_app_id: u16,
     /// Offset 16: Metadata Valid field. Valid if contains "CY"
-    metadata_valid: u16,
+    metadata_valid: U16,
     /// Offset 18: Creator specific field
     _fw_version: u32,
     /// Offset 1C: Boot sequence number field. Boot-loader will load the valid
@@ -67,12 +69,12 @@ struct CyAcdMetadata {
 
 // TODO: Would be nice to check the checksums
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(FromBytes, KnownLayout, Debug, Copy, Clone)]
 struct CyAcd2Metadata {
     /// Offset 00: App Firmware Start
-    fw_start: u32,
+    fw_start: U32,
     /// Offset 04: App Firmware Size
-    fw_size: u32,
+    fw_size: U32,
     /// Offset 08: Boot wait time
     _boot_app_id: u16,
     /// Offset 0A: Last Flash row of Bootloader or previous firmware
@@ -89,9 +91,9 @@ struct CyAcd2Metadata {
     /// Offset 18: Reserved
     _reserved_1: [u32; 15],
     /// Offset 54: Version of the metadata structure
-    metadata_version: u16,
+    metadata_version: U16,
     /// Offset 56: Metadata Valid field. Valid if contains ASCII "IF"
-    metadata_valid: u16,
+    metadata_valid: U16,
     /// Offset 58: App Fw CRC32 checksum
     _fw_crc32: u32,
     /// Offset 5C: Reserved
@@ -267,12 +269,13 @@ pub fn get_pd_controller_versions(ec: &CrosEc) -> EcResult<PdVersions> {
 
 fn parse_metadata_ccg3(buffer: &[u8]) -> Option<(u32, u32)> {
     let buffer = &buffer[CCG3_METADATA_OFFSET..];
-    let metadata_len = std::mem::size_of::<CyAcdMetadata>();
-    let metadata: CyAcdMetadata =
-        unsafe { std::ptr::read(buffer[0..metadata_len].as_ptr() as *const _) };
+    let (metadata, _) = CyAcdMetadata::read_from_prefix(buffer).ok()?;
     trace!("Metadata: {:X?}", metadata);
-    if metadata.metadata_valid == METADATA_MAGIC {
-        Some((1 + metadata.boot_last_row as u32, metadata.fw_size))
+    if metadata.metadata_valid.get() == METADATA_MAGIC {
+        Some((
+            1 + metadata.boot_last_row.get() as u32,
+            metadata.fw_size.get(),
+        ))
     } else {
         None
     }
@@ -281,12 +284,13 @@ fn parse_metadata_ccg3(buffer: &[u8]) -> Option<(u32, u32)> {
 //fn parse_metadata(buffer: &[u8; 256]) -> Option<(u32, u32)> {
 fn parse_metadata_cyacd(buffer: &[u8]) -> Option<(u32, u32)> {
     let buffer = &buffer[METADATA_OFFSET..];
-    let metadata_len = std::mem::size_of::<CyAcdMetadata>();
-    let metadata: CyAcdMetadata =
-        unsafe { std::ptr::read(buffer[0..metadata_len].as_ptr() as *const _) };
+    let (metadata, _) = CyAcdMetadata::read_from_prefix(buffer).ok()?;
     trace!("Metadata: {:X?}", metadata);
-    if metadata.metadata_valid == METADATA_MAGIC {
-        Some((1 + metadata.boot_last_row as u32, metadata.fw_size))
+    if metadata.metadata_valid.get() == METADATA_MAGIC {
+        Some((
+            1 + metadata.boot_last_row.get() as u32,
+            metadata.fw_size.get(),
+        ))
     } else {
         None
     }
@@ -294,13 +298,11 @@ fn parse_metadata_cyacd(buffer: &[u8]) -> Option<(u32, u32)> {
 
 fn parse_metadata_cyacd2(buffer: &[u8]) -> Option<(u32, u32)> {
     let buffer = &buffer[CCG8_METADATA_OFFSET..];
-    let metadata_len = std::mem::size_of::<CyAcd2Metadata>();
-    let metadata: CyAcd2Metadata =
-        unsafe { std::ptr::read(buffer[0..metadata_len].as_ptr() as *const _) };
+    let (metadata, _) = CyAcd2Metadata::read_from_prefix(buffer).ok()?;
     trace!("Metadata: {:X?}", metadata);
-    if metadata.metadata_valid == CCG8_METADATA_MAGIC {
-        if metadata.metadata_version == 1 {
-            Some((metadata.fw_start, metadata.fw_size))
+    if metadata.metadata_valid.get() == CCG8_METADATA_MAGIC {
+        if metadata.metadata_version.get() == 1 {
+            Some((metadata.fw_start.get(), metadata.fw_size.get()))
         } else {
             println!("Unknown CCG8 metadata version");
             None

@@ -32,6 +32,8 @@ use alloc::vec::Vec;
 use core::prelude::rust_2021::derive;
 
 use crate::ccgx::{AppVersion, BaseVersion};
+use zerocopy::byteorder::little_endian::{U16, U32};
+use zerocopy::{FromBytes, KnownLayout};
 
 use super::*;
 
@@ -45,12 +47,12 @@ const SMALL_ROW: usize = 0x80;
 const LARGE_ROW: usize = 0x100;
 
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(FromBytes, KnownLayout, Debug, Copy, Clone)]
 struct VersionInfo {
-    base_version: u32,
-    app_version: u32,
-    silicon_id: u16,
-    silicon_family: u16,
+    base_version: U32,
+    app_version: U32,
+    silicon_id: U16,
+    silicon_family: U16,
 }
 
 pub const CCG5_PD_LEN: usize = 0x20_000;
@@ -147,15 +149,13 @@ fn read_version(
     trace!("First row of firmware: {:X?}", data);
     let data = &data[FW_VERSION_OFFSET..];
 
-    let version_len = std::mem::size_of::<VersionInfo>();
-    let version_info: VersionInfo =
-        unsafe { std::ptr::read(data[0..version_len].as_ptr() as *const _) };
+    let (version_info, _) = VersionInfo::read_from_prefix(data).ok()?;
 
-    let base_version = BaseVersion::from(version_info.base_version);
-    let app_version = AppVersion::from(version_info.app_version);
+    let base_version = BaseVersion::from(version_info.base_version.get());
+    let app_version = AppVersion::from(version_info.app_version.get());
 
-    let fw_silicon_id = version_info.silicon_id;
-    let fw_silicon_family = version_info.silicon_family;
+    let fw_silicon_id = version_info.silicon_id.get();
+    let fw_silicon_family = version_info.silicon_family.get();
 
     Some(PdFirmware {
         silicon_id: fw_silicon_id,
