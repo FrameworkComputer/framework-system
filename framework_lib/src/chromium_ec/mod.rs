@@ -70,6 +70,7 @@ const FLASH_RO_BASE: u32 = 0x0;
 const FLASH_RO_SIZE: u32 = 0x3C000;
 const FLASH_RW_BASE: u32 = 0x40000;
 const FLASH_RW_SIZE: u32 = 0x39000;
+const NPC_FLASH_RORW_SIZE: u32 = 0x3F000;
 const MEC_FLASH_FLAGS: u32 = 0x80000;
 const NPC_FLASH_FLAGS: u32 = 0x7F000;
 const FLASH_PROGRAM_OFFSET: u32 = 0x1000;
@@ -842,9 +843,9 @@ impl CrosEc {
     ///
     /// NPC/Zephyr
     /// | Start | End   | Size  | Region      |
-    /// | 00000 | 3BFFF | 3C000 | RO Region   |
-    /// | 3C000 | 3FFFF | 04000 | Preserved   |
-    /// | 40000 | 78FFF | 39000 | RW Region   |
+    /// | 00000 | 3EFFF | 3F000 | RO Region   |
+    /// | 3F000 | 3FFFF | 01000 | Reserved    |
+    /// | 40000 | 7EFFF | 3F000 | RW Region   |
     /// | 7F000 | 7FFFF | 01000 | Flash Flags |
     pub fn reflash(&self, data: &[u8], ft: EcFlashType, dry_run: bool) -> EcResult<()> {
         let mut res = Ok(());
