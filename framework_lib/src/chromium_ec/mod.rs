@@ -68,10 +68,13 @@ const EC_MEMMAP_ID: u16 = 0x20;
 const FLASH_BASE: u32 = 0x0;
 const FLASH_SIZE: u32 = 0x80000;
 const FLASH_RO_BASE: u32 = 0x0;
-const FLASH_RO_SIZE: u32 = 0x3C000;
 const FLASH_RW_BASE: u32 = 0x40000;
-const FLASH_RW_SIZE: u32 = 0x39000;
-const MEC_FLASH_FLAGS: u32 = 0x80000;
+const MEC_FLASH_RO_SIZE: u32 = 0x3A000;
+const MEC_FLASH_RW_SIZE: u32 = 0x3F000;
+const NPC_FLASH_RO_SIZE: u32 = 0x3F000;
+const NPC_FLASH_RW_SIZE: u32 = 0x3F000;
+const MEC_FLASH_FLAGS_RO: u32 = 0x3F000;
+const MEC_FLASH_FLAGS_RW: u32 = 0x7F000;
 const NPC_FLASH_FLAGS: u32 = 0x7F000;
 const FLASH_PROGRAM_OFFSET: u32 = 0x1000;
 
@@ -869,19 +872,25 @@ impl CrosEc {
 
     /// Overwrite RO and RW regions of EC flash
     /// MEC/Legacy EC
-    /// | Start | End   | Size  | Region      |
-    /// | 00000 | 3BFFF | 3C000 | RO Region   |
-    /// | 3C000 | 3FFFF | 04000 | Preserved   |
-    /// | 40000 | 78FFF | 39000 | RW Region   |
-    /// | 79000 | 79FFF | 01000 | Preserved   |
-    /// | 80000 | 80FFF | 01000 | Flash Flags |
+    /// | Start | Length | Region                   |
+    /// | 00000 | 3A000  | RO Firmware              |
+    /// | 3A000 | 02000  | Blank                    |
+    /// | 3C000 | 01000  | Factory Usage            |
+    /// | 3D000 | 01000  | System Serial Struct A   |
+    /// | 3E000 | 01000  | System Serial Struct B   |
+    /// | 3F000 | 01000  | EC Flags Region RO Image |
+    /// | 40000 | 3F000  | RW Firmware              |
+    /// | 7F000 | 01000  | EC Flags Region RW Image |
     ///
     /// NPC/Zephyr
-    /// | Start | End   | Size  | Region      |
-    /// | 00000 | 3BFFF | 3C000 | RO Region   |
-    /// | 3C000 | 3FFFF | 04000 | Preserved   |
-    /// | 40000 | 78FFF | 39000 | RW Region   |
-    /// | 7F000 | 7FFFF | 01000 | Flash Flags |
+    /// | Start | Length | Region                     |
+    /// | 00000 | 3F000  | RO Firmware                |
+    /// | 3F000 | 01000  | Reserved                   |
+    /// | 40000 | 3F000  | RW Firmware                |
+    /// | 7F000 | 01000  | Framework EC Flash Storage |
+    ///
+    /// The Framework EC Flash Storage (flash flags) is not updated during EC
+    /// firmware update. It is erased by EC_CMD_FACTORY_MODE.
     pub fn reflash(&self, data: &[u8], ft: EcFlashType, dry_run: bool) -> EcResult<()> {
         let mut res = Ok(());
 
@@ -892,6 +901,13 @@ impl CrosEc {
             return Err(EcError::DeviceError(
                 "Cannot determine currently running platform.".to_string(),
             ));
+        };
+
+        let has_mec = matches!(platform.as_str(), "hx20" | "hx30");
+        let (flash_ro_size, flash_rw_size) = if has_mec {
+            (MEC_FLASH_RO_SIZE, MEC_FLASH_RW_SIZE)
+        } else {
+            (NPC_FLASH_RO_SIZE, NPC_FLASH_RW_SIZE)
         };
 
         if matches!(ft, EcFlashType::Full | EcFlashType::Both | EcFlashType::Ro) {
@@ -929,13 +945,13 @@ impl CrosEc {
         let info = EcRequestFlashInfo {}.send_command(self)?;
 
         // Check that our hardcoded offsets are valid for the available flash
-        if FLASH_RO_SIZE + FLASH_RW_SIZE > info.flash_size {
+        if flash_ro_size + flash_rw_size > info.flash_size {
             return Err(EcError::DeviceError(format!(
                 "RO+RW larger than flash 0x{:X}",
                 { info.flash_size }
             )));
         }
-        if FLASH_RW_BASE + FLASH_RW_SIZE > info.flash_size {
+        if FLASH_RW_BASE + flash_rw_size > info.flash_size {
             return Err(EcError::DeviceError(format!(
                 "RW overruns end of flash 0x{:X}",
                 { info.flash_size }
@@ -986,7 +1002,7 @@ impl CrosEc {
         }
 
         if ft == EcFlashType::Both || ft == EcFlashType::Rw {
-            let rw_data = &data[FLASH_RW_BASE as usize..(FLASH_RW_BASE + FLASH_RW_SIZE) as usize];
+            let rw_data = &data[FLASH_RW_BASE as usize..(FLASH_RW_BASE + flash_rw_size) as usize];
 
             println!(
                 "Erasing RW region{}",
@@ -994,7 +1010,7 @@ impl CrosEc {
             );
             self.erase_ec_flash(
                 FLASH_BASE + FLASH_RW_BASE,
-                FLASH_RW_SIZE,
+                flash_rw_size,
                 dry_run,
                 info.erase_block_size,
             )?;
@@ -1008,7 +1024,7 @@ impl CrosEc {
             println!("  Done");
 
             println!("Verifying RW region");
-            let flash_rw_data = self.read_ec_flash(FLASH_BASE + FLASH_RW_BASE, FLASH_RW_SIZE)?;
+            let flash_rw_data = self.read_ec_flash(FLASH_BASE + FLASH_RW_BASE, flash_rw_size)?;
             if rw_data == flash_rw_data {
                 println!("  RW verify success");
             } else {
@@ -1018,12 +1034,12 @@ impl CrosEc {
         }
 
         if ft == EcFlashType::Both || ft == EcFlashType::Ro {
-            let ro_data = &data[FLASH_RO_BASE as usize..(FLASH_RO_BASE + FLASH_RO_SIZE) as usize];
+            let ro_data = &data[FLASH_RO_BASE as usize..(FLASH_RO_BASE + flash_ro_size) as usize];
 
             println!("Erasing RO region");
             self.erase_ec_flash(
                 FLASH_BASE + FLASH_RO_BASE,
-                FLASH_RO_SIZE,
+                flash_ro_size,
                 dry_run,
                 info.erase_block_size,
             )?;
@@ -1034,7 +1050,7 @@ impl CrosEc {
             println!("  Done");
 
             println!("Verifying RO region");
-            let flash_ro_data = self.read_ec_flash(FLASH_BASE + FLASH_RO_BASE, FLASH_RO_SIZE)?;
+            let flash_ro_data = self.read_ec_flash(FLASH_BASE + FLASH_RO_BASE, flash_ro_size)?;
             if ro_data == flash_ro_data {
                 println!("  RO verify success");
             } else {
@@ -1323,23 +1339,32 @@ impl CrosEc {
 
         // ===== Test 4 =====
         println!("    Read flash flags");
-        let data = if has_mec {
-            self.read_ec_flash(MEC_FLASH_FLAGS, 0x80).unwrap()
+        let flag_regions: &[(&str, u32)] = if has_mec {
+            &[
+                ("RO Image ", MEC_FLASH_FLAGS_RO),
+                ("RW Image ", MEC_FLASH_FLAGS_RW),
+            ]
         } else {
-            self.read_ec_flash(NPC_FLASH_FLAGS, 0x80).unwrap()
+            &[("", NPC_FLASH_FLAGS)]
         };
-        let flash_flags_magic = [0xA3, 0xF1, 0x00, 0x00];
-        let flash_flags_ver = [0x01, 0x0, 0x00, 0x00];
-        // All 0xFF if just reflashed and not reinitialized by EC
-        if data[0..4] == flash_flags_magic && data[8..12] == flash_flags_ver {
-            println!("      Valid flash flags");
-        } else if data.iter().all(|x| *x == 0xFF) {
-            println!("      Erased flash flags");
-            res = Err(EcError::DeviceError("Erased flash flags".to_string()));
-        } else {
-            println!("      INVALID flash flags: {:02X?}", &data[0..12]);
-            // TODO: Disable error until I confirm flash flags on MEC
-            // res = Err(EcError::DeviceError("INVALID flash flags".to_string()));
+        for (region, addr) in flag_regions {
+            let data = self.read_ec_flash(*addr, 0x80).unwrap();
+            let flash_flags_magic = [0xA3, 0xF1, 0x00, 0x00];
+            let flash_flags_ver = [0x01, 0x0, 0x00, 0x00];
+            // All 0xFF if just reflashed and not reinitialized by EC
+            if data[0..4] == flash_flags_magic && data[8..12] == flash_flags_ver {
+                println!("      Valid {}flash flags", region);
+            } else if data.iter().all(|x| *x == 0xFF) {
+                println!("      Erased {}flash flags", region);
+                res = Err(EcError::DeviceError(format!(
+                    "Erased {}flash flags",
+                    region
+                )));
+            } else {
+                println!("      INVALID {}flash flags: {:02X?}", region, &data[0..12]);
+                // TODO: Disable error until I confirm flash flags on MEC
+                // res = Err(EcError::DeviceError("INVALID flash flags".to_string()));
+            }
         }
 
         self.flash_notify(MecFlashNotify::AccessSpiDone)?;
