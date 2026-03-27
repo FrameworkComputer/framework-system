@@ -834,12 +834,15 @@ impl CrosEc {
 
     /// Overwrite RO and RW regions of EC flash
     /// MEC/Legacy EC
-    /// | Start | End   | Size  | Region      |
-    /// | 00000 | 3BFFF | 3C000 | RO Region   |
-    /// | 3C000 | 3FFFF | 04000 | Preserved   |
-    /// | 40000 | 78FFF | 39000 | RW Region   |
-    /// | 79000 | 79FFF | 01000 | Preserved   |
-    /// | 80000 | 80FFF | 01000 | Flash Flags |
+    /// | Start | End   | Size  | Region               |
+    /// | 00000 | 3BFFF | 3C000 | RO Region            |
+    /// | 3C000 |       | 01000 | Preserved            |
+    /// | 3D000 |       | 01000 | Serial Struct Slot A |
+    /// | 3E000 |       | 01000 | Serial Struct Slot A |
+    /// | 3F000 | 3FFFF | 01000 | Preserved            |
+    /// | 40000 | 78FFF | 39000 | RW Region            |
+    /// | 79000 | 79FFF | 01000 | Preserved            |
+    /// | 80000 | 80FFF | 01000 | Flash Flags          |
     ///
     /// NPC/Zephyr
     /// | Start | End   | Size  | Region      |
