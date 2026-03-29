@@ -246,6 +246,16 @@ impl EcRequest<()> for EcRequestPwmSetFanDutyV1 {
 
 pub const PWM_MAX_DUTY: u16 = 0xFFFF;
 
+pub fn percent_to_duty(percent: u8) -> u16 {
+    let duty = percent as u32 * PWM_MAX_DUTY as u32;
+    (duty / 100) as u16
+}
+
+pub fn duty_to_percent(duty: u16) -> u8 {
+    let percent = duty as u32 * 100;
+    (percent / PWM_MAX_DUTY as u32) as u8
+}
+
 #[repr(C, packed)]
 pub struct EcRequestPwmSetDuty {
     /// Duty cycle, min 0, max 0xFFFF
