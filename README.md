@@ -32,8 +32,45 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
   - Build from source
 - Homebrew
   - Add [this homebrew tap](https://github.com/ublue-os/homebrew-tap), then `brew install --cask framework-tool`
+- Snap (Not yet in the snap store!)
+  - `sudo snap install framework-tool`
+  - Then connect the required interfaces (see [Snap Interfaces](#snap-interfaces) below)
 - Cargo (Any distro)
   - `cargo install --locked framework_tool`
+
+#### Snap Interfaces
+
+The snap uses strict confinement. After installing, connect the required interfaces
+to allow access to the hardware:
+
+```sh
+# Required for most functionality (EC communication)
+sudo snap connect framework-tool:cros-ec
+sudo snap connect framework-tool:hardware-observe
+
+# Required for HID devices (touchpad, touchscreen, PD controller firmware)
+sudo snap connect framework-tool:hidraw
+
+# Required for USB devices (expansion cards, input modules, camera)
+sudo snap connect framework-tool:raw-usb
+
+# Required for NVMe firmware version detection
+sudo snap connect framework-tool:block-devices
+
+# Required for EC port I/O fallback (when cros_ec driver is unavailable)
+sudo snap connect framework-tool:io-ports-control
+
+# Required for SMBIOS table fallback via /dev/mem
+sudo snap connect framework-tool:physical-memory-observe
+```
+
+You can connect all interfaces at once:
+
+```sh
+for plug in cros-ec hardware-observe hidraw raw-usb block-devices io-ports-control physical-memory-observe; do
+  sudo snap connect framework-tool:$plug
+done
+```
 
 ### Windows
 

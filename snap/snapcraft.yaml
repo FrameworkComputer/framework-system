@@ -1,6 +1,12 @@
 name: framework-tool
+title: Framework Tool
 base: core24
 adopt-info: framework-tool
+license: BSD-2-Clause
+contact: https://github.com/FrameworkComputer/framework-system/issues
+issues: https://github.com/FrameworkComputer/framework-system/issues
+source-code: https://github.com/FrameworkComputer/framework-system
+website: https://frame.work
 summary: CLI tool to inspect and control Framework Computer systems
 description: |
   framework_tool is a CLI utility to interact with Framework Computer laptop
@@ -16,8 +22,17 @@ description: |
   Note: Most features require root privileges (sudo framework-tool ...).
 
 grade: stable
-confinement: classic
+confinement: strict
 compression: lzo
+
+# /dev/cros_ec needs ioctl access, which requires custom-device interface.
+# This needs a store assertion for the slot. For local testing use --devmode.
+plugs:
+  cros-ec:
+    interface: custom-device
+    custom-device: cros-ec
+    devices:
+      - /dev/cros_ec
 
 parts:
   framework-tool:
@@ -35,14 +50,14 @@ parts:
     override-pull: |
       craftctl default
       VERSION=$(craftctl get version)
-      if [ -z $VERSION ]; then
+      if [ -z "$VERSION" ] && git rev-parse --git-dir > /dev/null 2>&1; then
         VERSION=$(git describe --tags --abbrev=10)
-        craftctl set version=$VERSION
+        craftctl set version="$VERSION"
       fi
     override-build: |
       cd "${CRAFT_PART_SRC}"
       cargo build --release -p framework_tool --features nvidia
-      install -Dm755 target/release/framework_tool "${CRAFT_PART_INSTALL}/bin/framework_tool"
+      install -Dm755 "${CRAFT_PART_SRC}/target/release/framework_tool" "${CRAFT_PART_INSTALL}/bin/framework_tool"
       install -Dm644 "${CRAFT_PART_SRC}/completions/bash/framework_tool" \
         "${CRAFT_PART_INSTALL}/share/bash-completion/completions/framework_tool"
       install -Dm644 "${CRAFT_PART_SRC}/completions/zsh/_framework_tool" \
@@ -53,3 +68,17 @@ parts:
 apps:
   framework-tool:
     command: bin/framework_tool
+    plugs:
+      # EC communication via /dev/cros_ec ioctl
+      - cros-ec
+      # HID devices: touchpad, touchscreen, PD controller firmware
+      - hidraw
+      # USB devices: audio card, camera, USB hub, input modules
+      - raw-usb
+      # NVMe device access for firmware version detection
+      - block-devices
+      # /dev/mem for SMBIOS table fallback, /dev/port for EC port I/O
+      - physical-memory-observe
+      - io-ports-control
+      # /sys/firmware (SMBIOS/DMI, EFI ESRT), /sys/class/mei, hardware enumeration
+      - hardware-observe

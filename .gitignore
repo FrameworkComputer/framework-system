@@ -27,3 +27,6 @@ dump.bmp
 OVMF.fd
 OVMF_CODE.fd
 OVMF_VARS.fd
+
+# Snap
+*.snap
