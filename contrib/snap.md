@@ -24,22 +24,19 @@ snapcraft clean
 
 ## Installing Locally
 
-Install the locally built snap (bypasses store signature check):
+Several interfaces (`cros-ec`, `hidraw`) require store assertions or a gadget
+snap to provide slots, which are not available on standard desktop systems.
+For local testing, install with `--devmode` to bypass confinement:
 
 ```sh
-sudo snap install --dangerous framework-tool_*.snap
+sudo snap install --dangerous --devmode framework-tool_*.snap
 ```
 
 ## Connecting Interfaces
 
-The snap uses strict confinement, so hardware interfaces must be connected
-manually after install:
-
-```sh
-for plug in cros-ec hardware-observe hidraw raw-usb block-devices io-ports-control physical-memory-observe; do
-  sudo snap connect framework-tool:$plug
-done
-```
+See the [Snap Interfaces](../../README.md#snap-interfaces) section in the README
+for the full list of interface connect commands (applicable when installed from
+the snap store with proper assertions).
 
 Verify the connections:
 

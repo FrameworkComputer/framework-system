@@ -25,8 +25,9 @@ grade: stable
 confinement: strict
 compression: lzo
 
-# /dev/cros_ec needs ioctl access, which requires custom-device interface.
-# This needs a store assertion for the slot. For local testing use --devmode.
+# custom-device needs a store assertion for the slot.
+# hidraw slots must be provided by the core or gadget snap.
+# For local testing use --devmode to bypass these restrictions.
 plugs:
   cros-ec:
     interface: custom-device

@@ -40,8 +40,16 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
 
 #### Snap Interfaces
 
-The snap uses strict confinement. After installing, connect the required interfaces
-to allow access to the hardware:
+The snap uses strict confinement. Several interfaces (`cros-ec`, `hidraw`) require
+store assertions or a gadget snap to provide slots, which are not available on
+standard desktop systems. For local testing, install with `--devmode`:
+
+```sh
+sudo snap install --dangerous --devmode framework-tool_*.snap
+```
+
+When installed from the snap store (with proper assertions), connect the required
+interfaces to allow access to the hardware:
 
 ```sh
 # Required for most functionality (EC communication)
