@@ -770,7 +770,7 @@ impl CrosEc {
     /// * `percent` - An integer from 0 to 100. 0 being off, 100 being full brightness
     pub fn set_keyboard_backlight(&self, percent: u8) {
         debug_assert!(percent <= 100);
-        let duty = percent as u16 * (PWM_MAX_DUTY / 100);
+        let duty = percent_to_duty(percent);
 
         let res = EcRequestPwmSetDuty {
             duty,
@@ -812,7 +812,7 @@ impl CrosEc {
             other => other?,
         };
 
-        Ok((kblight.duty / (PWM_MAX_DUTY / 100)) as u8)
+        Ok(duty_to_percent(kblight.duty))
     }
 
     pub fn ps2_emulation_enable(&self, enable: bool) -> EcResult<()> {
