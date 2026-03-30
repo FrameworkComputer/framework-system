@@ -868,7 +868,9 @@ pub fn get_and_print_cypd_pd_info(ec: &CrosEc) {
                     if info.active_port != 0 { "Yes" } else { "No" }
                 );
                 let alt = info.pd_alt_mode_status;
-                if connected && alt != 0 {
+                // Bits 0-1 indicate DP alt mode is active (bit 0 = DFP_D/TBT,
+                // bit 1 = UFP_D). Only show when actually in DP alt mode.
+                if connected && (alt & 0x03) != 0 {
                     let mut modes = vec![];
                     if alt & 0x01 != 0 {
                         modes.push("DFP_D Connected");
