@@ -812,6 +812,7 @@ pub fn get_and_print_cypd_pd_info(ec: &CrosEc) {
         match result {
             Ok(info) => {
                 let c_state = CypdTypeCState::from(info.c_state);
+                let connected = !matches!(c_state, CypdTypeCState::Nothing);
                 let power_role = CypdPdPowerRole::from(info.power_role);
                 let data_role = CypdPdDataRole::from(info.data_role);
                 let voltage = { info.voltage };
@@ -849,7 +850,18 @@ pub fn get_and_print_cypd_pd_info(ec: &CrosEc) {
                         ""
                     }
                 );
-                println!("  CC Polarity:   CC{}", info.cc_polarity + 1);
+                if connected {
+                    println!(
+                        "  CC Polarity:   {}",
+                        match info.cc_polarity {
+                            0 => "CC1",
+                            1 => "CC2",
+                            2 => "CC1 (Debug)",
+                            3 => "CC2 (Debug)",
+                            _ => "Unknown",
+                        }
+                    );
+                }
                 println!(
                     "  Active Port:   {}",
                     if info.active_port != 0 { "Yes" } else { "No" }
