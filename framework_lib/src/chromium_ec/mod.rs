@@ -1451,7 +1451,7 @@ impl CrosEc {
         // Need to program the EEPROM 32 bytes at a time.
         let chunk_size = 32;
 
-        let chunks = data.len() / chunk_size;
+        let chunks = data.len().div_ceil(chunk_size);
         let mut return_val: EcResult<()> = Ok(());
         for chunk_no in 0..chunks {
             let offset = chunk_no * chunk_size;
