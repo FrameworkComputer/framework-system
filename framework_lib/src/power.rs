@@ -867,7 +867,35 @@ pub fn get_and_print_cypd_pd_info(ec: &CrosEc) {
                     "  Active Port:   {}",
                     if info.active_port != 0 { "Yes" } else { "No" }
                 );
-                println!("  Alt Mode:      0x{:02X}", info.pd_alt_mode_status);
+                let alt = info.pd_alt_mode_status;
+                if connected && alt != 0 {
+                    let mut modes = vec![];
+                    if alt & 0x01 != 0 {
+                        modes.push("DFP_D Connected");
+                    }
+                    if alt & 0x02 != 0 {
+                        modes.push("UFP_D Connected");
+                    }
+                    if alt & 0x04 != 0 {
+                        modes.push("Power Low");
+                    }
+                    if alt & 0x08 != 0 {
+                        modes.push("Enabled");
+                    }
+                    if alt & 0x10 != 0 {
+                        modes.push("Multi-Function");
+                    }
+                    if alt & 0x20 != 0 {
+                        modes.push("USB Config");
+                    }
+                    if alt & 0x40 != 0 {
+                        modes.push("Exit Request");
+                    }
+                    if alt & 0x80 != 0 {
+                        modes.push("HPD High");
+                    }
+                    println!("  DP Alt Mode:   {} (0x{:02X})", modes.join(", "), alt);
+                }
             }
             Err(e) => {
                 print_err::<()>(Err(e));
