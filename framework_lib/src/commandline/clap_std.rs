@@ -78,6 +78,10 @@ struct ClapCli {
     #[arg(long)]
     pdports: bool,
 
+    /// Show CYPD PD port state (Framework-specific)
+    #[arg(long)]
+    pdports_cypd: bool,
+
     /// Show info from SMBIOS (Only on UEFI)
     #[arg(long)]
     info: bool,
@@ -475,6 +479,7 @@ pub fn parse(args: &[String]) -> Cli {
         fansetrpm,
         autofanctrl: args.autofanctrl,
         pdports: args.pdports,
+        pdports_cypd: args.pdports_cypd,
         pd_info: args.pd_info,
         pd_reset: args.pd_reset,
         pd_disable: args.pd_disable,

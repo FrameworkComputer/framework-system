@@ -110,6 +110,8 @@ pub enum EcCommands {
     GetGpuPcie = 0x3E1E,
     /// Set gpu bay serial and program structure
     ProgramGpuEeprom = 0x3E1F,
+    /// Get PD port state from Cypress PD controller
+    GetPdPortState = 0x3E23,
     /// Read board ID of specific ADC channel
     ReadBoardId = 0x3E26,
 }

@@ -72,6 +72,7 @@ _framework_tool() {
 '--thermal[Print thermal information (Temperatures and Fan speed)]' \
 '--sensors[Print sensor information (ALS, G-Sensor)]' \
 '--pdports[Show information about USB-C PD ports]' \
+'--pdports-cypd[Show CYPD PD port state (Framework-specific)]' \
 '--info[Show info from SMBIOS (Only on UEFI)]' \
 '--pd-info[Show details about the PD controllers]' \
 '--dp-hdmi-info[Show details about connected DP or HDMI Expansion Cards]' \
