@@ -40,7 +40,7 @@ Options:
       --autofanctrl
           Turn on automatic fan speed control
       --pdports
-          Show information about USB-C PD ports
+          Show USB-C PD port state
       --info
           Show info from SMBIOS (Only on UEFI)
       --pd-info

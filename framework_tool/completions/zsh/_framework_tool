@@ -71,8 +71,8 @@ _framework_tool() {
 '--power[Show current power status of battery and AC (Add -vv for more details)]' \
 '--thermal[Print thermal information (Temperatures and Fan speed)]' \
 '--sensors[Print sensor information (ALS, G-Sensor)]' \
-'--pdports[Show information about USB-C PD ports]' \
-'--pdports-cypd[Show CYPD PD port state (Framework-specific)]' \
+'--pdports[Show USB-C PD port state]' \
+'--pdports-chromebook[Show PD port info (generic Chromium EC)]' \
 '--info[Show info from SMBIOS (Only on UEFI)]' \
 '--pd-info[Show details about the PD controllers]' \
 '--dp-hdmi-info[Show details about connected DP or HDMI Expansion Cards]' \

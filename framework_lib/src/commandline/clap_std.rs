@@ -74,13 +74,13 @@ struct ClapCli {
     #[arg(long)]
     autofanctrl: Option<Option<u8>>,
 
-    /// Show information about USB-C PD ports
+    /// Show USB-C PD port state
     #[arg(long)]
     pdports: bool,
 
-    /// Show CYPD PD port state (Framework-specific)
+    /// Show PD port info (generic Chromium EC)
     #[arg(long)]
-    pdports_cypd: bool,
+    pdports_chromebook: bool,
 
     /// Show info from SMBIOS (Only on UEFI)
     #[arg(long)]
@@ -479,7 +479,7 @@ pub fn parse(args: &[String]) -> Cli {
         fansetrpm,
         autofanctrl: args.autofanctrl,
         pdports: args.pdports,
-        pdports_cypd: args.pdports_cypd,
+        pdports_chromebook: args.pdports_chromebook,
         pd_info: args.pd_info,
         pd_reset: args.pd_reset,
         pd_disable: args.pd_disable,
