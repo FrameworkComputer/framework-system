@@ -719,3 +719,110 @@ It's not controlled by the EC, use https://keyboard.frame.work.
 Mostly for debugging firmware.
 
 See [EXAMPLES_ADVANCED.md](EXAMPLES_ADVANCED.md)
+
+## PD Ports
+
+### Power Adapters
+
+A 240W EPR (Framework) power adapter connected.
+Alongside a 65W SDR adapter - which is not active, because the EC firmware switches to the higher power adapter.
+
+```
+USB-C Port 0 (Right Back):
+  Type-C State:  Source
+  PD Contract:   Yes
+  Power Role:    Sink
+  Data Role:     Dfp
+  VCONN:         Off
+  Negotiated:    48.000 V, 5000 mA, 240.0 W
+  EPR:           Active (Supported)
+  CC Polarity:   CC1
+  Active Port:   Yes
+USB-C Port 1 (Right Middle):
+  Type-C State:  Source
+  PD Contract:   Yes
+  Power Role:    Sink
+  Data Role:     Ufp
+  VCONN:         Off
+  Negotiated:    20.000 V, 3000 mA, 60.0 W
+  EPR:           Inactive
+  CC Polarity:   CC1
+  Active Port:   No
+```
+
+A 100W SDR power adapter connected:
+
+```
+USB-C Port 0 (Right Back):
+  Type-C State:  Source
+  PD Contract:   Yes
+  Power Role:    Sink
+  Data Role:     Ufp
+  VCONN:         Off
+  Negotiated:    20.000 V, 5000 mA, 100.0 W
+  EPR:           Inactive
+  CC Polarity:   CC1
+  Active Port:   Yes
+```
+
+A 65W (Framework) power adapter connected:
+
+```
+USB-C Port 0 (Right Back):
+  Type-C State:  Source
+  PD Contract:   Yes
+  Power Role:    Sink
+  Data Role:     Dfp
+  VCONN:         On
+  Negotiated:    20.000 V, 3250 mA, 65.0 W
+  EPR:           Inactive
+  CC Polarity:   CC2
+  Active Port:   Yes
+```
+
+### Devices
+
+A USB2/3 device connected (even USB-A Expansion Card):
+
+```
+USB-C Port 2 (Left Middle):
+  Type-C State:  Sink
+  PD Contract:   No
+  Power Role:    Source
+  Data Role:     Dfp
+  VCONN:         Off
+  Negotiated:    5.000 V, 3000 mA, 15.0 W
+  EPR:           Inactive
+  CC Polarity:   CC1
+  Active Port:   No
+```
+
+A Display connected through Framework DisplayPort Expansion card:
+
+```
+USB-C Port 1 (Right Middle):
+  Type-C State:  Sink
+  PD Contract:   Yes
+  Power Role:    Source
+  Data Role:     Dfp
+  VCONN:         On
+  Negotiated:    5.000 V, 410 mA, 2.50 W
+  EPR:           Inactive
+  CC Polarity:   CC1
+  Active Port:   No
+  DP Alt Mode:   DFP_D Connected, HPD High (0x81)
+```
+
+Nothing connected (or Type-C Expansion Card):
+
+```
+USB-C Port 3 (Left Back):
+  Type-C State:  Nothing
+  PD Contract:   No
+  Power Role:    Sink
+  Data Role:     Ufp
+  VCONN:         Off
+  Negotiated:    0.000 V, 0 mA, 0.0 W
+  EPR:           Inactive
+  Active Port:   No
+```
