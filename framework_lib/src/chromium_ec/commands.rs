@@ -1248,6 +1248,33 @@ impl EcRequest<_EcResponseReadPdVersionV1> for EcRequestReadPdVersionV1 {
 }
 
 #[repr(C, packed)]
+pub struct EcRequestGetPdPortState {
+    pub port: u8,
+}
+
+#[repr(C, packed)]
+pub struct EcResponseGetPdPortState {
+    pub c_state: u8,
+    pub pd_state: u8,
+    pub power_role: u8,
+    pub data_role: u8,
+    pub vconn: u8,
+    pub epr_active: u8,
+    pub epr_support: u8,
+    pub cc_polarity: u8,
+    pub voltage: u16,
+    pub current: u16,
+    pub active_port: u8,
+    pub pd_alt_mode_status: u8,
+}
+
+impl EcRequest<EcResponseGetPdPortState> for EcRequestGetPdPortState {
+    fn command_id() -> EcCommands {
+        EcCommands::GetPdPortState
+    }
+}
+
+#[repr(C, packed)]
 pub struct EcRequestPrivacySwitches {}
 
 #[repr(C, packed)]

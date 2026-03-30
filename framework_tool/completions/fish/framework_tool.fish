@@ -81,6 +81,7 @@ complete -c framework_tool -l power -d 'Show current power status of battery and
 complete -c framework_tool -l thermal -d 'Print thermal information (Temperatures and Fan speed)'
 complete -c framework_tool -l sensors -d 'Print sensor information (ALS, G-Sensor)'
 complete -c framework_tool -l pdports -d 'Show information about USB-C PD ports'
+complete -c framework_tool -l pdports-cypd -d 'Show CYPD PD port state (Framework-specific)'
 complete -c framework_tool -l info -d 'Show info from SMBIOS (Only on UEFI)'
 complete -c framework_tool -l pd-info -d 'Show details about the PD controllers'
 complete -c framework_tool -l dp-hdmi-info -d 'Show details about connected DP or HDMI Expansion Cards'

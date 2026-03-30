@@ -46,6 +46,7 @@ pub fn parse(args: &[String]) -> Cli {
         fansetrpm: None,
         autofanctrl: None,
         pdports: false,
+        pdports_cypd: false,
         pd_info: false,
         pd_reset: None,
         pd_disable: None,
@@ -223,6 +224,9 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--pdports" {
             cli.pdports = true;
+            found_an_option = true;
+        } else if arg == "--pdports-cypd" {
+            cli.pdports_cypd = true;
             found_an_option = true;
         } else if arg == "--allupdate" {
             cli.allupdate = true;

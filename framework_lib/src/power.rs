@@ -718,6 +718,151 @@ pub fn get_pd_info(ec: &CrosEc, ports: u8) -> Vec<EcResult<UsbPdPowerInfo>> {
     info
 }
 
+#[derive(Debug)]
+enum CypdTypeCState {
+    Nothing,
+    Sink,
+    Source,
+    Debug,
+    Audio,
+    PoweredAccessory,
+    Unsupported,
+    Invalid,
+}
+
+impl From<u8> for CypdTypeCState {
+    fn from(v: u8) -> Self {
+        match v {
+            0 => CypdTypeCState::Nothing,
+            1 => CypdTypeCState::Sink,
+            2 => CypdTypeCState::Source,
+            3 => CypdTypeCState::Debug,
+            4 => CypdTypeCState::Audio,
+            5 => CypdTypeCState::PoweredAccessory,
+            6 => CypdTypeCState::Unsupported,
+            _ => CypdTypeCState::Invalid,
+        }
+    }
+}
+
+#[derive(Debug)]
+enum CypdPdPowerRole {
+    Sink,
+    Source,
+    Unknown,
+}
+
+impl From<u8> for CypdPdPowerRole {
+    fn from(v: u8) -> Self {
+        match v {
+            0 => CypdPdPowerRole::Sink,
+            1 => CypdPdPowerRole::Source,
+            _ => CypdPdPowerRole::Unknown,
+        }
+    }
+}
+
+#[derive(Debug)]
+enum CypdPdDataRole {
+    Ufp,
+    Dfp,
+    Disconnected,
+    Unknown,
+}
+
+impl From<u8> for CypdPdDataRole {
+    fn from(v: u8) -> Self {
+        match v {
+            0 => CypdPdDataRole::Ufp,
+            1 => CypdPdDataRole::Dfp,
+            2 => CypdPdDataRole::Disconnected,
+            _ => CypdPdDataRole::Unknown,
+        }
+    }
+}
+
+pub fn get_and_print_cypd_pd_info(ec: &CrosEc) {
+    let fl16 = Some(PlatformFamily::Framework16) == smbios::get_family();
+    let ports = 4u8;
+
+    for port in 0..ports {
+        println!(
+            "USB-C Port {} ({}):",
+            port,
+            match port {
+                0 => "Right Front",
+                1 =>
+                    if fl16 {
+                        "Right Middle"
+                    } else {
+                        "Right Back"
+                    },
+                2 =>
+                    if fl16 {
+                        "Left Middle"
+                    } else {
+                        "Left Back"
+                    },
+                3 => "Left Front",
+                _ => "??",
+            }
+        );
+
+        let result = EcRequestGetPdPortState { port }.send_command(ec);
+        match result {
+            Ok(info) => {
+                let c_state = CypdTypeCState::from(info.c_state);
+                let power_role = CypdPdPowerRole::from(info.power_role);
+                let data_role = CypdPdDataRole::from(info.data_role);
+                let voltage = { info.voltage };
+                let current = { info.current };
+                let watts_mw = voltage as u32 * current as u32 / 1000;
+
+                println!("  Type-C State:  {:?}", c_state);
+                println!(
+                    "  PD Contract:   {}",
+                    if info.pd_state != 0 { "Yes" } else { "No" }
+                );
+                println!("  Power Role:    {:?}", power_role);
+                println!("  Data Role:     {:?}", data_role);
+                println!(
+                    "  VCONN:         {}",
+                    if info.vconn != 0 { "On" } else { "Off" }
+                );
+                println!(
+                    "  Voltage:       {}.{:03} V",
+                    voltage / 1000,
+                    voltage % 1000
+                );
+                println!("  Current:       {} mA", current);
+                println!("  Power:         {}.{} W", watts_mw / 1000, watts_mw % 1000);
+                println!(
+                    "  EPR:           {}{}",
+                    if info.epr_active != 0 {
+                        "Active"
+                    } else {
+                        "Inactive"
+                    },
+                    if info.epr_support != 0 {
+                        " (Supported)"
+                    } else {
+                        ""
+                    }
+                );
+                println!("  CC Polarity:   CC{}", info.cc_polarity + 1);
+                println!(
+                    "  Active Port:   {}",
+                    if info.active_port != 0 { "Yes" } else { "No" }
+                );
+                println!("  Alt Mode:      0x{:02X}", info.pd_alt_mode_status);
+            }
+            Err(e) => {
+                print_err::<()>(Err(e));
+            }
+        }
+    }
+}
+
 pub fn get_and_print_pd_info(ec: &CrosEc) {
     let fl16 = Some(PlatformFamily::Framework16) == smbios::get_family();
     let ports = 4; // All our platforms have 4 PD ports so far
