@@ -831,12 +831,13 @@ pub fn get_and_print_cypd_pd_info(ec: &CrosEc) {
                     if info.vconn != 0 { "On" } else { "Off" }
                 );
                 println!(
-                    "  Voltage:       {}.{:03} V",
+                    "  Negotiated:    {}.{:03} V, {} mA, {}.{} W",
                     voltage / 1000,
-                    voltage % 1000
+                    voltage % 1000,
+                    current,
+                    watts_mw / 1000,
+                    watts_mw % 1000,
                 );
-                println!("  Current:       {} mA", current);
-                println!("  Power:         {}.{} W", watts_mw / 1000, watts_mw % 1000);
                 println!(
                     "  EPR:           {}{}",
                     if info.epr_active != 0 {
