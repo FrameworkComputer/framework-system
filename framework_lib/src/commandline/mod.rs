@@ -171,7 +171,7 @@ pub struct Cli {
     pub fansetrpm: Option<(Option<u32>, u32)>,
     pub autofanctrl: Option<Option<u8>>,
     pub pdports: bool,
-    pub pdports_cypd: bool,
+    pub pdports_chromebook: bool,
     pub privacy: bool,
     pub pd_info: bool,
     pub pd_reset: Option<u8>,
@@ -261,7 +261,7 @@ pub fn parse(args: &[String]) -> Cli {
             // fansetrpm
             // autofanctrl
             pdports: cli.pdports,
-            pdports_cypd: cli.pdports_cypd,
+            pdports_chromebook: cli.pdports_chromebook,
             privacy: cli.privacy,
             pd_info: cli.version,
             // pd_reset
@@ -1551,9 +1551,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(None) = args.autofanctrl {
         print_err(ec.autofanctrl(None));
     } else if args.pdports {
-        power::get_and_print_pd_info(&ec);
-    } else if args.pdports_cypd {
         power::get_and_print_cypd_pd_info(&ec);
+    } else if args.pdports_chromebook {
+        power::get_and_print_pd_info(&ec);
     } else if args.info {
         smbios_info();
     } else if let Some(dump_path) = &args.meinfo {
@@ -1844,8 +1844,8 @@ Options:
       --fansetduty           Set fan duty cycle (0-100%)
       --fansetrpm            Set fan RPM (limited by EC fan table max RPM)
       --autofanctrl [<FANID>]Turn on automatic fan speed control (optionally provide fan index)
-      --pdports              Show information about USB-C PD ports
-      --pdports-cypd         Show CYPD PD port state (Framework-specific)
+      --pdports              Show USB-C PD port state
+      --pdports-chromebook   Show PD port info (generic Chromium EC)
       --info                 Show info from SMBIOS (Only on UEFI)
       --meinfo [<DUMPFILE>]   Show Intel ME information (from SMBIOS type 0xDB)
       --pd-info              Show details about the PD controllers
