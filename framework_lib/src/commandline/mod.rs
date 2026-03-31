@@ -1430,8 +1430,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(maybe_brightness) = &args.fp_brightness {
         print_err(handle_fp_brightness(&ec, *maybe_brightness));
     } else if let Some(Some(kblight)) = args.kblight {
-        assert!(kblight <= 100);
-        ec.set_keyboard_backlight(kblight);
+        if kblight > 100 {
+            error!("--kblight must be percentage 0-100");
+        } else {
+            ec.set_keyboard_backlight(kblight);
+        }
     } else if let Some(None) = args.kblight {
         print!("Keyboard backlight: ");
         if let Some(percentage) = print_err(ec.get_keyboard_backlight()) {
