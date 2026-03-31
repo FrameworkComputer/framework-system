@@ -1,6 +1,6 @@
 [package]
 name = "framework_uefi"
-version = "0.6.1"
+version = "0.6.2"
 description = "UEFI Tool to control Framework Computer systems"
 homepage = "https://github.com/FrameworkComputer/framework-system"
 repository = "https://github.com/FrameworkComputer/framework-system"
@@ -24,6 +24,6 @@ log = { version = "0.4", default-features = true }
 
 [dependencies.framework_lib]
 path = "../framework_lib"
-version = "0.6.1"
+version = "0.6.2"
 features = ["uefi"]
 default-features = false

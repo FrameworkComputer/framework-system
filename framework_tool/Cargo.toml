@@ -1,6 +1,6 @@
 [package]
 name = "framework_tool"
-version = "0.6.1"
+version = "0.6.2"
 description = "Tool to control Framework Computer systems"
 homepage = "https://github.com/FrameworkComputer/framework-system"
 repository = "https://github.com/FrameworkComputer/framework-system"
@@ -19,7 +19,7 @@ nvidia = [ "framework_lib/nvidia" ]
 
 [dependencies.framework_lib]
 path = "../framework_lib"
-version = "0.6.1"
+version = "0.6.2"
 
 [build-dependencies]
 static_vcruntime = "3.0"
