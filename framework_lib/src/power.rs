@@ -782,31 +782,10 @@ impl From<u8> for CypdPdDataRole {
 }
 
 pub fn get_and_print_cypd_pd_info(ec: &CrosEc) {
-    let fl16 = Some(PlatformFamily::Framework16) == smbios::get_family();
     let ports = 4u8;
 
     for port in 0..ports {
-        println!(
-            "USB-C Port {} ({}):",
-            port,
-            match port {
-                0 => "Right Front",
-                1 =>
-                    if fl16 {
-                        "Right Middle"
-                    } else {
-                        "Right Back"
-                    },
-                2 =>
-                    if fl16 {
-                        "Left Middle"
-                    } else {
-                        "Left Back"
-                    },
-                3 => "Left Front",
-                _ => "??",
-            }
-        );
+        println!("USB-C Port {}:", port);
 
         let result = EcRequestGetPdPortState { port }.send_command(ec);
         match result {
