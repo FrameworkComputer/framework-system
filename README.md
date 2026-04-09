@@ -23,6 +23,10 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
   - `zypper install framework_tool`
 - Gentoo [![Gentoo package](https://repology.org/badge/version-for-repo/gentoo/framework-tool.svg)](https://repology.org/project/framework-tool/versions)
   - `emerge framework_tool`
+- Debian 14 (Forky) and later ([rust-framework-lib](https://tracker.debian.org/pkg/rust-framework-lib), [rust-framework-tool](https://tracker.debian.org/pkg/rust-framework-tool))
+  - `apt install rust-framework-tool`
+- Ubuntu 26.04 (Resolute) and later ([rust-framework-lib](https://launchpad.net/ubuntu/+source/rust-framework-lib), [rust-framework-tool](https://launchpad.net/ubuntu/+source/rust-framework-tool))
+  - `apt install rust-framework-tool`
 - Rhino Linux [![Rhino Linux package](https://repology.org/badge/version-for-repo/pacstall/framework-system.svg)](https://repology.org/project/framework-system/versions)
   - `pacstall -I framework-system-bin`
 - [![Void Linux x86_64 package](https://repology.org/badge/version-for-repo/void_x86_64/framework-system.svg)](https://repology.org/project/framework-system/versions)
@@ -188,7 +192,7 @@ sudo dnf install systemd-devel hidapi-devel
 # FreeBSD
 sudo pkg install rust hidapi pkgconf
 
-# Ubuntu
+# Debian/Ubuntu
 sudo apt install rustup build-essential libhidapi-dev libsystemd-dev libudev-dev libusb-1.0-0-dev pkg-config
 ```
 
