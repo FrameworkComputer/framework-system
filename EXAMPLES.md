@@ -736,7 +736,7 @@ Alongside a 65W SDR adapter - which is not active, because the EC firmware switc
 
 ```
 USB-C Port 0:
-  Type-C State:  Source
+  Port Partner:  Source
   PD Contract:   Yes
   Power Role:    Sink
   Data Role:     Dfp
@@ -746,7 +746,7 @@ USB-C Port 0:
   CC Polarity:   CC1
   Active Port:   Yes
 USB-C Port 1:
-  Type-C State:  Source
+  Port Partner:  Source
   PD Contract:   Yes
   Power Role:    Sink
   Data Role:     Ufp
@@ -761,7 +761,7 @@ A 100W SDR power adapter connected:
 
 ```
 USB-C Port 0:
-  Type-C State:  Source
+  Port Partner:  Source
   PD Contract:   Yes
   Power Role:    Sink
   Data Role:     Ufp
@@ -776,7 +776,7 @@ A 65W (Framework) power adapter connected:
 
 ```
 USB-C Port 0:
-  Type-C State:  Source
+  Port Partner:  Source
   PD Contract:   Yes
   Power Role:    Sink
   Data Role:     Dfp
@@ -793,7 +793,6 @@ A USB2/3 device connected (even USB-A Expansion Card):
 
 ```
 USB-C Port 2:
-  Type-C State:  Sink
   PD Contract:   No
   Power Role:    Source
   Data Role:     Dfp
@@ -808,7 +807,7 @@ A Display connected through Framework DisplayPort Expansion card:
 
 ```
 USB-C Port 1:
-  Type-C State:  Sink
+  Port Partner:  Sink
   PD Contract:   Yes
   Power Role:    Source
   Data Role:     Dfp
@@ -824,7 +823,6 @@ Nothing connected (or Type-C Expansion Card):
 
 ```
 USB-C Port 3:
-  Type-C State:  Nothing
   PD Contract:   No
   Power Role:    Sink
   Data Role:     Ufp

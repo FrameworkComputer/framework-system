@@ -798,7 +798,9 @@ pub fn get_and_print_cypd_pd_info(ec: &CrosEc) {
                 let current = { info.current };
                 let watts_mw = voltage as u32 * current as u32 / 1000;
 
-                println!("  Type-C State:  {:?}", c_state);
+                if info.pd_state {
+                    println!("  Port Partner:  {:?}", c_state);
+                }
                 println!(
                     "  PD Contract:   {}",
                     if info.pd_state != 0 { "Yes" } else { "No" }
