@@ -95,7 +95,7 @@ jobs:
         release: edge
 
     - name: Publish to candidate channel
-      if: github.ref_type == 'tag' || github.event_name == 'release'
+      if: github.event_name == 'release'
       uses: snapcore/action-publish@v1
       env:
         SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
