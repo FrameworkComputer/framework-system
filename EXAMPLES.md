@@ -722,13 +722,20 @@ See [EXAMPLES_ADVANCED.md](EXAMPLES_ADVANCED.md)
 
 ## PD Ports
 
+```
+framework_tool --pdports
+```
+
+Below are a few excerpts of the output.
+Note that the port numbering does not match diagrams you might see elsewhere.
+
 ### Power Adapters
 
 A 240W EPR (Framework) power adapter connected.
 Alongside a 65W SDR adapter - which is not active, because the EC firmware switches to the higher power adapter.
 
 ```
-USB-C Port 0 (Right Back):
+USB-C Port 0:
   Type-C State:  Source
   PD Contract:   Yes
   Power Role:    Sink
@@ -738,7 +745,7 @@ USB-C Port 0 (Right Back):
   EPR:           Active (Supported)
   CC Polarity:   CC1
   Active Port:   Yes
-USB-C Port 1 (Right Middle):
+USB-C Port 1:
   Type-C State:  Source
   PD Contract:   Yes
   Power Role:    Sink
@@ -753,7 +760,7 @@ USB-C Port 1 (Right Middle):
 A 100W SDR power adapter connected:
 
 ```
-USB-C Port 0 (Right Back):
+USB-C Port 0:
   Type-C State:  Source
   PD Contract:   Yes
   Power Role:    Sink
@@ -768,7 +775,7 @@ USB-C Port 0 (Right Back):
 A 65W (Framework) power adapter connected:
 
 ```
-USB-C Port 0 (Right Back):
+USB-C Port 0:
   Type-C State:  Source
   PD Contract:   Yes
   Power Role:    Sink
@@ -785,7 +792,7 @@ USB-C Port 0 (Right Back):
 A USB2/3 device connected (even USB-A Expansion Card):
 
 ```
-USB-C Port 2 (Left Middle):
+USB-C Port 2:
   Type-C State:  Sink
   PD Contract:   No
   Power Role:    Source
@@ -800,7 +807,7 @@ USB-C Port 2 (Left Middle):
 A Display connected through Framework DisplayPort Expansion card:
 
 ```
-USB-C Port 1 (Right Middle):
+USB-C Port 1:
   Type-C State:  Sink
   PD Contract:   Yes
   Power Role:    Source
@@ -816,7 +823,7 @@ USB-C Port 1 (Right Middle):
 Nothing connected (or Type-C Expansion Card):
 
 ```
-USB-C Port 3 (Left Back):
+USB-C Port 3:
   Type-C State:  Nothing
   PD Contract:   No
   Power Role:    Sink
