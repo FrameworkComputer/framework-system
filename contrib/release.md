@@ -50,6 +50,7 @@ Publish
 ```
 cargo publish -p framework_lib
 cargo publish -p framework_tool
+```
 
 ## FreeBSD
 
