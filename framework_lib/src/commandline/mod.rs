@@ -1821,7 +1821,15 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 println!("  Size:       {:>20} KB", data.len() / 1024);
                 let res = ec.set_gpu_descriptor(&data, args.dry_run);
                 match res {
-                    Ok(()) => println!("GPU Descriptor successfully written"),
+                    Ok(()) => {
+                        println!("GPU Descriptor successfully written");
+                        println!("Validating GPU Descriptor...");
+                        match ec.validate_gpu_descriptor(&data) {
+                            Ok(true) => println!("  Validation passed"),
+                            Ok(false) => println!("  Validation FAILED: read-back mismatch"),
+                            Err(err) => println!("  Validation error: {:?}", err),
+                        }
+                    }
                     Err(err) => println!("GPU Descriptor write failed with error:  {:?}", err),
                 }
             }
