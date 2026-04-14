@@ -58,6 +58,7 @@ _framework_tool() {
 '*--pd-ports=[Specify I2C ports of the PD chips (Advanced)]:PD_PORTS:_default:PD_PORTS:_default:PD_PORTS:_default' \
 '--flash-gpu-descriptor-file=[File to write to the gpu EEPROM]:FLASH_GPU_DESCRIPTOR_FILE:_files' \
 '--dump-gpu-descriptor-file=[File to dump the gpu EEPROM to]:DUMP_GPU_DESCRIPTOR_FILE:_files' \
+'--validate-gpu-descriptor-file=[File to validate the gpu EEPROM against]:VALIDATE_GPU_DESCRIPTOR_FILE:_files' \
 '*--host-command=[Send an EC host command. Args\: <CMD_ID> <VERSION> \[DATA...\]]:HOST_COMMAND:_default:HOST_COMMAND:_default' \
 '--generate-completions=[Generate shell completions and print to stdout]:SHELL:(bash elvish fish powershell zsh)' \
 '*-v[Increase logging verbosity]' \

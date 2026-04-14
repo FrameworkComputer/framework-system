@@ -66,6 +66,7 @@ complete -c framework_tool -l pd-addrs -d 'Specify I2C addresses of the PD chips
 complete -c framework_tool -l pd-ports -d 'Specify I2C ports of the PD chips (Advanced)' -r
 complete -c framework_tool -l flash-gpu-descriptor-file -d 'File to write to the gpu EEPROM' -r -F
 complete -c framework_tool -l dump-gpu-descriptor-file -d 'File to dump the gpu EEPROM to' -r -F
+complete -c framework_tool -l validate-gpu-descriptor-file -d 'File to validate the gpu EEPROM against' -r -F
 complete -c framework_tool -l host-command -d 'Send an EC host command. Args: <CMD_ID> <VERSION> [DATA...]' -r
 complete -c framework_tool -l generate-completions -d 'Generate shell completions and print to stdout' -r -f -a "bash\t''
 elvish\t''
