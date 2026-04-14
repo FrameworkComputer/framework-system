@@ -1526,6 +1526,24 @@ impl CrosEc {
         return_val
     }
 
+    pub fn validate_gpu_descriptor(&self, reference_desc: &[u8]) -> EcResult<bool> {
+        let current_desc = self.read_gpu_descriptor()?;
+        let max_len = core::cmp::max(current_desc.len(), reference_desc.len());
+        let mut valid = true;
+        for i in 0..max_len {
+            let expected = reference_desc.get(i);
+            let actual = current_desc.get(i);
+            if expected != actual {
+                println!(
+                    "  Offset 0x{:04X}: expected {:02X?}, got {:02X?}",
+                    i, expected, actual
+                );
+                valid = false;
+            }
+        }
+        Ok(valid)
+    }
+
     pub fn read_gpu_descriptor(&self) -> EcResult<Vec<u8>> {
         let header = self.read_gpu_desc_header()?;
         if header.magic != [0x32, 0xAC, 0x00, 0x00] {
