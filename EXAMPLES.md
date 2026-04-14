@@ -736,60 +736,60 @@ Alongside a 65W SDR adapter - which is not active, because the EC firmware switc
 
 ```
 USB-C Port 0:
-  Port Partner:  Source
   PD Contract:   Yes
   Power Role:    Sink
   Data Role:     Dfp
   VCONN:         Off
   Negotiated:    48.000 V, 5000 mA, 240.0 W
-  EPR:           Active (Supported)
   CC Polarity:   CC1
-  Active Port:   Yes
-USB-C Port 1:
   Port Partner:  Source
+  EPR:           Active (Supported)
+  Sink Active:   Yes
+USB-C Port 1:
   PD Contract:   Yes
   Power Role:    Sink
   Data Role:     Ufp
   VCONN:         Off
   Negotiated:    20.000 V, 3000 mA, 60.0 W
-  EPR:           Inactive
   CC Polarity:   CC1
-  Active Port:   No
+  Port Partner:  Source
+  EPR:           Inactive
+  Sink Active:   No
 ```
 
 A 100W SDR power adapter connected:
 
 ```
 USB-C Port 0:
-  Port Partner:  Source
   PD Contract:   Yes
   Power Role:    Sink
   Data Role:     Ufp
   VCONN:         Off
   Negotiated:    20.000 V, 5000 mA, 100.0 W
-  EPR:           Inactive
   CC Polarity:   CC1
-  Active Port:   Yes
+  Port Partner:  Source
+  EPR:           Inactive
+  Sink Active:   Yes
 ```
 
 A 65W (Framework) power adapter connected:
 
 ```
 USB-C Port 0:
-  Port Partner:  Source
   PD Contract:   Yes
   Power Role:    Sink
   Data Role:     Dfp
   VCONN:         On
   Negotiated:    20.000 V, 3250 mA, 65.0 W
-  EPR:           Inactive
   CC Polarity:   CC2
-  Active Port:   Yes
+  Port Partner:  Source
+  EPR:           Inactive
+  Sink Active:   Yes
 ```
 
 ### Devices
 
-A USB2/3 device connected (even USB-A Expansion Card):
+A high power USB2/3 device connected:
 
 ```
 USB-C Port 2:
@@ -798,24 +798,32 @@ USB-C Port 2:
   Data Role:     Dfp
   VCONN:         Off
   Negotiated:    5.000 V, 3000 mA, 15.0 W
-  EPR:           Inactive
   CC Polarity:   CC1
-  Active Port:   No
+```
+
+A low power USB2/3 device connected (even USB-A Expansion Card):
+
+```
+USB-C Port 3:
+  PD Contract:   No
+  Power Role:    Source
+  Data Role:     Dfp
+  VCONN:         Off
+  Negotiated:    5.000 V, 1500 mA, 7.500 W
+  CC Polarity:   CC2
 ```
 
 A Display connected through Framework DisplayPort Expansion card:
 
 ```
 USB-C Port 1:
-  Port Partner:  Sink
   PD Contract:   Yes
   Power Role:    Source
   Data Role:     Dfp
   VCONN:         On
   Negotiated:    5.000 V, 410 mA, 2.50 W
-  EPR:           Inactive
   CC Polarity:   CC1
-  Active Port:   No
+  Port Partner:  Sink
   DP Alt Mode:   DFP_D Connected, HPD High (0x81)
 ```
 
@@ -826,8 +834,4 @@ USB-C Port 3:
   PD Contract:   No
   Power Role:    Sink
   Data Role:     Ufp
-  VCONN:         Off
-  Negotiated:    0.000 V, 0 mA, 0.0 W
-  EPR:           Inactive
-  Active Port:   No
 ```

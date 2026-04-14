@@ -745,7 +745,7 @@ impl From<u8> for CypdTypeCState {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum CypdPdPowerRole {
     Sink,
     Source,
@@ -797,42 +797,27 @@ pub fn get_and_print_cypd_pd_info(ec: &CrosEc) {
                 let voltage = { info.voltage };
                 let current = { info.current };
                 let watts_mw = voltage as u32 * current as u32 / 1000;
+                let has_pd_contract = info.pd_state != 0;
 
-                if info.pd_state {
-                    println!("  Port Partner:  {:?}", c_state);
-                }
                 println!(
                     "  PD Contract:   {}",
                     if info.pd_state != 0 { "Yes" } else { "No" }
                 );
                 println!("  Power Role:    {:?}", power_role);
                 println!("  Data Role:     {:?}", data_role);
-                println!(
-                    "  VCONN:         {}",
-                    if info.vconn != 0 { "On" } else { "Off" }
-                );
-                println!(
-                    "  Negotiated:    {}.{:03} V, {} mA, {}.{} W",
-                    voltage / 1000,
-                    voltage % 1000,
-                    current,
-                    watts_mw / 1000,
-                    watts_mw % 1000,
-                );
-                println!(
-                    "  EPR:           {}{}",
-                    if info.epr_active != 0 {
-                        "Active"
-                    } else {
-                        "Inactive"
-                    },
-                    if info.epr_support != 0 {
-                        " (Supported)"
-                    } else {
-                        ""
-                    }
-                );
                 if connected {
+                    println!(
+                        "  VCONN:         {}",
+                        if info.vconn != 0 { "On" } else { "Off" }
+                    );
+                    println!(
+                        "  Negotiated:    {}.{:03} V, {} mA, {}.{} W",
+                        voltage / 1000,
+                        voltage % 1000,
+                        current,
+                        watts_mw / 1000,
+                        watts_mw % 1000,
+                    );
                     println!(
                         "  CC Polarity:   {}",
                         match info.cc_polarity {
@@ -844,10 +829,28 @@ pub fn get_and_print_cypd_pd_info(ec: &CrosEc) {
                         }
                     );
                 }
-                println!(
-                    "  Active Port:   {}",
-                    if info.active_port != 0 { "Yes" } else { "No" }
-                );
+                if has_pd_contract {
+                    println!("  Port Partner:  {:?}", c_state);
+                    println!(
+                        "  EPR:           {}{}",
+                        if info.epr_active != 0 {
+                            "Active"
+                        } else {
+                            "Inactive"
+                        },
+                        if info.epr_support != 0 {
+                            " (Supported)"
+                        } else {
+                            ""
+                        }
+                    );
+                    if power_role == CypdPdPowerRole::Sink {
+                        println!(
+                            "  Sink Active:   {}",
+                            if info.active_port != 0 { "Yes" } else { "No" }
+                        );
+                    }
+                }
                 let alt = info.pd_alt_mode_status;
                 // Bits 0-1 indicate DP alt mode is active (bit 0 = DFP_D/TBT,
                 // bit 1 = UFP_D). Only show when actually in DP alt mode.
