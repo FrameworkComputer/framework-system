@@ -28,7 +28,7 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
 - Ubuntu 26.04 (Resolute) and later ([rust-framework-lib](https://launchpad.net/ubuntu/+source/rust-framework-lib), [rust-framework-tool](https://launchpad.net/ubuntu/+source/rust-framework-tool))
   - `apt install rust-framework-tool`
 - Ubuntu (Any Version - [Snap Package](https://snapcraft.io/framework-tool))
-  - `snap install --edge framework-tool --classic
+  - `snap install --edge framework-tool --classic`
   - Note that this installs the command called `framework-tool` instead of `framework_tool`
 - Rhino Linux [![Rhino Linux package](https://repology.org/badge/version-for-repo/pacstall/framework-system.svg)](https://repology.org/project/framework-system/versions)
   - `pacstall -I framework-system-bin`
