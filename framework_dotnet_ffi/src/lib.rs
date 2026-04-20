@@ -4,9 +4,7 @@ use std::ptr;
 use framework_lib::chromium_ec::command::EcRequestRaw;
 use framework_lib::chromium_ec::commands::{EcFeatureCode, EcRequestGetFeatures};
 use framework_lib::chromium_ec::{CrosEc, CrosEcDriverType, EcCurrentImage, EcError};
-use framework_lib::power::{
-    self, ThermalSensorStatus, FAN_SLOT_COUNT, THERMAL_SENSOR_COUNT,
-};
+use framework_lib::power::{self, ThermalSensorStatus, FAN_SLOT_COUNT, THERMAL_SENSOR_COUNT};
 use framework_lib::smbios;
 use framework_lib::smbios::{Platform, PlatformFamily};
 
@@ -110,9 +108,7 @@ impl From<Platform> for FrameworkPlatform {
             Platform::Framework13AmdAi300 => FrameworkPlatform::Framework13AmdAi300,
             Platform::Framework16Amd7080 => FrameworkPlatform::Framework16Amd7080,
             Platform::Framework16AmdAi300 => FrameworkPlatform::Framework16AmdAi300,
-            Platform::FrameworkDesktopAmdAiMax300 => {
-                FrameworkPlatform::FrameworkDesktopAmdAiMax300
-            }
+            Platform::FrameworkDesktopAmdAiMax300 => FrameworkPlatform::FrameworkDesktopAmdAiMax300,
             Platform::GenericFramework(..) => FrameworkPlatform::GenericFramework,
             Platform::UnknownSystem => FrameworkPlatform::UnknownSystem,
         }
@@ -365,7 +361,9 @@ fn feature_enabled(ec: &CrosEc, feature: EcFeatureCode) -> Result<bool, Framewor
     Ok((flags[word] & (1 << bit)) != 0)
 }
 
-fn require_handle<'a>(handle: *const FrameworkEcHandle) -> Result<&'a FrameworkEcHandle, FrameworkStatus> {
+fn require_handle<'a>(
+    handle: *const FrameworkEcHandle,
+) -> Result<&'a FrameworkEcHandle, FrameworkStatus> {
     if handle.is_null() {
         return Err(FrameworkStatus::with(FrameworkStatusCode::NullPointer, 0));
     }
