@@ -22,6 +22,7 @@ jobs:
           pkg install -y rust hidapi pkgconf
         run: |
           cargo build -p framework_lib
+          cargo build -p framework_dotnet_ffi
           cargo build -p framework_tool
 
   build:
@@ -42,6 +43,17 @@ jobs:
 
     - name: Build library (Linux)
       run: cargo build -p framework_lib
+
+    - name: Build .NET FFI (Linux Release)
+      run: cargo build -p framework_dotnet_ffi --release
+
+    - name: Upload Linux .NET FFI
+      uses: actions/upload-artifact@v6
+      with:
+        name: framework_dotnet_ffi_linux
+        path: |
+          target/release/libframework_dotnet_ffi.so
+          framework_dotnet_ffi/csharp/NativeMethods.g.cs
 
     - name: Build Linux tool
       run: cargo build -p framework_tool
@@ -139,6 +151,19 @@ jobs:
     # Build debug library first to fail fast
     - name: Build library (Windows)
       run: cargo build -p framework_lib
+
+    - name: Build .NET FFI (Windows Release)
+      run: cargo build -p framework_dotnet_ffi --release
+
+    - name: Upload Windows .NET FFI
+      uses: actions/upload-artifact@v6
+      with:
+        name: framework_dotnet_ffi_windows
+        path: |
+          target/release/framework_dotnet_ffi.dll
+          target/release/framework_dotnet_ffi.dll.lib
+          target/release/framework_dotnet_ffi.pdb
+          framework_dotnet_ffi/csharp/NativeMethods.g.cs
 
     - name: Build Windows tool
       run: |

@@ -5,6 +5,10 @@ Rust libraries and tools to interact with the system.
 The tool works on Linux, Windows and the UEFI shell.
 Most features are supported on every "OS".
 
+The workspace also contains an optional .NET interop crate, `framework_dotnet_ffi`,
+which exposes a native FFI surface over `framework_lib` and generates C# P/Invoke
+bindings via `csbindgen`.
+
 You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
 
 ## Installation
@@ -260,11 +264,32 @@ cargo build -p framework_lib
 cargo build -p framework_tool
 ls -l target/debug/framework_tool
 
+# Building the optional .NET interop crate
+cargo build -p framework_dotnet_ffi
+
 # Build the UEFI application
 # Can't be built with cargo! That's why we need to exclude it in the other commands.
 make -C framework_uefi
 ls -l framework_uefi/build/x86_64-unknown-uefi/boot.efi
 ```
+
+### Optional .NET Interop
+
+The `framework_dotnet_ffi` crate is an optional workspace member and is not part of
+the default `cargo build` / `cargo check` set.
+
+Build it explicitly when you want to consume Framework functionality from .NET:
+
+```sh
+cargo build -p framework_dotnet_ffi
+```
+
+Building the crate also regenerates the low-level C# bindings at
+`framework_dotnet_ffi/csharp/NativeMethods.g.cs` using `csbindgen`.
+
+- Native library name: `framework_dotnet_ffi`
+- Generated C# namespace: `Framework.System.Interop`
+- Generated C# class: `NativeMethods`
 
 ## Install local package
 
