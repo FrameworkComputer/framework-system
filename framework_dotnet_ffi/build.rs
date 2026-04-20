@@ -11,7 +11,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .csharp_dll_name("framework_dotnet_ffi")
         .csharp_namespace("Framework.System.Interop")
         .csharp_class_name("NativeMethods")
-        .csharp_class_accessibility("public")
+        .csharp_class_accessibility("internal")
         .generate_csharp_file(output_dir.join("NativeMethods.g.cs"))?;
 
     Ok(())
