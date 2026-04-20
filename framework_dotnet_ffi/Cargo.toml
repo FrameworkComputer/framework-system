@@ -1,0 +1,19 @@
+[package]
+name = "framework_dotnet_ffi"
+version = "0.6.2"
+description = "Native FFI surface for Framework System .NET interop"
+homepage = "https://github.com/FrameworkComputer/framework-system"
+repository = "https://github.com/FrameworkComputer/framework-system"
+license = "BSD-3-Clause"
+edition = "2021"
+rust-version = "1.81"
+build = "build.rs"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[build-dependencies]
+csbindgen = "1.9.7"
+
+[dependencies]
+framework_lib = { path = "../framework_lib" }

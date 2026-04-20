@@ -5,6 +5,8 @@
 resolver = "2"
 
 members = [
+    # Native FFI surface for .NET interop
+    "framework_dotnet_ffi",
     # Linux and Windows tool to inspect and customize the system
     "framework_tool",
     # UEFI tool to inspect and customize the system

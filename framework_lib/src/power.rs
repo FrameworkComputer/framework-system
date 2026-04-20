@@ -72,6 +72,8 @@ const EC_BATT_FLAG_CHARGING: u8 = 0x08;
 const EC_BATT_FLAG_LEVEL_CRITICAL: u8 = 0x10;
 
 const EC_FAN_SPEED_ENTRIES: usize = 4;
+pub const THERMAL_SENSOR_COUNT: usize = 8;
+pub const FAN_SLOT_COUNT: usize = EC_FAN_SPEED_ENTRIES;
 /// Used on old EC firmware (before 2023)
 const EC_FAN_SPEED_STALLED_DEPRECATED: u16 = 0xFFFE;
 const EC_FAN_SPEED_NOT_PRESENT: u16 = 0xFFFF;
@@ -103,6 +105,57 @@ impl fmt::Display for TempSensor {
             write!(f, "{:?}", self)
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ThermalSensorStatus {
+    Ok,
+    NotPresent,
+    Error,
+    NotPowered,
+    NotCalibrated,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ThermalSensorReading {
+    pub status: ThermalSensorStatus,
+    pub celsius: i16,
+}
+
+impl From<TempSensor> for ThermalSensorReading {
+    fn from(value: TempSensor) -> Self {
+        match value {
+            TempSensor::Ok(temp) => Self {
+                status: ThermalSensorStatus::Ok,
+                celsius: i16::from(temp),
+            },
+            TempSensor::NotPresent => Self {
+                status: ThermalSensorStatus::NotPresent,
+                celsius: 0,
+            },
+            TempSensor::Error => Self {
+                status: ThermalSensorStatus::Error,
+                celsius: 0,
+            },
+            TempSensor::NotPowered => Self {
+                status: ThermalSensorStatus::NotPowered,
+                celsius: 0,
+            },
+            TempSensor::NotCalibrated => Self {
+                status: ThermalSensorStatus::NotCalibrated,
+                celsius: 0,
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ThermalSnapshot {
+    pub temperatures: [ThermalSensorReading; THERMAL_SENSOR_COUNT],
+    pub fan_rpms: [u16; FAN_SLOT_COUNT],
+    pub fan_present: [bool; FAN_SLOT_COUNT],
+    pub fan_stalled: [bool; FAN_SLOT_COUNT],
+    pub fan_count: u8,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -453,6 +506,49 @@ pub fn print_thermal(ec: &CrosEc) {
             println!("  Fan Speed:  {:>4} RPM", fan);
         }
     }
+}
+
+pub fn thermal_snapshot(ec: &CrosEc) -> Option<ThermalSnapshot> {
+    let temps = ec.read_memory(EC_MEMMAP_TEMP_SENSOR, 0x0F)?;
+    let fans = ec.read_memory(EC_MEMMAP_FAN, 0x08)?;
+
+    let mut temperatures = [ThermalSensorReading {
+        status: ThermalSensorStatus::NotPresent,
+        celsius: 0,
+    }; THERMAL_SENSOR_COUNT];
+    for (index, byte) in temps.iter().take(THERMAL_SENSOR_COUNT).enumerate() {
+        temperatures[index] = TempSensor::from(*byte).into();
+    }
+
+    let mut fan_rpms = [0u16; FAN_SLOT_COUNT];
+    let mut fan_present = [false; FAN_SLOT_COUNT];
+    let mut fan_stalled = [false; FAN_SLOT_COUNT];
+    let mut fan_count = 0u8;
+
+    for i in 0..FAN_SLOT_COUNT {
+        let fan = u16::from_le_bytes([fans[i * 2], fans[1 + i * 2]]);
+        match fan {
+            EC_FAN_SPEED_NOT_PRESENT => {}
+            EC_FAN_SPEED_STALLED_DEPRECATED => {
+                fan_present[i] = true;
+                fan_stalled[i] = true;
+                fan_count += 1;
+            }
+            rpm => {
+                fan_rpms[i] = rpm;
+                fan_present[i] = true;
+                fan_count += 1;
+            }
+        }
+    }
+
+    Some(ThermalSnapshot {
+        temperatures,
+        fan_rpms,
+        fan_present,
+        fan_stalled,
+        fan_count,
+    })
 }
 
 pub fn get_fan_num(ec: &CrosEc) -> EcResult<usize> {
