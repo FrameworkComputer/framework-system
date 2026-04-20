@@ -1250,21 +1250,21 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
     if let Some(esrt) = esrt::get_esrt() {
         for entry in &esrt.entries {
             match GUID::from(entry.fw_class) {
-                esrt::TGL_RETIMER01_GUID | esrt::ADL_RETIMER01_GUID | esrt::RPL_RETIMER01_GUID => {
-                    if device == Some(HardwareDeviceType::RTM01) {
-                        println!("Comparing RTM01 version {:?}", entry.fw_version.to_string());
+                esrt::TGL_RETIMER01_GUID | esrt::ADL_RETIMER01_GUID | esrt::RPL_RETIMER01_GUID
+                    if device == Some(HardwareDeviceType::RTM01) =>
+                {
+                    println!("Comparing RTM01 version {:?}", entry.fw_version.to_string());
 
-                        if entry.fw_version.to_string().contains(&version) {
-                            return 0;
-                        }
+                    if entry.fw_version.to_string().contains(&version) {
+                        return 0;
                     }
                 }
-                esrt::TGL_RETIMER23_GUID | esrt::ADL_RETIMER23_GUID | esrt::RPL_RETIMER23_GUID => {
-                    if device == Some(HardwareDeviceType::RTM23) {
-                        println!("Comparing RTM23 version {:?}", entry.fw_version.to_string());
-                        if entry.fw_version.to_string().contains(&version) {
-                            return 0;
-                        }
+                esrt::TGL_RETIMER23_GUID | esrt::ADL_RETIMER23_GUID | esrt::RPL_RETIMER23_GUID
+                    if device == Some(HardwareDeviceType::RTM23) =>
+                {
+                    println!("Comparing RTM23 version {:?}", entry.fw_version.to_string());
+                    if entry.fw_version.to_string().contains(&version) {
+                        return 0;
                     }
                 }
                 _ => {}
