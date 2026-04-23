@@ -639,7 +639,7 @@ Fingerprint LED Brightness
   Requested:  Auto
   Brightness: 55%
 
-# Set it to a custom perfentage
+# Set it to a custom percentage
 > framework_tool --fp-brightness 42
 Fingerprint LED Brightness
   Requested:  Custom
