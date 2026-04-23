@@ -155,7 +155,7 @@ pub enum FrameworkHx20Hx30Adc {
 }
 
 /// So far on all Nuvoton/Zephyr EC based platforms
-/// Until at least Framework 13 AMD Ryzen AI 300
+/// Until at least Framework Laptop 13 AMD Ryzen AI 300
 #[repr(u8)]
 #[derive(Copy, Clone, Debug)]
 pub enum Framework13Adc {

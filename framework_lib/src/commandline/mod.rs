@@ -745,7 +745,7 @@ fn print_versions(ec: &CrosEc) {
             }
         }
         _err => {
-            // Only Framework 16 has dGPU support (which has Parade Retimer)
+            // Only Framework Laptop 16 has dGPU support (which has Parade Retimer)
             if smbios::get_platform().and_then(Platform::which_family)
                 == Some(PlatformFamily::Framework16)
             {
@@ -1361,7 +1361,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             Some(PlatformFamily::Framework16) => ec.print_fw16_inputdeck_status(),
             // If we don't know which platform it is, we can use some heuristics
             _ => {
-                // Only Framework 16 has this GPIO
+                // Only Framework Laptop 16 has this GPIO
                 if ec.get_gpio("sleep_l").is_ok() {
                     ec.print_fw16_inputdeck_status()
                 } else {
@@ -1874,9 +1874,9 @@ Options:
       --s0ix-counter         Show S0ix counter
       --intrusion            Show status of intrusion switch
       --inputdeck            Show status of the input deck
-      --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Framework 12, 13, 16)
-      --expansion-bay        Show status of the expansion bay (Framework 16 only)
-      --nvidia               Show NVIDIA GPU information (Framework 16 only)
+      --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Laptop 12, 13, 16)
+      --expansion-bay        Show status of the expansion bay (Laptop 16 only)
+      --nvidia               Show NVIDIA GPU information (Laptop 16 only)
       --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')
       --charge-current-limit [<VAL>] Get or set battery current charge limit (Percentage number as arg, e.g. '100')
       --charge-rate-limit [<VAL>]   Set max charge rate limit
@@ -2051,26 +2051,26 @@ fn selftest(ec: &CrosEc) -> Option<()> {
 }
 
 // Platforms that have Retimers
-// Retimer I2C is always connected to the CPU, except for the Framework 16 dGPU retimer.
+// Retimer I2C is always connected to the CPU, except for the Framework Laptop 16 dGPU retimer.
 //
-// - Framework 12
+// - Framework Laptop 12
 //   - No Retimer, only retimer for both left ports (no firmware)
-// - Framework 13 Intel
+// - Framework Laptop 13 Intel
 //   - One Intel retimer for each port (with firmware)
-// - Framework 13 AMD 7040
+// - Framework Laptop 13 AMD 7040
 //   - Kandou Retimer on top two ports (no firmware)
 //   - Analogix Retimer on bottom two ports (no firmware)
-// - Framework 13 AMD AI 300
+// - Framework Laptop 13 AMD AI 300
 //   - Parade Retimer on top two ports (with firmware)
 //   - Analogix Retimer on bottom two ports (no firmware)
-// - Framework 16 AMD 7040
+// - Framework Laptop 16 AMD 7040
 //   - Kandou Retimer on top two ports (no firmware)
 //   - Analogix Retimer on lower and middle left ports (no firmware)
-// - Framework 16 AMD AI 300
+// - Framework Laptop 16 AMD AI 300
 //   - Parade Retimer on top two ports (with firmware)
-// - Framework 16 AMD dGPU
+// - Framework Laptop 16 AMD dGPU
 //   - None
-// - Framework 16 NVIDIA dGPU
+// - Framework Laptop 16 NVIDIA dGPU
 //   - Parade Retimer
 // - Framework Desktop
 //   - Parade Retimer on both back ports (with firmware)

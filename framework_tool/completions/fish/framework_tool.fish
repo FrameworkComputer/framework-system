@@ -89,7 +89,7 @@ complete -c framework_tool -l audio-card-info -d 'Show details about connected A
 complete -c framework_tool -l privacy -d 'Show privacy switch statuses (camera and microphone)'
 complete -c framework_tool -l intrusion -d 'Show status of intrusion switch'
 complete -c framework_tool -l inputdeck -d 'Show status of the input modules'
-complete -c framework_tool -l expansion-bay -d 'Show status of the expansion bay (Framework 16 only)'
+complete -c framework_tool -l expansion-bay -d 'Show status of the expansion bay (Laptop 16 only)'
 complete -c framework_tool -l stylus-battery -d 'Check stylus battery level (USI 2.0 stylus only)'
 complete -c framework_tool -l uptimeinfo
 complete -c framework_tool -l s0ix-counter
@@ -98,5 +98,5 @@ complete -c framework_tool -l test-retimer -d 'Run self-test to check if interac
 complete -c framework_tool -l boardid -d 'Print all board IDs'
 complete -c framework_tool -s f -l force -d 'Force execution of an unsafe command - may render your hardware unbootable!'
 complete -c framework_tool -l dry-run -d 'Simulate execution of a command (e.g. --flash-ec)'
-complete -c framework_tool -l nvidia -d 'Show NVIDIA GPU information (Framework 16 only)'
+complete -c framework_tool -l nvidia -d 'Show NVIDIA GPU information (Laptop 16 only)'
 complete -c framework_tool -s h -l help -d 'Print help'
