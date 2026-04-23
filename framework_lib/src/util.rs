@@ -23,7 +23,7 @@ pub enum Platform {
     Framework12IntelGen13,
     /// Framework Laptop 13 - Intel 11th Gen, Codenamed TigerLake
     IntelGen11,
-    /// Framework Laptop 13 - Intel 11th Gen, Codenamed AlderLake
+    /// Framework Laptop 13 - Intel 12th Gen, Codenamed AlderLake
     IntelGen12,
     /// Framework Laptop 13 - Intel 13th Gen, Codenamed RaptorLake
     IntelGen13,
