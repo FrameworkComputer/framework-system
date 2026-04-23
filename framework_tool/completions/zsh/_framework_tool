@@ -80,7 +80,7 @@ _framework_tool() {
 '--privacy[Show privacy switch statuses (camera and microphone)]' \
 '--intrusion[Show status of intrusion switch]' \
 '--inputdeck[Show status of the input modules]' \
-'--expansion-bay[Show status of the expansion bay (Framework 16 only)]' \
+'--expansion-bay[Show status of the expansion bay (Laptop 16 only)]' \
 '--stylus-battery[Check stylus battery level (USI 2.0 stylus only)]' \
 '--uptimeinfo[]' \
 '--s0ix-counter[]' \
@@ -91,7 +91,7 @@ _framework_tool() {
 '-f[Force execution of an unsafe command - may render your hardware unbootable!]' \
 '--force[Force execution of an unsafe command - may render your hardware unbootable!]' \
 '--dry-run[Simulate execution of a command (e.g. --flash-ec)]' \
-'--nvidia[Show NVIDIA GPU information (Framework 16 only)]' \
+'--nvidia[Show NVIDIA GPU information (Laptop 16 only)]' \
 '-h[Print help]' \
 '--help[Print help]' \
 && ret=0

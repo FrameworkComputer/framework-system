@@ -1701,15 +1701,15 @@ impl EcRequest<EcResponseSetGpuSerial> for EcRequestSetGpuSerial {
 pub enum BoardIdType {
     /// Mainboard - any system
     Mainboard = 0,
-    /// Power button board - Framework 12
+    /// Power button board - Laptop 12
     PowerButtonBoard = 1,
-    /// Touchpad - Framework 12, 13, 16
+    /// Touchpad - Laptop 12, 13, 16
     Touchpad = 2,
-    /// Audio Board - Framework 12, 13
+    /// Audio Board - Laptop 12, 13
     AudioBoard = 3,
-    /// dGPU board - Framework 16
+    /// dGPU board - Laptop 16
     DGpu0 = 4,
-    /// dGPU board - Framework 16
+    /// dGPU board - Laptop 16
     DGpu1 = 5,
 }
 

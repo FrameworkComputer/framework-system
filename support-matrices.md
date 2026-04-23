@@ -15,7 +15,7 @@
 
 ###### Platform Support
 
-| Feature          | Intel 11th Gen | Intel 12th Gen | Intel 13th Gen | Framework 13 AMD | Framework 16   |
+| Feature          | Intel 11th Gen | Intel 12th Gen | Intel 13th Gen | Laptop 13 AMD    | Laptop 16      |
 |------------------|----------------|----------------|----------------|------------------|----------------|
 | SMBIOS           | y              | y              | n              | n                | n              |
 | ESRT             | y              | y              | y (not parsed) | y (not parsed)   | y              |
@@ -42,18 +42,18 @@
 | `--privacy`              | EC Communication | All Laptops       |
 | `--intrusion`            | EC Communication | All Laptops       |
 | `--inputdeck`            | EC Communication | All Laptops       |
-| `--inputdeck-mode`       | EC Communication | Framework 13, 16  |
+| `--inputdeck-mode`       | EC Communication | Laptop 13, 16     |
 | `--console`              | EC Communication | All               |
 | `--get-gpio`             | EC Communication | All               |
-| `--kblight`              | EC Communication | Framework 13      |
+| `--kblight`              | EC Communication | Laptop 13         |
 | `--charge-limit`         | EC Communication | All Laptops       |
 | `--charge-current-limit` | EC Communication | All Laptops       |
 | `--charge-rate-limit`    | EC Communication | All Laptops       |
 | `--fp-led-level`         | EC Communication | All Laptops       |
 | `--fp-brightness`        | EC Communication | All Laptops       |
-| `--remap-key`            | EC Communication | Framework 12, 13  |
+| `--remap-key`            | EC Communication | Laptop 12, 13     |
 | `--rgbkbd`               | EC Communication | Framework Desktop |
-| `--tablet-mode`          | EC Communication | Framework 12      |
-| `--touchscreen-enable`   | I2C HID          | Framework 12      |
-| `--stylus-battery        | I2C HID          | Framework 12      |
-| `--kblight`              | EC Communication | Framework 13      |
+| `--tablet-mode`          | EC Communication | Laptop 12         |
+| `--touchscreen-enable`   | I2C HID          | Laptop 12         |
+| `--stylus-battery        | I2C HID          | Laptop 12         |
+| `--kblight`              | EC Communication | Laptop 13         |
