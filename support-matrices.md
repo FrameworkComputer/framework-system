@@ -42,7 +42,7 @@
 | `--privacy`              | EC Communication | All Laptops       |
 | `--intrusion`            | EC Communication | All Laptops       |
 | `--inputdeck`            | EC Communication | All Laptops       |
-| `--inputdeck-mode`       | EC Communication | Laptop 13, 16     |
+| `--inputdeck-mode`       | EC Communication | All laptops       |
 | `--console`              | EC Communication | All               |
 | `--get-gpio`             | EC Communication | All               |
 | `--kblight`              | EC Communication | Laptop 13         |
@@ -55,5 +55,4 @@
 | `--rgbkbd`               | EC Communication | Framework Desktop |
 | `--tablet-mode`          | EC Communication | Laptop 12         |
 | `--touchscreen-enable`   | I2C HID          | Laptop 12         |
-| `--stylus-battery        | I2C HID          | Laptop 12         |
-| `--kblight`              | EC Communication | Laptop 13         |
+| `--stylus-battery`       | I2C HID          | Laptop 12         |
