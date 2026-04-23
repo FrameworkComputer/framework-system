@@ -387,7 +387,36 @@ Positions:
   Pos 4: GenericC
 ```
 
-### Checking board ID
+## Controlling Input Deck State
+
+The input deck (keyboard, touchpad) on many laptops is detected by the EC
+firmware and only powered if it is installed.
+
+On Laptop 16 the whole input deck is powered on/off.
+On Laptop 13, Laptop 12 only the touchpad, the keyboard is just switches connected to the EC.
+
+The following mainboards support auto detection:
+
+- Laptop 12 - Every Model
+- Laptop 16 - Every Model
+- Laptop 13
+  - AMD Ryzen AI 300
+  - Intel Core Ultra Series 3
+
+To manually control the power state of the input deck, use the following commands:
+
+```
+# Always off (No detection)
+framework_tool --inputdeck-mode off
+
+# Always on (No detection)
+framework_tool --inputdeck-mode on
+
+# Auto detect (Default behavior)
+framework_tool --inputdeck-mode auto
+```
+
+## Checking board ID
 
 Most inputdeck checking is implemented by Board ID. To read those directly for
 debugging low level issues, use the `--boardid` command.
