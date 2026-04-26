@@ -43,11 +43,11 @@ parts:
       cd "${CRAFT_PART_SRC}"
       cargo build --release -p framework_tool --features nvidia
       install -Dm755 target/release/framework_tool "${CRAFT_PART_INSTALL}/bin/framework_tool"
-      install -Dm644 "${CRAFT_PART_SRC}/completions/bash/framework_tool" \
+      install -Dm644 "${CRAFT_PART_SRC}/framework_tool/completions/bash/framework_tool" \
         "${CRAFT_PART_INSTALL}/share/bash-completion/completions/framework_tool"
-      install -Dm644 "${CRAFT_PART_SRC}/completions/zsh/_framework_tool" \
+      install -Dm644 "${CRAFT_PART_SRC}/framework_tool/completions/zsh/_framework_tool" \
         "${CRAFT_PART_INSTALL}/share/zsh/site-functions/_framework_tool"
-      install -Dm644 "${CRAFT_PART_SRC}/completions/fish/framework_tool.fish" \
+      install -Dm644 "${CRAFT_PART_SRC}/framework_tool/completions/fish/framework_tool.fish" \
         "${CRAFT_PART_INSTALL}/share/fish/vendor_completions.d/framework_tool.fish"
 
 apps:
