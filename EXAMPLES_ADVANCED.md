@@ -32,7 +32,7 @@ Keyboard backlight: 0%
 
 ### Check PD state
 
-Example on Framework 13 AMD Ryzen AI 300
+Example on Framework Laptop 13 AMD Ryzen AI 300
 
 ```
 > sudo framework_tool.exe --pd-info
@@ -192,7 +192,7 @@ This command has not been thoroughly tested on all Framework Computer systems
 > framework_tool --reboot-ec jump-rw
 ```
 
-## Flashing Expansion Bay EEPROM (Framework 16)
+## Flashing Expansion Bay EEPROM (Framework Laptop 16)
 
 This will render your dGPU unsuable if you flash the wrong file!
 It's intended for advanced users who build their own expansion bay module.
@@ -217,7 +217,7 @@ Wrote 153 bytes to foo.bin
 
 ### EC
 
-Note that only since Framework 13 Intel Core Ultra (and later) the version number embedded in the ED binary is meaningful. As you can see below, in this example on Intel Core 12th/13th Gen (hx30) it's always 0.0.1.
+Note that only since Framework Laptop 13 Intel Core Ultra (and later) the version number embedded in the ED binary is meaningful. As you can see below, in this example on Intel Core 12th/13th Gen (hx30) it's always 0.0.1.
 The commit hash though is accurate and reflects the git commit it was built from.
 
 ```

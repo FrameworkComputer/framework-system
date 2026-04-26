@@ -29,6 +29,13 @@ fn read_274_ver(device: &HidDevice) -> Result<u16, HidError> {
     ]))
 }
 
+fn read_360_ver(device: &HidDevice) -> Result<u16, HidError> {
+    Ok(u16::from_le_bytes([
+        read_byte(device, P274_REPORT_ID, 0x7e)?,
+        read_byte(device, P274_REPORT_ID, 0x7f)?,
+    ]))
+}
+
 pub fn print_touchpad_fw_ver() -> Result<(), HidError> {
     debug!("Looking for touchpad HID device");
     match HidApi::new() {
@@ -43,10 +50,12 @@ pub fn print_touchpad_fw_ver() -> Result<(), HidError> {
                     "  Found {:04X}:{:04X} (Usage Page {:04X})",
                     vid, pid, usage_page
                 );
-                if vid != PIX_VID || (pid != 0x0274 && pid != 0x0239) {
+                if vid != PIX_VID
+                    || (pid != 0x0274 && pid != 0x0239 && pid != 0x0360 && pid != 0x0343)
+                {
                     debug!(
-                        "  Skipping VID:PID. Expected {:04X}:{:04X}/{:04X}",
-                        PIX_VID, 0x0274, 0x0239
+                        "  Skipping VID:PID. Expected {:04X}:{:04X}/{:04X}/{:04X}",
+                        PIX_VID, 0x0274, 0x0239, 0x0343
                     );
                     continue;
                 }
@@ -64,6 +73,8 @@ pub fn print_touchpad_fw_ver() -> Result<(), HidError> {
                 let ver = match pid {
                     0x0239 => format!("{:04X}", read_239_ver(&device)?),
                     0x0274 => format!("{:04X}", read_274_ver(&device)?),
+                    0x0343 => format!("{:04X}", read_274_ver(&device)?),
+                    0x0360 => format!("{:04X}", read_360_ver(&device)?),
                     _ => "Unsupported".to_string(),
                 };
                 println!("  Firmware Version: v{}", ver);

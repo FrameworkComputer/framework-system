@@ -19,23 +19,25 @@ use crate::smbios;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Platform {
-    /// Framework 12
+    /// Framework Laptop 12
     Framework12IntelGen13,
-    /// Framework 13 - Intel 11th Gen, Codenamed TigerLake
+    /// Framework Laptop 13 - Intel 11th Gen, Codenamed TigerLake
     IntelGen11,
-    /// Framework 13 - Intel 11th Gen, Codenamed AlderLake
+    /// Framework Laptop 13 - Intel 12th Gen, Codenamed AlderLake
     IntelGen12,
-    /// Framework 13 - Intel 13th Gen, Codenamed RaptorLake
+    /// Framework Laptop 13 - Intel 13th Gen, Codenamed RaptorLake
     IntelGen13,
-    /// Framework 13 - Intel Core Ultra Series 1, Codenamed MeteorLake
+    /// Framework Laptop 13 - Intel Core Ultra Series 1, Codenamed MeteorLake
     IntelCoreUltra1,
-    /// Framework 13 - AMD Ryzen 7080 Series
+    /// Framework Laptop 13 - Intel Core Ultra Series 3, Codenamed PantherLake
+    IntelCoreUltra3,
+    /// Framework Laptop 13 - AMD Ryzen 7080 Series
     Framework13Amd7080,
-    /// Framework 13 - AMD Ryzen AI 300 Series
+    /// Framework Laptop 13 - AMD Ryzen AI 300 Series
     Framework13AmdAi300,
-    /// Framework 16 - AMD Ryzen 7080 Series
+    /// Framework Laptop 16 - AMD Ryzen 7080 Series
     Framework16Amd7080,
-    /// Framework 16 - AMD Ryzen AI 300 Series
+    /// Framework Laptop 16 - AMD Ryzen AI 300 Series
     Framework16AmdAi300,
     /// Framework Desktop - AMD Ryzen AI Max 300
     FrameworkDesktopAmdAiMax300,
@@ -66,7 +68,8 @@ impl Platform {
             | Platform::IntelGen11
             | Platform::IntelGen12
             | Platform::IntelGen13
-            | Platform::IntelCoreUltra1 => Some(CpuVendor::Intel),
+            | Platform::IntelCoreUltra1
+            | Platform::IntelCoreUltra3 => Some(CpuVendor::Intel),
             Platform::Framework13Amd7080
             | Platform::Framework13AmdAi300
             | Platform::Framework16Amd7080
@@ -83,6 +86,7 @@ impl Platform {
             | Platform::IntelGen12
             | Platform::IntelGen13
             | Platform::IntelCoreUltra1
+            | Platform::IntelCoreUltra3
             | Platform::Framework13Amd7080
             | Platform::Framework13AmdAi300 => Some(PlatformFamily::Framework13),
             Platform::Framework16Amd7080 => Some(PlatformFamily::Framework16),

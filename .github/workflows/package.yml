@@ -68,3 +68,39 @@ jobs:
       with:
         name: framework-tool-rpm
         path: target/generate-rpm/*.rpm
+
+  build-snap:
+    name: Build Snap
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    - name: Build snap
+      uses: snapcore/action-build@v1
+      id: build
+
+    - name: Upload snap artifact
+      uses: actions/upload-artifact@v6
+      with:
+        name: framework-tool-snap
+        path: ${{ steps.build.outputs.snap }}
+
+    - name: Publish to edge channel
+      if: github.ref == 'refs/heads/main'
+      uses: snapcore/action-publish@v1
+      env:
+        SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+      with:
+        snap: ${{ steps.build.outputs.snap }}
+        release: edge
+
+    - name: Publish to candidate channel
+      if: github.event_name == 'release'
+      uses: snapcore/action-publish@v1
+      env:
+        SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+      with:
+        snap: ${{ steps.build.outputs.snap }}
+        release: candidate

@@ -175,7 +175,7 @@ struct ClapCli {
     #[arg(long)]
     inputdeck_mode: Option<InputDeckModeArg>,
 
-    /// Show status of the expansion bay (Framework 16 only)
+    /// Show status of the expansion bay (Laptop 16 only)
     #[arg(long)]
     expansion_bay: bool,
 
@@ -309,7 +309,7 @@ struct ClapCli {
     #[arg(long)]
     dump_gpu_descriptor_file: Option<std::path::PathBuf>,
 
-    /// Show NVIDIA GPU information (Framework 16 only)
+    /// Show NVIDIA GPU information (Laptop 16 only)
     #[arg(long)]
     nvidia: bool,
 
