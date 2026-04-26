@@ -5,6 +5,7 @@ use std::path::Path;
 fn main() -> Result<(), Box<dyn Error>> {
     let output_dir = Path::new("csharp");
     fs::create_dir_all(output_dir)?;
+    println!("cargo:rerun-if-changed=src/lib.rs");
 
     csbindgen::Builder::default()
         .input_extern_file("src/lib.rs")
