@@ -288,6 +288,7 @@ pub enum FrameworkPlatform {
     FrameworkDesktopAmdAiMax300 = 9,
     GenericFramework = 10,
     UnknownSystem = 11,
+    IntelCoreUltra3 = 12,
 }
 
 impl From<Platform> for FrameworkPlatform {
@@ -298,6 +299,7 @@ impl From<Platform> for FrameworkPlatform {
             Platform::IntelGen12 => FrameworkPlatform::IntelGen12,
             Platform::IntelGen13 => FrameworkPlatform::IntelGen13,
             Platform::IntelCoreUltra1 => FrameworkPlatform::IntelCoreUltra1,
+            Platform::IntelCoreUltra3 => FrameworkPlatform::IntelCoreUltra3,
             Platform::Framework13Amd7080 => FrameworkPlatform::Framework13Amd7080,
             Platform::Framework13AmdAi300 => FrameworkPlatform::Framework13AmdAi300,
             Platform::Framework16Amd7080 => FrameworkPlatform::Framework16Amd7080,
