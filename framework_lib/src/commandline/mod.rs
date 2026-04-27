@@ -131,6 +131,7 @@ pub enum InputDeckModeArg {
     Auto,
     Off,
     On,
+    Reset,
 }
 impl From<InputDeckModeArg> for DeckStateMode {
     fn from(w: InputDeckModeArg) -> DeckStateMode {
@@ -138,6 +139,8 @@ impl From<InputDeckModeArg> for DeckStateMode {
             InputDeckModeArg::Auto => DeckStateMode::Required,
             InputDeckModeArg::Off => DeckStateMode::ForceOff,
             InputDeckModeArg::On => DeckStateMode::ForceOn,
+            // Actually should turn off first
+            InputDeckModeArg::Reset => DeckStateMode::Required,
         }
     }
 }
@@ -1380,8 +1383,16 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         };
         print_err(res);
     } else if let Some(mode) = &args.inputdeck_mode {
-        println!("Set mode to: {:?}", mode);
-        ec.set_input_deck_mode((*mode).into()).unwrap();
+        if *mode == InputDeckModeArg::Reset {
+            println!("Resetting input deck (off => auto)");
+            ec.set_input_deck_mode(DeckStateMode::ForceOff).unwrap();
+            // Make sure it has time to fully turn off
+            os_specific::sleep(100);
+            ec.set_input_deck_mode(DeckStateMode::Required).unwrap();
+        } else {
+            println!("Set mode to: {:?}", mode);
+            ec.set_input_deck_mode((*mode).into()).unwrap();
+        }
     } else if args.expansion_bay {
         if let Err(err) = ec.check_bay_status() {
             error!("{:?}", err);

@@ -256,13 +256,15 @@ pub fn parse(args: &[String]) -> Cli {
                     Some(InputDeckModeArg::Off)
                 } else if inputdeck_mode == "on" {
                     Some(InputDeckModeArg::On)
+                } else if inputdeck_mode == "reset" {
+                    Some(InputDeckModeArg::Reset)
                 } else {
                     println!("Invalid value for --inputdeck-mode: {}", inputdeck_mode);
                     None
                 }
             } else {
                 println!(
-                    "Need to provide a value for --inputdeck-mode. Either `auto`, `off`, or `on`"
+                    "Need to provide a value for --inputdeck-mode. Either `auto`, `off`, `on`, or `reset`"
                 );
                 None
             };
