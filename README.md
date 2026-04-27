@@ -291,6 +291,32 @@ Building the crate also regenerates the low-level C# bindings at
 - Generated C# namespace: `Framework.System.Interop`
 - Generated C# class: `NativeMethods`
 
+The generated surface is intentionally low-level and mirrors the Rust ABI closely:
+
+- APIs return by-value `Framework...Result` records with a shared `FrameworkStatus status`
+  field instead of using out parameters.
+- Strings and byte sequences are exposed as `FrameworkByteBuffer`.
+- Thermal and power data use explicit enums and nested records so the generated C# stays
+  predictable.
+
+Common buffer-returning fields include:
+
+- `FrameworkProductNameResult.product_name`
+- `FrameworkEcBuildInfoResult.build_info`
+- `FrameworkStatusDeviceErrorMessageResult.message`
+- `FrameworkStatusDescriptionResult.description`
+- `FrameworkEcFlashVersions.ro_version`
+- `FrameworkEcFlashVersions.rw_version`
+- `FrameworkPowerSnapshot.battery_0.manufacturer`
+- `FrameworkPowerSnapshot.battery_0.model_number`
+- `FrameworkPowerSnapshot.battery_0.serial_number`
+- `FrameworkPowerSnapshot.battery_0.battery_type`
+
+Every `FrameworkByteBuffer` returned by the library must be released with
+`framework_byte_buffer_free` after the managed side has copied its contents. This also
+applies to nested buffers such as battery text fields inside `FrameworkPowerSnapshot`
+and flash version strings inside `FrameworkEcFlashVersions`.
+
 ## Install local package
 
 ```
