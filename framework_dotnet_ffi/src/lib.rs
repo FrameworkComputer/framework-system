@@ -394,6 +394,22 @@ pub struct FrameworkTemperatureReading {
     pub reserved: u16,
 }
 
+#[repr(i32)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FrameworkFanState {
+    Ok = 0,
+    NotPresent = 1,
+    Stalled = 2,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FrameworkFanReading {
+    pub state: FrameworkFanState,
+    pub rpm: u16,
+    pub reserved: u16,
+}
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FrameworkThermalSnapshot {
@@ -407,18 +423,10 @@ pub struct FrameworkThermalSnapshot {
     pub temperature_5: FrameworkTemperatureReading,
     pub temperature_6: FrameworkTemperatureReading,
     pub temperature_7: FrameworkTemperatureReading,
-    pub fan_rpm_0: u16,
-    pub fan_rpm_1: u16,
-    pub fan_rpm_2: u16,
-    pub fan_rpm_3: u16,
-    pub fan_present_0: u8,
-    pub fan_present_1: u8,
-    pub fan_present_2: u8,
-    pub fan_present_3: u8,
-    pub fan_stalled_0: u8,
-    pub fan_stalled_1: u8,
-    pub fan_stalled_2: u8,
-    pub fan_stalled_3: u8,
+    pub fan_0: FrameworkFanReading,
+    pub fan_1: FrameworkFanReading,
+    pub fan_2: FrameworkFanReading,
+    pub fan_3: FrameworkFanReading,
 }
 
 #[repr(C)]
@@ -729,32 +737,43 @@ fn default_temperature_reading() -> FrameworkTemperatureReading {
     }
 }
 
+fn default_fan_reading() -> FrameworkFanReading {
+    FrameworkFanReading {
+        state: FrameworkFanState::NotPresent,
+        rpm: 0,
+        reserved: 0,
+    }
+}
+
+fn fan_state(present: bool, stalled: bool) -> FrameworkFanState {
+    if !present {
+        FrameworkFanState::NotPresent
+    } else if stalled {
+        FrameworkFanState::Stalled
+    } else {
+        FrameworkFanState::Ok
+    }
+}
+
 fn default_thermal_snapshot() -> FrameworkThermalSnapshot {
-    let reading = default_temperature_reading();
+    let temperature = default_temperature_reading();
+    let fan = default_fan_reading();
 
     FrameworkThermalSnapshot {
         fan_count: 0,
         reserved: [0; 3],
-        temperature_0: reading,
-        temperature_1: reading,
-        temperature_2: reading,
-        temperature_3: reading,
-        temperature_4: reading,
-        temperature_5: reading,
-        temperature_6: reading,
-        temperature_7: reading,
-        fan_rpm_0: 0,
-        fan_rpm_1: 0,
-        fan_rpm_2: 0,
-        fan_rpm_3: 0,
-        fan_present_0: 0,
-        fan_present_1: 0,
-        fan_present_2: 0,
-        fan_present_3: 0,
-        fan_stalled_0: 0,
-        fan_stalled_1: 0,
-        fan_stalled_2: 0,
-        fan_stalled_3: 0,
+        temperature_0: temperature,
+        temperature_1: temperature,
+        temperature_2: temperature,
+        temperature_3: temperature,
+        temperature_4: temperature,
+        temperature_5: temperature,
+        temperature_6: temperature,
+        temperature_7: temperature,
+        fan_0: fan,
+        fan_1: fan,
+        fan_2: fan,
+        fan_3: fan,
     }
 }
 
@@ -1352,18 +1371,26 @@ pub unsafe extern "C" fn framework_ec_get_thermal_snapshot(
             temperature_5: temperatures[5],
             temperature_6: temperatures[6],
             temperature_7: temperatures[7],
-            fan_rpm_0: snapshot.fan_rpms[0],
-            fan_rpm_1: snapshot.fan_rpms[1],
-            fan_rpm_2: snapshot.fan_rpms[2],
-            fan_rpm_3: snapshot.fan_rpms[3],
-            fan_present_0: fan_present[0],
-            fan_present_1: fan_present[1],
-            fan_present_2: fan_present[2],
-            fan_present_3: fan_present[3],
-            fan_stalled_0: fan_stalled[0],
-            fan_stalled_1: fan_stalled[1],
-            fan_stalled_2: fan_stalled[2],
-            fan_stalled_3: fan_stalled[3],
+            fan_0: FrameworkFanReading {
+                state: fan_state(snapshot.fan_present[0], snapshot.fan_stalled[0]),
+                rpm: snapshot.fan_rpms[0],
+                reserved: 0,
+            },
+            fan_1: FrameworkFanReading {
+                state: fan_state(snapshot.fan_present[1], snapshot.fan_stalled[1]),
+                rpm: snapshot.fan_rpms[1],
+                reserved: 0,
+            },
+            fan_2: FrameworkFanReading {
+                state: fan_state(snapshot.fan_present[2], snapshot.fan_stalled[2]),
+                rpm: snapshot.fan_rpms[2],
+                reserved: 0,
+            },
+            fan_3: FrameworkFanReading {
+                state: fan_state(snapshot.fan_present[3], snapshot.fan_stalled[3]),
+                rpm: snapshot.fan_rpms[3],
+                reserved: 0,
+            },
         },
     )
 }
