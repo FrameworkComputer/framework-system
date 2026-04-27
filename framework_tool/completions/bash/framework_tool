@@ -114,7 +114,7 @@ _framework_tool() {
                     return 0
                     ;;
                 --inputdeck-mode)
-                    COMPREPLY=($(compgen -W "auto off on" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "auto off on reset" -- "${cur}"))
                     return 0
                     ;;
                 --charge-limit)

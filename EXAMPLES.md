@@ -82,7 +82,7 @@ Options:
       --inputdeck
           Show status of the input modules
       --inputdeck-mode <INPUTDECK_MODE>
-          Set input deck power mode [possible values: auto, off, on] (Laptop 12, 13, 16) [possible values: auto, off, on]
+          Set input deck power mode [possible values: auto, off, on, reset] (Laptop 12, 13, 16)
       --expansion-bay
           Show status of the expansion bay (Laptop 16 only)
       --charge-limit [<CHARGE_LIMIT>]
@@ -414,6 +414,9 @@ framework_tool --inputdeck-mode on
 
 # Auto detect (Default behavior)
 framework_tool --inputdeck-mode auto
+
+# Reset (Turn off and then auto)
+framework_tool --inputdeck-mode resets
 ```
 
 ## Checking board ID

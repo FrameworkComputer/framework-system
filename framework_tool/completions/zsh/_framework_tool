@@ -36,7 +36,7 @@ _framework_tool() {
 '--flash-ec=[Flash EC (RO+RW) with new firmware from file - may render your hardware unbootable!]:FLASH_EC:_files' \
 '--flash-ro-ec=[Flash EC with new RO firmware from file - may render your hardware unbootable!]:FLASH_RO_EC:_files' \
 '--flash-rw-ec=[Flash EC with new RW firmware from file]:FLASH_RW_EC:_files' \
-'--inputdeck-mode=[Set input deck power mode \[possible values\: auto, off, on\] (Laptop 12, 13, 16)]:INPUTDECK_MODE:(auto off on)' \
+'--inputdeck-mode=[Set input deck power mode \[possible values\: auto, off, on, reset\] (Laptop 12, 13, 16)]:INPUTDECK_MODE:(auto off on reset)' \
 '--charge-limit=[Get or set max charge limit]::CHARGE_LIMIT:_default' \
 '*--charge-current-limit=[Set max charge current limit]:CHARGE_CURRENT_LIMIT:_default' \
 '*--charge-rate-limit=[Set max charge current limit]:CHARGE_RATE_LIMIT:_default' \

@@ -26,9 +26,10 @@ complete -c framework_tool -l flash-full-ec -d 'Flash full EC flash with new fir
 complete -c framework_tool -l flash-ec -d 'Flash EC (RO+RW) with new firmware from file - may render your hardware unbootable!' -r -F
 complete -c framework_tool -l flash-ro-ec -d 'Flash EC with new RO firmware from file - may render your hardware unbootable!' -r -F
 complete -c framework_tool -l flash-rw-ec -d 'Flash EC with new RW firmware from file' -r -F
-complete -c framework_tool -l inputdeck-mode -d 'Set input deck power mode [possible values: auto, off, on] (Laptop 12, 13, 16)' -r -f -a "auto\t''
+complete -c framework_tool -l inputdeck-mode -d 'Set input deck power mode [possible values: auto, off, on, reset] (Laptop 12, 13, 16)' -r -f -a "auto\t''
 off\t''
-on\t''"
+on\t''
+reset\t''"
 complete -c framework_tool -l charge-limit -d 'Get or set max charge limit' -r
 complete -c framework_tool -l charge-current-limit -d 'Set max charge current limit' -r
 complete -c framework_tool -l charge-rate-limit -d 'Set max charge current limit' -r
