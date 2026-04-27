@@ -13,7 +13,6 @@ use framework_lib::power::{self, ThermalSensorStatus, FAN_SLOT_COUNT, THERMAL_SE
 use framework_lib::smbios;
 use framework_lib::smbios::{Platform, PlatformFamily};
 
-const BATTERY_TEXT_LEN: usize = 8;
 const STORED_DEVICE_ERROR_LIMIT: usize = 64;
 #[cfg(target_os = "linux")]
 const CROS_EC_DEV_PATH: &str = "/dev/cros_ec";
@@ -402,6 +401,15 @@ pub enum FrameworkFanState {
     Stalled = 2,
 }
 
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FrameworkFanFeaturesState {
+    None = 0,
+    FanControl = 1,
+    ThermalReporting = 2,
+    All = 3,
+}
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FrameworkFanReading {
@@ -433,22 +441,35 @@ pub struct FrameworkThermalSnapshot {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FrameworkFanCapabilities {
     pub fan_count: u8,
-    pub supports_fan_control: u8,
-    pub supports_thermal_reporting: u8,
-    pub reserved: u8,
+    pub features: FrameworkFanFeaturesState,
+    pub reserved: [u8; 2],
+}
+
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FrameworkPowerSourceState {
+    None = 0,
+    AcOnly = 1,
+    BatteryOnly = 2,
+    AcAndBattery = 3,
+}
+
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FrameworkBatteryState {
+    NotPresent = 0,
+    Idle = 1,
+    Charging = 2,
+    Discharging = 3,
+    ChargingAndDischarging = 4,
+    Critical = 5,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct FrameworkPowerSnapshot {
-    pub ac_present: u8,
-    pub battery_present: u8,
-    pub discharging: u8,
-    pub charging: u8,
-    pub level_critical: u8,
-    pub battery_count: u8,
-    pub current_battery_index: u8,
-    pub reserved: u8,
+pub struct FrameworkBatterySnapshot {
+    pub battery_state: FrameworkBatteryState,
+    pub reserved: [u8; 3],
     pub present_voltage: u32,
     pub present_rate: u32,
     pub remaining_capacity: u32,
@@ -457,22 +478,31 @@ pub struct FrameworkPowerSnapshot {
     pub last_full_charge_capacity: u32,
     pub cycle_count: u32,
     pub charge_percentage: u32,
-    pub manufacturer: [u8; 8],
-    pub model_number: [u8; 8],
-    pub serial_number: [u8; 8],
-    pub battery_type: [u8; 8],
+    pub manufacturer: FrameworkByteBuffer,
+    pub model_number: FrameworkByteBuffer,
+    pub serial_number: FrameworkByteBuffer,
+    pub battery_type: FrameworkByteBuffer,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FrameworkPowerSnapshot {
+    pub power_source_state: FrameworkPowerSourceState,
+    pub battery_count: u8,
+    pub reserved: [u8; 2],
+    pub battery_0: FrameworkBatterySnapshot,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FrameworkEcFlashVersions {
     pub current_image: FrameworkEcCurrentImage,
-    pub ro_version: [u8; 32],
-    pub rw_version: [u8; 32],
+    pub ro_version: FrameworkByteBuffer,
+    pub rw_version: FrameworkByteBuffer,
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FrameworkByteBuffer {
     pub ptr: *mut u8,
     pub length: i32,
@@ -606,14 +636,6 @@ pub struct FrameworkEcRestoreAutoFanControlResult {
     pub fan_index: i32,
 }
 
-fn copy_text_bytes<const N: usize>(text: &str) -> [u8; N] {
-    let mut buffer = [0u8; N];
-    let bytes = text.as_bytes();
-    let len = bytes.len().min(N);
-    buffer[..len].copy_from_slice(&bytes[..len]);
-    buffer
-}
-
 fn device_error_messages() -> &'static Mutex<VecDeque<(i32, String)>> {
     DEVICE_ERROR_MESSAGES.get_or_init(|| Mutex::new(VecDeque::new()))
 }
@@ -690,21 +712,15 @@ fn ec_response_detail_name(detail: FrameworkEcResponseDetail) -> &'static str {
 fn default_ec_flash_versions() -> FrameworkEcFlashVersions {
     FrameworkEcFlashVersions {
         current_image: FrameworkEcCurrentImage::Unknown,
-        ro_version: [0; 32],
-        rw_version: [0; 32],
+        ro_version: FrameworkByteBuffer::default(),
+        rw_version: FrameworkByteBuffer::default(),
     }
 }
 
-fn default_power_snapshot() -> FrameworkPowerSnapshot {
-    FrameworkPowerSnapshot {
-        ac_present: 0,
-        battery_present: 0,
-        discharging: 0,
-        charging: 0,
-        level_critical: 0,
-        battery_count: 0,
-        current_battery_index: 0,
-        reserved: 0,
+fn default_battery_snapshot() -> FrameworkBatterySnapshot {
+    FrameworkBatterySnapshot {
+        battery_state: FrameworkBatteryState::NotPresent,
+        reserved: [0; 3],
         present_voltage: 0,
         present_rate: 0,
         remaining_capacity: 0,
@@ -713,19 +729,61 @@ fn default_power_snapshot() -> FrameworkPowerSnapshot {
         last_full_charge_capacity: 0,
         cycle_count: 0,
         charge_percentage: 0,
-        manufacturer: [0; BATTERY_TEXT_LEN],
-        model_number: [0; BATTERY_TEXT_LEN],
-        serial_number: [0; BATTERY_TEXT_LEN],
-        battery_type: [0; BATTERY_TEXT_LEN],
+        manufacturer: FrameworkByteBuffer::default(),
+        model_number: FrameworkByteBuffer::default(),
+        serial_number: FrameworkByteBuffer::default(),
+        battery_type: FrameworkByteBuffer::default(),
+    }
+}
+
+fn default_power_snapshot() -> FrameworkPowerSnapshot {
+    FrameworkPowerSnapshot {
+        power_source_state: FrameworkPowerSourceState::None,
+        battery_count: 0,
+        reserved: [0; 2],
+        battery_0: default_battery_snapshot(),
     }
 }
 
 fn default_fan_capabilities() -> FrameworkFanCapabilities {
     FrameworkFanCapabilities {
         fan_count: 0,
-        supports_fan_control: 0,
-        supports_thermal_reporting: 0,
-        reserved: 0,
+        features: FrameworkFanFeaturesState::None,
+        reserved: [0; 2],
+    }
+}
+
+fn fan_features_state(
+    supports_fan_control: bool,
+    supports_thermal_reporting: bool,
+) -> FrameworkFanFeaturesState {
+    match (supports_fan_control, supports_thermal_reporting) {
+        (false, false) => FrameworkFanFeaturesState::None,
+        (true, false) => FrameworkFanFeaturesState::FanControl,
+        (false, true) => FrameworkFanFeaturesState::ThermalReporting,
+        (true, true) => FrameworkFanFeaturesState::All,
+    }
+}
+
+fn power_source_state(ac_present: bool, battery_present: bool) -> FrameworkPowerSourceState {
+    match (ac_present, battery_present) {
+        (false, false) => FrameworkPowerSourceState::None,
+        (true, false) => FrameworkPowerSourceState::AcOnly,
+        (false, true) => FrameworkPowerSourceState::BatteryOnly,
+        (true, true) => FrameworkPowerSourceState::AcAndBattery,
+    }
+}
+
+fn battery_state(level_critical: bool, discharging: bool, charging: bool) -> FrameworkBatteryState {
+    if level_critical {
+        FrameworkBatteryState::Critical
+    } else {
+        match (discharging, charging) {
+            (false, false) => FrameworkBatteryState::Idle,
+            (false, true) => FrameworkBatteryState::Charging,
+            (true, false) => FrameworkBatteryState::Discharging,
+            (true, true) => FrameworkBatteryState::ChargingAndDischarging,
+        }
     }
 }
 
@@ -1228,8 +1286,8 @@ pub unsafe extern "C" fn framework_ec_get_flash_versions(
         FrameworkStatus::success(),
         FrameworkEcFlashVersions {
             current_image: current_image.into(),
-            ro_version: copy_text_bytes(&ro_version),
-            rw_version: copy_text_bytes(&rw_version),
+            ro_version: FrameworkByteBuffer::from_vec(ro_version.into_bytes()),
+            rw_version: FrameworkByteBuffer::from_vec(rw_version.into_bytes()),
         },
     )
 }
@@ -1261,29 +1319,32 @@ pub unsafe extern "C" fn framework_ec_get_power_snapshot(
     };
 
     let mut snapshot = FrameworkPowerSnapshot {
-        ac_present: u8::from(power_info.ac_present),
+        power_source_state: power_source_state(power_info.ac_present, power_info.battery.is_some()),
         ..default_power_snapshot()
     };
 
     if let Some(battery) = power_info.battery {
-        snapshot.battery_present = 1;
-        snapshot.discharging = u8::from(battery.discharging);
-        snapshot.charging = u8::from(battery.charging);
-        snapshot.level_critical = u8::from(battery.level_critical);
         snapshot.battery_count = battery.battery_count;
-        snapshot.current_battery_index = battery.current_battery_index;
-        snapshot.present_voltage = battery.present_voltage;
-        snapshot.present_rate = battery.present_rate;
-        snapshot.remaining_capacity = battery.remaining_capacity;
-        snapshot.design_capacity = battery.design_capacity;
-        snapshot.design_voltage = battery.design_voltage;
-        snapshot.last_full_charge_capacity = battery.last_full_charge_capacity;
-        snapshot.cycle_count = battery.cycle_count;
-        snapshot.charge_percentage = battery.charge_percentage;
-        snapshot.manufacturer = copy_text_bytes(&battery.manufacturer);
-        snapshot.model_number = copy_text_bytes(&battery.model_number);
-        snapshot.serial_number = copy_text_bytes(&battery.serial_number);
-        snapshot.battery_type = copy_text_bytes(&battery.battery_type);
+        snapshot.battery_0 = FrameworkBatterySnapshot {
+            battery_state: battery_state(
+                battery.level_critical,
+                battery.discharging,
+                battery.charging,
+            ),
+            reserved: [0; 3],
+            present_voltage: battery.present_voltage,
+            present_rate: battery.present_rate,
+            remaining_capacity: battery.remaining_capacity,
+            design_capacity: battery.design_capacity,
+            design_voltage: battery.design_voltage,
+            last_full_charge_capacity: battery.last_full_charge_capacity,
+            cycle_count: battery.cycle_count,
+            charge_percentage: battery.charge_percentage,
+            manufacturer: FrameworkByteBuffer::from_vec(battery.manufacturer.into_bytes()),
+            model_number: FrameworkByteBuffer::from_vec(battery.model_number.into_bytes()),
+            serial_number: FrameworkByteBuffer::from_vec(battery.serial_number.into_bytes()),
+            battery_type: FrameworkByteBuffer::from_vec(battery.battery_type.into_bytes()),
+        };
     }
 
     power_snapshot_result(FrameworkStatus::success(), snapshot)
@@ -1317,9 +1378,8 @@ pub unsafe extern "C" fn framework_ec_get_fan_capabilities(
         FrameworkStatus::success(),
         FrameworkFanCapabilities {
             fan_count,
-            supports_fan_control: u8::from(fan_control),
-            supports_thermal_reporting: u8::from(thermal),
-            reserved: 0,
+            features: fan_features_state(fan_control, thermal),
+            reserved: [0; 2],
         },
     )
 }
