@@ -772,6 +772,10 @@ fn print_versions(ec: &CrosEc) {
             println!("  Unknown");
         }
     }
+
+    if let Some(agesa) = smbios::get_agesa_version() {
+        println!("AGESA:            {}", agesa);
+    }
     #[cfg(feature = "rusb")]
     let _ignore_err = check_camera_version();
 
