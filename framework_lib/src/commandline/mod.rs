@@ -230,6 +230,7 @@ pub struct Cli {
     pub flash_gpu_descriptor: Option<(u8, String)>,
     pub flash_gpu_descriptor_file: Option<String>,
     pub dump_gpu_descriptor_file: Option<String>,
+    pub validate_gpu_descriptor_file: Option<String>,
     pub nvidia: bool,
     // UEFI only
     pub allupdate: bool,
@@ -1821,7 +1822,15 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 println!("  Size:       {:>20} KB", data.len() / 1024);
                 let res = ec.set_gpu_descriptor(&data, args.dry_run);
                 match res {
-                    Ok(()) => println!("GPU Descriptor successfully written"),
+                    Ok(()) => {
+                        println!("GPU Descriptor successfully written");
+                        println!("Validating GPU Descriptor...");
+                        match ec.validate_gpu_descriptor(&data) {
+                            Ok(true) => println!("  Validation passed"),
+                            Ok(false) => println!("  Validation FAILED: read-back mismatch"),
+                            Err(err) => println!("  Validation error: {:?}", err),
+                        }
+                    }
                     Err(err) => println!("GPU Descriptor write failed with error:  {:?}", err),
                 }
             }
@@ -1833,6 +1842,25 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("Dumping to {}", dump_path);
         }
         dump_dgpu_eeprom(&ec, dump_path);
+    } else if let Some(validate_path) = &args.validate_gpu_descriptor_file {
+        #[cfg(feature = "uefi")]
+        let data: Option<Vec<u8>> = crate::fw_uefi::fs::shell_read_file(validate_path);
+        #[cfg(not(feature = "uefi"))]
+        let data = match fs::read(validate_path) {
+            Ok(data) => Some(data),
+            Err(e) => {
+                println!("Error {:?}", e);
+                None
+            }
+        };
+        if let Some(data) = data {
+            println!("Validating GPU Descriptor against {}", validate_path);
+            match ec.validate_gpu_descriptor(&data) {
+                Ok(true) => println!("  Validation passed"),
+                Ok(false) => println!("  Validation FAILED: read-back mismatch"),
+                Err(err) => println!("  Validation error: {:?}", err),
+            }
+        }
     }
 
     0

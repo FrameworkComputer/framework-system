@@ -309,6 +309,10 @@ struct ClapCli {
     #[arg(long)]
     dump_gpu_descriptor_file: Option<std::path::PathBuf>,
 
+    /// File to validate the gpu EEPROM against
+    #[arg(long)]
+    validate_gpu_descriptor_file: Option<std::path::PathBuf>,
+
     /// Show NVIDIA GPU information (Laptop 16 only)
     #[arg(long)]
     nvidia: bool,
@@ -563,6 +567,9 @@ pub fn parse(args: &[String]) -> Cli {
             .map(|x| x.into_os_string().into_string().unwrap()),
         dump_gpu_descriptor_file: args
             .dump_gpu_descriptor_file
+            .map(|x| x.into_os_string().into_string().unwrap()),
+        validate_gpu_descriptor_file: args
+            .validate_gpu_descriptor_file
             .map(|x| x.into_os_string().into_string().unwrap()),
         nvidia: args.nvidia,
         host_command,
