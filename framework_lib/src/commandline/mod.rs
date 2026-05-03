@@ -221,6 +221,8 @@ pub struct Cli {
     pub inputdeck: bool,
     pub inputdeck_mode: Option<InputDeckModeArg>,
     pub expansion_bay: bool,
+    pub charge_full: bool,
+    pub charge_limit_disable: bool,
     pub charge_limit: Option<Option<u8>>,
     pub charge_current_limit: Option<(u32, Option<u32>)>,
     pub charge_rate_limit: Option<(f32, Option<f32>)>,
@@ -1442,6 +1444,10 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_nvidia_info();
         #[cfg(not(feature = "nvidia"))]
         error!("Not built with nvidia feature");
+    } else if args.charge_full {
+        print_err(ec.charge_limit_override());
+    } else if args.charge_limit_disable {
+        print_err(ec.charge_limit_disable());
     } else if let Some(maybe_limit) = args.charge_limit {
         print_err(handle_charge_limit(&ec, maybe_limit));
     } else if let Some((limit, soc)) = args.charge_current_limit {
@@ -1919,9 +1925,21 @@ Options:
       --s0ix-counter         Show S0ix counter
       --intrusion            Show status of intrusion switch
       --inputdeck            Show status of the input deck
+<<<<<<< LEFT
       --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Laptop 12, 13, 16)
       --expansion-bay        Show status of the expansion bay (Laptop 16 only)
       --nvidia               Show NVIDIA GPU information (Laptop 16 only)
+||||||| BASE
+      --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
+      --expansion-bay        Show status of the expansion bay (Framework 16 only)
+      --nvidia               Show NVIDIA GPU information (Framework 16 only)
+=======
+      --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Framework 16 only)
+      --expansion-bay        Show status of the expansion bay (Framework 16 only)
+      --nvidia               Show NVIDIA GPU information (Framework 16 only)
+      --charge-full          Temporarily remove the charge limit and charge full
+      --charge-limit-disable Remove min/max charge limit (Overwritten by BIOS on reboot)
+>>>>>>> RIGHT
       --charge-limit [<VAL>] Get or set battery charge limit (Percentage number as arg, e.g. '100')
       --charge-current-limit [<VAL>] Get or set battery current charge limit (Percentage number as arg, e.g. '100')
       --charge-rate-limit [<VAL>]   Set max charge rate limit
