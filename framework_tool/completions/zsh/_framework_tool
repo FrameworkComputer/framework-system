@@ -49,6 +49,8 @@ _framework_tool() {
 '--ps2-enable=[Control PS2 touchpad emulation (DEBUG COMMAND, if touchpad not working, reboot system)]:PS2_ENABLE:(true false)' \
 '--tablet-mode=[Set tablet mode override]:TABLET_MODE:(auto tablet laptop)' \
 '--touchscreen-enable=[Enable/disable touchscreen]:TOUCHSCREEN_ENABLE:(true false)' \
+'--haptic-intensity=[Set touchpad haptic feedback intensity]:INTENSITY:(0 25 50 75 100)' \
+'--click-force=[Set touchpad click force / sensitivity]:CLICK_FORCE:(low medium high)' \
 '--console=[Get EC console, choose whether recent or to follow the output]:CONSOLE:(recent follow)' \
 '--reboot-ec=[Control EC RO/RW jump]:REBOOT_EC:(reboot jump-ro jump-rw cancel-jump disable-jump)' \
 '--ec-hib-delay=[Get or set EC hibernate delay (S5 to G3)]::EC_HIB_DELAY:_default' \

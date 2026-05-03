@@ -127,6 +127,24 @@ impl From<FpBrightnessArg> for FpLedBrightnessLevel {
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ClickForceArg {
+    Low,
+    Medium,
+    High,
+}
+#[cfg(feature = "hidapi")]
+impl From<ClickForceArg> for crate::touchpad::ClickForce {
+    fn from(w: ClickForceArg) -> crate::touchpad::ClickForce {
+        match w {
+            ClickForceArg::Low => crate::touchpad::ClickForce::Low,
+            ClickForceArg::Medium => crate::touchpad::ClickForce::Medium,
+            ClickForceArg::High => crate::touchpad::ClickForce::High,
+        }
+    }
+}
+
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum InputDeckModeArg {
     Auto,
     Off,
@@ -215,6 +233,8 @@ pub struct Cli {
     pub ps2_enable: Option<bool>,
     pub tablet_mode: Option<TabletModeArg>,
     pub touchscreen_enable: Option<bool>,
+    pub haptic_intensity: Option<u8>,
+    pub click_force: Option<ClickForceArg>,
     pub stylus_battery: bool,
     pub console: Option<ConsoleArg>,
     pub reboot_ec: Option<RebootEcArg>,
@@ -1487,6 +1507,20 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         if touchscreen::enable_touch(*_enable).is_none() {
             error!("Failed to enable/disable touch");
         }
+    } else if let Some(_intensity) = &args.haptic_intensity {
+        #[cfg(feature = "hidapi")]
+        if let Err(e) = crate::touchpad::set_haptic_intensity(*_intensity) {
+            error!("Failed to set haptic intensity: {}", e);
+        }
+        #[cfg(not(feature = "hidapi"))]
+        error!("Not built with hidapi feature");
+    } else if let Some(_force) = &args.click_force {
+        #[cfg(feature = "hidapi")]
+        if let Err(e) = crate::touchpad::set_click_force((*_force).into()) {
+            error!("Failed to set click force: {}", e);
+        }
+        #[cfg(not(feature = "hidapi"))]
+        error!("Not built with hidapi feature");
     } else if args.stylus_battery {
         #[cfg(feature = "hidapi")]
         print_stylus_battery_level();

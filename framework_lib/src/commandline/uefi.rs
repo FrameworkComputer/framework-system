@@ -81,6 +81,8 @@ pub fn parse(args: &[String]) -> Cli {
         ps2_enable: None,
         tablet_mode: None,
         touchscreen_enable: None,
+        haptic_intensity: None,
+        click_force: None,
         stylus_battery: false,
         console: None,
         reboot_ec: None,

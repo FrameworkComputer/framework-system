@@ -3,6 +3,7 @@
 //! as well as on the UEFI shell tool.
 use std::io;
 
+use clap::builder::TypedValueParser;
 use clap::error::ErrorKind;
 use clap::Parser;
 use clap::{command, Arg, Args, FromArgMatches};
@@ -12,8 +13,8 @@ use clap_num::maybe_hex;
 use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::{
-    Cli, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg, LogLevel, RebootEcArg,
-    TabletModeArg,
+    Cli, ClickForceArg, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg,
+    LogLevel, RebootEcArg, TabletModeArg,
 };
 
 /// Swiss army knife for Framework laptops
@@ -235,6 +236,23 @@ struct ClapCli {
     #[clap(value_enum)]
     #[arg(long)]
     touchscreen_enable: Option<bool>,
+
+    /// Set touchpad haptic feedback intensity
+    #[arg(
+        long,
+        value_name = "INTENSITY",
+        value_parser = clap::builder::PossibleValuesParser::new(["0", "25", "50", "75", "100"])
+             .try_map(|s| {
+                 s.parse::<u8>()
+                     .map_err(|_| format!("invalid haptic intensity value: {s}"))
+             }),
+    )]
+    haptic_intensity: Option<u8>,
+
+    /// Set touchpad click force / sensitivity
+    #[clap(value_enum)]
+    #[arg(long)]
+    click_force: Option<ClickForceArg>,
 
     /// Check stylus battery level (USI 2.0 stylus only)
     #[clap(value_enum)]
@@ -534,6 +552,8 @@ pub fn parse(args: &[String]) -> Cli {
         ps2_enable: args.ps2_enable,
         tablet_mode: args.tablet_mode,
         touchscreen_enable: args.touchscreen_enable,
+        haptic_intensity: args.haptic_intensity,
+        click_force: args.click_force,
         stylus_battery: args.stylus_battery,
         console: args.console,
         reboot_ec: args.reboot_ec,
