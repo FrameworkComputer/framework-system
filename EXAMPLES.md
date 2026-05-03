@@ -419,6 +419,34 @@ framework_tool --inputdeck-mode auto
 framework_tool --inputdeck-mode resets
 ```
 
+## Haptic touchpad (Laptop 13 Pro)
+
+Just like our clickpads, the Laptop 13 Pro haptic touchpad supports tap to
+click, but for tactile clicking, instead of a physical button it uses piezo
+crystals for sensing your click and responding with a haptic click sensation.
+
+To configure that feeling, it exposes two configuration knobs:
+
+- Sensitivity: How hard you have to press to trigger a click
+- Intensity: How strong the feedback vibration is
+
+```
+# Disable haptic feedback
+> framework_tool --haptic-intensity 0
+
+# Set haptic feedback intensity back to default
+# Only 0/off, 25, 50, 75, 100 are accepted
+> framework_tool --haptic-intensity 75
+```
+
+```
+# Set click force / sensitivity (low / medium / high)
+> framework_tool --click-force high
+
+# Set back to default
+> framework_tool --click-force medium
+```
+
 ## Checking board ID
 
 Most inputdeck checking is implemented by Board ID. To read those directly for

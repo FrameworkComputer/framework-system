@@ -50,6 +50,14 @@ tablet\t''
 laptop\t''"
 complete -c framework_tool -l touchscreen-enable -d 'Enable/disable touchscreen' -r -f -a "true\t''
 false\t''"
+complete -c framework_tool -l haptic-intensity -d 'Set touchpad haptic feedback intensity' -r -f -a "0\t''
+25\t''
+50\t''
+75\t''
+100\t''"
+complete -c framework_tool -l click-force -d 'Set touchpad click force / sensitivity' -r -f -a "low\t''
+medium\t''
+high\t''"
 complete -c framework_tool -l console -d 'Get EC console, choose whether recent or to follow the output' -r -f -a "recent\t''
 follow\t''"
 complete -c framework_tool -l reboot-ec -d 'Control EC RO/RW jump' -r -f -a "reboot\t''
