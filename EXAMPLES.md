@@ -430,6 +430,9 @@ To configure that feeling, it exposes two configuration knobs:
 - Sensitivity: How hard you have to press to trigger a click
 - Intensity: How strong the feedback vibration is
 
+Note: Both of these settings are not stored persistently, they are reset when
+the touchpad resets (e.g. on system reboot).
+
 ```
 # Disable haptic feedback
 > framework_tool --haptic-intensity 0
