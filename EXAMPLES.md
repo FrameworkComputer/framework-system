@@ -199,14 +199,23 @@ Laptop Webcam Module (2nd Gen)
   Firmware Version: 1.1.1
 ```
 
-### Touchscreen (Laptop 12)
+### Touchscreen (Laptop 12, Laptop 13)
 
 ```
+# Laptop 12
 > framework_tool --versions
 [...]
 Touchscreen
   Firmware Version: v7.0.0.5.0.0.0.0
   Protocols:        USI
+[...]
+
+# Laptop 13
+> framework_tool --versions
+[...]
+  Touchscreen
+  Firmware Version: v1409
+[...]
 ```
 
 ### Stylus (Laptop 12)
