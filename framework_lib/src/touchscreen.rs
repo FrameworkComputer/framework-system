@@ -5,12 +5,20 @@ use crate::touchscreen_win;
 
 pub const ILI_VID: u16 = 0x222A;
 pub const ILI_PID: u16 = 0x5539;
+pub const HX_VID: u16 = 0x3558;
+pub const HX_PID: u16 = 0x14FD;
 const VENDOR_USAGE_PAGE: u16 = 0xFF00;
 pub const USI_BITMAP: u8 = 1 << 1;
 pub const MPP_BITMAP: u8 = 1 << 2;
 
 const REPORT_ID_FIRMWARE: u8 = 0x27;
 const REPORT_ID_USI_VER: u8 = 0x28;
+
+const HX_REPORT_ID_CFG: u8 = 0x05;
+const HX_CFG_BUF_LEN: usize = 256;
+const HX_OFF_CID: usize = 52;
+const HX_OFF_VID: usize = 130;
+const HX_OFF_PID: usize = 132;
 
 struct HidapiTouchScreen {
     device: HidDevice,
@@ -248,12 +256,76 @@ pub fn print_fw_ver() -> Option<()> {
         }
     }
 
+    if print_himax_fw_ver().is_some() {
+        return Some(());
+    }
+
     #[cfg(target_os = "windows")]
     let device = touchscreen_win::NativeWinTouchScreen::open_device(VENDOR_USAGE_PAGE, 0)?;
     #[cfg(not(target_os = "windows"))]
     let device = HidapiTouchScreen::open_device(VENDOR_USAGE_PAGE, 0)?;
 
     device.check_fw_version()
+}
+
+pub fn print_himax_fw_ver() -> Option<()> {
+    let api = match HidApi::new() {
+        Ok(api) => api,
+        Err(e) => {
+            error!("Failed to open hidapi. Error: {e}");
+            return None;
+        }
+    };
+
+    let dev_info = api
+        .device_list()
+        .find(|d| d.vendor_id() == HX_VID && d.product_id() == HX_PID)?;
+    debug!(
+        "Found Himax touchscreen {:04X}:{:04X} at {:?}",
+        dev_info.vendor_id(),
+        dev_info.product_id(),
+        dev_info.path()
+    );
+
+    let device = match dev_info.open_device(&api) {
+        Ok(d) => d,
+        Err(e) => {
+            error!("Failed to open Himax touchscreen: {e}");
+            return None;
+        }
+    };
+
+    let mut buf = [0u8; HX_CFG_BUF_LEN];
+    buf[0] = HX_REPORT_ID_CFG;
+    let n = match device.get_feature_report(&mut buf) {
+        Ok(n) => n,
+        Err(e) => {
+            error!("Himax get_feature_report(0x05) failed: {e}");
+            return None;
+        }
+    };
+    debug!("  Read {} bytes from Himax Cfg report", n);
+
+    // Data is everything after the leading report-ID byte.
+    let data = &buf[1..n.max(1)];
+    if data.len() < HX_OFF_PID + 2 {
+        error!(
+            "Himax Cfg report too short: {} bytes (need {})",
+            data.len(),
+            HX_OFF_PID + 2
+        );
+        return None;
+    }
+    let cid = u16::from_be_bytes([data[HX_OFF_CID], data[HX_OFF_CID + 1]]);
+    let vid = u16::from_be_bytes([data[HX_OFF_VID], data[HX_OFF_VID + 1]]);
+    let pid = u16::from_be_bytes([data[HX_OFF_PID], data[HX_OFF_PID + 1]]);
+
+    println!("Touchscreen");
+    debug!("  Vendor ID:        {:04X}", vid);
+    debug!("  Product ID:       {:04X}", pid);
+    println!("  Firmware Version: v{:04X}", cid);
+
+    Some(())
 }
 
 pub fn enable_touch(enable: bool) -> Option<()> {
