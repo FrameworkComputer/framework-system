@@ -32,6 +32,8 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
   - Note that this installs the command called `framework-tool` instead of `framework_tool`
 - Rhino Linux [![Rhino Linux package](https://repology.org/badge/version-for-repo/pacstall/framework-system.svg)](https://repology.org/project/framework-system/versions)
   - `pacstall -I framework-system-bin`
+- Solus [![Solus package](https://repology.org/badge/version-for-repo/solus/framework-system.svg)](https://repology.org/project/framework-system/versions)
+  - `eopkg it framework-system`
 - [![Void Linux x86_64 package](https://repology.org/badge/version-for-repo/void_x86_64/framework-system.svg)](https://repology.org/project/framework-system/versions)
   - `sudo xbps-install -S framework-system`
 - Manjaro
