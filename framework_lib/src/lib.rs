@@ -21,6 +21,8 @@ pub mod camera;
 pub mod inputmodule;
 #[cfg(target_os = "linux")]
 pub mod nvme;
+#[cfg(target_os = "linux")]
+pub mod soc_gpio;
 #[cfg(feature = "hidapi")]
 pub mod touchpad;
 #[cfg(feature = "hidapi")]

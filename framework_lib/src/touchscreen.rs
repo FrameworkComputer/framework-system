@@ -329,6 +329,30 @@ pub fn print_himax_fw_ver() -> Option<()> {
 }
 
 pub fn enable_touch(enable: bool) -> Option<()> {
+    use crate::util::Platform;
+
+    // Framework Laptop 13 Pro (Intel Core Ultra Series 3) doesn't use
+    // an HID-controllable touch IC; the panel enable signal is wired
+    // to SoC GPP_B18, which we drive directly.
+    if matches!(
+        crate::smbios::get_platform(),
+        Some(Platform::IntelCoreUltra3)
+    ) {
+        #[cfg(target_os = "linux")]
+        {
+            return crate::soc_gpio::sakura_touchscreen(enable);
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            error!(
+                "--touchscreen-enable on Framework Laptop 13 (Intel Core Ultra Series 3) \
+                 requires Linux (drives SoC GPP_B18 via /dev/gpiochip)"
+            );
+            return None;
+        }
+    }
+
+    // ILI HID-feature-report path (Laptop 12 etc.).
     #[cfg(target_os = "windows")]
     let device = touchscreen_win::NativeWinTouchScreen::open_device(VENDOR_USAGE_PAGE, 0)?;
     #[cfg(not(target_os = "windows"))]
