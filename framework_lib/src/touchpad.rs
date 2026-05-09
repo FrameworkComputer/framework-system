@@ -17,6 +17,7 @@ const HAPTIC_INTENSITY_REPORT_ID: u8 = 0x09;
 pub const HAPTIC_INTENSITY_LEVELS: [u8; 5] = [0, 25, 50, 75, 100];
 
 // Button press threshold / click force (HID Digitizer page 0x0D, Usage 0xB0).
+// Added in HUTRR11, included in HUT 1.4
 // 2-bit field, firmware accepts 1=Low, 2=Medium, 3=High.
 const CLICK_FORCE_REPORT_ID: u8 = 0x08;
 
