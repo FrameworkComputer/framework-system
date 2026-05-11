@@ -64,10 +64,10 @@ fn synthetic_entry_point_v3(major: u8, minor: u8, table_len: u32) -> [u8; 24] {
     ep[6] = 24; // length
     ep[7] = major;
     ep[8] = minor;
-    // [9] = docrev, [11] = reserved — left as 0
+    // [9] = docrev, [11] = reserved - left as 0
     ep[10] = 1; // entry point revision
     ep[12..16].copy_from_slice(&table_len.to_le_bytes());
-    // [16..24] = smbios_address — left as 0, we pass table data directly
+    // [16..24] = smbios_address - left as 0, we pass table data directly
 
     // Compute checksum so all bytes sum to 0
     let sum: u8 = ep.iter().fold(0u8, |acc, &b| acc.wrapping_add(b));

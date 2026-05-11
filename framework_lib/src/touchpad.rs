@@ -5,10 +5,9 @@ pub const PIX_VID: u16 = 0x093A;
 pub const P274_REPORT_ID: u8 = 0x43;
 pub const P239_REPORT_ID: u8 = 0x42;
 
-// Standard HID Precision Touchpad (PTP) interface — every PTP-compliant touchpad
-// reports on this usage. Only haptic touchpads expose the feature reports below.
-const TOUCHPAD_USAGE_PAGE: u16 = 0x000D; // Digitizers
-const TOUCHPAD_USAGE: u16 = 0x0005; // Touch Pad
+// Standard HID Precision Touchpad (PTP) interface
+const DIGITIZERS_USAGE_PAGE: u16 = 0x000D;
+const TOUCHPAD_USAGE: u16 = 0x0005;
 
 // Haptic feedback intensity (HID Haptic page 0x0E, Usage 0x23 Intensity).
 // Descriptor says logical range 0..100, but the Boreas haptic firmware
@@ -34,7 +33,7 @@ pub enum ClickForce {
 fn open_haptic_touchpad() -> Option<HidDevice> {
     let api = HidApi::new().ok()?;
     for dev_info in api.device_list() {
-        if dev_info.usage_page() != TOUCHPAD_USAGE_PAGE || dev_info.usage() != TOUCHPAD_USAGE {
+        if dev_info.usage_page() != DIGITIZERS_USAGE_PAGE || dev_info.usage() != TOUCHPAD_USAGE {
             continue;
         }
         debug!(
