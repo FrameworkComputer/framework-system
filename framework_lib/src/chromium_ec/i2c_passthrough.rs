@@ -179,6 +179,11 @@ pub fn i2c_read_16bit_addr(
     let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
     let res_data = &data[size_of::<_EcI2cPassthruResponse>()..];
     debug_assert!(res.messages as usize == messages.len() || res.messages == 0);
+    trace!(
+        "  i2c_read_16bit_addr response (len: {}, data: {:#04X?})",
+        res_data.len(),
+        res_data.to_vec()
+    );
     Ok(EcI2cPassthruResponse {
         i2c_status: res.i2c_status,
         data: res_data.to_vec(),
