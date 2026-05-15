@@ -1551,7 +1551,7 @@ impl CrosEc {
                 "Invalid descriptor hdr magic".to_string(),
             ));
         }
-        self.read_ec_gpu_chunk(0x00, header.descriptor_length as u16)
+        self.read_ec_gpu_chunk(0x00, (header.descriptor_length + header.length) as u16)
     }
 
     pub fn read_gpu_desc_header(&self) -> EcResult<GpuCfgDescriptor> {
