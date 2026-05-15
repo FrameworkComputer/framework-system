@@ -177,7 +177,9 @@ pub fn i2c_read_16bit_addr(
 
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
     let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
-    let res_data = &data[size_of::<_EcI2cPassthruResponse>()..];
+    let header_len: usize = size_of::<_EcI2cPassthruResponse>();
+    /* Note on windows, you can get extra bytes back, so truncate this to the requested size */
+    let res_data = &data[header_len..(len as usize + header_len)];
     debug_assert!(res.messages as usize == messages.len() || res.messages == 0);
     trace!(
         "  i2c_read_16bit_addr response (len: {}, data: {:#04X?})",
