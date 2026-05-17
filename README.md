@@ -24,9 +24,9 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
 - Gentoo [![Gentoo package](https://repology.org/badge/version-for-repo/gentoo/framework-tool.svg)](https://repology.org/project/framework-tool/versions)
   - `emerge framework_tool`
 - Debian 14 (Forky) and later ([rust-framework-lib](https://tracker.debian.org/pkg/rust-framework-lib), [rust-framework-tool](https://tracker.debian.org/pkg/rust-framework-tool))
-  - `apt install rust-framework-tool`
+  - `apt install framework-tool`
 - Ubuntu 26.04 (Resolute) and later ([rust-framework-lib](https://launchpad.net/ubuntu/+source/rust-framework-lib), [rust-framework-tool](https://launchpad.net/ubuntu/+source/rust-framework-tool))
-  - `apt install rust-framework-tool`
+  - `apt install framework-tool`
 - Ubuntu (Any Version - [Snap Package](https://snapcraft.io/framework-tool))
   - `snap install --edge framework-tool --classic`
   - Note that this installs the command called `framework-tool` instead of `framework_tool`
