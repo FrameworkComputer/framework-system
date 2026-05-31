@@ -484,7 +484,7 @@ Board IDs
   F75303_CPU:   44 C
   F75303_DDR:   39 C
   APU:          62 C
-  Fan Speed:       0 RPM
+  API Fan:         0 RPM
 ```
 
 ## Check sensors
@@ -517,7 +517,7 @@ Accelerometers:
   F75303_CPU:   41 C
   F75303_DDR:   37 C
   APU:          42 C
-  Fan Speed:    7281 RPM
+  APU Fan:      7281 RPM
 
 # Set a target RPM (all or just fan ID=0)
 > sudo framework_tool --fansetrpm 3141
@@ -527,7 +527,7 @@ Accelerometers:
   F75303_CPU:   42 C
   F75303_DDR:   37 C
   APU:          44 C
-  Fan Speed:    3171 RPM
+  APU Fan:      3171 RPM
 
 # And back to normal
 > sudo framework_tool --autofanctrl
@@ -536,7 +536,7 @@ Accelerometers:
   F75303_CPU:   40 C
   F75303_DDR:   38 C
   APU:          42 C
-  Fan Speed:       0 RPM
+  APU Fan:         0 RPM
 
 # Or just for a specific fan (e.g. on Framework Desktop)
 > sudo framework_tool --autofanctrl 0

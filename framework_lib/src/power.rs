@@ -445,13 +445,25 @@ pub fn print_thermal(ec: &CrosEc) {
     }
 
     for i in 0..EC_FAN_SPEED_ENTRIES {
+        let name = match (i, family) {
+            (0, Some(PlatformFamily::Framework12)) => "APU Fan".to_string(),
+            (0, Some(PlatformFamily::Framework13)) => "APU Fan".to_string(),
+            (0, Some(PlatformFamily::Framework16)) => "Left Fan".to_string(),
+            (1, Some(PlatformFamily::Framework16)) => "Right Fan".to_string(),
+            (0, Some(PlatformFamily::FrameworkDesktop)) => "APU Fan".to_string(),
+            (1, Some(PlatformFamily::FrameworkDesktop)) => "Front Fan".to_string(),
+            (2, Some(PlatformFamily::FrameworkDesktop)) => "Third Fan".to_string(),
+            _ => format!("Fan {i}"),
+        };
+        let name = format!("{name}:");
+
         let fan = u16::from_le_bytes([fans[i * 2], fans[1 + i * 2]]);
         if fan == EC_FAN_SPEED_STALLED_DEPRECATED {
-            println!("  Fan Speed:  {:>4} RPM (Stalled)", fan);
+            println!("  {name:<11} {:>4} RPM (Stalled)", fan);
         } else if fan == EC_FAN_SPEED_NOT_PRESENT {
-            info!("  Fan Speed:    Not present");
+            info!("  {name:<11} Not present");
         } else {
-            println!("  Fan Speed:  {:>4} RPM", fan);
+            println!("  {name:<11} {:>4} RPM", fan);
         }
     }
 }
