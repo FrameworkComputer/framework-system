@@ -419,7 +419,8 @@ pub fn print_thermal(ec: &CrosEc) {
             println!("  F75303_DDR:   {:>4}", TempSensor::from(temps[1]));
             println!("  F75303_AMB:   {:>4}", TempSensor::from(temps[2]));
             println!("  APU:          {:>4}", TempSensor::from(temps[3]));
-            4
+            println!("  Virtual:      {:>4}", TempSensor::from(temps[4]));
+            3
         }
 
         _ => {
