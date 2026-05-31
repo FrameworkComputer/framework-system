@@ -783,110 +783,116 @@ impl From<u8> for CypdPdDataRole {
 }
 
 pub fn get_and_print_cypd_pd_info(ec: &CrosEc) {
+    // All of our systems have a maximum of 4 PD enabled ports
     let ports = 4u8;
 
     for port in 0..ports {
-        println!("USB-C Port {}:", port);
-
         let result = EcRequestGetPdPortState { port }.send_command(ec);
-        match result {
-            Ok(info) => {
-                let c_state = CypdTypeCState::from(info.c_state);
-                let connected = !matches!(c_state, CypdTypeCState::Nothing);
-                let power_role = CypdPdPowerRole::from(info.power_role);
-                let data_role = CypdPdDataRole::from(info.data_role);
-                let voltage = { info.voltage };
-                let current = { info.current };
-                let watts_mw = voltage as u32 * current as u32 / 1000;
-                let has_pd_contract = info.pd_state != 0;
 
-                println!(
-                    "  PD Contract:   {}",
-                    if info.pd_state != 0 { "Yes" } else { "No" }
-                );
-                println!("  Power Role:    {:?}", power_role);
-                println!("  Data Role:     {:?}", data_role);
-                if connected {
-                    println!(
-                        "  VCONN:         {}",
-                        if info.vconn != 0 { "On" } else { "Off" }
-                    );
-                    println!(
-                        "  Negotiated:    {}.{:03} V, {} mA, {}.{} W",
-                        voltage / 1000,
-                        voltage % 1000,
-                        current,
-                        watts_mw / 1000,
-                        watts_mw % 1000,
-                    );
-                    println!(
-                        "  CC Polarity:   {}",
-                        match info.cc_polarity {
-                            0 => "CC1",
-                            1 => "CC2",
-                            2 => "CC1 (Debug)",
-                            3 => "CC2 (Debug)",
-                            _ => "Unknown",
-                        }
-                    );
-                }
-                if has_pd_contract {
-                    println!("  Port Partner:  {:?}", c_state);
-                    println!(
-                        "  EPR:           {}{}",
-                        if info.epr_active != 0 {
-                            "Active"
-                        } else {
-                            "Inactive"
-                        },
-                        if info.epr_support != 0 {
-                            " (Supported)"
-                        } else {
-                            ""
-                        }
-                    );
-                    if power_role == CypdPdPowerRole::Sink {
-                        println!(
-                            "  Sink Active:   {}",
-                            if info.active_port != 0 { "Yes" } else { "No" }
-                        );
-                    }
-                }
-                let alt = info.pd_alt_mode_status;
-                // Bits 0-1 indicate DP alt mode is active (bit 0 = DFP_D/TBT,
-                // bit 1 = UFP_D). Only show when actually in DP alt mode.
-                if connected && (alt & 0x03) != 0 {
-                    let mut modes = vec![];
-                    if alt & 0x01 != 0 {
-                        modes.push("DFP_D Connected");
-                    }
-                    if alt & 0x02 != 0 {
-                        modes.push("UFP_D Connected");
-                    }
-                    if alt & 0x04 != 0 {
-                        modes.push("Power Low");
-                    }
-                    if alt & 0x08 != 0 {
-                        modes.push("Enabled");
-                    }
-                    if alt & 0x10 != 0 {
-                        modes.push("Multi-Function");
-                    }
-                    if alt & 0x20 != 0 {
-                        modes.push("USB Config");
-                    }
-                    if alt & 0x40 != 0 {
-                        modes.push("Exit Request");
-                    }
-                    if alt & 0x80 != 0 {
-                        modes.push("HPD High");
-                    }
-                    println!("  DP Alt Mode:   {} (0x{:02X})", modes.join(", "), alt);
-                }
+        let info = match result {
+            Ok(info) => info,
+            Err(EcError::Response(EcResponseStatus::InvalidParameter)) => {
+                debug!("Port {port} does not exist");
+                continue;
             }
             Err(e) => {
                 print_err::<()>(Err(e));
+                continue;
             }
+        };
+
+        println!("USB-C Port {}:", port);
+        let c_state = CypdTypeCState::from(info.c_state);
+        let connected = !matches!(c_state, CypdTypeCState::Nothing);
+        let power_role = CypdPdPowerRole::from(info.power_role);
+        let data_role = CypdPdDataRole::from(info.data_role);
+        let voltage = { info.voltage };
+        let current = { info.current };
+        let watts_mw = voltage as u32 * current as u32 / 1000;
+        let has_pd_contract = info.pd_state != 0;
+
+        println!(
+            "  PD Contract:   {}",
+            if info.pd_state != 0 { "Yes" } else { "No" }
+        );
+        println!("  Power Role:    {:?}", power_role);
+        println!("  Data Role:     {:?}", data_role);
+        if connected {
+            println!(
+                "  VCONN:         {}",
+                if info.vconn != 0 { "On" } else { "Off" }
+            );
+            println!(
+                "  Negotiated:    {}.{:03} V, {} mA, {}.{} W",
+                voltage / 1000,
+                voltage % 1000,
+                current,
+                watts_mw / 1000,
+                watts_mw % 1000,
+            );
+            println!(
+                "  CC Polarity:   {}",
+                match info.cc_polarity {
+                    0 => "CC1",
+                    1 => "CC2",
+                    2 => "CC1 (Debug)",
+                    3 => "CC2 (Debug)",
+                    _ => "Unknown",
+                }
+            );
+        }
+        if has_pd_contract {
+            println!("  Port Partner:  {:?}", c_state);
+            println!(
+                "  EPR:           {}{}",
+                if info.epr_active != 0 {
+                    "Active"
+                } else {
+                    "Inactive"
+                },
+                if info.epr_support != 0 {
+                    " (Supported)"
+                } else {
+                    ""
+                }
+            );
+            if power_role == CypdPdPowerRole::Sink {
+                println!(
+                    "  Sink Active:   {}",
+                    if info.active_port != 0 { "Yes" } else { "No" }
+                );
+            }
+        }
+        let alt = info.pd_alt_mode_status;
+        // Bits 0-1 indicate DP alt mode is active (bit 0 = DFP_D/TBT,
+        // bit 1 = UFP_D). Only show when actually in DP alt mode.
+        if connected && (alt & 0x03) != 0 {
+            let mut modes = vec![];
+            if alt & 0x01 != 0 {
+                modes.push("DFP_D Connected");
+            }
+            if alt & 0x02 != 0 {
+                modes.push("UFP_D Connected");
+            }
+            if alt & 0x04 != 0 {
+                modes.push("Power Low");
+            }
+            if alt & 0x08 != 0 {
+                modes.push("Enabled");
+            }
+            if alt & 0x10 != 0 {
+                modes.push("Multi-Function");
+            }
+            if alt & 0x20 != 0 {
+                modes.push("USB Config");
+            }
+            if alt & 0x40 != 0 {
+                modes.push("Exit Request");
+            }
+            if alt & 0x80 != 0 {
+                modes.push("HPD High");
+            }
+            println!("  DP Alt Mode:   {} (0x{:02X})", modes.join(", "), alt);
         }
     }
 }
