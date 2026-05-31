@@ -2063,6 +2063,7 @@ fn selftest(ec: &CrosEc) -> Option<()> {
         println!("Specify custom platform parameters with --pd-ports --pd-addrs");
         return None;
     };
+    let family = smbios::get_platform().and_then(Platform::which_family);
 
     println!("  Dump EC memory region");
     if let Some(mem) = ec.dump_mem_region() {
@@ -2091,10 +2092,12 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     println!(" - OK");
 
     println!("  Getting AC info from EC");
-    // All our laptops have at least 4 PD ports so far
-    if power::get_pd_info(ec, 4).iter().any(|x| x.is_err()) {
-        println!("    Failed to get PD Info from EC");
-        return None;
+    if family != Some(PlatformFamily::FrameworkDesktop) {
+        // All our laptops have at least 4 PD ports so far
+        if power::get_pd_info(ec, 4).iter().any(|x| x.is_err()) {
+            println!("    Failed to get PD Info from EC");
+            return None;
+        }
     }
 
     print!("Reading PD Version from EC");
@@ -2112,16 +2115,28 @@ fn selftest(ec: &CrosEc) -> Option<()> {
 
     let pd_01 = PdController::new(PdPort::Right01, ec.clone());
     let pd_23 = PdController::new(PdPort::Left23, ec.clone());
-    print!("  Getting PD01 info through I2C tunnel");
-    print_err(pd_01.get_silicon_id())?;
-    print_err(pd_01.get_device_info())?;
-    print_err(pd_01.get_fw_versions())?;
-    println!(" - OK");
-    print!("  Getting PD23 info through I2C tunnel");
-    print_err(pd_23.get_silicon_id())?;
-    print_err(pd_23.get_device_info())?;
-    print_err(pd_23.get_fw_versions())?;
-    println!(" - OK");
+    let pd_back = PdController::new(PdPort::Back, ec.clone());
+    if family != Some(PlatformFamily::FrameworkDesktop) {
+        print!("  Getting PD01 info through I2C tunnel");
+        print_err(pd_01.get_silicon_id())?;
+        print_err(pd_01.get_device_info())?;
+        print_err(pd_01.get_fw_versions())?;
+        println!(" - OK");
+        print!("  Getting PD23 info through I2C tunnel");
+        print_err(pd_23.get_silicon_id())?;
+        print_err(pd_23.get_device_info())?;
+        print_err(pd_23.get_fw_versions())?;
+        println!(" - OK");
+    } else if matches!(
+        family,
+        Some(PlatformFamily::FrameworkDesktop) | Some(PlatformFamily::Framework16)
+    ) {
+        print!("  Getting Back PD info through I2C tunnel");
+        print_err(pd_back.get_silicon_id())?;
+        print_err(pd_back.get_device_info())?;
+        print_err(pd_back.get_fw_versions())?;
+        println!(" - OK");
+    }
 
     Some(())
 }
