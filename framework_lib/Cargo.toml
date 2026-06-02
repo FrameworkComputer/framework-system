@@ -6,6 +6,7 @@ homepage = "https://github.com/FrameworkComputer/framework-system"
 repository = "https://github.com/FrameworkComputer/framework-system"
 readme = "../README.md"
 license = "BSD-3-Clause"
+license-file = "../LICENSE.md"
 edition = "2021"
 # Minimum Supported Rust Version
 rust-version = "1.81"
