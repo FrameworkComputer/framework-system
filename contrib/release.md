@@ -41,8 +41,8 @@ Dry run and review included files
 ```
 cargo publish -p framework_lib --dry-run
 cargo publish -p framework_tool --dry-run
-cargo package list -p framework_lib
-cargo package list -p framework_tool
+cargo package --list -p framework_lib
+cargo package --list -p framework_tool
 ```
 
 Publish
