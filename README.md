@@ -41,6 +41,8 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
   - [![Manjaro Testing package](https://repology.org/badge/version-for-repo/manjaro_testing/framework-system.svg)](https://repology.org/project/framework-system/versions)
   - [![Manjaro Unstable package](https://repology.org/badge/version-for-repo/manjaro_unstable/framework-system.svg)](https://repology.org/project/framework-system/versions)
   - `pacman -S framework-system`
+- [Cargo](https://crates.io/crates/framework_tool) (Any distro)
+  - `cargo install --locked framework_tool`
 - Others
   - Build from source
   - Or download [latest binary](https://github.com/FrameworkComputer/framework-system/releases/latest/download/framework_tool)
@@ -48,8 +50,6 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
   - Build from source
 - Homebrew
   - Add [this homebrew tap](https://github.com/ublue-os/homebrew-tap), then `brew install --cask framework-tool`
-- Cargo (Any distro)
-  - `cargo install --locked framework_tool`
 
 ### Windows
 
@@ -63,6 +63,23 @@ winget install framework_tool --source winget
 
 ```
 sudo pkg install framework-system
+```
+
+### Library
+
+This project includes both a tool and a library, that you can use to build custom software.
+
+The commandline does not guarantee a stable interface, it is intended for
+manual usage, for programmatic usage, please use [`framework_lib`](https://crates.io/crates/framework_lib).
+
+The library is still in active development and does not guarantee stable
+interfaces. If you, as a user of the library have suggestions for improvements
+or requests for features, feel free to create an issue.
+To add it to your project add it to your `Cargo.toml`:
+
+```toml
+[dependencies]
+framework_lib = "0.6.4"
 ```
 
 ## Features
