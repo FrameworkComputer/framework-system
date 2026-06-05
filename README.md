@@ -11,7 +11,7 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
 
 ### Linux
 
-- NixOS/nixpkgs [![nixpkgs unstable package](https://repology.org/badge/version-for-repo/nix_unstable/framework-tool.svg)](https://repology.org/project/framework-tool/versions)
+- [NixOS/nixpkgs](https://search.nixos.org/packages?channel=unstable&query=framework_tool) [![nixpkgs unstable package](https://repology.org/badge/version-for-repo/nix_unstable/framework-tool.svg)](https://repology.org/project/framework-tool/versions)
   - `nix-shell -p framework-tool`
 - [ArchLinux](https://archlinux.org/packages/extra/x86_64/framework-system/) [![Arch Linux package](https://repology.org/badge/version-for-repo/arch/framework-system.svg)](https://repology.org/project/framework-system/versions)
   - `pacman -S framework-system`
