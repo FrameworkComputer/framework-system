@@ -111,6 +111,7 @@ On UEFI and FreeBSD raw port I/O is used - on Linux this can also be used as a f
 | AMD Ryzen 7040      | Yes      | [6.10](https://github.com/torvalds/linux/commit/c8f460d991df93d87de01a96b783cad5a2da9616) | BIOS 3.16+ |
 | Intel Core Ultra S1 | Yes      | [6.12](https://github.com/torvalds/linux/commit/62be134abf4250474a7a694837064bc783d2b291) | BIOS 3.06+ |
 | AMD Ryzen AI 300    | Yes      | [6.12](https://github.com/torvalds/linux/commit/62be134abf4250474a7a694837064bc783d2b291) | Yes        |
+| Intel Core Ultra S3 | Yes      | [6.12](https://github.com/torvalds/linux/commit/62be134abf4250474a7a694837064bc783d2b291) | Yes        |
 | Framework Laptop 16 |          |       |         |
 | AMD Ryzen 7040      | Yes      | [6.10](https://github.com/torvalds/linux/commit/c8f460d991df93d87de01a96b783cad5a2da9616) | BIOS 3.06+ |
 | AMD Ryzen AI 300    | Yes      | [6.10](https://github.com/torvalds/linux/commit/c8f460d991df93d87de01a96b783cad5a2da9616) | Yes        |
