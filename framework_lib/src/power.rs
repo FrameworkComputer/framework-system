@@ -548,7 +548,22 @@ pub fn is_standalone(ec: &CrosEc) -> bool {
     }
 }
 
+/// Query battery cutoff (ship mode) status.
+pub fn get_cutoff_status(ec: &CrosEc) -> Option<bool> {
+    (EcRequestGetCutoffStatus {})
+        .send_command(ec)
+        .ok()
+        .map(|res| res.status != 0)
+}
+
 pub fn get_and_print_power_info(ec: &CrosEc) -> i32 {
+    print!("Battery Cutoff:     ");
+    match get_cutoff_status(ec) {
+        Some(true) => println!("Cut off"),
+        Some(false) => println!("Not cut off"),
+        None => println!("Unknown"),
+    }
+
     if let Some(power_info) = power_info(ec) {
         print_err_ref(&ec.get_charge_state(&power_info));
         print_battery_information(&power_info);
