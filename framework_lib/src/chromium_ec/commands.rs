@@ -1714,6 +1714,24 @@ pub enum BoardIdType {
 }
 
 #[repr(C, packed)]
+pub struct EcRequestGetCutoffStatus {}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseGetCutoffStatus {
+    /// Non-zero if the battery has been cut off (ship mode), zero otherwise.
+    /// The EC's battery_is_cut_off() returns a plain boolean here, not the
+    /// full battery_cutoff_states enum.
+    pub status: u8,
+}
+
+impl EcRequest<EcResponseGetCutoffStatus> for EcRequestGetCutoffStatus {
+    fn command_id() -> EcCommands {
+        EcCommands::GetCutoffStatus
+    }
+}
+
+#[repr(C, packed)]
 pub struct EcRequestReadBoardId {
     /// See BoardIdType
     pub board_id_type: u8,

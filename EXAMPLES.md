@@ -566,6 +566,7 @@ Add `-vv` for more verbose details.
 
 ```
 > sudo framework_tool --power
+Battery Cutoff:     Not cut off
 Charger Status
   AC is:            not connected
   Charger Voltage:  17048mV
