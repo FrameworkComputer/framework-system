@@ -1,0 +1,231 @@
+.Dd April 8, 2026
+.Dt FRAMEWORK_TOOL 1
+.Os
+.Sh NAME
+.Nm framework_tool
+.Nd control and query Framework Computer systems
+.Sh SYNOPSIS
+.Nm
+.Op Fl v ...
+.Ar command
+.Op Ar argument
+.Sh DESCRIPTION
+.Nm
+is a command-line utility for interacting with Framework Computer laptops
+and desktops.
+It communicates with the Embedded Controller (EC) to query firmware versions,
+battery and USB-C status, thermal data, privacy and intrusion switches, and
+expansion card details.
+It can also adjust system settings and flash EC firmware.
+.Pp
+Most operations require root privileges.
+.Sh OPTIONS
+.Ss Firmware Information
+.Bl -tag -width Ds
+.It Fl -versions
+List current firmware versions (BIOS, EC, PD controllers, retimer, touchpad,
+touchscreen)
+.It Fl -version
+Show tool version information.
+Add
+.Fl vv
+for more details
+.It Fl -features
+Show features supported by the firmware
+.It Fl -esrt
+Display the UEFI ESRT table
+.It Fl -meinfo Op Ar dmidecode-dump
+Show Intel ME information from SMBIOS.
+Optionally provide a path to a dmidecode binary dump file
+.It Fl -boardid
+Print all board IDs
+.It Fl -pd-bin Ar file
+Parse version from a PD firmware binary file
+.It Fl -ec-bin Ar file
+Parse version from an EC firmware binary file
+.It Fl -capsule Ar file
+Parse UEFI capsule information from a binary file
+.It Fl -h2o-capsule Ar file
+Parse H2O BIOS capsule information from a binary file
+.It Fl -dump Ar file
+Dump extracted UX capsule bitmap image to a file
+.El
+.Ss System Status
+.Bl -tag -width Ds
+.It Fl -power
+Show current power status of battery and AC.
+Add
+.Fl vv
+for more details.
+.It Fl -thermal
+Print thermal information (temperatures and fan speed)
+.It Fl -sensors
+Print sensor information (ALS, G-Sensor)
+.It Fl -pdports
+Show USB-C PD port state
+.It Fl -pdports-chromebook
+Show PD port info (generic Chromium EC)
+.It Fl -pd-info
+Show details about the PD controllers
+.It Fl -dp-hdmi-info
+Show details about connected DisplayPort or HDMI expansion cards
+.It Fl -audio-card-info
+Show details about connected audio expansion cards.
+Requires root
+.It Fl -privacy
+Show privacy switch statuses (camera and microphone)
+.It Fl -intrusion
+Show status of the intrusion switch
+.It Fl -inputdeck
+Show status of the input modules (Framework 16 only)
+.It Fl -expansion-bay
+Show status of the expansion bay (Framework 16 only)
+.It Fl -get-gpio Op Ar name
+Get GPIO value by name, or all GPIOs if no name is given
+.It Fl -stylus-battery
+Check stylus battery level (USI 2.0 stylus only)
+.It Fl -uptimeinfo
+Show EC uptime information
+.It Fl -s0ix-counter
+Show S0ix counter
+.It Fl -console Ar recent Ns | Ns Ar follow
+Read EC console output
+.El
+.Ss Settings
+.Bl -tag -width Ds
+.It Fl -kblight Op Ar percent
+Get or set keyboard backlight percentage
+.It Fl -charge-limit Op Ar percent
+Get or set the maximum battery charge limit
+.It Fl -charge-current-limit Ar milliwatts Op Ar port
+Set maximum charge current limit
+.It Fl -charge-rate-limit Ar rate Op Ar port
+Set maximum charge rate limit
+.It Fl -fp-led-level Op Ar level
+Get or set fingerprint LED brightness level
+.It Fl -fp-brightness Op Ar percent
+Get or set fingerprint LED brightness percentage
+.It Fl -tablet-mode Ar auto Ns | Ns Ar on Ns | Ns Ar off
+Set tablet mode override
+.It Fl -touchscreen-enable Ar true Ns | Ns Ar false
+Enable or disable the touchscreen
+.It Fl -inputdeck-mode Ar auto Ns | Ns Ar on Ns | Ns Ar off
+Set input deck power mode (Framework 12, 13, 16)
+.It Fl -fansetduty Op Ar fan Ar percent
+Set fan duty cycle (0-100%)
+.It Fl -fansetrpm Op Ar fan Ar rpm
+Set fan speed in RPM
+.It Fl -autofanctrl Op Ar fan
+Turn on automatic fan speed control
+.It Fl -ec-hib-delay Op Ar seconds
+Get or set EC hibernate delay (S5 to G3 transition)
+.It Fl -remap-key Ar matrix Ar from Ar to
+Remap a key by changing its scancode
+.It Fl -rgbkbd Ar start Ar color ...
+Set per-key RGB colours starting at
+.Ar start
+.El
+.Ss Firmware Flashing
+.Bl -tag -width Ds
+.It Fl -flash-ec Ar file
+Flash EC (RO and RW) with new firmware.
+.Sy May render hardware unbootable.
+Requires
+.Fl -force
+.It Fl -flash-ro-ec Ar file
+Flash EC RO region with new firmware.
+.Sy May render hardware unbootable.
+Requires
+.Fl -force
+.It Fl -flash-rw-ec Ar file
+Flash EC RW region with new firmware
+.It Fl -dump-ec-flash Ar file
+Dump EC flash contents to a file
+.It Fl -flash-full-ec Ar file
+Flash full EC flash (RO, RW, and all regions) with new firmware.
+.Sy May render hardware unbootable.
+Requires
+.Fl -force
+.It Fl -dp-hdmi-update Ar file
+Update the firmware of a connected DisplayPort or HDMI expansion card
+.El
+.Ss Advanced Options
+.Bl -tag -width Ds
+.It Fl -driver Ar type
+Select the EC driver to use.
+By default port I/O is used
+.It Fl -pd-addrs Ar addr1 Ar addr2 Ar addr3
+Specify I2C addresses of the PD chips.
+Must be used together with
+.Fl -pd-ports
+.It Fl -pd-ports Ar port1 Ar port2 Ar port3
+Specify I2C ports of the PD chips.
+Must be used together with
+.Fl -pd-addrs
+.It Fl -host-command Ar cmd Ar version Op Ar data ...
+Send a raw EC host command
+.It Fl -pd-reset Ar controller
+Reset a specific PD controller (for debugging only).
+.It Fl -pd-disable Ar controller
+Disable all ports on a specific PD controller (for debugging only)
+.It Fl -pd-enable Ar controller
+Enable all ports on a specific PD controller (for debugging only)
+.It Fl -reboot-ec Ar mode
+Control EC RO/RW jump
+.It Fl -device Ar type
+Hardware device type to compare against
+.Fl -compare-version
+.It Fl -compare-version Ar version
+Version string to compare with the on-device version.
+.It Fl -hash Ar file
+Hash a file of arbitrary data using the EC hash algorithm
+.It Fl -test
+Run self-test to check if EC communication is working
+.It Fl -test-retimer
+Run self-test to check if retimer communication is working
+.It Fl -dry-run
+Simulate execution of a command without applying changes
+.It Fl -force
+Allow execution of unsafe commands
+.El
+.Ss General Options
+.Bl -tag -width Ds
+.It Fl v
+Increase verbosity.
+Repeat for more output
+.Pq e.g., Fl vv
+.It Fl h , Fl -help
+Print help information
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh EXAMPLES
+List all firmware versions:
+.Dl # framework_tool --versions
+.Pp
+Show battery and AC status:
+.Dl # framework_tool --power
+.Pp
+Get keyboard backlight level:
+.Dl # framework_tool --kblight
+.Pp
+Set keyboard backlight to 50%:
+.Dl # framework_tool --kblight 50
+.Pp
+Set battery charge limit to 80%:
+.Dl # framework_tool --charge-limit 80
+.Pp
+Parse version from EC firmware file:
+.Dl $ framework_tool --ec-bin ec.bin
+.Pp
+Flash EC RW firmware:
+.Dl # framework_tool --flash-rw-ec ec_rw.bin
+.Sh SEE ALSO
+.Xr dmidecode 8
+.Sh AUTHORS
+.Nm
+was written by
+.An Framework Computer Inc Aq Mt dhs@frame.work
+.Pp
+This manual page was written by
+.An Nadzeya Hutsko Aq Mt nadzeya@debian.org
