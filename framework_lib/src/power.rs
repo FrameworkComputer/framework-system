@@ -374,7 +374,7 @@ pub fn print_thermal(ec: &CrosEc) {
             2
         }
 
-        Some(Platform::IntelCoreUltra1) => {
+        Some(Platform::IntelCoreUltra1) | Some(Platform::IntelCoreUltra3) => {
             println!("  F75303_Local: {:>4}", TempSensor::from(temps[0]));
             println!("  F75303_CPU:   {:>4}", TempSensor::from(temps[1]));
             println!("  Battery:      {:>4}", TempSensor::from(temps[2]));
