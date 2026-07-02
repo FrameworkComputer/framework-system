@@ -478,6 +478,9 @@ Board IDs
 
 ## Check temperatures and fan speed
 
+Example on one system, note that different systems have different thermal
+sensors and number of fans, so your output may look different:
+
 ```
 > sudo framework_tool --thermal
   F75303_Local: 43 C
