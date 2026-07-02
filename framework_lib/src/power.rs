@@ -10,7 +10,7 @@ use core::prelude::v1::derive;
 use log::Level;
 
 use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, MainPdVersions};
-use crate::chromium_ec::command::EcRequestRaw;
+use crate::chromium_ec::command::{EcCommands, EcRequestRaw};
 use crate::chromium_ec::commands::*;
 use crate::chromium_ec::*;
 use crate::smbios;
@@ -810,6 +810,20 @@ impl From<u8> for CypdPdDataRole {
 }
 
 pub fn get_and_print_cypd_pd_info(ec: &CrosEc) {
+    // Abort early instead of printing lots of errors if command not supported
+    match ec.cmd_version_supported(EcCommands::GetPdPortState as u32, 0) {
+        Ok(true) => {}
+        Ok(false) => {
+            println!("PD port info is not supported on this system");
+            println!("You can fall back to --pdports-chromebook, but not all the same information is available.");
+            return;
+        }
+        Err(e) => {
+            print_err::<()>(Err(e));
+            return;
+        }
+    }
+
     // All of our systems have a maximum of 4 PD enabled ports
     let ports = 4u8;
 
