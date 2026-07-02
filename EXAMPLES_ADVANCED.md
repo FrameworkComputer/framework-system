@@ -28,6 +28,50 @@ Keyboard backlight: 0%
 Keyboard backlight: 0%
 ```
 
+## Battery
+
+### Smart Battery
+
+Get smart battery information by talking to the battery directly through SMBUS.
+
+Allows unsealing the battery and reading privileged registers - this needs the
+secret key and is not available to end-users. Implemented for Framework
+internal analysis of RMA units.
+End-users, please press enter to skip unseal key.
+
+```
+> sudo framework_tool --smartbattery
+Enter unseal key in hex (e.g. 04143672), or press enter to skip:
+Device Name:   FRANEDA
+Manuf Name:    ATC
+Serial Num:    0188
+Manuf Date:    2025-11-27
+Chemistry:     LION
+FW Version:    Device=0x0045 FW=09.03 Build=0x4900
+Mode:          0x6001
+Temperature:   32.6C
+Voltage:       17.719V
+  Cell 1:      4.430V
+  Cell 2:      4.429V
+  Cell 3:      4.431V
+  Cell 4:      4.428V
+Current:       0.000A (avg 0.000A)
+Charge:        98% (4776 / 4920 mAh)
+Design:        4640mAh @ 15.640V
+Bat Status:    0x00E0 [FC (Fully Charged), DSG (Discharging), INIT (Initialization)]
+Cycle Count:   76
+
+=== Battery Health Analysis ===
+
+Status: HEALTHY
+  No issues detected. Battery is operating normally.
+
+Summary:
+  Cycle count: 76
+  Capacity: 4920 / 4640 mAh (106%)
+  Current cell balance: 3mV spread
+```
+
 ## PD
 
 ### Check PD state
