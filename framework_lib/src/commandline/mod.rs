@@ -2492,6 +2492,30 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
         esrt::RPL_BIOS_GUID => {
             println!("  Type:         Framework RPL Insyde BIOS");
         }
+        esrt::MTL_BIOS_GUID => {
+            println!("  Type:         Framework MTL Insyde BIOS");
+        }
+        esrt::PTL_BIOS_GUID => {
+            println!("  Type:         Framework PTL Insyde BIOS");
+        }
+        esrt::FW12_RPL_BIOS_GUID => {
+            println!("  Type:         Framework Laptop 12 (RPL) Insyde BIOS");
+        }
+        esrt::AMD13_RYZEN7040_BIOS_GUID => {
+            println!("  Type:         Framework Laptop 13 (AMD Ryzen 7040) Insyde BIOS");
+        }
+        esrt::AMD13_AI300_BIOS_GUID => {
+            println!("  Type:         Framework Laptop 13 (AMD Ryzen AI 300) Insyde BIOS");
+        }
+        esrt::FL16_BIOS_GUID => {
+            println!("  Type:         Framework Laptop 16 (AMD Ryzen 7040) Insyde BIOS");
+        }
+        esrt::AMD16_AI300_BIOS_GUID => {
+            println!("  Type:         Framework Laptop 16 (AMD Ryzen AI 300) Insyde BIOS");
+        }
+        esrt::DESKTOP_AMD_AI300_BIOS_GUID => {
+            println!("  Type:         Framework Desktop (AMD Ryzen AI Max 300) Insyde BIOS");
+        }
         esrt::TGL_RETIMER01_GUID => {
             println!("  Type:    Framework TGL Retimer01 (Right)");
         }
@@ -2510,6 +2534,30 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
         esrt::RPL_RETIMER23_GUID => {
             println!("  Type:   Framework RPL Retimer23 (Left)");
         }
+        esrt::MTL_RETIMER01_GUID => {
+            println!("  Type:    Framework MTL Retimer01 (Right)");
+        }
+        esrt::MTL_RETIMER23_GUID => {
+            println!("  Type:   Framework MTL Retimer23 (Left)");
+        }
+        esrt::PTL_RETIMER01_GUID => {
+            println!("  Type:    Framework PTL Retimer01 (Right)");
+        }
+        esrt::PTL_RETIMER23_GUID => {
+            println!("  Type:   Framework PTL Retimer23 (Left)");
+        }
+        esrt::RPL_CSME_GUID => {
+            println!("  Type:         Framework RPL CSME");
+        }
+        esrt::RPL_U_CSME_GUID => {
+            println!("  Type:         Framework RPL-U CSME");
+        }
+        esrt::MTL_CSME_GUID => {
+            println!("  Type:         Framework MTL CSME");
+        }
+        esrt::PTL_CSME_GUID => {
+            println!("  Type:         Framework PTL CSME");
+        }
         esrt::WINUX_GUID => {
             println!("  Type:            Windows UX capsule");
             let ux_header = capsule::parse_ux_header(data);
@@ -2526,7 +2574,11 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
         | esrt::FrameworkGuidKind::AdlRetimer01
         | esrt::FrameworkGuidKind::AdlRetimer23
         | esrt::FrameworkGuidKind::RplRetimer01
-        | esrt::FrameworkGuidKind::RplRetimer23 => {
+        | esrt::FrameworkGuidKind::RplRetimer23
+        | esrt::FrameworkGuidKind::MtlRetimer01
+        | esrt::FrameworkGuidKind::MtlRetimer23
+        | esrt::FrameworkGuidKind::PtlRetimer01
+        | esrt::FrameworkGuidKind::PtlRetimer23 => {
             if let Some(ver) = find_retimer_version(data) {
                 println!("  Version:      {:>18?}", ver);
             }
