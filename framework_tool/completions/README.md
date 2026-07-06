@@ -1,17 +1,21 @@
 # Shell Completions
 
 Shell completions for `framework_tool` are auto-generated using `clap_complete`.
+The man page (`framework_tool/framework_tool.1`) is likewise auto-generated using `clap_mangen`.
 
 ## Regenerating
 
-If you modify the CLI arguments, regenerate completions:
+If you modify the CLI arguments, regenerate completions and the man page:
 
 ```bash
 cargo build
 ./target/debug/framework_tool --generate-completions bash > framework_tool/completions/bash/framework_tool
 ./target/debug/framework_tool --generate-completions zsh > framework_tool/completions/zsh/_framework_tool
 ./target/debug/framework_tool --generate-completions fish > framework_tool/completions/fish/framework_tool.fish
+./target/debug/framework_tool --generate-manpage > framework_tool/framework_tool.1
 ```
+
+Preview the man page with `man -l framework_tool/framework_tool.1`.
 
 ## Testing
 

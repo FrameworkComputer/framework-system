@@ -98,6 +98,7 @@ _framework_tool() {
 '--force[Force execution of an unsafe command - may render your hardware unbootable!]' \
 '--dry-run[Simulate execution of a command (e.g. --flash-ec)]' \
 '--nvidia[Show NVIDIA GPU information (Laptop 16 only)]' \
+'--generate-manpage[Generate man page and print to stdout]' \
 '-h[Print help]' \
 '--help[Print help]' \
 && ret=0

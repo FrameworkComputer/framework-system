@@ -2,6 +2,7 @@
 //! This way we can use it in the regular OS commandline tool on Linux and Windows,
 //! as well as on the UEFI shell tool.
 use std::io;
+use std::io::Write;
 use std::path::PathBuf;
 
 use clap::builder::TypedValueParser;
@@ -356,16 +357,110 @@ struct ClapCli {
     /// Generate shell completions and print to stdout
     #[arg(long, value_name = "SHELL", hide = true)]
     generate_completions: Option<Shell>,
+
+    /// Generate man page and print to stdout
+    #[arg(long, hide = true)]
+    generate_manpage: bool,
+}
+
+/// Prose for the DESCRIPTION section of the man page.
+/// Only set when generating the man page, so it doesn't show up in --help.
+const MANPAGE_DESCRIPTION: &str = "framework_tool is a command-line utility for interacting \
+with Framework Computer laptops and desktops.\n\n\
+It communicates with the Embedded Controller (EC) to query firmware versions, battery and \
+USB-C status, thermal data, privacy and intrusion switches, and expansion card details. \
+It can also adjust system settings and flash EC firmware.\n\n\
+Most operations require root privileges.";
+
+/// EXAMPLES section of the man page in roff man(7) syntax.
+/// clap has no concept of examples, so it's appended after the generated sections.
+const MANPAGE_EXAMPLES: &str = r#".SH EXAMPLES
+List all firmware versions:
+.PP
+.RS 4
+.nf
+# framework_tool \-\-versions
+.fi
+.RE
+.PP
+Show battery and AC status:
+.PP
+.RS 4
+.nf
+# framework_tool \-\-power
+.fi
+.RE
+.PP
+Get keyboard backlight level:
+.PP
+.RS 4
+.nf
+# framework_tool \-\-kblight
+.fi
+.RE
+.PP
+Set keyboard backlight to 50%:
+.PP
+.RS 4
+.nf
+# framework_tool \-\-kblight 50
+.fi
+.RE
+.PP
+Set battery charge limit to 80%:
+.PP
+.RS 4
+.nf
+# framework_tool \-\-charge\-limit 80
+.fi
+.RE
+.PP
+Parse version from EC firmware file:
+.PP
+.RS 4
+.nf
+$ framework_tool \-\-ec\-bin ec.bin
+.fi
+.RE
+.PP
+Flash EC RW firmware:
+.PP
+.RS 4
+.nf
+# framework_tool \-\-flash\-rw\-ec ec_rw.bin
+.fi
+.RE
+.PP
+"#;
+
+/// Generate a man page from the clap definition and print it to stdout
+fn generate_manpage(cmd: clap::Command) {
+    let cmd = cmd.long_about(MANPAGE_DESCRIPTION);
+    let man = clap_mangen::Man::new(cmd);
+    let mut out = io::stdout();
+    man.render_title(&mut out).unwrap();
+    man.render_name_section(&mut out).unwrap();
+    man.render_synopsis_section(&mut out).unwrap();
+    man.render_description_section(&mut out).unwrap();
+    man.render_options_section(&mut out).unwrap();
+    out.write_all(MANPAGE_EXAMPLES.as_bytes()).unwrap();
 }
 
 /// Parse a list of commandline arguments and return the struct
 pub fn parse(args: &[String]) -> Cli {
     // Step 1 - Define args that can't be derived
     let cli = command!()
+        .name("framework_tool")
         .arg(Arg::new("fgd").long("flash-gpu-descriptor").num_args(2))
         .disable_version_flag(true);
     // Step 2 - Define args from derived struct
     let mut cli = ClapCli::augment_args(cli);
+
+    // Handle --generate-manpage early (generates and exits)
+    if args.iter().any(|a| a == "--generate-manpage") {
+        generate_manpage(cli);
+        std::process::exit(0);
+    }
 
     // Handle --generate-completions early (generates and exits)
     if let Some(shell_arg) = args.iter().position(|a| a == "--generate-completions") {

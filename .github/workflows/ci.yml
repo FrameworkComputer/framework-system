@@ -208,6 +208,11 @@ jobs:
         diff framework_tool/completions/zsh/_framework_tool /tmp/zsh_completions || { echo "Shell completions are out of date. See framework_tool/completions/README.md for regeneration instructions."; exit 1; }
         diff framework_tool/completions/fish/framework_tool.fish /tmp/fish_completions || { echo "Shell completions are out of date. See framework_tool/completions/README.md for regeneration instructions."; exit 1; }
 
+    - name: Check man page is up to date
+      run: |
+        ./target/debug/framework_tool --generate-manpage > /tmp/framework_tool.1
+        diff framework_tool/framework_tool.1 /tmp/framework_tool.1 || { echo "Man page is out of date. Regenerate with: ./target/debug/framework_tool --generate-manpage > framework_tool/framework_tool.1"; exit 1; }
+
   # Just make sure doc generation works
   doc:
     name: Generate docs
