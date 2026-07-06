@@ -481,13 +481,16 @@ Board IDs
 Example on one system, note that different systems have different thermal
 sensors and number of fans, so your output may look different:
 
+The sensor names are reported by the EC firmware:
+
 ```
 > sudo framework_tool --thermal
-  F75303_Local: 43 C
-  F75303_CPU:   44 C
-  F75303_DDR:   39 C
-  APU:          62 C
-  API Fan:         0 RPM
+  local_f75397@4c: 36 C
+  cpu_f75303@4d:   37 C
+  battery_temp@b:  32 C
+  ddr_f75303@4d:   35 C
+  peci-temp:       42 C
+  APU Fan:            0 RPM
   AP Throttle Status
     Soft:        false
     Hard:        false
@@ -571,30 +574,33 @@ Accelerometers:
 > sudo framework_tool --fansetduty 100
 > sudo framework_tool --fansetduty 0 100
 > sudo framework_tool --thermal
-  F75303_Local: 40 C
-  F75303_CPU:   41 C
-  F75303_DDR:   37 C
-  APU:          42 C
-  APU Fan:      7281 RPM
+  local_f75397@4c: 40 C
+  cpu_f75303@4d:   41 C
+  battery_temp@b:  32 C
+  ddr_f75303@4d:   37 C
+  peci-temp:       42 C
+  APU Fan:         7281 RPM
 
 # Set a target RPM (all or just fan ID=0)
 > sudo framework_tool --fansetrpm 3141
 > sudo framework_tool --fansetrpm 0 3141
 > sudo framework_tool --thermal
-  F75303_Local: 41 C
-  F75303_CPU:   42 C
-  F75303_DDR:   37 C
-  APU:          44 C
-  APU Fan:      3171 RPM
+  local_f75397@4c: 41 C
+  cpu_f75303@4d:   42 C
+  battery_temp@b:  32 C
+  ddr_f75303@4d:   37 C
+  peci-temp:       44 C
+  APU Fan:         3171 RPM
 
 # And back to normal
 > sudo framework_tool --autofanctrl
 > sudo framework_tool --thermal
-  F75303_Local: 40 C
-  F75303_CPU:   40 C
-  F75303_DDR:   38 C
-  APU:          42 C
-  APU Fan:         0 RPM
+  local_f75397@4c: 40 C
+  cpu_f75303@4d:   40 C
+  battery_temp@b:  32 C
+  ddr_f75303@4d:   38 C
+  peci-temp:       42 C
+  APU Fan:            0 RPM
 
 # Or just for a specific fan (e.g. on Framework Desktop)
 > sudo framework_tool --autofanctrl 0
