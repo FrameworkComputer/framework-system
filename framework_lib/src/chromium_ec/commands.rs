@@ -80,6 +80,31 @@ impl EcRequest<EcResponseGetCmdVersionsV1> for EcRequestGetCmdVersionsV1 {
     }
 }
 
+#[repr(C, packed)]
+pub struct EcRequestGetProtocolInfo {}
+
+/// Set if EC_RES_IN_PROGRESS may be returned by a slow command
+pub const EC_PROTOCOL_INFO_IN_PROGRESS_SUPPORTED: u32 = 0x01;
+
+#[repr(C, packed)]
+#[derive(Debug, Clone, Copy)]
+pub struct EcResponseGetProtocolInfo {
+    /// Bitmask of protocol versions supported (1 << n means version n)
+    pub protocol_versions: u32,
+    /// Maximum request packet size in bytes
+    pub max_request_packet_size: u16,
+    /// Maximum response packet size in bytes
+    pub max_response_packet_size: u16,
+    /// See EC_PROTOCOL_INFO_*
+    pub flags: u32,
+}
+
+impl EcRequest<EcResponseGetProtocolInfo> for EcRequestGetProtocolInfo {
+    fn command_id() -> EcCommands {
+        EcCommands::GetProtocolInfo
+    }
+}
+
 pub struct EcRequestFlashInfo {}
 
 #[repr(C, packed)]

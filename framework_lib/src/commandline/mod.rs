@@ -41,6 +41,7 @@ use crate::chromium_ec::commands::FpLedBrightnessLevel;
 use crate::chromium_ec::commands::RebootEcCmd;
 use crate::chromium_ec::commands::RgbS;
 use crate::chromium_ec::commands::TabletModeOverride;
+use crate::chromium_ec::commands::EC_PROTOCOL_INFO_IN_PROGRESS_SUPPORTED;
 use crate::chromium_ec::EcResponseStatus;
 use crate::chromium_ec::{print_err, EcFlashType};
 use crate::chromium_ec::{CrosEcDriver, EcError, EcResult};
@@ -247,6 +248,7 @@ pub struct Cli {
     pub uptimeinfo: bool,
     pub s0ix_counter: bool,
     pub hello: bool,
+    pub protoinfo: bool,
     pub hash: Option<String>,
     pub pd_addrs: Option<(u16, u16, u16)>,
     pub pd_ports: Option<(u8, u8, u8)>,
@@ -340,6 +342,7 @@ pub fn parse(args: &[String]) -> Cli {
             uptimeinfo: cli.uptimeinfo,
             s0ix_counter: cli.s0ix_counter,
             hello: cli.hello,
+            protoinfo: cli.protoinfo,
             hash: cli.hash,
             pd_addrs: cli.pd_addrs,
             pd_ports: cli.pd_ports,
@@ -1595,6 +1598,29 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 return 1;
             }
         }
+    } else if args.protoinfo {
+        if let Some(info) = print_err(ec.get_protocol_info()) {
+            let versions = { info.protocol_versions };
+            let max_request = { info.max_request_packet_size };
+            let max_response = { info.max_response_packet_size };
+            let flags = { info.flags };
+            println!("Protocol info:");
+            print!("  protocol versions:");
+            for i in 0..32 {
+                if versions & (1 << i) != 0 {
+                    print!(" {}", i);
+                }
+            }
+            println!();
+            println!("  max request:  {:4} bytes", max_request);
+            println!("  max response: {:4} bytes", max_response);
+            println!("  flags: {:#010x}", flags);
+            if flags & EC_PROTOCOL_INFO_IN_PROGRESS_SUPPORTED != 0 {
+                println!("    EC_RES_IN_PROGRESS supported");
+            }
+        } else {
+            return 1;
+        }
     } else if args.test {
         println!("Self-Test");
         let result = selftest(&ec);
@@ -1995,6 +2021,7 @@ Options:
       --uptimeinfo           Show EC uptime information
       --s0ix-counter         Show S0ix counter
       --hello                Check basic communication with EC
+      --protoinfo            Show EC host command protocol info
       --intrusion            Show status of intrusion switch
       --inputdeck            Show status of the input deck
       --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Laptop 12, 13, 16)
