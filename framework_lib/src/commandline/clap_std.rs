@@ -310,6 +310,10 @@ struct ClapCli {
     #[arg(long)]
     port80read: bool,
 
+    /// Show saved EC panic info
+    #[arg(long)]
+    panicinfo: bool,
+
     /// Hash a file of arbitrary data
     #[arg(long)]
     hash: Option<std::path::PathBuf>,
@@ -697,6 +701,7 @@ pub fn parse(args: &[String]) -> Cli {
         protoinfo: args.protoinfo,
         switches: args.switches,
         port80read: args.port80read,
+        panicinfo: args.panicinfo,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         pd_addrs,
