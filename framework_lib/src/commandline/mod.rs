@@ -249,6 +249,7 @@ pub struct Cli {
     pub s0ix_counter: bool,
     pub hello: bool,
     pub protoinfo: bool,
+    pub switches: bool,
     pub hash: Option<String>,
     pub pd_addrs: Option<(u16, u16, u16)>,
     pub pd_ports: Option<(u8, u8, u8)>,
@@ -343,6 +344,7 @@ pub fn parse(args: &[String]) -> Cli {
             s0ix_counter: cli.s0ix_counter,
             hello: cli.hello,
             protoinfo: cli.protoinfo,
+            switches: cli.switches,
             hash: cli.hash,
             pd_addrs: cli.pd_addrs,
             pd_ports: cli.pd_ports,
@@ -1621,6 +1623,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         } else {
             return 1;
         }
+    } else if args.switches {
+        if power::print_switches(&ec).is_none() {
+            println!("Failed to read EC switch state");
+            return 1;
+        }
     } else if args.test {
         println!("Self-Test");
         let result = selftest(&ec);
@@ -2022,6 +2029,7 @@ Options:
       --s0ix-counter         Show S0ix counter
       --hello                Check basic communication with EC
       --protoinfo            Show EC host command protocol info
+      --switches             Show current EC switch positions (lid, power button, ...)
       --intrusion            Show status of intrusion switch
       --inputdeck            Show status of the input deck
       --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Laptop 12, 13, 16)

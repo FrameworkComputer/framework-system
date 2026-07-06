@@ -302,6 +302,10 @@ struct ClapCli {
     #[arg(long)]
     protoinfo: bool,
 
+    /// Show current EC switch positions (lid, power button, ...)
+    #[arg(long)]
+    switches: bool,
+
     /// Hash a file of arbitrary data
     #[arg(long)]
     hash: Option<std::path::PathBuf>,
@@ -687,6 +691,7 @@ pub fn parse(args: &[String]) -> Cli {
         s0ix_counter: args.s0ix_counter,
         hello: args.hello,
         protoinfo: args.protoinfo,
+        switches: args.switches,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         pd_addrs,

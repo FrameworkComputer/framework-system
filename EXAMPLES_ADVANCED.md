@@ -232,6 +232,20 @@ Tablet mode:
 > framework_tool --tablet-mode auto
 ```
 
+## Check EC switch positions
+
+Show the current positions of the switches the EC monitors
+(e.g. to debug lid or power button issues):
+
+```
+> framework_tool --switches
+Current switches:   0x01
+Lid switch:         OPEN
+Power button:       UP
+Write protect:      DISABLED
+Dedicated recovery: DISABLED
+```
+
 ## Flashing EC firmware
 
 **IMPORTANT** Flashing EC firmware yourself is not recommended. It may render
