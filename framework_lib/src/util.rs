@@ -21,6 +21,8 @@ use crate::smbios;
 pub enum Platform {
     /// Framework Laptop 12
     Framework12IntelGen13,
+    /// Framework Laptop 12 - Intel Core 3, Codenamed WildcatLake
+    Framework12IntelCore3,
     /// Framework Laptop 13 - Intel 11th Gen, Codenamed TigerLake
     IntelGen11,
     /// Framework Laptop 13 - Intel 12th Gen, Codenamed AlderLake
@@ -65,6 +67,7 @@ impl Platform {
     pub fn which_cpu_vendor(self) -> Option<CpuVendor> {
         match self {
             Platform::Framework12IntelGen13
+            | Platform::Framework12IntelCore3
             | Platform::IntelGen11
             | Platform::IntelGen12
             | Platform::IntelGen13
@@ -81,7 +84,9 @@ impl Platform {
     }
     pub fn which_family(self) -> Option<PlatformFamily> {
         match self {
-            Platform::Framework12IntelGen13 => Some(PlatformFamily::Framework12),
+            Platform::Framework12IntelGen13 | Platform::Framework12IntelCore3 => {
+                Some(PlatformFamily::Framework12)
+            }
             Platform::IntelGen11
             | Platform::IntelGen12
             | Platform::IntelGen13
