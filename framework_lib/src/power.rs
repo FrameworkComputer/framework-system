@@ -14,7 +14,7 @@ use crate::chromium_ec::command::EcRequestRaw;
 use crate::chromium_ec::commands::*;
 use crate::chromium_ec::*;
 use crate::smbios;
-use crate::util::{Platform, PlatformFamily};
+use crate::util::PlatformFamily;
 
 /// Maximum length of strings in memmap
 const EC_MEMMAP_TEXT_MAX: u16 = 8;
@@ -477,92 +477,27 @@ pub fn print_thermal(ec: &CrosEc) {
     let temps = ec.read_memory(EC_MEMMAP_TEMP_SENSOR, 0x0F).unwrap();
     let fans = ec.read_memory(EC_MEMMAP_FAN, 0x08).unwrap();
 
-    let platform = smbios::get_platform();
     let family = smbios::get_family();
-    let remaining_sensors = match platform {
-        Some(Platform::IntelGen11) | Some(Platform::IntelGen12) | Some(Platform::IntelGen13) => {
-            println!("  F75303_Local: {:>4}", TempSensor::from(temps[0]));
-            println!("  F75303_CPU:   {:>4}", TempSensor::from(temps[1]));
-            println!("  F75303_DDR:   {:>4}", TempSensor::from(temps[2]));
-            println!("  Battery:      {:>4}", TempSensor::from(temps[3]));
-            println!("  PECI:         {:>4}", TempSensor::from(temps[4]));
-            if matches!(
-                platform,
-                Some(Platform::IntelGen12) | Some(Platform::IntelGen13)
-            ) {
-                println!("  F57397_VCCGT: {:>4}", TempSensor::from(temps[5]));
-            }
-            2
-        }
 
-        Some(Platform::IntelCoreUltra1) | Some(Platform::IntelCoreUltra3) => {
-            println!("  F75303_Local: {:>4}", TempSensor::from(temps[0]));
-            println!("  F75303_CPU:   {:>4}", TempSensor::from(temps[1]));
-            println!("  Battery:      {:>4}", TempSensor::from(temps[2]));
-            println!("  F75303_DDR:   {:>4}", TempSensor::from(temps[3]));
-            println!("  PECI:         {:>4}", TempSensor::from(temps[4]));
-            3
-        }
-
-        Some(Platform::Framework12IntelGen13) => {
-            println!("  F75303_CPU:   {:>4}", TempSensor::from(temps[0]));
-            println!("  F75303_Skin:  {:>4}", TempSensor::from(temps[1]));
-            println!("  F75303_Local: {:>4}", TempSensor::from(temps[2]));
-            println!("  Battery:      {:>4}", TempSensor::from(temps[3]));
-            println!("  PECI:         {:>4}", TempSensor::from(temps[4]));
-            println!("  Charger IC    {:>4}", TempSensor::from(temps[5]));
-            2
-        }
-
-        Some(
-            Platform::Framework13Amd7080
-            | Platform::Framework13AmdAi300
-            | Platform::Framework16Amd7080
-            | Platform::Framework16AmdAi300,
-        ) => {
-            println!("  F75303_Local: {:>4}", TempSensor::from(temps[0]));
-            println!("  F75303_CPU:   {:>4}", TempSensor::from(temps[1]));
-            println!("  F75303_DDR:   {:>4}", TempSensor::from(temps[2]));
-            println!("  APU:          {:>4}", TempSensor::from(temps[3]));
-            if family == Some(PlatformFamily::Framework16) {
-                println!("  dGPU VR:      {:>4}", TempSensor::from(temps[4]));
-                println!("  dGPU VRAM:    {:>4}", TempSensor::from(temps[5]));
-                println!("  dGPU AMB:     {:>4}", TempSensor::from(temps[6]));
-                println!("  dGPU temp:    {:>4}", TempSensor::from(temps[7]));
-                0
-            } else {
-                4
-            }
-        }
-
-        Some(Platform::FrameworkDesktopAmdAiMax300) => {
-            println!("  F75303_APU:   {:>4}", TempSensor::from(temps[0]));
-            println!("  F75303_DDR:   {:>4}", TempSensor::from(temps[1]));
-            println!("  F75303_AMB:   {:>4}", TempSensor::from(temps[2]));
-            println!("  APU:          {:>4}", TempSensor::from(temps[3]));
-            println!("  Virtual:      {:>4}", TempSensor::from(temps[4]));
-            3
-        }
-
-        _ => {
-            println!("  Temp 0:       {:>4}", TempSensor::from(temps[0]));
-            println!("  Temp 1:       {:>4}", TempSensor::from(temps[1]));
-            println!("  Temp 2:       {:>4}", TempSensor::from(temps[2]));
-            println!("  Temp 3:       {:>4}", TempSensor::from(temps[3]));
-            println!("  Temp 4:       {:>4}", TempSensor::from(temps[4]));
-            println!("  Temp 5:       {:>4}", TempSensor::from(temps[5]));
-            println!("  Temp 6:       {:>4}", TempSensor::from(temps[6]));
-            println!("  Temp 7:       {:>4}", TempSensor::from(temps[7]));
-            0
-        }
-    };
-
-    // Just in case EC has more sensors than we know about, print them
-    for (i, temp) in temps.iter().enumerate().take(8).skip(8 - remaining_sensors) {
+    let mut sensors = vec![];
+    for (i, temp) in temps.iter().enumerate() {
         let temp = TempSensor::from(*temp);
-        if temp != TempSensor::NotPresent {
-            println!("  Temp {}:       {:>4}", i, temp);
+        if temp == TempSensor::NotPresent {
+            continue;
         }
+        // All our EC firmware supports reporting the sensor name
+        let name = ec
+            .get_temp_sensor_name(i as u8)
+            .unwrap_or_else(|_| format!("Temp {}", i));
+        sensors.push((name, temp));
+    }
+    let width = sensors
+        .iter()
+        .map(|(name, _)| name.len() + 1)
+        .max()
+        .unwrap_or(13);
+    for (name, temp) in sensors {
+        println!("  {:<width$} {:>4}", format!("{name}:"), temp);
     }
 
     for i in 0..EC_FAN_SPEED_ENTRIES {
@@ -580,11 +515,11 @@ pub fn print_thermal(ec: &CrosEc) {
 
         let fan = u16::from_le_bytes([fans[i * 2], fans[1 + i * 2]]);
         if fan == EC_FAN_SPEED_STALLED_DEPRECATED {
-            println!("  {name:<11} {:>4} RPM (Stalled)", fan);
+            println!("  {name:<width$} {:>4} RPM (Stalled)", fan);
         } else if fan == EC_FAN_SPEED_NOT_PRESENT {
-            info!("  {name:<11} Not present");
+            info!("  {name:<width$} Not present");
         } else {
-            println!("  {name:<11} {:>4} RPM", fan);
+            println!("  {name:<width$} {:>4} RPM", fan);
         }
     }
 
