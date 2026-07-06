@@ -1,5 +1,5 @@
 complete -c framework_tool -l flash-gpu-descriptor -r
-complete -c framework_tool -l device -r -f -a "bios\t''
+complete -c framework_tool -l device -d 'Device type to compare the --compare-version string against' -r -f -a "bios\t''
 ec\t''
 pd0\t''
 pd1\t''
@@ -7,7 +7,7 @@ rtm01\t''
 rtm23\t''
 ac-left\t''
 ac-right\t''"
-complete -c framework_tool -l compare-version -r
+complete -c framework_tool -l compare-version -d 'Version to compare device firmware version with' -r
 complete -c framework_tool -l smartbattery -d 'Show detailed smart battery information, or load from dump file' -r -F
 complete -c framework_tool -l fansetduty -d 'Set fan duty cycle (0-100%)' -r
 complete -c framework_tool -l fansetrpm -d 'Set fan RPM (limited by EC fan table max RPM)' -r
