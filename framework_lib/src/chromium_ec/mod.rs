@@ -1685,6 +1685,14 @@ impl CrosEc {
         Ok(res.hibernation_delay)
     }
 
+    /// Basic communication check with the EC
+    ///
+    /// The EC returns the sent value incremented by 0x01020304
+    pub fn hello(&self, in_data: u32) -> EcResult<u32> {
+        let res = EcRequestHello { in_data }.send_command(self)?;
+        Ok(res.out_data)
+    }
+
     pub fn reset_s0ix_counter(&self) -> EcResult<()> {
         EcRequestS0ixCounter {
             flags: EC_S0IX_COUNTER_RESET,

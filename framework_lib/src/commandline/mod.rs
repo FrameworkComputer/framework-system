@@ -246,6 +246,7 @@ pub struct Cli {
     pub sysinfo: bool,
     pub uptimeinfo: bool,
     pub s0ix_counter: bool,
+    pub hello: bool,
     pub hash: Option<String>,
     pub pd_addrs: Option<(u16, u16, u16)>,
     pub pd_ports: Option<(u8, u8, u8)>,
@@ -338,6 +339,7 @@ pub fn parse(args: &[String]) -> Cli {
             sysinfo: cli.sysinfo,
             uptimeinfo: cli.uptimeinfo,
             s0ix_counter: cli.s0ix_counter,
+            hello: cli.hello,
             hash: cli.hash,
             pd_addrs: cli.pd_addrs,
             pd_ports: cli.pd_ports,
@@ -1585,6 +1587,26 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         } else {
             println!("s0ix_counter: Unknown");
         }
+    } else if args.hello {
+        const HELLO_DATA: u32 = 0xa0b0c0d0;
+        const HELLO_OFFSET: u32 = 0x01020304;
+        match ec.hello(HELLO_DATA) {
+            Ok(out_data) if out_data == HELLO_DATA.wrapping_add(HELLO_OFFSET) => {
+                println!("EC says hello!");
+            }
+            Ok(out_data) => {
+                println!(
+                    "EC returned invalid response: {:#010x}, expected {:#010x}",
+                    out_data,
+                    HELLO_DATA.wrapping_add(HELLO_OFFSET)
+                );
+                return 1;
+            }
+            Err(err) => {
+                println!("Failed to communicate with EC: {:?}", err);
+                return 1;
+            }
+        }
     } else if args.test {
         println!("Self-Test");
         let result = selftest(&ec);
@@ -1984,6 +2006,7 @@ Options:
       --sysinfo              Show system info (reset flags, current image, locked state)
       --uptimeinfo           Show EC uptime information
       --s0ix-counter         Show S0ix counter
+      --hello                Check basic communication with EC
       --intrusion            Show status of intrusion switch
       --inputdeck            Show status of the input deck
       --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Laptop 12, 13, 16)

@@ -92,6 +92,7 @@ pub fn parse(args: &[String]) -> Cli {
         sysinfo: false,
         uptimeinfo: false,
         s0ix_counter: false,
+        hello: false,
         hash: None,
         // This is the only driver that works on UEFI
         driver: Some(CrosEcDriverType::Portio),
@@ -549,6 +550,9 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--s0ix-counter" {
             cli.s0ix_counter = true;
+            found_an_option = true;
+        } else if arg == "--hello" {
+            cli.hello = true;
             found_an_option = true;
         } else if arg == "-t" || arg == "--test" {
             cli.test = true;
