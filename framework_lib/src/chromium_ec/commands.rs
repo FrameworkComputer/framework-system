@@ -519,6 +519,52 @@ impl EcRequest<()> for EcRequestSetTabletMode {
     }
 }
 
+#[repr(u16)]
+pub enum Port80Subcommand {
+    /// Get general information about the port 80 history buffer
+    GetInfo = 0,
+    /// Read from the port 80 history buffer
+    ReadBuffer = 1,
+}
+
+/// Maximum entries that can be read in a single command
+pub const EC_PORT80_SIZE_MAX: u32 = 32;
+
+/// EC inserted the marker into the history when the system resumed (S3->S0)
+pub const PORT_80_EVENT_RESUME: u16 = 0x1001;
+/// EC inserted the marker into the history when the system reset
+pub const PORT_80_EVENT_RESET: u16 = 0x1002;
+
+#[repr(C, packed)]
+pub struct EcRequestPort80Read {
+    /// See Port80Subcommand
+    pub subcmd: u16,
+    /// Entry offset from the beginning of the history buffer (ReadBuffer only)
+    pub offset: u32,
+    /// Number of entries to read (ReadBuffer only)
+    pub num_entries: u32,
+}
+
+#[repr(C, packed)]
+#[derive(Debug, Clone, Copy)]
+pub struct EcResponsePort80GetInfo {
+    /// Total number of port 80 writes so far
+    pub writes: u32,
+    /// Size of the history buffer in entries
+    pub history_size: u32,
+    pub last_boot: u32,
+}
+
+/// ReadBuffer responses are variable length, read with send_command_vec
+impl EcRequest<EcResponsePort80GetInfo> for EcRequestPort80Read {
+    fn command_id() -> EcCommands {
+        EcCommands::Port80Read
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+
 #[repr(C, packed)]
 pub struct EcRequestAutoFanCtrlV0 {}
 

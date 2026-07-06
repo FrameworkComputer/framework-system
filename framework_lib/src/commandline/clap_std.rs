@@ -306,6 +306,10 @@ struct ClapCli {
     #[arg(long)]
     switches: bool,
 
+    /// Show history of port 80 writes (POST codes)
+    #[arg(long)]
+    port80read: bool,
+
     /// Hash a file of arbitrary data
     #[arg(long)]
     hash: Option<std::path::PathBuf>,
@@ -692,6 +696,7 @@ pub fn parse(args: &[String]) -> Cli {
         hello: args.hello,
         protoinfo: args.protoinfo,
         switches: args.switches,
+        port80read: args.port80read,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         pd_addrs,

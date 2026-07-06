@@ -39,6 +39,7 @@ pub enum EcCommands {
     MotionSense = 0x002B,
     PwmGetDuty = 0x0026,
     SetTabletMode = 0x0031,
+    Port80Read = 0x0048,
     AutoFanCtrl = 0x0052,
     GpioSet = 0x0092,
     GpioGet = 0x0093,
