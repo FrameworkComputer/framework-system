@@ -32,8 +32,8 @@ const EC_MEMMAP_SWITCHES_VERSION: u16 = 0x25; // Version of data in 0x30 - 0x33
 const EC_MEMMAP_EVENTS_VERSION: u16 = 0x26; // Version of data in 0x34 - 0x3f
 const _EC_MEMMAP_HOST_CMD_FLAGS: u16 = 0x27; // Host cmd interface flags (8 bits)
                                              // Unused 0x28 - 0x2f
-const _EC_MEMMAP_SWITCHES: u16 = 0x30; // 8 bits
-                                       // Unused 0x31 - 0x33
+const EC_MEMMAP_SWITCHES: u16 = 0x30; // 8 bits
+                                      // Unused 0x31 - 0x33
 const _EC_MEMMAP_HOST_EVENTS: u16 = 0x34; // 64 bits
                                           // Battery values are all 32 bits, unless otherwise noted.
 const EC_MEMMAP_BATT_VOLT: u16 = 0x40; // Battery Present Voltage
@@ -63,6 +63,12 @@ const EC_MEMMAP_ACC_DATA: u16 = 0x92; // Accelerometers data 0x92 - 0x9f
 const LID_ANGLE_UNRELIABLE: u16 = 500;
 const _EC_MEMMAP_GYRO_DATA: u16 = 0xa0; // Gyroscope data 0xa0 - 0xa5
                                         // Unused 0xa6 - 0xdf
+
+// Switch flags at EC_MEMMAP_SWITCHES
+const EC_SWITCH_LID_OPEN: u8 = 0x01;
+const EC_SWITCH_POWER_BUTTON_PRESSED: u8 = 0x02;
+const EC_SWITCH_WRITE_PROTECT_DISABLED: u8 = 0x04;
+const EC_SWITCH_DEDICATED_RECOVERY: u8 = 0x10;
 
 // Battery bit flags at EC_MEMMAP_BATT_FLAG.
 const EC_BATT_FLAG_AC_PRESENT: u8 = 0x01;
@@ -242,6 +248,45 @@ pub fn print_memmap_version_info(ec: &CrosEc) {
     let _battery_ver = ec.read_memory(EC_MEMMAP_BATTERY_VERSION, 2).unwrap(); /* Version of data in 0x40 - 0x7f */
     let _switches_ver = ec.read_memory(EC_MEMMAP_SWITCHES_VERSION, 2).unwrap(); /* Version of data in 0x30 - 0x33 */
     let _events_ver = ec.read_memory(EC_MEMMAP_EVENTS_VERSION, 2).unwrap();
+}
+
+/// Print the current EC switch positions (lid, power button, ...)
+pub fn print_switches(ec: &CrosEc) -> Option<()> {
+    let switches = *ec.read_memory(EC_MEMMAP_SWITCHES, 1)?.first()?;
+    println!("Current switches:   {:#04x}", switches);
+    println!(
+        "Lid switch:         {}",
+        if switches & EC_SWITCH_LID_OPEN != 0 {
+            "OPEN"
+        } else {
+            "CLOSED"
+        }
+    );
+    println!(
+        "Power button:       {}",
+        if switches & EC_SWITCH_POWER_BUTTON_PRESSED != 0 {
+            "DOWN"
+        } else {
+            "UP"
+        }
+    );
+    println!(
+        "Write protect:      {}ABLED",
+        if switches & EC_SWITCH_WRITE_PROTECT_DISABLED != 0 {
+            "DIS"
+        } else {
+            "EN"
+        }
+    );
+    println!(
+        "Dedicated recovery: {}ABLED",
+        if switches & EC_SWITCH_DEDICATED_RECOVERY != 0 {
+            "EN"
+        } else {
+            "DIS"
+        }
+    );
+    Some(())
 }
 
 /// Not supported on TGL EC
