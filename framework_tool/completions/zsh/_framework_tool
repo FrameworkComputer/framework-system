@@ -90,6 +90,7 @@ _framework_tool() {
 '--sysinfo[Show system info (reset flags, current image, locked state)]' \
 '--uptimeinfo[]' \
 '--s0ix-counter[]' \
+'--hello[Check basic communication with EC]' \
 '-t[Run self-test to check if interaction with EC is possible]' \
 '--test[Run self-test to check if interaction with EC is possible]' \
 '--test-retimer[Run self-test to check if interaction with retimers is possible]' \

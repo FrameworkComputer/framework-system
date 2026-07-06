@@ -15,6 +15,7 @@ use super::{CrosEc, CrosEcDriver, EcError, EcResult};
 #[derive(Debug, FromPrimitive)]
 #[repr(u16)]
 pub enum EcCommands {
+    Hello = 0x01,
     GetVersion = 0x02,
     GetBuildInfo = 0x04,
     /// Command to read data from EC memory map

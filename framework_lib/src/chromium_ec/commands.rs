@@ -7,6 +7,24 @@ use super::{command::*, input_deck::INPUT_DECK_SLOTS};
 use core::prelude::rust_2021::derive;
 
 #[repr(C, packed)]
+pub struct EcRequestHello {
+    /// Pass anything here
+    pub in_data: u32,
+}
+
+#[repr(C, packed)]
+pub struct EcResponseHello {
+    /// Output will be in_data + 0x01020304
+    pub out_data: u32,
+}
+
+impl EcRequest<EcResponseHello> for EcRequestHello {
+    fn command_id() -> EcCommands {
+        EcCommands::Hello
+    }
+}
+
+#[repr(C, packed)]
 pub struct EcRequestGetVersion {}
 
 #[repr(C, packed)]
