@@ -83,6 +83,7 @@ impl PdPort {
             // Framework Intel Platforms (CCG5 and CCG6)
             (
                 Platform::Framework12IntelGen13
+                | Platform::Framework12IntelCore3
                 | Platform::IntelGen11
                 | Platform::IntelGen12
                 | Platform::IntelGen13
@@ -91,6 +92,7 @@ impl PdPort {
             ) => 0x08,
             (
                 Platform::Framework12IntelGen13
+                | Platform::Framework12IntelCore3
                 | Platform::IntelGen11
                 | Platform::IntelGen12
                 | Platform::IntelGen13
@@ -128,7 +130,8 @@ impl PdPort {
                 | Platform::IntelCoreUltra1
                 | Platform::IntelCoreUltra3
                 | Platform::Framework13AmdAi300
-                | Platform::Framework12IntelGen13,
+                | Platform::Framework12IntelGen13
+                | Platform::Framework12IntelCore3,
                 PdPort::Right01,
             ) => 1,
             (
@@ -138,7 +141,8 @@ impl PdPort {
                 | Platform::IntelCoreUltra1
                 | Platform::IntelCoreUltra3
                 | Platform::Framework13AmdAi300
-                | Platform::Framework12IntelGen13,
+                | Platform::Framework12IntelGen13
+                | Platform::Framework12IntelCore3,
                 PdPort::Left23,
             ) => 2,
             (Platform::Framework16Amd7080 | Platform::Framework16AmdAi300, PdPort::Back) => 5,

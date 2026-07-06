@@ -79,6 +79,12 @@ pub const PTL_BIOS_GUID: GUID = GUID::build_from_components(
     0x4fb2,
     &[0x94, 0xf0, 0x60, 0x45, 0x99, 0x1d, 0x9c, 0x9e],
 );
+pub const WCL_BIOS_GUID: GUID = GUID::build_from_components(
+    0x3cf54c16,
+    0x1a6d,
+    0x4acd,
+    &[0xb4, 0x2b, 0x47, 0xe8, 0x99, 0xdf, 0x4c, 0xf9],
+);
 
 pub const TGL_RETIMER01_GUID: GUID = GUID::build_from_components(
     0x832af090,
@@ -140,6 +146,18 @@ pub const PTL_RETIMER23_GUID: GUID = GUID::build_from_components(
     0x41c7,
     &[0x9b, 0x41, 0x72, 0x85, 0xf4, 0x01, 0xe1, 0x03],
 );
+pub const WCL_RETIMER01_GUID: GUID = GUID::build_from_components(
+    0x7fa95808,
+    0xcd4a,
+    0x40c6,
+    &[0xa8, 0x92, 0x2b, 0xf3, 0x85, 0x75, 0x7c, 0xac],
+);
+pub const WCL_RETIMER23_GUID: GUID = GUID::build_from_components(
+    0xf45edc38,
+    0x76a4,
+    0x4289,
+    &[0x80, 0xcf, 0xa0, 0x09, 0x0f, 0x72, 0x0e, 0xde],
+);
 
 pub const FL16_BIOS_GUID: GUID = GUID::build_from_components(
     0x6ae76af1,
@@ -195,6 +213,12 @@ pub const PTL_CSME_GUID: GUID = GUID::build_from_components(
     0x44c8,
     &[0x8c, 0x40, 0xe9, 0x3e, 0xc8, 0xed, 0xe8, 0x17],
 );
+pub const WCL_CSME_GUID: GUID = GUID::build_from_components(
+    0xc475d6b8,
+    0xf659,
+    0x413f,
+    &[0xab, 0x97, 0x59, 0x2d, 0x26, 0xfa, 0xf8, 0x5c],
+);
 
 // In EDK2
 // Handled by MdeModulePkg/Library/DxeCapsuleLibFmp/DxeCapsuleLib.c
@@ -215,6 +239,7 @@ pub enum FrameworkGuidKind {
     MtlBios,
     Fw12RplBios,
     PtlBios,
+    WclBios,
     TglRetimer01,
     TglRetimer23,
     AdlRetimer01,
@@ -225,10 +250,13 @@ pub enum FrameworkGuidKind {
     MtlRetimer23,
     PtlRetimer01,
     PtlRetimer23,
+    WclRetimer01,
+    WclRetimer23,
     RplCsme,
     RplUCsme,
     MtlCsme,
     PtlCsme,
+    WclCsme,
     Fl16Bios,
     Amd16Ai300Bios,
     Amd13Ryzen7040Bios,
@@ -246,6 +274,7 @@ pub fn match_guid_kind(guid: &CGuid) -> FrameworkGuidKind {
         MTL_BIOS_GUID => FrameworkGuidKind::MtlBios,
         FW12_RPL_BIOS_GUID => FrameworkGuidKind::Fw12RplBios,
         PTL_BIOS_GUID => FrameworkGuidKind::PtlBios,
+        WCL_BIOS_GUID => FrameworkGuidKind::WclBios,
         FL16_BIOS_GUID => FrameworkGuidKind::Fl16Bios,
         AMD16_AI300_BIOS_GUID => FrameworkGuidKind::Amd16Ai300Bios,
         AMD13_RYZEN7040_BIOS_GUID => FrameworkGuidKind::Amd13Ryzen7040Bios,
@@ -261,10 +290,13 @@ pub fn match_guid_kind(guid: &CGuid) -> FrameworkGuidKind {
         MTL_RETIMER23_GUID => FrameworkGuidKind::MtlRetimer23,
         PTL_RETIMER01_GUID => FrameworkGuidKind::PtlRetimer01,
         PTL_RETIMER23_GUID => FrameworkGuidKind::PtlRetimer23,
+        WCL_RETIMER01_GUID => FrameworkGuidKind::WclRetimer01,
+        WCL_RETIMER23_GUID => FrameworkGuidKind::WclRetimer23,
         RPL_CSME_GUID => FrameworkGuidKind::RplCsme,
         RPL_U_CSME_GUID => FrameworkGuidKind::RplUCsme,
         MTL_CSME_GUID => FrameworkGuidKind::MtlCsme,
         PTL_CSME_GUID => FrameworkGuidKind::PtlCsme,
+        WCL_CSME_GUID => FrameworkGuidKind::WclCsme,
         WINUX_GUID => FrameworkGuidKind::WinUx,
         _ => FrameworkGuidKind::Unknown,
     }

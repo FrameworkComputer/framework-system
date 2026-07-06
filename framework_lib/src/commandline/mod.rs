@@ -726,6 +726,7 @@ fn print_versions(ec: &CrosEc) {
             | Some(Platform::IntelGen13)
             | Some(Platform::IntelCoreUltra1)
             | Some(Platform::IntelCoreUltra3)
+            | Some(Platform::Framework12IntelCore3)
     );
     let mut left_retimer: Option<u32> = None;
     let mut right_retimer: Option<u32> = None;
@@ -736,14 +737,16 @@ fn print_versions(ec: &CrosEc) {
                 | esrt::ADL_RETIMER01_GUID
                 | esrt::RPL_RETIMER01_GUID
                 | esrt::MTL_RETIMER01_GUID
-                | esrt::PTL_RETIMER01_GUID => {
+                | esrt::PTL_RETIMER01_GUID
+                | esrt::WCL_RETIMER01_GUID => {
                     right_retimer = Some(entry.fw_version);
                 }
                 esrt::TGL_RETIMER23_GUID
                 | esrt::ADL_RETIMER23_GUID
                 | esrt::RPL_RETIMER23_GUID
                 | esrt::MTL_RETIMER23_GUID
-                | esrt::PTL_RETIMER23_GUID => {
+                | esrt::PTL_RETIMER23_GUID
+                | esrt::WCL_RETIMER23_GUID => {
                     left_retimer = Some(entry.fw_version);
                 }
                 _ => {}
@@ -831,7 +834,9 @@ fn print_versions(ec: &CrosEc) {
     #[cfg(feature = "hidapi")]
     {
         let _ignore_err = touchscreen::print_himax_fw_ver();
-        if let Some(Platform::Framework12IntelGen13) = smbios::get_platform() {
+        if smbios::get_platform().and_then(Platform::which_family)
+            == Some(PlatformFamily::Framework12)
+        {
             let _ignore_err = touchscreen::print_fw_ver();
         }
     }
@@ -2674,6 +2679,9 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
         esrt::FW12_RPL_BIOS_GUID => {
             println!("  Type:         Framework Laptop 12 (RPL) Insyde BIOS");
         }
+        esrt::WCL_BIOS_GUID => {
+            println!("  Type:         Framework Laptop 12 (WCL) Insyde BIOS");
+        }
         esrt::AMD13_RYZEN7040_BIOS_GUID => {
             println!("  Type:         Framework Laptop 13 (AMD Ryzen 7040) Insyde BIOS");
         }
@@ -2719,6 +2727,12 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
         esrt::PTL_RETIMER23_GUID => {
             println!("  Type:   Framework PTL Retimer23 (Left)");
         }
+        esrt::WCL_RETIMER01_GUID => {
+            println!("  Type:    Framework WCL Retimer01 (Right)");
+        }
+        esrt::WCL_RETIMER23_GUID => {
+            println!("  Type:   Framework WCL Retimer23 (Left)");
+        }
         esrt::RPL_CSME_GUID => {
             println!("  Type:         Framework RPL CSME");
         }
@@ -2730,6 +2744,9 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
         }
         esrt::PTL_CSME_GUID => {
             println!("  Type:         Framework PTL CSME");
+        }
+        esrt::WCL_CSME_GUID => {
+            println!("  Type:         Framework WCL CSME");
         }
         esrt::WINUX_GUID => {
             println!("  Type:            Windows UX capsule");
@@ -2751,7 +2768,9 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
         | esrt::FrameworkGuidKind::MtlRetimer01
         | esrt::FrameworkGuidKind::MtlRetimer23
         | esrt::FrameworkGuidKind::PtlRetimer01
-        | esrt::FrameworkGuidKind::PtlRetimer23 => {
+        | esrt::FrameworkGuidKind::PtlRetimer23
+        | esrt::FrameworkGuidKind::WclRetimer01
+        | esrt::FrameworkGuidKind::WclRetimer23 => {
             if let Some(ver) = find_retimer_version(data) {
                 println!("  Version:      {:>18?}", ver);
             }
