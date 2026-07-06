@@ -40,6 +40,7 @@ pub enum EcCommands {
     PwmGetDuty = 0x0026,
     SetTabletMode = 0x0031,
     Port80Read = 0x0048,
+    ThermalSetThreshold = 0x0050,
     ThermalGetThreshold = 0x0051,
     AutoFanCtrl = 0x0052,
     TempSensorGetInfo = 0x0070,

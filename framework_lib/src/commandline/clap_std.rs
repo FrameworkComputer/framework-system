@@ -71,6 +71,13 @@ struct ClapCli {
     #[arg(long)]
     thermalget: bool,
 
+    /// Set thermal thresholds of a sensor in degrees Celsius:
+    /// <SENSOR> <WARN> [<HIGH> [<HALT> [<FAN_OFF> [<FAN_MAX>]]]]
+    /// (-1 keeps the current threshold, 0 disables it)
+    #[clap(num_args = 2..=6, allow_negative_numbers = true)]
+    #[arg(long)]
+    thermalset: Vec<i32>,
+
     /// Print sensor information (ALS, G-Sensor)
     #[arg(long)]
     sensors: bool,
@@ -633,6 +640,11 @@ pub fn parse(args: &[String]) -> Cli {
         smartbattery_auth: args.smartbattery_auth,
         thermal: args.thermal,
         thermalget: args.thermalget,
+        thermalset: if args.thermalset.is_empty() {
+            None
+        } else {
+            Some(args.thermalset.clone())
+        },
         sensors: args.sensors,
         fansetduty,
         fansetrpm,

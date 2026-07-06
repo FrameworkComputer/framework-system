@@ -1714,6 +1714,14 @@ impl CrosEc {
         EcRequestThermalGetThresholdV1 { sensor_num }.send_command(self)
     }
 
+    /// Set the thermal thresholds (in degrees Kelvin) of a temperature sensor
+    ///
+    /// Zero values disable a threshold. Read the current config with
+    /// get_thermal_threshold and modify it for best results.
+    pub fn set_thermal_threshold(&self, sensor_num: u32, cfg: EcThermalConfig) -> EcResult<()> {
+        EcRequestThermalSetThresholdV1 { sensor_num, cfg }.send_command(self)
+    }
+
     /// Get the name of a temperature sensor
     pub fn get_temp_sensor_name(&self, id: u8) -> EcResult<String> {
         let res = EcRequestTempSensorGetInfo { id }.send_command(self)?;

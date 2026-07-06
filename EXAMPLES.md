@@ -495,9 +495,15 @@ sensors and number of fans, so your output may look different:
 
 ## Check thermal thresholds
 
-Show at which temperatures the EC throttles the system (warn), shuts it
-down (high, halt) and how the fan speed is scaled (0% at fan_off, 100% at
-fan_max). A `-` means the threshold is disabled:
+Show the temperatures at which the EC takes action, per sensor:
+
+- `warn`: Notify the OS with a thermal host event
+- `high`: Throttle the CPU (PROCHOT)
+- `halt`: Shut down the system
+- `fan_off`/`fan_max`: Fan curve, fan is off below `fan_off` and at 100%
+  above `fan_max`. Note that not all sensors are used for fan control.
+
+A `-` means the threshold is disabled:
 
 ```
 > sudo framework_tool --thermalget
@@ -509,6 +515,35 @@ sensor  warn  high  halt   fan_off fan_max   name
   4        -   120    127    103     105     peci-temp
 (all temps in degrees Celsius)
 ```
+
+## Set thermal thresholds
+
+Adjust the thresholds shown by `--thermalget`. The arguments are
+`<sensor> <warn> [high [halt [fan_off [fan_max]]]]` in degrees Celsius,
+in the same order as the `--thermalget` columns. Use `-1` to keep a
+threshold and `0` to disable it. The tool prints the resulting
+configuration:
+
+```
+# Lower the battery (sensor 2) high/halt thresholds to 45/55 degrees
+> sudo framework_tool --thermalset 2 -1 45 55
+sensor  warn  high  halt   fan_off fan_max   name
+  0        -    88     98     40      75     local_f75397@4c
+  1        -    88     98     40      78     cpu_f75303@4d
+  2        -    45     55     40      50     battery_temp@b
+  3        -    87     97     40      50     ddr_f75303@4d
+  4        -   120    127    103     105     peci-temp
+(all temps in degrees Celsius)
+
+# Make the CPU sensor (sensor 1) spin the fan up at 45 and reach 100% at 70 degrees
+> sudo framework_tool --thermalset 1 -1 -1 -1 45 70
+```
+
+**Note:** There is no command to restore the default thresholds. They are
+compiled into the EC firmware and only re-applied when the EC itself
+reboots (e.g. after the system was powered off and disconnected from
+power for a while). Check the current values with `--thermalget` before
+changing them, so you can restore them manually.
 
 ## Check sensors
 

@@ -195,6 +195,7 @@ pub struct Cli {
     pub smartbattery_auth: bool,
     pub thermal: bool,
     pub thermalget: bool,
+    pub thermalset: Option<Vec<i32>>,
     pub sensors: bool,
     pub fansetduty: Option<(Option<u32>, u32)>,
     pub fansetrpm: Option<(Option<u32>, u32)>,
@@ -295,6 +296,7 @@ pub fn parse(args: &[String]) -> Cli {
             power: cli.power,
             thermal: cli.thermal,
             thermalget: cli.thermalget,
+            thermalset: cli.thermalset,
             sensors: cli.sensors,
             // fansetduty
             // fansetrpm
@@ -1708,6 +1710,19 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("Failed to read thermal thresholds");
             return 1;
         }
+    } else if let Some(values) = &args.thermalset {
+        // Sensor number followed by up to 5 thresholds
+        let sensor = values[0];
+        if sensor < 0 {
+            println!("Sensor number must not be negative");
+            return 1;
+        }
+        if let Err(err) = power::set_thermal_thresholds(&ec, sensor as u32, &values[1..]) {
+            println!("Failed to set thermal thresholds: {:?}", err);
+            return 1;
+        }
+        // Show the resulting configuration
+        let _ = power::print_thermal_thresholds(&ec);
     } else if args.sensors {
         power::print_sensors(&ec);
     } else if let Some((fan, percent)) = args.fansetduty {
@@ -2036,6 +2051,9 @@ Options:
       --power                Show current power status (battery and AC)
       --thermal              Print thermal information (Temperatures and Fan speed)
       --thermalget           Print thermal thresholds of the temperature sensors
+      --thermalset <SENSOR> <WARN> [<HIGH> [<HALT> [<FAN_OFF> [<FAN_MAX>]]]]
+                             Set thermal thresholds of a sensor in degrees Celsius
+                             (-1 keeps the current threshold, 0 disables it)
       --sensors              Print sensor information (ALS, G-Sensor)
       --fansetduty           Set fan duty cycle (0-100%)
       --fansetrpm            Set fan RPM (limited by EC fan table max RPM)
