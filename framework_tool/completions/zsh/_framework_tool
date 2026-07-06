@@ -16,8 +16,8 @@ _framework_tool() {
     local context curcontext="$curcontext" state line
     _arguments "${_arguments_options[@]}" : \
 '--flash-gpu-descriptor=[]: :_default: :_default' \
-'--device=[]:DEVICE:(bios ec pd0 pd1 rtm01 rtm23 ac-left ac-right)' \
-'--compare-version=[]:COMPARE_VERSION:_default' \
+'--device=[Device type to compare the --compare-version string against]:DEVICE:(bios ec pd0 pd1 rtm01 rtm23 ac-left ac-right)' \
+'--compare-version=[Version to compare device firmware version with]:COMPARE_VERSION:_default' \
 '--smartbattery=[Show detailed smart battery information, or load from dump file]::FILE:_files' \
 '*--fansetduty=[Set fan duty cycle (0-100%)]::FANSETDUTY:_default' \
 '*--fansetrpm=[Set fan RPM (limited by EC fan table max RPM)]::FANSETRPM:_default' \

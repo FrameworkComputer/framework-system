@@ -41,12 +41,12 @@ struct ClapCli {
     #[arg(long)]
     esrt: bool,
 
-    // Device type to compare_version string with version string on device
+    /// Device type to compare the --compare-version string against
     #[clap(value_enum)]
     #[arg(long)]
     device: Option<HardwareDeviceType>,
 
-    // version to compare with
+    /// Version to compare device firmware version with
     #[arg(long)]
     compare_version: Option<String>,
 
