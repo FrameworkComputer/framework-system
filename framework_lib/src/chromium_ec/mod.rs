@@ -91,6 +91,16 @@ pub enum MecFlashNotify {
     FlashPd = 0x16,
 }
 
+/// Port 80 history read from the EC
+pub struct Port80History {
+    /// Total number of port 80 writes so far
+    pub writes: u32,
+    /// Size of the history buffer in entries
+    pub history_size: u32,
+    /// Contents of the history buffer, in buffer order
+    pub codes: Vec<u16>,
+}
+
 pub type EcResult<T> = Result<T, EcError>;
 
 #[derive(Debug, PartialEq)]
@@ -1696,6 +1706,49 @@ impl CrosEc {
     /// Get information about the EC host communication protocol
     pub fn get_protocol_info(&self) -> EcResult<EcResponseGetProtocolInfo> {
         EcRequestGetProtocolInfo {}.send_command(self)
+    }
+
+    /// Read the port 80 code history from the EC
+    ///
+    /// The returned codes hold the entire history buffer, in buffer order.
+    /// Use `writes % history_size` to find the position of the newest entry.
+    pub fn port80_read(&self) -> EcResult<Port80History> {
+        let info = EcRequestPort80Read {
+            subcmd: Port80Subcommand::GetInfo as u16,
+            offset: 0,
+            num_entries: 0,
+        }
+        .send_command(self)?;
+        let writes = { info.writes };
+        let history_size = { info.history_size };
+
+        let mut codes = Vec::new();
+        let mut offset = 0;
+        while offset < history_size {
+            let num_entries = core::cmp::min(EC_PORT80_SIZE_MAX, history_size - offset);
+            let data = EcRequestPort80Read {
+                subcmd: Port80Subcommand::ReadBuffer as u16,
+                offset,
+                num_entries,
+            }
+            .send_command_vec(self)?;
+            if data.len() != 2 * num_entries as usize {
+                return Err(EcError::DeviceError(format!(
+                    "Expected {} entries, got {} bytes",
+                    num_entries,
+                    data.len()
+                )));
+            }
+            for chunk in data.chunks_exact(2) {
+                codes.push(u16::from_le_bytes([chunk[0], chunk[1]]));
+            }
+            offset += num_entries;
+        }
+        Ok(Port80History {
+            writes,
+            history_size,
+            codes,
+        })
     }
 
     /// Check basic communication with the EC works by sending a magic value

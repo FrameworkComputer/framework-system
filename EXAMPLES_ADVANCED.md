@@ -246,6 +246,21 @@ Write protect:      DISABLED
 Dedicated recovery: DISABLED
 ```
 
+## Check port 80 POST code history
+
+The EC records all POST codes the BIOS writes to port 80 during boot.
+Useful to debug where the BIOS got stuck if the system does not boot:
+
+```
+> framework_tool --port80read
+Port 80 writes
+  25 25 73 93 74 75 75 75 75 75 75 75 75 75 75 75 75 75 75 75
+  75 75 75 75 75 75 75 75 75 75 75 75 75 75 75 75 75 75 75 75
+  75 75 75 75 75 75 75 75 75 75 75 75 75 75 75 75 76 77 79 9c
+  7a fe 7b f8 00 00 00 00 <--new
+done.
+```
+
 ## Flashing EC firmware
 
 **IMPORTANT** Flashing EC firmware yourself is not recommended. It may render
