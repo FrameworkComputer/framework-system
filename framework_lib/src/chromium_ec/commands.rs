@@ -565,6 +565,66 @@ impl EcRequest<EcResponsePort80GetInfo> for EcRequestPort80Read {
     }
 }
 
+/// Number of temperature thresholds in EcThermalConfig, see EcTempThreshold
+pub const EC_TEMP_THRESH_COUNT: usize = 3;
+
+/// Indices into EcThermalConfig::temp_host
+#[repr(usize)]
+pub enum EcTempThreshold {
+    Warn = 0,
+    High = 1,
+    Halt = 2,
+}
+
+/// Thermal configuration for one temperature sensor.
+/// Temps are in degrees Kelvin, zero values are ignored by the thermal task.
+#[repr(C, packed)]
+#[derive(Debug, Clone, Copy)]
+pub struct EcThermalConfig {
+    /// Levels of hotness at which the EC throttles the AP or shuts down
+    pub temp_host: [u32; EC_TEMP_THRESH_COUNT],
+    /// Levels at which the EC releases the matching temp_host condition,
+    /// zero for the default 1 degree hysteresis
+    pub temp_host_release: [u32; EC_TEMP_THRESH_COUNT],
+    /// No active cooling needed below this temperature
+    pub temp_fan_off: u32,
+    /// Maximum active cooling needed above this temperature
+    pub temp_fan_max: u32,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestThermalGetThresholdV1 {
+    pub sensor_num: u32,
+}
+
+impl EcRequest<EcThermalConfig> for EcRequestThermalGetThresholdV1 {
+    fn command_id() -> EcCommands {
+        EcCommands::ThermalGetThreshold
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+
+#[repr(C, packed)]
+pub struct EcRequestTempSensorGetInfo {
+    pub id: u8,
+}
+
+#[repr(C, packed)]
+#[derive(Debug, Clone, Copy)]
+pub struct EcResponseTempSensorGetInfo {
+    /// Null-terminated name of the sensor
+    pub sensor_name: [u8; 32],
+    pub sensor_type: u8,
+}
+
+impl EcRequest<EcResponseTempSensorGetInfo> for EcRequestTempSensorGetInfo {
+    fn command_id() -> EcCommands {
+        EcCommands::TempSensorGetInfo
+    }
+}
+
 #[repr(C, packed)]
 pub struct EcRequestAutoFanCtrlV0 {}
 

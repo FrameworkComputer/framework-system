@@ -250,6 +250,51 @@ pub fn print_memmap_version_info(ec: &CrosEc) {
     let _events_ver = ec.read_memory(EC_MEMMAP_EVENTS_VERSION, 2).unwrap();
 }
 
+/// Format a thermal threshold in degrees Celsius, zero means disabled
+fn format_threshold(kelvin: u32) -> String {
+    if kelvin == 0 {
+        "-".to_string()
+    } else {
+        (kelvin as i32 - 273).to_string()
+    }
+}
+
+/// Print the thermal thresholds of all temperature sensors
+pub fn print_thermal_thresholds(ec: &CrosEc) -> Option<()> {
+    let temps = ec.read_memory(EC_MEMMAP_TEMP_SENSOR, 0x0F)?;
+    println!("sensor  warn  high  halt   fan_off fan_max   name");
+    let mut printed = 0;
+    for (i, temp) in temps.iter().enumerate() {
+        if TempSensor::from(*temp) == TempSensor::NotPresent {
+            continue;
+        }
+        // Stop on the first failure, like ectool
+        let Ok(cfg) = ec.get_thermal_threshold(i as u32) else {
+            break;
+        };
+        let name = ec
+            .get_temp_sensor_name(i as u8)
+            .unwrap_or_else(|_| "?".to_string());
+        // Copy out of the packed struct to allow taking references
+        let temp_host = { cfg.temp_host };
+        println!(
+            " {:2}      {:>3}   {:>3}    {:>3}    {:>3}     {:>3}     {}",
+            i,
+            format_threshold(temp_host[EcTempThreshold::Warn as usize]),
+            format_threshold(temp_host[EcTempThreshold::High as usize]),
+            format_threshold(temp_host[EcTempThreshold::Halt as usize]),
+            format_threshold(cfg.temp_fan_off),
+            format_threshold(cfg.temp_fan_max),
+            name
+        );
+        printed += 1;
+    }
+    if printed > 0 {
+        println!("(all temps in degrees Celsius)");
+    }
+    Some(())
+}
+
 /// Print the current EC switch positions (lid, power button, ...)
 pub fn print_switches(ec: &CrosEc) -> Option<()> {
     let switches = *ec.read_memory(EC_MEMMAP_SWITCHES, 1)?.first()?;

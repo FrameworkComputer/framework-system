@@ -194,6 +194,7 @@ pub struct Cli {
     pub smartbattery: Option<Option<String>>,
     pub smartbattery_auth: bool,
     pub thermal: bool,
+    pub thermalget: bool,
     pub sensors: bool,
     pub fansetduty: Option<(Option<u32>, u32)>,
     pub fansetrpm: Option<(Option<u32>, u32)>,
@@ -293,6 +294,7 @@ pub fn parse(args: &[String]) -> Cli {
             compare_version: cli.compare_version,
             power: cli.power,
             thermal: cli.thermal,
+            thermalget: cli.thermalget,
             sensors: cli.sensors,
             // fansetduty
             // fansetrpm
@@ -1701,6 +1703,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if args.thermal {
         power::print_thermal(&ec);
+    } else if args.thermalget {
+        if power::print_thermal_thresholds(&ec).is_none() {
+            println!("Failed to read thermal thresholds");
+            return 1;
+        }
     } else if args.sensors {
         power::print_sensors(&ec);
     } else if let Some((fan, percent)) = args.fansetduty {
@@ -2028,6 +2035,7 @@ Options:
       --compare-version      Version string used to match firmware version (use with --device)
       --power                Show current power status (battery and AC)
       --thermal              Print thermal information (Temperatures and Fan speed)
+      --thermalget           Print thermal thresholds of the temperature sensors
       --sensors              Print sensor information (ALS, G-Sensor)
       --fansetduty           Set fan duty cycle (0-100%)
       --fansetrpm            Set fan RPM (limited by EC fan table max RPM)

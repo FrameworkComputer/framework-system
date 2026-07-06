@@ -75,6 +75,7 @@ _framework_tool() {
 '--power[Show current power status of battery and AC (Add -vv for more details)]' \
 '--smartbattery-auth[Authenticate smart battery (requires unseal and auth keys)]' \
 '--thermal[Print thermal information (Temperatures and Fan speed)]' \
+'--thermalget[Print thermal thresholds of the temperature sensors]' \
 '--sensors[Print sensor information (ALS, G-Sensor)]' \
 '--pdports[Show USB-C PD port state]' \
 '--pdports-chromebook[Show PD port info (generic Chromium EC)]' \

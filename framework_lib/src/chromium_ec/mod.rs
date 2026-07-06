@@ -1709,6 +1709,22 @@ impl CrosEc {
         EcRequestGetProtocolInfo {}.send_command(self)
     }
 
+    /// Get the thermal thresholds (in degrees Kelvin) of a temperature sensor
+    pub fn get_thermal_threshold(&self, sensor_num: u32) -> EcResult<EcThermalConfig> {
+        EcRequestThermalGetThresholdV1 { sensor_num }.send_command(self)
+    }
+
+    /// Get the name of a temperature sensor
+    pub fn get_temp_sensor_name(&self, id: u8) -> EcResult<String> {
+        let res = EcRequestTempSensorGetInfo { id }.send_command(self)?;
+        Ok(std::str::from_utf8(&res.sensor_name)
+            .map_err(|utf8_err| {
+                EcError::DeviceError(format!("Failed to decode sensor name: {:?}", utf8_err))
+            })?
+            .trim_end_matches(char::from(0))
+            .to_string())
+    }
+
     /// Get the panic data saved from the last EC panic
     ///
     /// Returns an empty vector if there is no panic data.
