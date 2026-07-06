@@ -21,6 +21,7 @@ pub enum EcCommands {
     /// Command to read data from EC memory map
     ReadMemMap = 0x07,
     GetCmdVersions = 0x08,
+    GetProtocolInfo = 0x0B,
     FlashInfo = 0x10,
     /// Write section of EC flash
     FlashRead = 0x11,

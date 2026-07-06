@@ -107,6 +107,7 @@ complete -c framework_tool -l sysinfo -d 'Show system info (reset flags, current
 complete -c framework_tool -l uptimeinfo
 complete -c framework_tool -l s0ix-counter
 complete -c framework_tool -l hello -d 'Check basic communication with EC'
+complete -c framework_tool -l protoinfo -d 'Show EC host command protocol info'
 complete -c framework_tool -s t -l test -d 'Run self-test to check if interaction with EC is possible'
 complete -c framework_tool -l test-retimer -d 'Run self-test to check if interaction with retimers is possible'
 complete -c framework_tool -l boardid -d 'Print all board IDs'

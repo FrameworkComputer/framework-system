@@ -1693,6 +1693,11 @@ impl CrosEc {
         Ok(res.out_data)
     }
 
+    /// Get information about the EC host communication protocol
+    pub fn get_protocol_info(&self) -> EcResult<EcResponseGetProtocolInfo> {
+        EcRequestGetProtocolInfo {}.send_command(self)
+    }
+
     /// Check basic communication with the EC works by sending a magic value
     /// and verifying the EC returns it incremented by the expected offset
     pub fn check_hello(&self) -> EcResult<()> {

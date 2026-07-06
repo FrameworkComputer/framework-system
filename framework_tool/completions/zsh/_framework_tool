@@ -91,6 +91,7 @@ _framework_tool() {
 '--uptimeinfo[]' \
 '--s0ix-counter[]' \
 '--hello[Check basic communication with EC]' \
+'--protoinfo[Show EC host command protocol info]' \
 '-t[Run self-test to check if interaction with EC is possible]' \
 '--test[Run self-test to check if interaction with EC is possible]' \
 '--test-retimer[Run self-test to check if interaction with retimers is possible]' \

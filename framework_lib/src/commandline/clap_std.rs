@@ -298,6 +298,10 @@ struct ClapCli {
     #[arg(long)]
     hello: bool,
 
+    /// Show EC host command protocol info
+    #[arg(long)]
+    protoinfo: bool,
+
     /// Hash a file of arbitrary data
     #[arg(long)]
     hash: Option<std::path::PathBuf>,
@@ -682,6 +686,7 @@ pub fn parse(args: &[String]) -> Cli {
         uptimeinfo: args.uptimeinfo,
         s0ix_counter: args.s0ix_counter,
         hello: args.hello,
+        protoinfo: args.protoinfo,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         pd_addrs,
