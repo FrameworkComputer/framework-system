@@ -1693,6 +1693,23 @@ impl CrosEc {
         Ok(res.out_data)
     }
 
+    /// Check basic communication with the EC works by sending a magic value
+    /// and verifying the EC returns it incremented by the expected offset
+    pub fn check_hello(&self) -> EcResult<()> {
+        const HELLO_DATA: u32 = 0xa0b0c0d0;
+        const HELLO_OFFSET: u32 = 0x01020304;
+        let expected = HELLO_DATA.wrapping_add(HELLO_OFFSET);
+        let out_data = self.hello(HELLO_DATA)?;
+        if out_data == expected {
+            Ok(())
+        } else {
+            Err(EcError::DeviceError(format!(
+                "Invalid response: {:#010x}, expected {:#010x}",
+                out_data, expected
+            )))
+        }
+    }
+
     pub fn reset_s0ix_counter(&self) -> EcResult<()> {
         EcRequestS0ixCounter {
             flags: EC_S0IX_COUNTER_RESET,
