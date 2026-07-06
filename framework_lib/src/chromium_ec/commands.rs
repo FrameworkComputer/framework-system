@@ -155,6 +155,44 @@ impl EcRequest<EcResponseFlashProtect> for EcRequestFlashProtect {
 }
 
 #[repr(C, packed)]
+pub struct EcRequestSysinfo {}
+
+/// Bits of EcResponseSysinfo flags (enum sysinfo_flags)
+#[repr(usize)]
+#[derive(Debug, FromPrimitive)]
+pub enum SysinfoFlag {
+    /// Write protect is asserted, debug features are disabled
+    Locked,
+    /// Locked even if write protect is deasserted
+    ForceLocked,
+    /// Jumping between images is enabled
+    JumpEnabled,
+    /// EC jumped directly to the current image at boot
+    JumpedToCurrentImage,
+    /// EC will reboot when the system shuts down
+    RebootAtShutdown,
+    /// System is in manual recovery mode
+    InManualRecovery,
+    Count,
+}
+
+#[repr(C, packed)]
+pub struct EcResponseSysinfo {
+    /// Reset flags of the current boot. See enum EcResetFlag
+    pub reset_flags: u32,
+    /// Which EC image is currently in-use. See enum EcCurrentImage
+    pub current_image: u32,
+    /// See enum SysinfoFlag
+    pub flags: u32,
+}
+
+impl EcRequest<EcResponseSysinfo> for EcRequestSysinfo {
+    fn command_id() -> EcCommands {
+        EcCommands::Sysinfo
+    }
+}
+
+#[repr(C, packed)]
 pub struct EcRequestPwmSetKeyboardBacklight {
     pub percent: u8,
 }

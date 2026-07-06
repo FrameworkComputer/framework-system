@@ -1902,6 +1902,38 @@ impl CrosEc {
         }
     }
 
+    pub fn get_sysinfo(&self) -> EcResult<()> {
+        let res = EcRequestSysinfo {}.send_command(self)?;
+        let current_image = match res.current_image {
+            1 => EcCurrentImage::RO,
+            2 => EcCurrentImage::RW,
+            _ => EcCurrentImage::Unknown,
+        };
+        println!("EC System Info");
+        println!("  Current Image: {:?}", current_image);
+        println!("  Reset Flags:   {:#010X}", { res.reset_flags });
+        for flag in 0..(EcResetFlag::Count as usize) {
+            if ((1 << flag) & res.reset_flags) > 0 {
+                // Safe to unwrap unless coding mistake
+                println!(
+                    "    {:?}",
+                    <EcResetFlag as FromPrimitive>::from_usize(flag).unwrap()
+                );
+            }
+        }
+        println!("  Flags:         {:#010X}", { res.flags });
+        for flag in 0..(SysinfoFlag::Count as usize) {
+            if ((1 << flag) & res.flags) > 0 {
+                // Safe to unwrap unless coding mistake
+                println!(
+                    "    {:?}",
+                    <SysinfoFlag as FromPrimitive>::from_usize(flag).unwrap()
+                );
+            }
+        }
+        Ok(())
+    }
+
     pub fn get_uptime_info(&self) -> EcResult<()> {
         let res = EcRequestGetUptimeInfo {}.send_command(self)?;
         let t_since_boot = Duration::from_millis(res.time_since_ec_boot.into());

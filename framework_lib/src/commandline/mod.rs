@@ -243,6 +243,7 @@ pub struct Cli {
     pub console: Option<ConsoleArg>,
     pub reboot_ec: Option<RebootEcArg>,
     pub ec_hib_delay: Option<Option<u32>>,
+    pub sysinfo: bool,
     pub uptimeinfo: bool,
     pub s0ix_counter: bool,
     pub hash: Option<String>,
@@ -334,6 +335,7 @@ pub fn parse(args: &[String]) -> Cli {
             console: cli.console,
             reboot_ec: cli.reboot_ec,
             // ec_hib_delay
+            sysinfo: cli.sysinfo,
             uptimeinfo: cli.uptimeinfo,
             s0ix_counter: cli.s0ix_counter,
             hash: cli.hash,
@@ -1573,6 +1575,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             print_err(ec.set_ec_hib_delay(*delay));
         }
         print_err(ec.get_ec_hib_delay());
+    } else if args.sysinfo {
+        print_err(ec.get_sysinfo());
     } else if args.uptimeinfo {
         print_err(ec.get_uptime_info());
     } else if args.s0ix_counter {
@@ -1977,6 +1981,7 @@ Options:
       --flash-rw-ec <FLASH_EC>         Flash EC with new firmware from file
       --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
       --ec-hib-delay [<SECONDS>]   Get or set EC hibernate delay (S5 to G3)
+      --sysinfo              Show system info (reset flags, current image, locked state)
       --uptimeinfo           Show EC uptime information
       --s0ix-counter         Show S0ix counter
       --intrusion            Show status of intrusion switch

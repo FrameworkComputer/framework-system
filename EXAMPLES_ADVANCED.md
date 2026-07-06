@@ -192,6 +192,22 @@ Intel ME Status (SMBIOS Type 0xDB)
     HFSTS6: 0x00000000
 ```
 
+## EC System Info
+
+Show which EC image is running, why the EC last reset and its locked state
+(same as `ectool sysinfo`).
+
+```
+> framework_tool --sysinfo
+EC System Info
+  Current Image: RO
+  Reset Flags:   0x00000048
+    PowerOn
+    Hibernate
+  Flags:         0x00000020
+    InManualRecovery
+```
+
 ## Manually overriding tablet mode status
 
 If you have a suspicion that the embedded controller does not control tablet
