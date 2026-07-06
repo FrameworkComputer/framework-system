@@ -1,231 +1,453 @@
-.Dd April 8, 2026
-.Dt FRAMEWORK_TOOL 1
-.Os
-.Sh NAME
-.Nm framework_tool
-.Nd control and query Framework Computer systems
-.Sh SYNOPSIS
-.Nm
-.Op Fl v ...
-.Ar command
-.Op Ar argument
-.Sh DESCRIPTION
-.Nm
-is a command-line utility for interacting with Framework Computer laptops
-and desktops.
-It communicates with the Embedded Controller (EC) to query firmware versions,
-battery and USB-C status, thermal data, privacy and intrusion switches, and
-expansion card details.
-It can also adjust system settings and flash EC firmware.
-.Pp
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.TH framework_tool 1  "framework_tool 0.6.5" 
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.SH NAME
+framework_tool \- Swiss army knife for Framework laptops
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.SH SYNOPSIS
+\fBframework_tool\fR [\fB\-\-flash\-gpu\-descriptor\fR] [\fB\-v\fR|\fB\-\-verbose\fR]... [\fB\-q\fR|\fB\-\-quiet\fR]... [\fB\-\-versions\fR] [\fB\-\-version\fR] [\fB\-\-features\fR] [\fB\-\-esrt\fR] [\fB\-\-device\fR] [\fB\-\-compare\-version\fR] [\fB\-\-power\fR] [\fB\-\-smartbattery\fR] [\fB\-\-smartbattery\-auth\fR] [\fB\-\-thermal\fR] [\fB\-\-sensors\fR] [\fB\-\-fansetduty\fR] [\fB\-\-fansetrpm\fR] [\fB\-\-autofanctrl\fR] [\fB\-\-pdports\fR] [\fB\-\-pdports\-chromebook\fR] [\fB\-\-info\fR] [\fB\-\-meinfo\fR] [\fB\-\-pd\-info\fR] [\fB\-\-pd\-reset\fR] [\fB\-\-pd\-disable\fR] [\fB\-\-pd\-enable\fR] [\fB\-\-dp\-hdmi\-info\fR] [\fB\-\-dp\-hdmi\-update\fR] [\fB\-\-audio\-card\-info\fR] [\fB\-\-privacy\fR] [\fB\-\-pd\-bin\fR] [\fB\-\-ec\-bin\fR] [\fB\-\-capsule\fR] [\fB\-\-dump\fR] [\fB\-\-h2o\-capsule\fR] [\fB\-\-dump\-ec\-flash\fR] [\fB\-\-flash\-full\-ec\fR] [\fB\-\-flash\-ec\fR] [\fB\-\-flash\-ro\-ec\fR] [\fB\-\-flash\-rw\-ec\fR] [\fB\-\-intrusion\fR] [\fB\-\-inputdeck\fR] [\fB\-\-inputdeck\-mode\fR] [\fB\-\-expansion\-bay\fR] [\fB\-\-charge\-limit\fR] [\fB\-\-charge\-current\-limit\fR] [\fB\-\-charge\-rate\-limit\fR] [\fB\-\-get\-gpio\fR] [\fB\-\-fp\-led\-level\fR] [\fB\-\-fp\-brightness\fR] [\fB\-\-kblight\fR] [\fB\-\-remap\-key\fR] [\fB\-\-rgbkbd\fR] [\fB\-\-tablet\-mode\fR] [\fB\-\-touchscreen\-enable\fR] [\fB\-\-haptic\-intensity\fR] [\fB\-\-click\-force\fR] [\fB\-\-stylus\-battery\fR] [\fB\-\-console\fR] [\fB\-\-reboot\-ec\fR] [\fB\-\-ec\-hib\-delay\fR] [\fB\-\-sysinfo\fR] [\fB\-\-uptimeinfo\fR] [\fB\-\-s0ix\-counter\fR] [\fB\-\-hash\fR] [\fB\-\-driver\fR] [\fB\-\-pd\-addrs\fR] [\fB\-\-pd\-ports\fR] [\fB\-t\fR|\fB\-\-test\fR] [\fB\-\-test\-retimer\fR] [\fB\-\-boardid\fR] [\fB\-f\fR|\fB\-\-force\fR] [\fB\-\-dry\-run\fR] [\fB\-\-flash\-gpu\-descriptor\-file\fR] [\fB\-\-dump\-gpu\-descriptor\-file\fR] [\fB\-\-validate\-gpu\-descriptor\-file\fR] [\fB\-\-nvidia\fR] [\fB\-\-host\-command\fR] [\fB\-h\fR|\fB\-\-help\fR] 
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.SH DESCRIPTION
+framework_tool is a command\-line utility for interacting with Framework Computer laptops and desktops.
+.PP
+It communicates with the Embedded Controller (EC) to query firmware versions, battery and USB\-C status, thermal data, privacy and intrusion switches, and expansion card details. It can also adjust system settings and flash EC firmware.
+.PP
 Most operations require root privileges.
-.Sh OPTIONS
-.Ss Firmware Information
-.Bl -tag -width Ds
-.It Fl -versions
-List current firmware versions (BIOS, EC, PD controllers, retimer, touchpad,
-touchscreen)
-.It Fl -version
-Show tool version information.
-Add
-.Fl vv
-for more details
-.It Fl -features
-Show features supported by the firmware
-.It Fl -esrt
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.SH OPTIONS
+.TP
+\fB\-\-flash\-gpu\-descriptor\fR
+
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Increase logging verbosity
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Decrease logging verbosity
+.TP
+\fB\-\-versions\fR
+List current firmware versions
+.TP
+\fB\-\-version\fR
+Show tool version information (Add \-vv for more details)
+.TP
+\fB\-\-features\fR
+Show features support by the firmware
+.TP
+\fB\-\-esrt\fR
 Display the UEFI ESRT table
-.It Fl -meinfo Op Ar dmidecode-dump
-Show Intel ME information from SMBIOS.
-Optionally provide a path to a dmidecode binary dump file
-.It Fl -boardid
-Print all board IDs
-.It Fl -pd-bin Ar file
-Parse version from a PD firmware binary file
-.It Fl -ec-bin Ar file
-Parse version from an EC firmware binary file
-.It Fl -capsule Ar file
-Parse UEFI capsule information from a binary file
-.It Fl -h2o-capsule Ar file
-Parse H2O BIOS capsule information from a binary file
-.It Fl -dump Ar file
-Dump extracted UX capsule bitmap image to a file
-.El
-.Ss System Status
-.Bl -tag -width Ds
-.It Fl -power
-Show current power status of battery and AC.
-Add
-.Fl vv
-for more details.
-.It Fl -thermal
-Print thermal information (temperatures and fan speed)
-.It Fl -sensors
-Print sensor information (ALS, G-Sensor)
-.It Fl -pdports
-Show USB-C PD port state
-.It Fl -pdports-chromebook
-Show PD port info (generic Chromium EC)
-.It Fl -pd-info
-Show details about the PD controllers
-.It Fl -dp-hdmi-info
-Show details about connected DisplayPort or HDMI expansion cards
-.It Fl -audio-card-info
-Show details about connected audio expansion cards.
-Requires root
-.It Fl -privacy
-Show privacy switch statuses (camera and microphone)
-.It Fl -intrusion
-Show status of the intrusion switch
-.It Fl -inputdeck
-Show status of the input modules (Framework 16 only)
-.It Fl -expansion-bay
-Show status of the expansion bay (Framework 16 only)
-.It Fl -get-gpio Op Ar name
-Get GPIO value by name, or all GPIOs if no name is given
-.It Fl -stylus-battery
-Check stylus battery level (USI 2.0 stylus only)
-.It Fl -uptimeinfo
-Show EC uptime information
-.It Fl -s0ix-counter
-Show S0ix counter
-.It Fl -console Ar recent Ns | Ns Ar follow
-Read EC console output
-.El
-.Ss Settings
-.Bl -tag -width Ds
-.It Fl -kblight Op Ar percent
-Get or set keyboard backlight percentage
-.It Fl -charge-limit Op Ar percent
-Get or set the maximum battery charge limit
-.It Fl -charge-current-limit Ar milliwatts Op Ar port
-Set maximum charge current limit
-.It Fl -charge-rate-limit Ar rate Op Ar port
-Set maximum charge rate limit
-.It Fl -fp-led-level Op Ar level
-Get or set fingerprint LED brightness level
-.It Fl -fp-brightness Op Ar percent
-Get or set fingerprint LED brightness percentage
-.It Fl -tablet-mode Ar auto Ns | Ns Ar on Ns | Ns Ar off
-Set tablet mode override
-.It Fl -touchscreen-enable Ar true Ns | Ns Ar false
-Enable or disable the touchscreen
-.It Fl -inputdeck-mode Ar auto Ns | Ns Ar on Ns | Ns Ar off
-Set input deck power mode (Framework 12, 13, 16)
-.It Fl -fansetduty Op Ar fan Ar percent
-Set fan duty cycle (0-100%)
-.It Fl -fansetrpm Op Ar fan Ar rpm
-Set fan speed in RPM
-.It Fl -autofanctrl Op Ar fan
+.TP
+\fB\-\-device\fR \fI<DEVICE>\fR
+Device type to compare the \-\-compare\-version string against
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+bios
+.IP \(bu 2
+ec
+.IP \(bu 2
+pd0
+.IP \(bu 2
+pd1
+.IP \(bu 2
+rtm01
+.IP \(bu 2
+rtm23
+.IP \(bu 2
+ac\-left
+.IP \(bu 2
+ac\-right
+.RE
+.TP
+\fB\-\-compare\-version\fR \fI<COMPARE_VERSION>\fR
+Version to compare device firmware version with
+.TP
+\fB\-\-power\fR
+Show current power status of battery and AC (Add \-vv for more details)
+.TP
+\fB\-\-smartbattery\fR [\fI<FILE>\fR]
+Show detailed smart battery information, or load from dump file
+.TP
+\fB\-\-smartbattery\-auth\fR
+Authenticate smart battery (requires unseal and auth keys)
+.TP
+\fB\-\-thermal\fR
+Print thermal information (Temperatures and Fan speed)
+.TP
+\fB\-\-sensors\fR
+Print sensor information (ALS, G\-Sensor)
+.TP
+\fB\-\-fansetduty\fR [\fI<FANSETDUTY>...\fR]
+Set fan duty cycle (0\-100%)
+.TP
+\fB\-\-fansetrpm\fR [\fI<FANSETRPM>...\fR]
+Set fan RPM (limited by EC fan table max RPM)
+.TP
+\fB\-\-autofanctrl\fR [\fI<AUTOFANCTRL>\fR]
 Turn on automatic fan speed control
-.It Fl -ec-hib-delay Op Ar seconds
-Get or set EC hibernate delay (S5 to G3 transition)
-.It Fl -remap-key Ar matrix Ar from Ar to
-Remap a key by changing its scancode
-.It Fl -rgbkbd Ar start Ar color ...
-Set per-key RGB colours starting at
-.Ar start
-.El
-.Ss Firmware Flashing
-.Bl -tag -width Ds
-.It Fl -flash-ec Ar file
-Flash EC (RO and RW) with new firmware.
-.Sy May render hardware unbootable.
-Requires
-.Fl -force
-.It Fl -flash-ro-ec Ar file
-Flash EC RO region with new firmware.
-.Sy May render hardware unbootable.
-Requires
-.Fl -force
-.It Fl -flash-rw-ec Ar file
-Flash EC RW region with new firmware
-.It Fl -dump-ec-flash Ar file
-Dump EC flash contents to a file
-.It Fl -flash-full-ec Ar file
-Flash full EC flash (RO, RW, and all regions) with new firmware.
-.Sy May render hardware unbootable.
-Requires
-.Fl -force
-.It Fl -dp-hdmi-update Ar file
-Update the firmware of a connected DisplayPort or HDMI expansion card
-.El
-.Ss Advanced Options
-.Bl -tag -width Ds
-.It Fl -driver Ar type
-Select the EC driver to use.
-By default port I/O is used
-.It Fl -pd-addrs Ar addr1 Ar addr2 Ar addr3
-Specify I2C addresses of the PD chips.
-Must be used together with
-.Fl -pd-ports
-.It Fl -pd-ports Ar port1 Ar port2 Ar port3
-Specify I2C ports of the PD chips.
-Must be used together with
-.Fl -pd-addrs
-.It Fl -host-command Ar cmd Ar version Op Ar data ...
-Send a raw EC host command
-.It Fl -pd-reset Ar controller
-Reset a specific PD controller (for debugging only).
-.It Fl -pd-disable Ar controller
+.TP
+\fB\-\-pdports\fR
+Show USB\-C PD port state
+.TP
+\fB\-\-pdports\-chromebook\fR
+Show PD port info (generic Chromium EC)
+.TP
+\fB\-\-info\fR
+Show info from SMBIOS (Only on UEFI)
+.TP
+\fB\-\-meinfo\fR [\fI<MEINFO>\fR]
+Show Intel ME information (from SMBIOS type 0xDB). Optionally provide a dmidecode binary dump file path
+.TP
+\fB\-\-pd\-info\fR
+Show details about the PD controllers
+.TP
+\fB\-\-pd\-reset\fR \fI<PD_RESET>\fR
+Reset a specific PD controller (for debugging only)
+.TP
+\fB\-\-pd\-disable\fR \fI<PD_DISABLE>\fR
 Disable all ports on a specific PD controller (for debugging only)
-.It Fl -pd-enable Ar controller
+.TP
+\fB\-\-pd\-enable\fR \fI<PD_ENABLE>\fR
 Enable all ports on a specific PD controller (for debugging only)
-.It Fl -reboot-ec Ar mode
+.TP
+\fB\-\-dp\-hdmi\-info\fR
+Show details about connected DP or HDMI Expansion Cards
+.TP
+\fB\-\-dp\-hdmi\-update\fR \fI<UPDATE_BIN>\fR
+Update the DisplayPort or HDMI Expansion Card
+.TP
+\fB\-\-audio\-card\-info\fR
+Show details about connected Audio Expansion Cards (Needs root privileges)
+.TP
+\fB\-\-privacy\fR
+Show privacy switch statuses (camera and microphone)
+.TP
+\fB\-\-pd\-bin\fR \fI<PD_BIN>\fR
+Parse versions from PD firmware binary file
+.TP
+\fB\-\-ec\-bin\fR \fI<EC_BIN>\fR
+Parse versions from EC firmware binary file
+.TP
+\fB\-\-capsule\fR \fI<CAPSULE>\fR
+Parse UEFI Capsule information from binary file
+.TP
+\fB\-\-dump\fR \fI<DUMP>\fR
+Dump extracted UX capsule bitmap image to a file
+.TP
+\fB\-\-h2o\-capsule\fR \fI<H2O_CAPSULE>\fR
+Parse UEFI Capsule information from binary file
+.TP
+\fB\-\-dump\-ec\-flash\fR \fI<DUMP_EC_FLASH>\fR
+Dump EC flash contents
+.TP
+\fB\-\-flash\-full\-ec\fR \fI<FLASH_FULL_EC>\fR
+Flash full EC flash with new firmware from file \- may render your hardware unbootable!
+.TP
+\fB\-\-flash\-ec\fR \fI<FLASH_EC>\fR
+Flash EC (RO+RW) with new firmware from file \- may render your hardware unbootable!
+.TP
+\fB\-\-flash\-ro\-ec\fR \fI<FLASH_RO_EC>\fR
+Flash EC with new RO firmware from file \- may render your hardware unbootable!
+.TP
+\fB\-\-flash\-rw\-ec\fR \fI<FLASH_RW_EC>\fR
+Flash EC with new RW firmware from file
+.TP
+\fB\-\-intrusion\fR
+Show status of intrusion switch
+.TP
+\fB\-\-inputdeck\fR
+Show status of the input modules
+.TP
+\fB\-\-inputdeck\-mode\fR \fI<INPUTDECK_MODE>\fR
+Set input deck power mode [possible values: auto, off, on, reset] (Laptop 12, 13, 16)
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+auto
+.IP \(bu 2
+off
+.IP \(bu 2
+on
+.IP \(bu 2
+reset
+.RE
+.TP
+\fB\-\-expansion\-bay\fR
+Show status of the expansion bay (Laptop 16 only)
+.TP
+\fB\-\-charge\-limit\fR [\fI<CHARGE_LIMIT>\fR]
+Get or set max charge limit
+.TP
+\fB\-\-charge\-current\-limit\fR \fI<CHARGE_CURRENT_LIMIT>...\fR
+Set max charge current limit
+.TP
+\fB\-\-charge\-rate\-limit\fR \fI<CHARGE_RATE_LIMIT>...\fR
+Set max charge current limit
+.TP
+\fB\-\-get\-gpio\fR [\fI<GET_GPIO>\fR]
+Get GPIO value by name or all, if no name provided
+.TP
+\fB\-\-fp\-led\-level\fR [\fI<FP_LED_LEVEL>\fR]
+Get or set fingerprint LED brightness level
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+high
+.IP \(bu 2
+medium
+.IP \(bu 2
+low
+.IP \(bu 2
+ultra\-low
+.IP \(bu 2
+auto
+.RE
+.TP
+\fB\-\-fp\-brightness\fR [\fI<FP_BRIGHTNESS>\fR]
+Get or set fingerprint LED brightness percentage
+.TP
+\fB\-\-kblight\fR [\fI<KBLIGHT>\fR]
+Set keyboard backlight percentage or get, if no value provided
+.TP
+\fB\-\-remap\-key\fR \fI<REMAP_KEY>...\fR
+Remap a key by changing the scancode
+.TP
+\fB\-\-rgbkbd\fR \fI<START>\fR\fI \fR\fI<HEXCOLOR>...\fR
+Set the color of <key> to <RGB>. Multiple colors for adjacent keys can be set at once. <key> <RGB> [<RGB> ...] Example: 0 0xFF000 0x00FF00 0x0000FF
+.TP
+\fB\-\-tablet\-mode\fR \fI<TABLET_MODE>\fR
+Set tablet mode override
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+auto
+.IP \(bu 2
+tablet
+.IP \(bu 2
+laptop
+.RE
+.TP
+\fB\-\-touchscreen\-enable\fR \fI<TOUCHSCREEN_ENABLE>\fR
+Enable/disable touchscreen
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+true
+.IP \(bu 2
+false
+.RE
+.TP
+\fB\-\-haptic\-intensity\fR \fI<INTENSITY>\fR
+Set touchpad haptic feedback intensity
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+0
+.IP \(bu 2
+25
+.IP \(bu 2
+50
+.IP \(bu 2
+75
+.IP \(bu 2
+100
+.RE
+.TP
+\fB\-\-click\-force\fR \fI<CLICK_FORCE>\fR
+Set touchpad click force / sensitivity
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+low
+.IP \(bu 2
+medium
+.IP \(bu 2
+high
+.RE
+.TP
+\fB\-\-stylus\-battery\fR
+Check stylus battery level (USI 2.0 stylus only)
+.TP
+\fB\-\-console\fR \fI<CONSOLE>\fR
+Get EC console, choose whether recent or to follow the output
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+recent
+.IP \(bu 2
+follow
+.RE
+.TP
+\fB\-\-reboot\-ec\fR \fI<REBOOT_EC>\fR
 Control EC RO/RW jump
-.It Fl -device Ar type
-Hardware device type to compare against
-.Fl -compare-version
-.It Fl -compare-version Ar version
-Version string to compare with the on-device version.
-.It Fl -hash Ar file
-Hash a file of arbitrary data using the EC hash algorithm
-.It Fl -test
-Run self-test to check if EC communication is working
-.It Fl -test-retimer
-Run self-test to check if retimer communication is working
-.It Fl -dry-run
-Simulate execution of a command without applying changes
-.It Fl -force
-Allow execution of unsafe commands
-.El
-.Ss General Options
-.Bl -tag -width Ds
-.It Fl v
-Increase verbosity.
-Repeat for more output
-.Pq e.g., Fl vv
-.It Fl h , Fl -help
-Print help information
-.El
-.Sh EXIT STATUS
-.Ex -std
-.Sh EXAMPLES
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+reboot
+.IP \(bu 2
+jump\-ro
+.IP \(bu 2
+jump\-rw
+.IP \(bu 2
+cancel\-jump
+.IP \(bu 2
+disable\-jump
+.RE
+.TP
+\fB\-\-ec\-hib\-delay\fR [\fI<EC_HIB_DELAY>\fR]
+Get or set EC hibernate delay (S5 to G3)
+.TP
+\fB\-\-sysinfo\fR
+Show system info (reset flags, current image, locked state)
+.TP
+\fB\-\-uptimeinfo\fR
+
+.TP
+\fB\-\-s0ix\-counter\fR
+
+.TP
+\fB\-\-hash\fR \fI<HASH>\fR
+Hash a file of arbitrary data
+.TP
+\fB\-\-driver\fR \fI<DRIVER>\fR
+Select which driver is used. By default portio is used
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+portio
+.IP \(bu 2
+cros\-ec
+.IP \(bu 2
+windows
+.RE
+.TP
+\fB\-\-pd\-addrs\fR \fI<PD_ADDRS>...\fR
+Specify I2C addresses of the PD chips (Advanced)
+.TP
+\fB\-\-pd\-ports\fR \fI<PD_PORTS>...\fR
+Specify I2C ports of the PD chips (Advanced)
+.TP
+\fB\-t\fR, \fB\-\-test\fR
+Run self\-test to check if interaction with EC is possible
+.TP
+\fB\-\-test\-retimer\fR
+Run self\-test to check if interaction with retimers is possible
+.TP
+\fB\-\-boardid\fR
+Print all board IDs
+.TP
+\fB\-f\fR, \fB\-\-force\fR
+Force execution of an unsafe command \- may render your hardware unbootable!
+.TP
+\fB\-\-dry\-run\fR
+Simulate execution of a command (e.g. \-\-flash\-ec)
+.TP
+\fB\-\-flash\-gpu\-descriptor\-file\fR \fI<FLASH_GPU_DESCRIPTOR_FILE>\fR
+File to write to the gpu EEPROM
+.TP
+\fB\-\-dump\-gpu\-descriptor\-file\fR \fI<DUMP_GPU_DESCRIPTOR_FILE>\fR
+File to dump the gpu EEPROM to
+.TP
+\fB\-\-validate\-gpu\-descriptor\-file\fR \fI<VALIDATE_GPU_DESCRIPTOR_FILE>\fR
+File to validate the gpu EEPROM against
+.TP
+\fB\-\-nvidia\fR
+Show NVIDIA GPU information (Laptop 16 only)
+.TP
+\fB\-\-host\-command\fR \fI<HOST_COMMAND>...\fR
+Send an EC host command. Args: <CMD_ID> <VERSION> [DATA...]
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help (see a summary with \*(Aq\-h\*(Aq)
+.SH EXAMPLES
 List all firmware versions:
-.Dl # framework_tool --versions
-.Pp
+.PP
+.RS 4
+.nf
+# framework_tool \-\-versions
+.fi
+.RE
+.PP
 Show battery and AC status:
-.Dl # framework_tool --power
-.Pp
+.PP
+.RS 4
+.nf
+# framework_tool \-\-power
+.fi
+.RE
+.PP
 Get keyboard backlight level:
-.Dl # framework_tool --kblight
-.Pp
+.PP
+.RS 4
+.nf
+# framework_tool \-\-kblight
+.fi
+.RE
+.PP
 Set keyboard backlight to 50%:
-.Dl # framework_tool --kblight 50
-.Pp
+.PP
+.RS 4
+.nf
+# framework_tool \-\-kblight 50
+.fi
+.RE
+.PP
 Set battery charge limit to 80%:
-.Dl # framework_tool --charge-limit 80
-.Pp
+.PP
+.RS 4
+.nf
+# framework_tool \-\-charge\-limit 80
+.fi
+.RE
+.PP
 Parse version from EC firmware file:
-.Dl $ framework_tool --ec-bin ec.bin
-.Pp
+.PP
+.RS 4
+.nf
+$ framework_tool \-\-ec\-bin ec.bin
+.fi
+.RE
+.PP
 Flash EC RW firmware:
-.Dl # framework_tool --flash-rw-ec ec_rw.bin
-.Sh SEE ALSO
-.Xr dmidecode 8
-.Sh AUTHORS
-.Nm
-was written by
-.An Framework Computer Inc Aq Mt dhs@frame.work
-.Pp
-This manual page was written by
-.An Nadzeya Hutsko Aq Mt nadzeya@debian.org
+.PP
+.RS 4
+.nf
+# framework_tool \-\-flash\-rw\-ec ec_rw.bin
+.fi
+.RE
+.PP
