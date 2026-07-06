@@ -56,6 +56,8 @@ pub enum EcCommands {
     Reboot = 0x00D1,
     /// Control EC boot
     RebootEc = 0x00D2,
+    /// Get information about the last EC panic
+    GetPanicInfo = 0x00D3,
     /// Get information about PD controller power
     UsbPdPowerInfo = 0x0103,
     GetUptimeInfo = 0x0121,

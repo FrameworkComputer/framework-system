@@ -453,3 +453,20 @@ Comparison Result: 1
 Shell> echo %lasterror%
 0x1
 ```
+
+## EC Panic Info
+
+See what happened when the EC last crashed:
+
+```
+> framework_tool --panicinfo
+Saved panic data:
+Flags: 0x0e (OLD_CONSOLE | OLD_HOSTCMD | OLD_HOSTEVENT)
+=== PROCESS EXCEPTION: 09 ====== xPSR: ffffffff ===
+r0 :         r1 :         r2 :         r3 :
+r4 :dead6664 r5 :00000000 r6 :00000000 r7 :00000000
+r8 :00000000 r9 :00000000 r10:00000000 r11:00000000
+r12:         sp :00000000 lr :         pc :
+
+cfsr = 0, shcsr = 0, hfsr = 0, dfsr = 0
+```

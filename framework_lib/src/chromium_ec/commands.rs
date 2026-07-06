@@ -987,6 +987,37 @@ pub enum RebootEcFlags {
     ClearApidle = 0x08,
 }
 
+/// Response is variable length (struct panic_data), read with send_command_vec.
+/// An empty response means there is no panic data.
+#[repr(C, packed)]
+pub struct EcRequestGetPanicInfoV0 {}
+
+impl EcRequest<()> for EcRequestGetPanicInfoV0 {
+    fn command_id() -> EcCommands {
+        EcCommands::GetPanicInfo
+    }
+    fn command_version() -> u8 {
+        0
+    }
+}
+
+/// Response is variable length (struct panic_data), read with send_command_vec.
+/// An empty response means there is no panic data.
+#[repr(C, packed)]
+pub struct EcRequestGetPanicInfoV1 {
+    /// Do not set PANIC_DATA_FLAG_OLD_HOSTCMD when reading panic info
+    pub preserve_old_hostcmd_flag: u8,
+}
+
+impl EcRequest<()> for EcRequestGetPanicInfoV1 {
+    fn command_id() -> EcCommands {
+        EcCommands::GetPanicInfo
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+
 pub struct EcRequestRebootEc {
     /// See enum RebootEcCmd
     pub cmd: u8,

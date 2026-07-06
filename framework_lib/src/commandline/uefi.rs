@@ -96,6 +96,7 @@ pub fn parse(args: &[String]) -> Cli {
         protoinfo: false,
         switches: false,
         port80read: false,
+        panicinfo: false,
         hash: None,
         // This is the only driver that works on UEFI
         driver: Some(CrosEcDriverType::Portio),
@@ -565,6 +566,9 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--port80read" {
             cli.port80read = true;
+            found_an_option = true;
+        } else if arg == "--panicinfo" {
+            cli.panicinfo = true;
             found_an_option = true;
         } else if arg == "-t" || arg == "--test" {
             cli.test = true;

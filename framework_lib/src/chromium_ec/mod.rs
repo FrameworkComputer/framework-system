@@ -27,6 +27,7 @@ pub mod commands;
 mod cros_ec;
 pub mod i2c_passthrough;
 pub mod input_deck;
+pub mod panic;
 #[cfg(all(not(windows), target_arch = "x86_64"))]
 mod portio;
 #[cfg(all(not(windows), target_arch = "x86_64"))]
@@ -1706,6 +1707,23 @@ impl CrosEc {
     /// Get information about the EC host communication protocol
     pub fn get_protocol_info(&self) -> EcResult<EcResponseGetProtocolInfo> {
         EcRequestGetProtocolInfo {}.send_command(self)
+    }
+
+    /// Get the panic data saved from the last EC panic
+    ///
+    /// Returns an empty vector if there is no panic data.
+    pub fn get_panic_info(&self) -> EcResult<Vec<u8>> {
+        // Reading with v0 marks the panic data as "already read by the host"
+        // (PANIC_DATA_FLAG_OLD_HOSTCMD). V1 lets us read without setting that
+        // flag, so we don't hide the panic from other consumers.
+        if let Ok(true) = self.cmd_version_supported(EcCommands::GetPanicInfo as u32, 1) {
+            EcRequestGetPanicInfoV1 {
+                preserve_old_hostcmd_flag: 1,
+            }
+            .send_command_vec(self)
+        } else {
+            EcRequestGetPanicInfoV0 {}.send_command_vec(self)
+        }
     }
 
     /// Read the port 80 code history from the EC

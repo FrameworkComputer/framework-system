@@ -94,6 +94,7 @@ _framework_tool() {
 '--protoinfo[Show EC host command protocol info]' \
 '--switches[Show current EC switch positions (lid, power button, ...)]' \
 '--port80read[Show history of port 80 writes (POST codes)]' \
+'--panicinfo[Show saved EC panic info]' \
 '-t[Run self-test to check if interaction with EC is possible]' \
 '--test[Run self-test to check if interaction with EC is possible]' \
 '--test-retimer[Run self-test to check if interaction with retimers is possible]' \
