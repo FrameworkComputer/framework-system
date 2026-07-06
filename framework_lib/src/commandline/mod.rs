@@ -1588,22 +1588,10 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("s0ix_counter: Unknown");
         }
     } else if args.hello {
-        const HELLO_DATA: u32 = 0xa0b0c0d0;
-        const HELLO_OFFSET: u32 = 0x01020304;
-        match ec.hello(HELLO_DATA) {
-            Ok(out_data) if out_data == HELLO_DATA.wrapping_add(HELLO_OFFSET) => {
-                println!("EC says hello!");
-            }
-            Ok(out_data) => {
-                println!(
-                    "EC returned invalid response: {:#010x}, expected {:#010x}",
-                    out_data,
-                    HELLO_DATA.wrapping_add(HELLO_OFFSET)
-                );
-                return 1;
-            }
+        match ec.check_hello() {
+            Ok(()) => println!("EC says hello!"),
             Err(err) => {
-                println!("Failed to communicate with EC: {:?}", err);
+                println!("EC hello failed: {:?}", err);
                 return 1;
             }
         }
@@ -2135,6 +2123,10 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     println!("  Checking EC memory mapped magic bytes");
     print_err(ec.check_mem_magic())?;
     println!("  Verified that Framework EC is present!");
+
+    print!("  Checking basic EC communication");
+    print_err(ec.check_hello())?;
+    println!(" - OK");
 
     println!("  Reading EC Build Version");
     print_err(ec.version_info())?;
