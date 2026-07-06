@@ -9,6 +9,7 @@ ac-left\t''
 ac-right\t''"
 complete -c framework_tool -l compare-version -d 'Version to compare device firmware version with' -r
 complete -c framework_tool -l smartbattery -d 'Show detailed smart battery information, or load from dump file' -r -F
+complete -c framework_tool -l thermalset -d 'Set thermal thresholds of a sensor in degrees Celsius: <SENSOR> <WARN> [<HIGH> [<HALT> [<FAN_OFF> [<FAN_MAX>]]]] (-1 keeps the current threshold, 0 disables it)' -r
 complete -c framework_tool -l fansetduty -d 'Set fan duty cycle (0-100%)' -r
 complete -c framework_tool -l fansetrpm -d 'Set fan RPM (limited by EC fan table max RPM)' -r
 complete -c framework_tool -l autofanctrl -d 'Turn on automatic fan speed control' -r

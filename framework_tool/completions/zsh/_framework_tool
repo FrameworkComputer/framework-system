@@ -19,6 +19,7 @@ _framework_tool() {
 '--device=[Device type to compare the --compare-version string against]:DEVICE:(bios ec pd0 pd1 rtm01 rtm23 ac-left ac-right)' \
 '--compare-version=[Version to compare device firmware version with]:COMPARE_VERSION:_default' \
 '--smartbattery=[Show detailed smart battery information, or load from dump file]::FILE:_files' \
+'*--thermalset=[Set thermal thresholds of a sensor in degrees Celsius\: <SENSOR> <WARN> \[<HIGH> \[<HALT> \[<FAN_OFF> \[<FAN_MAX>\]\]\]\] (-1 keeps the current threshold, 0 disables it)]:THERMALSET:_default:THERMALSET:_default' \
 '*--fansetduty=[Set fan duty cycle (0-100%)]::FANSETDUTY:_default' \
 '*--fansetrpm=[Set fan RPM (limited by EC fan table max RPM)]::FANSETRPM:_default' \
 '--autofanctrl=[Turn on automatic fan speed control]::AUTOFANCTRL:_default' \

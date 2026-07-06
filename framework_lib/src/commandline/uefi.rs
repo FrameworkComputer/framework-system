@@ -44,6 +44,7 @@ pub fn parse(args: &[String]) -> Cli {
         smartbattery_auth: false,
         thermal: false,
         thermalget: false,
+        thermalset: None,
         sensors: false,
         fansetduty: None,
         fansetrpm: None,
@@ -160,6 +161,24 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--thermalget" {
             cli.thermalget = true;
+            found_an_option = true;
+        } else if arg == "--thermalset" {
+            let mut values = Vec::new();
+            for value_arg in &args[i + 1..] {
+                if let Ok(value) = value_arg.parse::<i32>() {
+                    values.push(value);
+                } else {
+                    break;
+                }
+            }
+            cli.thermalset = if (2..=6).contains(&values.len()) {
+                Some(values)
+            } else {
+                println!(
+                    "--thermalset requires 2 to 6 numbers. <SENSOR> <WARN> [<HIGH> [<HALT> [<FAN_OFF> [<FAN_MAX>]]]]"
+                );
+                None
+            };
             found_an_option = true;
         } else if arg == "--sensors" {
             cli.sensors = true;

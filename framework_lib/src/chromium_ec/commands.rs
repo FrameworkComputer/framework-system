@@ -606,6 +606,22 @@ impl EcRequest<EcThermalConfig> for EcRequestThermalGetThresholdV1 {
     }
 }
 
+/// Use read (EcRequestThermalGetThresholdV1) - modify - write for best results!
+#[repr(C, packed)]
+pub struct EcRequestThermalSetThresholdV1 {
+    pub sensor_num: u32,
+    pub cfg: EcThermalConfig,
+}
+
+impl EcRequest<()> for EcRequestThermalSetThresholdV1 {
+    fn command_id() -> EcCommands {
+        EcCommands::ThermalSetThreshold
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+
 #[repr(C, packed)]
 pub struct EcRequestTempSensorGetInfo {
     pub id: u8,

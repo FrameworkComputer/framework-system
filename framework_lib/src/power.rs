@@ -295,6 +295,37 @@ pub fn print_thermal_thresholds(ec: &CrosEc) -> Option<()> {
     Some(())
 }
 
+/// Set thermal thresholds (in degrees Celsius) of one temperature sensor
+///
+/// Values are warn, high, halt, fan_off, fan_max in this order, trailing
+/// values can be omitted. A negative value keeps the current threshold,
+/// zero disables it.
+pub fn set_thermal_thresholds(ec: &CrosEc, sensor: u32, values: &[i32]) -> EcResult<()> {
+    // Read-modify-write, only overwrite the provided thresholds
+    let mut cfg = ec.get_thermal_threshold(sensor)?;
+    let mut temp_host = cfg.temp_host;
+    for (i, &celsius) in values.iter().enumerate().take(5) {
+        if celsius < 0 {
+            continue;
+        }
+        // Zero means disabled, don't offset it to 273 K
+        let kelvin = if celsius == 0 {
+            0
+        } else {
+            celsius.checked_add(273).ok_or_else(|| {
+                EcError::DeviceError(format!("Temperature {} out of range", celsius))
+            })? as u32
+        };
+        match i {
+            0..=2 => temp_host[i] = kelvin,
+            3 => cfg.temp_fan_off = kelvin,
+            _ => cfg.temp_fan_max = kelvin,
+        }
+    }
+    cfg.temp_host = temp_host;
+    ec.set_thermal_threshold(sensor, cfg)
+}
+
 /// Print the current EC switch positions (lid, power button, ...)
 pub fn print_switches(ec: &CrosEc) -> Option<()> {
     let switches = *ec.read_memory(EC_MEMMAP_SWITCHES, 1)?.first()?;
