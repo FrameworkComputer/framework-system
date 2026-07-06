@@ -43,6 +43,7 @@ pub fn parse(args: &[String]) -> Cli {
         smartbattery: None,
         smartbattery_auth: false,
         thermal: false,
+        thermalget: false,
         sensors: false,
         fansetduty: None,
         fansetrpm: None,
@@ -156,6 +157,9 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--thermal" {
             cli.thermal = true;
+            found_an_option = true;
+        } else if arg == "--thermalget" {
+            cli.thermalget = true;
             found_an_option = true;
         } else if arg == "--sensors" {
             cli.sensors = true;

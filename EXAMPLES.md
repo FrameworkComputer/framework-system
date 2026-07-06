@@ -493,6 +493,23 @@ sensors and number of fans, so your output may look different:
     Hard:        false
 ```
 
+## Check thermal thresholds
+
+Show at which temperatures the EC throttles the system (warn), shuts it
+down (high, halt) and how the fan speed is scaled (0% at fan_off, 100% at
+fan_max). A `-` means the threshold is disabled:
+
+```
+> sudo framework_tool --thermalget
+sensor  warn  high  halt   fan_off fan_max   name
+  0        -    88     98     40      75     local_f75397@4c
+  1        -    88     98     40      78     cpu_f75303@4d
+  2        -    50     60     40      50     battery_temp@b
+  3        -    87     97     40      50     ddr_f75303@4d
+  4        -   120    127    103     105     peci-temp
+(all temps in degrees Celsius)
+```
+
 ## Check sensors
 
 ### Ambient Light (Laptop 13, Laptop 16)

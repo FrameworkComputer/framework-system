@@ -67,6 +67,10 @@ struct ClapCli {
     #[arg(long)]
     thermal: bool,
 
+    /// Print thermal thresholds of the temperature sensors
+    #[arg(long)]
+    thermalget: bool,
+
     /// Print sensor information (ALS, G-Sensor)
     #[arg(long)]
     sensors: bool,
@@ -628,6 +632,7 @@ pub fn parse(args: &[String]) -> Cli {
             .map(|opt| opt.map(|x| x.into_os_string().into_string().unwrap())),
         smartbattery_auth: args.smartbattery_auth,
         thermal: args.thermal,
+        thermalget: args.thermalget,
         sensors: args.sensors,
         fansetduty,
         fansetrpm,
