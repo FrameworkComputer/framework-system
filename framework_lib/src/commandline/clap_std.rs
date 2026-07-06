@@ -283,6 +283,10 @@ struct ClapCli {
     #[arg(long)]
     ec_hib_delay: Option<Option<u32>>,
 
+    /// Show system info (reset flags, current image, locked state)
+    #[arg(long)]
+    sysinfo: bool,
+
     #[arg(long)]
     uptimeinfo: bool,
 
@@ -575,6 +579,7 @@ pub fn parse(args: &[String]) -> Cli {
         console: args.console,
         reboot_ec: args.reboot_ec,
         ec_hib_delay: args.ec_hib_delay,
+        sysinfo: args.sysinfo,
         uptimeinfo: args.uptimeinfo,
         s0ix_counter: args.s0ix_counter,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),

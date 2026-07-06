@@ -87,6 +87,7 @@ _framework_tool() {
 '--inputdeck[Show status of the input modules]' \
 '--expansion-bay[Show status of the expansion bay (Laptop 16 only)]' \
 '--stylus-battery[Check stylus battery level (USI 2.0 stylus only)]' \
+'--sysinfo[Show system info (reset flags, current image, locked state)]' \
 '--uptimeinfo[]' \
 '--s0ix-counter[]' \
 '-t[Run self-test to check if interaction with EC is possible]' \

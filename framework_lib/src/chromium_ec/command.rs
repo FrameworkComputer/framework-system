@@ -28,6 +28,7 @@ pub enum EcCommands {
     /// Erase section of EC flash
     FlashErase = 0x13,
     FlashProtect = 0x15,
+    Sysinfo = 0x1C,
     PwmSetFanTargetRpm = 0x0021,
     PwmGetKeyboardBacklight = 0x0022,
     PwmSetKeyboardBacklight = 0x0023,

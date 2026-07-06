@@ -89,6 +89,7 @@ pub fn parse(args: &[String]) -> Cli {
         console: None,
         reboot_ec: None,
         ec_hib_delay: None,
+        sysinfo: false,
         uptimeinfo: false,
         s0ix_counter: false,
         hash: None,
@@ -539,6 +540,9 @@ pub fn parse(args: &[String]) -> Cli {
             } else {
                 Some(None)
             };
+            found_an_option = true;
+        } else if arg == "--sysinfo" {
+            cli.sysinfo = true;
             found_an_option = true;
         } else if arg == "--uptimeinfo" {
             cli.uptimeinfo = true;
