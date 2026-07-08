@@ -514,8 +514,8 @@ The sensor names are reported by the EC firmware:
   peci-temp:       42 C
   APU Fan:            0 RPM
   AP Throttle Status
-    Soft:        false
-    Hard:        false
+    Soft (AMD SPPT):  false
+    Hard (PROCHOT#):  false
 ```
 
 ## Check thermal thresholds
