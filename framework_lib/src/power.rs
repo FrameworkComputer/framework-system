@@ -525,8 +525,8 @@ pub fn print_thermal(ec: &CrosEc) {
 
     println!("  AP Throttle Status");
     if let Ok(throttle) = ec.get_ap_throttle_status() {
-        println!("    Soft:        {:?}", throttle.soft_ap_throttle == 1);
-        println!("    Hard:        {:?}", throttle.hard_ap_throttle == 1);
+        println!("    Soft (AMD SPPT):  {:?}", throttle.soft_ap_throttle == 1);
+        println!("    Hard (PROCHOT#):  {:?}", throttle.hard_ap_throttle == 1);
     } else {
         println!("    Unknown");
     }
