@@ -746,30 +746,28 @@ fn print_power_limits(cpuid: &CpuId) {
     }
 
     if let Some(raw) = read_msr(0, MSR_VR_CURRENT_CONFIG) {
-        // The reference code calls PL4 a power limit in Watts but defines the
-        // field in 0.125 A increments, so report Amps and include the raw value
+        // The reference code describes the field in 0.125 A increments, but
+        // coreboot programs it as Watts scaled by the RAPL power unit (which
+        // is the same 1/8 by default) and so does the register description.
         println!(
-            "      {:<20} {:>6.1} A  ({:#06X}{})",
+            "      {:<20} {:>6.1} W  {}",
             "PL4 (peak):",
-            (raw & 0xFFFF) as f32 * 0.125,
-            raw & 0xFFFF,
-            if bit(raw, 31) { ", Locked" } else { "" }
+            (raw & 0xFFFF) as f32 * units.power,
+            if bit(raw, 31) { "Locked" } else { "" }
         );
     }
 
     if let Some(raw) = read_msr(0, MSR_PLATFORM_POWER_LIMIT) {
-        // PSys is optional. When the platform doesn't wire it up the limits
-        // read as zero, but the clamp and time window bits may still be set,
-        // so key off the enable bits only.
-        if bit(raw, 15) || bit(raw, 47) {
-            print_limit("PSys PL1", &decode_limit(raw, 0, true, &units));
-            // Bits 62:49 are reserved, PSys PL2 has no time window
-            print_limit("PSys PL2", &decode_limit(raw, 32, false, &units));
-            if bit(raw, 63) {
-                println!("      {:<20} {:>6}", "PSys Locked:", "Yes");
-            }
-        } else {
-            debug!("PSys power limits not implemented on this platform");
+        // Whether PSys is enabled matters: it is the only limit that accounts
+        // for total platform power instead of just the package. With it off,
+        // nothing keeps the system inside the adapter budget proactively and
+        // the charger has to assert PROCHOT instead. So always report it, even
+        // (especially) when it's disabled.
+        print_limit("PSys PL1", &decode_limit(raw, 0, true, &units));
+        // Bits 62:49 are reserved, PSys PL2 has no time window
+        print_limit("PSys PL2", &decode_limit(raw, 32, false, &units));
+        if bit(raw, 63) {
+            println!("      {:<20} {:>6}", "PSys Locked:", "Yes");
         }
     }
 }
@@ -846,6 +844,14 @@ mod tests {
         assert!(bit(raw, 63));
         // A limit without a time window field
         assert_eq!(decode_limit(raw, 32, false, &units).time_window, None);
+    }
+
+    #[test]
+    // PL4 is scaled by the RAPL power unit, like PL1 and PL2. 0x02E8 is the
+    // 93 W a Framework 13 reports.
+    fn rapl_pl4() {
+        let units = RaplUnits::from(0x000A_0E03);
+        assert_eq!((0x02E8 & 0xFFFF) as f32 * units.power, 93.0);
     }
 
     #[test]
