@@ -1,9 +1,15 @@
 //! Read Intel thermal and performance limiting MSRs
 //!
 //! These tell us *why* the CPU is running slower than requested. Most
-//! interesting on our systems is PROCHOT, which the EC asserts to throttle the
-//! CPU, and the frequency clipping reasons, which record both the currently
-//! active and the (sticky) previously seen limiting reasons.
+//! interesting on our systems is PROCHOT, which the platform can assert to
+//! throttle the CPU, and the frequency clipping reasons, which record both the
+//! currently active and the (sticky) previously seen limiting reasons.
+//!
+//! Beware that the two disagree on Wildcat Lake: IA_PERF_LIMIT_REASONS reports
+//! PROCHOT as an active *and* logged clipping reason across boots and repeated
+//! reads, while PACKAGE_THERM_STATUS and IA32_THERM_STATUS show neither a
+//! PROCHOT status nor a log bit. Which of the two is wrong is not established,
+//! so we print both and point out the contradiction instead of picking one.
 //!
 //! Only Intel processors are supported. AMD does not expose comparable
 //! information through MSRs.
@@ -562,6 +568,10 @@ pub fn print_thermal_msrs() {
     }
     debug!("TEMPERATURE_TARGET locked: {}", target.locked);
 
+    // Collect the PROCHOT status and log bits to cross check the frequency
+    // limit reasons against further down
+    let mut therm_status = 0;
+
     if cpuid.has_ptm {
         if let Some(pkg) = read_msr(0, MSR_IA32_PACKAGE_THERM_STATUS).map(ThermStatus::from) {
             if let Some(temp) = pkg.temp(target.ref_temp) {
@@ -572,17 +582,19 @@ pub fn print_thermal_msrs() {
             }
             println!("    Package Thermal Status ({:#010X})", pkg.raw);
             print_therm_status_table(pkg.raw, THERM_STATUS_PKG_BITS);
+            therm_status |= pkg.raw & 0xFFFF;
         }
     }
 
     if cpuid.has_dts {
-        print_core_therm_status(target.ref_temp);
+        therm_status |= print_core_therm_status(target.ref_temp);
     }
 
     print_power_limits(&cpuid);
 
     if cpuid.has_perf_limit_reasons() {
-        print_perf_limit_reasons();
+        // Bit 2 is the PROCHOT/FORCEPR status and bit 3 its sticky log
+        print_perf_limit_reasons(bit(therm_status, 2) || bit(therm_status, 3));
     } else {
         debug!(
             "No PERF_LIMIT_REASONS MSRs on family {:#X} model {:#X}",
@@ -610,7 +622,9 @@ fn print_therm_status_table(raw: u64, extra: &[(u32, &str)]) {
 }
 
 /// Print the hottest core and the thermal status across all cores
-fn print_core_therm_status(ref_temp: u8) {
+///
+/// Returns the status bits OR'd across every core we could read.
+fn print_core_therm_status(ref_temp: u8) -> u64 {
     let cpus = cpu_count();
     let mut hottest: Option<(u32, i32)> = None;
     let mut throttling = Vec::new();
@@ -639,7 +653,7 @@ fn print_core_therm_status(ref_temp: u8) {
     }
 
     if read == 0 {
-        return;
+        return 0;
     }
     if let Some((cpu, temp)) = hottest {
         println!("    Hottest Core Temp:  {:>4} C (CPU {})", temp, cpu);
@@ -657,10 +671,15 @@ fn print_core_therm_status(ref_temp: u8) {
         read, any
     );
     print_therm_status_table(any, THERM_STATUS_CORE_BITS);
+    any
 }
 
 /// Print which limits are clipping the core, graphics and ring frequency
-fn print_perf_limit_reasons() {
+///
+/// `prochot_seen` is whether IA32_THERM_STATUS or IA32_PACKAGE_THERM_STATUS
+/// corroborate a PROCHOT assertion, either now or since the log was cleared.
+fn print_perf_limit_reasons(prochot_seen: bool) {
+    let mut prochot_claimed = false;
     for (msr, name, bits) in [
         (MSR_IA_PERF_LIMIT_REASONS, "Core", PLR_CORE_BITS),
         (MSR_GT_PERF_LIMIT_REASONS, "Graphics", PLR_GT_BITS),
@@ -677,6 +696,19 @@ fn print_perf_limit_reasons() {
         println!(
             "      Logged:           {}",
             decode_reasons(value, bits, 16)
+        );
+        // Bit 0 is the active and bit 16 the logged PROCHOT reason
+        prochot_claimed |= bit(value, 0) || bit(value, 16);
+    }
+
+    // These MSRs and the THERM_STATUS ones should agree about PROCHOT. On
+    // Wildcat Lake they don't, so say so rather than let one of them be
+    // believed on its own. Which one is wrong is not established.
+    if prochot_claimed && !prochot_seen {
+        println!(
+            "    Note: PROCHOT reported above is not corroborated by \
+             THERM_STATUS ({:#X}/{:#X}), which shows no PROCHOT status or log",
+            MSR_IA32_THERM_STATUS, MSR_IA32_PACKAGE_THERM_STATUS
         );
     }
 }
