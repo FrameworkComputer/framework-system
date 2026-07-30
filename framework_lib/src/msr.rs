@@ -34,6 +34,16 @@ pub const MSR_IA_PERF_LIMIT_REASONS: u32 = 0x0000064F;
 pub const MSR_GT_PERF_LIMIT_REASONS: u32 = 0x000006B0;
 /// Indicator of frequency clipping in the ring interconnect (a.k.a. CLR)
 pub const MSR_RING_PERF_LIMIT_REASONS: u32 = 0x000006B1;
+/// PL4, the instantaneous peak limit (MSR_VR_CURRENT_CONFIG)
+pub const MSR_VR_CURRENT_CONFIG: u32 = 0x00000601;
+/// Unit multipliers for the RAPL registers (MSR_PACKAGE_POWER_SKU_UNIT)
+pub const MSR_PACKAGE_POWER_SKU_UNIT: u32 = 0x00000606;
+/// PL1 and PL2 package power limits (MSR_PACKAGE_RAPL_LIMIT)
+pub const MSR_PACKAGE_RAPL_LIMIT: u32 = 0x00000610;
+/// TDP and the power range of this SKU (MSR_PACKAGE_POWER_SKU)
+pub const MSR_PACKAGE_POWER_SKU: u32 = 0x00000614;
+/// PSys PL1 and PL2, limiting the whole platform instead of the package
+pub const MSR_PLATFORM_POWER_LIMIT: u32 = 0x0000065C;
 
 /// Status bits of the *_PERF_LIMIT_REASONS MSRs
 ///
@@ -188,13 +198,25 @@ pub fn cpuid() -> Option<CpuId> {
 }
 
 impl CpuId {
-    /// Whether the *_PERF_LIMIT_REASONS MSRs at their modern addresses exist
+    /// Intel Skylake (model 0x4E) or newer
     ///
-    /// They are not architectural, so we only read them on Skylake (model
-    /// 0x4E) and newer client processors. Reading a reserved MSR raises a
-    /// general protection fault, which is fatal in UEFI.
-    pub fn has_perf_limit_reasons(&self) -> bool {
+    /// Most of the MSRs we read are not architectural, so we check this before
+    /// touching them. Reading a reserved MSR raises a general protection
+    /// fault, which is fatal in UEFI.
+    pub fn skylake_or_newer(&self) -> bool {
         self.is_intel && self.family == 6 && self.model >= 0x4E
+    }
+
+    /// Whether the *_PERF_LIMIT_REASONS MSRs at their modern addresses exist
+    pub fn has_perf_limit_reasons(&self) -> bool {
+        self.skylake_or_newer()
+    }
+
+    /// Whether the RAPL power limit MSRs exist
+    ///
+    /// RAPL was introduced with Sandy Bridge (model 0x2A).
+    pub fn has_rapl(&self) -> bool {
+        self.is_intel && self.family == 6 && self.model >= 0x2A
     }
 }
 
@@ -415,6 +437,61 @@ impl ThermStatus {
     }
 }
 
+/// Unit multipliers from MSR_PACKAGE_POWER_SKU_UNIT (0x606)
+#[derive(Debug, Clone, Copy)]
+pub struct RaplUnits {
+    /// Watts per LSB of the power fields, 1/8 W by default
+    pub power: f32,
+    /// Seconds per LSB of the time window fields, 1/1024 s by default
+    pub time: f32,
+}
+
+impl From<u64> for RaplUnits {
+    fn from(msr: u64) -> Self {
+        Self {
+            power: 1.0 / (1u32 << (msr & 0xF)) as f32,
+            time: 1.0 / (1u32 << ((msr >> 16) & 0xF)) as f32,
+        }
+    }
+}
+
+/// One power limit out of a RAPL limit register
+#[derive(Debug, Clone, Copy)]
+pub struct PowerLimit {
+    pub watts: f32,
+    pub enabled: bool,
+    /// Processor may go below the OS requested P-State to hold the limit
+    pub clamping: bool,
+    /// Averaging window, None if this limit has no time window field
+    pub time_window: Option<f32>,
+}
+
+/// Decode the 7 bit time window field of a RAPL limit register
+///
+/// Time Window = (1 + X/4) * 2^Y in units of `RaplUnits::time`, where Y is
+/// bits 4:0 and X is bits 6:5 of the field.
+fn time_window(field: u64, units: &RaplUnits) -> f32 {
+    let y = field & 0x1F;
+    let x = (field >> 5) & 0x3;
+    (1.0 + x as f32 / 4.0) * (1u64 << y) as f32 * units.time
+}
+
+/// Decode one PL1/PL2 style limit out of a RAPL limit register
+///
+/// The fields repeat every 32 bits, so `shift` is 0 for PL1 and 32 for PL2.
+fn decode_limit(raw: u64, shift: u32, has_time: bool, units: &RaplUnits) -> PowerLimit {
+    PowerLimit {
+        watts: ((raw >> shift) & 0x7FFF) as f32 * units.power,
+        enabled: bit(raw, shift + 15),
+        clamping: bit(raw, shift + 16),
+        time_window: if has_time {
+            Some(time_window((raw >> (shift + 17)) & 0x7F, units))
+        } else {
+            None
+        },
+    }
+}
+
 // -------------------------------------------------------------------------
 // Printing
 // -------------------------------------------------------------------------
@@ -482,6 +559,8 @@ pub fn print_thermal_msrs() {
     if cpuid.has_dts {
         print_core_therm_status(target.ref_temp);
     }
+
+    print_power_limits(&cpuid);
 
     if cpuid.has_perf_limit_reasons() {
         print_perf_limit_reasons();
@@ -583,6 +662,97 @@ fn print_perf_limit_reasons() {
     }
 }
 
+/// Print one PL1/PL2 style limit
+fn print_limit(name: &str, limit: &PowerLimit) {
+    let mut notes = Vec::new();
+    if !limit.enabled {
+        notes.push("Disabled".to_string());
+    }
+    if limit.clamping {
+        notes.push("Clamping".to_string());
+    }
+    if let Some(window) = limit.time_window {
+        notes.push(format!("{:.3} s window", window));
+    }
+    println!(
+        "      {:<20} {:>6.1} W  {}",
+        format!("{}:", name),
+        limit.watts,
+        notes.join(", ")
+    );
+}
+
+/// Print the RAPL power limits, which is what the PkgPwr limiting reasons refer to
+fn print_power_limits(cpuid: &CpuId) {
+    if !cpuid.has_rapl() {
+        debug!(
+            "No RAPL MSRs on family {:#X} model {:#X}",
+            cpuid.family, cpuid.model
+        );
+        return;
+    }
+    let Some(units) = read_msr(0, MSR_PACKAGE_POWER_SKU_UNIT).map(RaplUnits::from) else {
+        return;
+    };
+
+    println!("    Power Limits");
+    if let Some(sku) = read_msr(0, MSR_PACKAGE_POWER_SKU) {
+        println!(
+            "      {:<20} {:>6.1} W",
+            "TDP (base power):",
+            (sku & 0x7FFF) as f32 * units.power
+        );
+        // Not every SKU reports the power range
+        let min = ((sku >> 16) & 0x7FFF) as f32 * units.power;
+        let max = ((sku >> 32) & 0x7FFF) as f32 * units.power;
+        if max > 0.0 {
+            println!(
+                "      {:<20} {:>6.1} W  (Min {:.1} W)",
+                "SKU Max Power:", max, min
+            );
+        }
+    }
+
+    if let Some(raw) = read_msr(0, MSR_PACKAGE_RAPL_LIMIT) {
+        print_limit("PL1 (sustained)", &decode_limit(raw, 0, true, &units));
+        print_limit("PL2 (burst)", &decode_limit(raw, 32, true, &units));
+        if bit(raw, 63) {
+            println!("      {:<20} {:>6}", "PL1/PL2 Locked:", "Yes");
+        }
+    }
+
+    // These two are not on pre-Skylake processors
+    if !cpuid.skylake_or_newer() {
+        return;
+    }
+
+    if let Some(raw) = read_msr(0, MSR_VR_CURRENT_CONFIG) {
+        // The reference code calls PL4 a power limit in Watts but defines the
+        // field in 0.125 A increments, so report Amps and include the raw value
+        println!(
+            "      {:<20} {:>6.1} A  ({:#06X}{})",
+            "PL4 (peak):",
+            (raw & 0xFFFF) as f32 * 0.125,
+            raw & 0xFFFF,
+            if bit(raw, 31) { ", Locked" } else { "" }
+        );
+    }
+
+    if let Some(raw) = read_msr(0, MSR_PLATFORM_POWER_LIMIT) {
+        // PSys is optional and often left unimplemented, then it reads as 0
+        if raw & 0xFFFF_FFFF_FFFF != 0 {
+            print_limit("PSys PL1", &decode_limit(raw, 0, true, &units));
+            // Bits 62:49 are reserved, PSys PL2 has no time window
+            print_limit("PSys PL2", &decode_limit(raw, 32, false, &units));
+            if bit(raw, 63) {
+                println!("      {:<20} {:>6}", "PSys Locked:", "Yes");
+            }
+        } else {
+            debug!("PSys power limits not implemented on this platform");
+        }
+    }
+}
+
 /// Print how the processor is configured to react to PROCHOT
 fn print_power_ctl() {
     let Some(value) = read_msr(0, MSR_POWER_CTL) else {
@@ -604,4 +774,104 @@ fn print_power_ctl() {
     );
     println!("      VR Therm Alert:   {}", yes_no(!bit(value, 24)));
     println!("      Locked:           {}", yes_no(bit(value, 23)));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // The default units from the reference code are 1/8 W and 1/1024 s
+    fn rapl_units() {
+        let units = RaplUnits::from(0x000A_0E03);
+        assert_eq!(units.power, 0.125);
+        assert_eq!(units.time, 1.0 / 1024.0);
+        // 1/2^0 for both
+        let units = RaplUnits::from(0);
+        assert_eq!(units.power, 1.0);
+        assert_eq!(units.time, 1.0);
+    }
+
+    #[test]
+    // Time Window = (1 + X/4) * 2^Y, Y is bits 4:0 and X is bits 6:5
+    fn rapl_time_window() {
+        let units = RaplUnits::from(0x000A_0E03);
+        // The reset default of 0xA is Y=10, X=0, so 1024 * 1/1024 s
+        assert_eq!(time_window(0x0A, &units), 1.0);
+        // Y=10, X=2 gives 1.5 * 1024 * 1/1024 s
+        assert_eq!(time_window(0x4A, &units), 1.5);
+        assert_eq!(time_window(0, &units), 1.0 / 1024.0);
+    }
+
+    #[test]
+    // PL1 28 W with a 1 s window and clamping, PL2 64 W with a 2.44 ms window
+    fn rapl_limit() {
+        let units = RaplUnits::from(0x000A_0E03);
+        let raw = 0x8042_8200_0015_80E0;
+        let pl1 = decode_limit(raw, 0, true, &units);
+        assert_eq!(pl1.watts, 28.0);
+        assert!(pl1.enabled);
+        assert!(pl1.clamping);
+        assert_eq!(pl1.time_window, Some(1.0));
+
+        let pl2 = decode_limit(raw, 32, true, &units);
+        assert_eq!(pl2.watts, 64.0);
+        assert!(pl2.enabled);
+        assert!(!pl2.clamping);
+        // Y=1, X=1 gives 1.25 * 2 * 1/1024 s
+        assert_eq!(pl2.time_window, Some(1.25 * 2.0 / 1024.0));
+
+        // Bit 63 is the lock
+        assert!(bit(raw, 63));
+        // A limit without a time window field
+        assert_eq!(decode_limit(raw, 32, false, &units).time_window, None);
+    }
+
+    #[test]
+    // TjMax 100 C with an 8 C TCC offset, as seen on a Framework 13
+    fn temperature_target() {
+        let target = TemperatureTarget::from(0x0864_0000);
+        assert_eq!(target.ref_temp, 100);
+        assert_eq!(target.tcc_offset, 8);
+        assert_eq!(target.fan_temp_offset, 0);
+        assert!(!target.locked);
+    }
+
+    #[test]
+    // A real package status read: 46 C, only the power limit log bit set
+    fn therm_status() {
+        let status = ThermStatus::from(0x8836_0800);
+        assert!(status.valid);
+        assert_eq!(status.readout, 54);
+        assert_eq!(status.resolution, 1);
+        assert_eq!(status.temp(100), Some(46));
+        assert!(!status.throttling());
+        // Bit 11 is the power limitation log
+        assert!(bit(status.raw, 11));
+
+        // Without the valid bit there is no temperature
+        assert_eq!(ThermStatus::from(0x0836_0800).temp(100), None);
+        // Bit 0 thermal monitor and bit 2 PROCHOT both mean throttling
+        assert!(ThermStatus::from(0x8000_0001).throttling());
+        assert!(ThermStatus::from(0x8000_0004).throttling());
+        // Log bits alone are not current throttling
+        assert!(!ThermStatus::from(0x8000_000A).throttling());
+    }
+
+    #[test]
+    // The values from a Framework 13 with PROCHOT logged on all three domains
+    fn perf_limit_reasons() {
+        assert_eq!(decode_reasons(0x1803_0000, PLR_CORE_BITS, 0), "None");
+        assert_eq!(
+            decode_reasons(0x1803_0000, PLR_CORE_BITS, 16),
+            "PROCHOT, Thermal, PkgPwrPL2, MaxTurboLimit"
+        );
+        assert_eq!(
+            decode_reasons(0x1001_0000, PLR_GT_BITS, 16),
+            "PROCHOT, InefficientOperation"
+        );
+        assert_eq!(decode_reasons(0x0001_0000, PLR_RING_BITS, 16), "PROCHOT");
+        // The ring domain has no bit 12/13, so those must not be decoded
+        assert_eq!(decode_reasons(0x3000_0000, PLR_RING_BITS, 16), "None");
+    }
 }
