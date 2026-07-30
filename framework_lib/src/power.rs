@@ -13,6 +13,7 @@ use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, MainP
 use crate::chromium_ec::command::EcRequestRaw;
 use crate::chromium_ec::commands::*;
 use crate::chromium_ec::*;
+use crate::msr;
 use crate::smbios;
 use crate::util::PlatformFamily;
 
@@ -530,6 +531,8 @@ pub fn print_thermal(ec: &CrosEc) {
     } else {
         println!("    Unknown");
     }
+
+    msr::print_thermal_msrs();
 }
 
 pub fn get_fan_num(ec: &CrosEc) -> EcResult<usize> {
