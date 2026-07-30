@@ -244,10 +244,16 @@ mod imp {
         Some(u64::from_le_bytes(buf))
     }
 
+    /// Enumerate the directory instead of probing sequentially, so that an
+    /// offline CPU in the middle doesn't cut the enumeration short
     pub fn cpu_count() -> u32 {
-        (0..256)
-            .take_while(|cpu| File::open(format!("/dev/cpu/{}/msr", cpu)).is_ok())
-            .count() as u32
+        let Ok(dir) = std::fs::read_dir("/dev/cpu") else {
+            return 0;
+        };
+        dir.flatten()
+            .filter_map(|entry| entry.file_name().to_str()?.parse::<u32>().ok())
+            .max()
+            .map_or(0, |max| max + 1)
     }
 
     pub fn unavailable_hint() -> &'static str {
@@ -288,10 +294,23 @@ mod imp {
         Some(args.data)
     }
 
+    /// Enumerate the devices instead of probing sequentially, so that an
+    /// offline CPU in the middle doesn't cut the enumeration short
     pub fn cpu_count() -> u32 {
-        (0..256)
-            .take_while(|cpu| File::open(format!("/dev/cpuctl{}", cpu)).is_ok())
-            .count() as u32
+        let Ok(dir) = std::fs::read_dir("/dev") else {
+            return 0;
+        };
+        dir.flatten()
+            .filter_map(|entry| {
+                entry
+                    .file_name()
+                    .to_str()?
+                    .strip_prefix("cpuctl")?
+                    .parse::<u32>()
+                    .ok()
+            })
+            .max()
+            .map_or(0, |max| max + 1)
     }
 
     pub fn unavailable_hint() -> &'static str {
@@ -739,8 +758,10 @@ fn print_power_limits(cpuid: &CpuId) {
     }
 
     if let Some(raw) = read_msr(0, MSR_PLATFORM_POWER_LIMIT) {
-        // PSys is optional and often left unimplemented, then it reads as 0
-        if raw & 0xFFFF_FFFF_FFFF != 0 {
+        // PSys is optional. When the platform doesn't wire it up the limits
+        // read as zero, but the clamp and time window bits may still be set,
+        // so key off the enable bits only.
+        if bit(raw, 15) || bit(raw, 47) {
             print_limit("PSys PL1", &decode_limit(raw, 0, true, &units));
             // Bits 62:49 are reserved, PSys PL2 has no time window
             print_limit("PSys PL2", &decode_limit(raw, 32, false, &units));
