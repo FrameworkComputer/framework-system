@@ -450,11 +450,16 @@ pub fn print_thermal_msrs() {
             ""
         }
     );
-    println!(
-        "    Fan Temp Target:    {:>4} C (Offset {} C)",
-        target.ref_temp - target.fan_temp_offset,
-        target.fan_temp_offset
-    );
+    // Our EC does its own fan control, so this is usually left at 0 (unused)
+    if target.fan_temp_offset > 0 {
+        println!(
+            "    Fan Temp Target:    {:>4} C (Offset {} C)",
+            target.ref_temp - target.fan_temp_offset,
+            target.fan_temp_offset
+        );
+    } else {
+        debug!("Fan temperature target offset (T-Control) not programmed");
+    }
     debug!("TEMPERATURE_TARGET locked: {}", target.locked);
 
     if cpuid.has_ptm {
@@ -568,10 +573,12 @@ fn print_power_ctl() {
     // Bidirectional PROCHOT lets the EC throttle the CPU by asserting PROCHOT#
     println!("      Bidirectional:    {}", yes_no(bit(value, 0)));
     println!("      Output Enabled:   {}", yes_no(!bit(value, 21)));
+    // The reference code only documents this as "Prochot Configurable
+    // Response Enable", so don't claim to know what the response is
     println!(
         "      Response:         {}",
         if bit(value, 22) {
-            "Reduce by one P-State"
+            "Configurable"
         } else {
             "Throttle to minimum"
         }
