@@ -76,7 +76,7 @@ const PLR_RING_BITS: &[(u32, &str)] = &[
 ];
 
 /// Status/log bit pairs shared by IA32_THERM_STATUS and
-/// IA32_PACKAGE_THERM_STATUS. Bit 12/13 differs between the two.
+/// IA32_PACKAGE_THERM_STATUS. The log bit is always one bit higher.
 const THERM_STATUS_BITS: &[(u32, &str)] = &[
     (0, "Thermal Monitor"),
     (2, "PROCHOT/FORCEPR"),
@@ -85,6 +85,10 @@ const THERM_STATUS_BITS: &[(u32, &str)] = &[
     (8, "Threshold #2"),
     (10, "Power Limit"),
 ];
+/// Bits above 11 that only exist in the per core IA32_THERM_STATUS
+const THERM_STATUS_CORE_BITS: &[(u32, &str)] = &[(12, "Current Limit"), (14, "Cross Domain Limit")];
+/// Bits above 11 that only exist in IA32_PACKAGE_THERM_STATUS
+const THERM_STATUS_PKG_BITS: &[(u32, &str)] = &[(12, "Pmax Limit")];
 
 fn bit(value: u64, bit: u32) -> bool {
     (value >> bit) & 1 == 1
@@ -471,22 +475,7 @@ pub fn print_thermal_msrs() {
                 );
             }
             println!("    Package Thermal Status ({:#010X})", pkg.raw);
-            println!("      {:<24} {:>6}  {:>6}", "Condition", "Active", "Logged");
-            for (b, name) in THERM_STATUS_BITS {
-                println!(
-                    "      {:<24} {:>6}  {:>6}",
-                    format!("{}:", name),
-                    yes_no(bit(pkg.raw, *b)),
-                    yes_no(bit(pkg.raw, b + 1))
-                );
-            }
-            // Bit 12/13 is Pmax in the package MSR, Current Limit per core
-            println!(
-                "      {:<24} {:>6}  {:>6}",
-                "Pmax Limit:",
-                yes_no(bit(pkg.raw, 12)),
-                yes_no(bit(pkg.raw, 13))
-            );
+            print_therm_status_table(pkg.raw, THERM_STATUS_PKG_BITS);
         }
     }
 
@@ -506,16 +495,40 @@ pub fn print_thermal_msrs() {
     print_power_ctl();
 }
 
-/// Print the hottest core and which cores are currently being throttled
+/// Print the Active/Logged table of a THERM_STATUS style MSR
+///
+/// The bits above 11 differ between the per core and the package register, so
+/// the caller passes those in.
+fn print_therm_status_table(raw: u64, extra: &[(u32, &str)]) {
+    println!("      {:<24} {:>6}  {:>6}", "Condition", "Active", "Logged");
+    for (b, name) in THERM_STATUS_BITS.iter().chain(extra) {
+        println!(
+            "      {:<24} {:>6}  {:>6}",
+            format!("{}:", name),
+            yes_no(bit(raw, *b)),
+            yes_no(bit(raw, b + 1))
+        );
+    }
+}
+
+/// Print the hottest core and the thermal status across all cores
 fn print_core_therm_status(ref_temp: u8) {
     let cpus = cpu_count();
     let mut hottest: Option<(u32, i32)> = None;
     let mut throttling = Vec::new();
+    // The status bits are per core, so OR them together to see whether any
+    // core ever hit a condition. Reading every core individually is far too
+    // much output on a system with dozens of them.
+    let mut any = 0;
+    let mut read = 0;
 
     for cpu in 0..cpus {
         let Some(status) = read_msr(cpu, MSR_IA32_THERM_STATUS).map(ThermStatus::from) else {
             continue;
         };
+        read += 1;
+        // Mask off temperature, resolution and valid, they're not status bits
+        any |= status.raw & 0xFFFF;
         if let Some(temp) = status.temp(ref_temp) {
             match hottest {
                 Some((_, hottest_temp)) if temp <= hottest_temp => {}
@@ -527,19 +540,25 @@ fn print_core_therm_status(ref_temp: u8) {
         }
     }
 
+    if read == 0 {
+        return;
+    }
     if let Some((cpu, temp)) = hottest {
         println!("    Hottest Core Temp:  {:>4} C (CPU {})", temp, cpu);
     }
-    if cpus > 0 {
-        println!(
-            "    Cores Throttling:   {:>4}",
-            if throttling.is_empty() {
-                "None".to_string()
-            } else {
-                throttling.join(", ")
-            }
-        );
-    }
+    println!(
+        "    Cores Throttling:   {:>4}",
+        if throttling.is_empty() {
+            "None".to_string()
+        } else {
+            throttling.join(", ")
+        }
+    );
+    println!(
+        "    Core Thermal Status, any of {} cores ({:#06X})",
+        read, any
+    );
+    print_therm_status_table(any, THERM_STATUS_CORE_BITS);
 }
 
 /// Print which limits are clipping the core, graphics and ring frequency
