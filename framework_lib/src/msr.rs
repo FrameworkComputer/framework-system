@@ -131,6 +131,8 @@ pub struct CpuId {
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+// __cpuid is safe since Rust 1.87, but our MSRV is 1.81
+#[allow(unused_unsafe)]
 pub fn cpuid() -> Option<CpuId> {
     #[cfg(target_arch = "x86")]
     use core::arch::x86::__cpuid;
@@ -140,8 +142,7 @@ pub fn cpuid() -> Option<CpuId> {
     // SAFETY: CPUID leaf 0 is available on every CPU we can be running on
     let leaf_0 = unsafe { __cpuid(0) };
     // "GenuineIntel" in EBX, EDX, ECX
-    let is_intel =
-        leaf_0.ebx == 0x756E6547 && leaf_0.edx == 0x49656E69 && leaf_0.ecx == 0x6C65746E;
+    let is_intel = leaf_0.ebx == 0x756E6547 && leaf_0.edx == 0x49656E69 && leaf_0.ecx == 0x6C65746E;
 
     // SAFETY: Leaf 1 is available whenever leaf 0 reports at least 1
     let leaf_1 = unsafe { __cpuid(1) };
@@ -197,10 +198,7 @@ impl CpuId {
 // MSR access, one implementation per OS
 // -------------------------------------------------------------------------
 
-#[cfg(all(
-    target_os = "linux",
-    any(target_arch = "x86", target_arch = "x86_64")
-))]
+#[cfg(all(target_os = "linux", any(target_arch = "x86", target_arch = "x86_64")))]
 mod imp {
     use std::fs::File;
     use std::io::{Read, Seek, SeekFrom};
@@ -467,10 +465,11 @@ pub fn print_thermal_msrs() {
                     temp, pkg.resolution
                 );
             }
-            println!("    Package Status                Now  Ever");
+            println!("    Package Thermal Status ({:#010X})", pkg.raw);
+            println!("      {:<24} {:>6}  {:>6}", "Condition", "Active", "Logged");
             for (b, name) in THERM_STATUS_BITS {
                 println!(
-                    "      {:<24} {:>4}  {:>4}",
+                    "      {:<24} {:>6}  {:>6}",
                     format!("{}:", name),
                     yes_no(bit(pkg.raw, *b)),
                     yes_no(bit(pkg.raw, b + 1))
@@ -478,7 +477,7 @@ pub fn print_thermal_msrs() {
             }
             // Bit 12/13 is Pmax in the package MSR, Current Limit per core
             println!(
-                "      {:<24} {:>4}  {:>4}",
+                "      {:<24} {:>6}  {:>6}",
                 "Pmax Limit:",
                 yes_no(bit(pkg.raw, 12)),
                 yes_no(bit(pkg.raw, 13))
@@ -552,8 +551,11 @@ fn print_perf_limit_reasons() {
             "    {} Frequency Limit Reasons ({:#X}: {:#010X})",
             name, msr, value
         );
-        println!("      Now:              {}", decode_reasons(value, bits, 0));
-        println!("      Ever:             {}", decode_reasons(value, bits, 16));
+        println!("      Active:           {}", decode_reasons(value, bits, 0));
+        println!(
+            "      Logged:           {}",
+            decode_reasons(value, bits, 16)
+        );
     }
 }
 
@@ -564,10 +566,7 @@ fn print_power_ctl() {
     };
     println!("    PROCHOT Config ({:#X}: {:#010X})", MSR_POWER_CTL, value);
     // Bidirectional PROCHOT lets the EC throttle the CPU by asserting PROCHOT#
-    println!(
-        "      Bidirectional:    {}",
-        yes_no(bit(value, 0))
-    );
+    println!("      Bidirectional:    {}", yes_no(bit(value, 0)));
     println!("      Output Enabled:   {}", yes_no(!bit(value, 21)));
     println!(
         "      Response:         {}",
