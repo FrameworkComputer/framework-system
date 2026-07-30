@@ -58,6 +58,7 @@ pub mod ec_binary;
 pub mod esrt;
 #[cfg(feature = "uefi")]
 pub mod fw_uefi;
+pub mod msr;
 mod os_specific;
 pub mod parade_retimer;
 pub mod power;
