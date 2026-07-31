@@ -23,6 +23,12 @@ use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
+/// Maximum non-turbo and maximum efficiency ratio (MSR_PLATFORM_INFO)
+pub const MSR_PLATFORM_INFO: u32 = 0x000000CE;
+/// Counts at a fixed rate while the core is active (IA32_MPERF)
+pub const MSR_IA32_MPERF: u32 = 0x000000E7;
+/// Counts proportional to the actual frequency while active (IA32_APERF)
+pub const MSR_IA32_APERF: u32 = 0x000000E8;
 /// Per core thermal status (IA32_THERM_STATUS)
 pub const MSR_IA32_THERM_STATUS: u32 = 0x0000019C;
 /// Thermal monitor reference temperature and offsets (IA32_TEMPERATURE_TARGET)
@@ -148,6 +154,8 @@ pub struct CpuId {
     pub has_dts: bool,
     /// CPUID.06H:EAX[6] Package Thermal Management
     pub has_ptm: bool,
+    /// CPUID.06H:ECX[0] APERF/MPERF hardware coordination feedback
+    pub has_aperf: bool,
 }
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
@@ -181,12 +189,16 @@ pub fn cpuid() -> Option<CpuId> {
 
     // Leaf 6 (Thermal and Power Management) tells us whether the thermal
     // status MSRs exist. Only query it if the CPU supports that leaf.
-    let (has_dts, has_ptm) = if leaf_0.eax >= 6 {
+    let (has_dts, has_ptm, has_aperf) = if leaf_0.eax >= 6 {
         // SAFETY: Guarded by the maximum leaf reported above
         let leaf_6 = unsafe { __cpuid(6) };
-        (leaf_6.eax & 1 == 1, (leaf_6.eax >> 6) & 1 == 1)
+        (
+            leaf_6.eax & 1 == 1,
+            (leaf_6.eax >> 6) & 1 == 1,
+            leaf_6.ecx & 1 == 1,
+        )
     } else {
-        (false, false)
+        (false, false, false)
     };
 
     Some(CpuId {
@@ -195,11 +207,53 @@ pub fn cpuid() -> Option<CpuId> {
         model,
         has_dts,
         has_ptm,
+        has_aperf,
     })
 }
 
 #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
 pub fn cpuid() -> Option<CpuId> {
+    None
+}
+
+/// Frequency the TSC and MPERF count at, in MHz
+///
+/// MPERF ticks at this rate whenever the core is active, so it is the scale
+/// factor for turning an APERF/MPERF ratio into a frequency.
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+// __cpuid is safe since Rust 1.87, but our MSRV is 1.81
+#[allow(unused_unsafe)]
+pub fn tsc_mhz() -> Option<u32> {
+    #[cfg(target_arch = "x86")]
+    use core::arch::x86::__cpuid;
+    #[cfg(target_arch = "x86_64")]
+    use core::arch::x86_64::__cpuid;
+
+    // SAFETY: CPUID leaf 0 is available on every CPU we can be running on
+    let max_leaf = unsafe { __cpuid(0) }.eax;
+
+    // Leaf 0x15 gives the TSC as crystal_hz * numerator / denominator
+    if max_leaf >= 0x15 {
+        // SAFETY: Guarded by the maximum leaf
+        let leaf = unsafe { __cpuid(0x15) };
+        let (denominator, numerator, crystal_hz) = (leaf.eax, leaf.ebx, leaf.ecx);
+        if denominator != 0 && numerator != 0 && crystal_hz != 0 {
+            let hz = crystal_hz as u64 * numerator as u64 / denominator as u64;
+            return Some((hz / 1_000_000) as u32);
+        }
+    }
+
+    // Otherwise the TSC runs at the maximum non-turbo (base) frequency
+    let base = PlatformInfo::from(read_msr(0, MSR_PLATFORM_INFO)?).base_mhz();
+    if base > 0 {
+        Some(base)
+    } else {
+        None
+    }
+}
+
+#[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+pub fn tsc_mhz() -> Option<u32> {
     None
 }
 
@@ -462,6 +516,75 @@ impl ThermStatus {
     }
 }
 
+/// The ratios reported by MSR_PLATFORM_INFO (0xCE)
+///
+/// All modern Intel client processors use a 100 MHz bus clock.
+#[derive(Debug, Clone, Copy)]
+pub struct PlatformInfo {
+    /// Maximum non-turbo ratio, a.k.a. the base frequency
+    pub base_ratio: u8,
+    /// Maximum efficiency ratio, a.k.a. LFM, the lowest the cores will run at
+    pub max_efficiency_ratio: u8,
+}
+
+impl From<u64> for PlatformInfo {
+    fn from(msr: u64) -> Self {
+        Self {
+            base_ratio: ((msr >> 8) & 0xFF) as u8,
+            max_efficiency_ratio: ((msr >> 40) & 0xFF) as u8,
+        }
+    }
+}
+
+impl PlatformInfo {
+    pub fn base_mhz(&self) -> u32 {
+        self.base_ratio as u32 * 100
+    }
+
+    pub fn lfm_mhz(&self) -> u32 {
+        self.max_efficiency_ratio as u32 * 100
+    }
+}
+
+/// Sample APERF and MPERF on every core and return the frequency each was
+/// running at while it was active, in MHz
+///
+/// This is the same "busy" frequency turbostat reports as Bzy_MHz, not the
+/// requested or the average-over-wall-clock frequency. A core that stayed idle
+/// for the whole interval reports None.
+pub fn core_frequencies(tsc_mhz: u32, interval_micros: u64) -> Vec<(u32, Option<u32>)> {
+    let cpus = cpu_count();
+    let sample = |cpu| {
+        Some((
+            read_msr(cpu, MSR_IA32_APERF)?,
+            read_msr(cpu, MSR_IA32_MPERF)?,
+        ))
+    };
+
+    let first: Vec<Option<(u64, u64)>> = (0..cpus).map(sample).collect();
+    crate::os_specific::sleep(interval_micros);
+
+    (0..cpus)
+        .map(|cpu| {
+            let mhz = match (first[cpu as usize], sample(cpu)) {
+                (Some((aperf_0, mperf_0)), Some((aperf_1, mperf_1))) => {
+                    let aperf = aperf_1.wrapping_sub(aperf_0);
+                    let mperf = mperf_1.wrapping_sub(mperf_0);
+                    // The ratio is self normalizing, so it doesn't matter that
+                    // we read each core at a slightly different time. A core
+                    // that never woke up doesn't advance MPERF at all, which
+                    // checked_div turns into None.
+                    (tsc_mhz as u64 * aperf)
+                        .checked_div(mperf)
+                        .map(|mhz| mhz as u32)
+                }
+                _ => None,
+            };
+            (cpu, mhz)
+        })
+        .collect()
+}
+
 /// Unit multipliers from MSR_PACKAGE_POWER_SKU_UNIT (0x606)
 #[derive(Debug, Clone, Copy)]
 pub struct RaplUnits {
@@ -590,6 +713,12 @@ pub fn print_thermal_msrs() {
         therm_status |= print_core_therm_status(target.ref_temp);
     }
 
+    if cpuid.has_aperf {
+        print_core_frequencies();
+    } else {
+        debug!("No APERF/MPERF support, skipping core frequencies");
+    }
+
     print_power_limits(&cpuid);
 
     if cpuid.has_perf_limit_reasons() {
@@ -710,6 +839,45 @@ fn print_perf_limit_reasons(prochot_seen: bool) {
              THERM_STATUS ({:#X}/{:#X}), which shows no PROCHOT status or log",
             MSR_IA32_THERM_STATUS, MSR_IA32_PACKAGE_THERM_STATUS
         );
+    }
+}
+
+/// How long to sample APERF/MPERF over. Long enough to be stable, short
+/// enough not to make --thermal feel sluggish.
+const FREQ_SAMPLE_MICROS: u64 = 100_000;
+
+/// Print the frequency every core is currently running at
+fn print_core_frequencies() {
+    let Some(tsc_mhz) = tsc_mhz() else {
+        debug!("Could not determine TSC frequency, skipping core frequencies");
+        return;
+    };
+
+    let info = read_msr(0, MSR_PLATFORM_INFO).map(PlatformInfo::from);
+    let freqs = core_frequencies(tsc_mhz, FREQ_SAMPLE_MICROS);
+    if freqs.is_empty() {
+        return;
+    }
+
+    println!(
+        "    CPU Frequency (busy, {} ms sample)",
+        FREQ_SAMPLE_MICROS / 1000
+    );
+    if let Some(info) = info {
+        // Knowing where LFM and base are makes the numbers below meaningful.
+        // A core sitting at LFM is idle, not necessarily throttled.
+        println!(
+            "      {:<20} {:>5} / {} MHz",
+            "LFM / Base:",
+            info.lfm_mhz(),
+            info.base_mhz()
+        );
+    }
+    for (cpu, mhz) in freqs {
+        match mhz {
+            Some(mhz) => println!("      {:<20} {:>5} MHz", format!("CPU {}:", cpu), mhz),
+            None => println!("      {:<20} {:>5}", format!("CPU {}:", cpu), "Idle"),
+        }
     }
 }
 
@@ -876,6 +1044,16 @@ mod tests {
         assert!(bit(raw, 63));
         // A limit without a time window field
         assert_eq!(decode_limit(raw, 32, false, &units).time_window, None);
+    }
+
+    #[test]
+    // The Wildcat Lake value from a Framework 12: LFM 400, base 2000 MHz
+    fn platform_info() {
+        let info = PlatformInfo::from(0x0804043df8801400);
+        assert_eq!(info.base_ratio, 20);
+        assert_eq!(info.base_mhz(), 2000);
+        assert_eq!(info.max_efficiency_ratio, 4);
+        assert_eq!(info.lfm_mhz(), 400);
     }
 
     #[test]
