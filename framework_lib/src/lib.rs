@@ -61,6 +61,7 @@ pub mod fw_uefi;
 pub mod msr;
 mod os_specific;
 pub mod parade_retimer;
+pub mod pcode;
 pub mod power;
 #[cfg(not(feature = "uefi"))]
 pub mod smart_battery;
