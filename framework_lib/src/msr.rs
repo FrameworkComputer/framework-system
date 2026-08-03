@@ -971,20 +971,80 @@ fn print_power_limits(cpuid: &CpuId) {
         }
     }
 
-    // The full scale of all of the above PSys numbers isn't in an MSR, it only
-    // exists inside pcode. Worth reporting next to them, because it's what
-    // decides whether they mean anything.
-    match crate::pcode::psys_pmax() {
-        Some(watts) if watts > 0.0 => println!(
-            "      {:<20} {:>6.1} W  Full scale of the PSys readings",
-            "PSys Pmax:", watts
-        ),
+    // The full scale of all of the above PSys numbers, and the platform's
+    // current limits, aren't in MSRs. Report them next to the limits anyway,
+    // because the full scale is what decides whether they mean anything.
+    print_platform_power(&units);
+}
+
+/// Print the platform power delivery configuration that isn't in any MSR
+///
+/// `units` is only needed for the Isys time window, which is encoded like a
+/// RAPL one.
+fn print_platform_power(units: &RaplUnits) {
+    let Some(power) = crate::pcode::platform_power() else {
+        info!("{}", crate::pcode::unavailable_hint());
+        return;
+    };
+
+    match power.psys {
+        Some(psys) if psys.pmax > 0.0 => {
+            println!(
+                "      {:<20} {:>6.1} W  Full scale of the PSys readings",
+                "PSys Pmax:", psys.pmax
+            );
+            // Both corrections are left at Auto (0) unless a board needs them
+            if psys.offset != 0.0 {
+                println!("      {:<20} {:>6.2} W", "PSys Offset:", psys.offset);
+            }
+            if psys.slope != 0.0 {
+                println!("      {:<20} {:>6.2} x", "PSys Slope:", psys.slope);
+            }
+            debug!("PSys offset {} W, slope {}", psys.offset, psys.slope);
+        }
         Some(_) => println!(
-            "      {:<20} {:>6}     Firmware left it at the pcode default",
+            "      {:<20} {:>6}    Firmware left it at the pcode default",
             "PSys Pmax:", "Unset"
         ),
-        None => info!("{}", crate::pcode::unavailable_hint()),
+        None => debug!("pcode does not report a PSys full scale"),
     }
+
+    // Vsys Max and the Isys limits are only programmed when the platform uses
+    // the ThETA Ibatt feature to limit battery discharge current
+    match power.vsys_max {
+        Some(volts) if volts > 0.0 => {
+            println!("      {:<20} {:>6.1} V", "Vsys Max:", volts)
+        }
+        _ => debug!("No maximum system voltage programmed"),
+    }
+
+    if let Some(isys) = power.isys {
+        if isys.l1_amps > 0.0 || isys.l2_amps > 0.0 {
+            print_isys_limit("Isys Limit L1", isys.l1_amps, isys.l1_enabled, {
+                Some(time_window(isys.l1_tau, units))
+            });
+            print_isys_limit("Isys Limit L2", isys.l2_amps, isys.l2_enabled, None);
+        } else {
+            debug!("No Isys current limits programmed");
+        }
+    }
+}
+
+/// Print one of the two Isys current limits, in the style of [print_limit]
+fn print_isys_limit(name: &str, amps: f32, enabled: bool, time_window: Option<f32>) {
+    let mut notes = Vec::new();
+    if !enabled {
+        notes.push("Disabled".to_string());
+    }
+    if let Some(window) = time_window {
+        notes.push(format!("{:.3} s window", window));
+    }
+    println!(
+        "      {:<20} {:>6.1} A  {}",
+        format!("{}:", name),
+        amps,
+        notes.join(", ")
+    );
 }
 
 /// Print how the processor is configured to react to PROCHOT
