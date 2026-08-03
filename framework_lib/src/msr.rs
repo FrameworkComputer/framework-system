@@ -993,14 +993,14 @@ fn print_platform_power(units: &RaplUnits) {
                 "      {:<20} {:>6.1} W  Full scale of the PSys readings",
                 "PSys Pmax:", psys.pmax
             );
-            // Both corrections are left at Auto (0) unless a board needs them
-            if psys.offset != 0.0 {
-                println!("      {:<20} {:>6.2} W", "PSys Offset:", psys.offset);
+            // Boards that don't need a correction leave both at Auto, which
+            // reads back as pcode's own no offset and unity slope
+            if let Some(correction) = psys.correction {
+                println!(
+                    "      {:<20} {:>6.2} x  Offset {:.2} W",
+                    "PSys Correction:", correction.slope, correction.offset
+                );
             }
-            if psys.slope != 0.0 {
-                println!("      {:<20} {:>6.2} x", "PSys Slope:", psys.slope);
-            }
-            debug!("PSys offset {} W, slope {}", psys.offset, psys.slope);
         }
         Some(_) => println!(
             "      {:<20} {:>6}    Firmware left it at the pcode default",
