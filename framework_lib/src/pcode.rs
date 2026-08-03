@@ -109,13 +109,21 @@ pub struct PsysConfig {
     ///
     /// PMON PMAX, U10.6 fixed point, so up to 1024 W in 1/64 W steps.
     pub pmax: f32,
-    /// Offset correction of the PSYS reading, in Watts
+    /// Offset and slope correction of the PSYS reading
     ///
-    /// S7.8 fixed point. 0 unless firmware programmed one.
+    /// `None` if pcode wouldn't tell us. Note that these read back as pcode's
+    /// own defaults (no offset, unity slope) rather than as unprogrammed when
+    /// firmware leaves both at Auto, in which case the FSP skips the write
+    /// altogether.
+    pub correction: Option<PsysCorrection>,
+}
+
+/// The offset and slope pcode applies to the PSYS reading before scaling it
+#[derive(Debug, Clone, Copy)]
+pub struct PsysCorrection {
+    /// Offset correction in Watts, S7.8 fixed point
     pub offset: f32,
-    /// Slope correction of the PSYS reading, 1.0 being none
-    ///
-    /// U1.15 fixed point. 0 unless firmware programmed one.
+    /// Slope correction, 1.0 being none, U1.15 fixed point
     pub slope: f32,
 }
 
@@ -259,16 +267,19 @@ impl Mchbar {
 pub fn platform_power() -> Option<PlatformPower> {
     let mchbar = Mchbar::open()?;
 
-    let psys = mchbar.vr(MAILBOX_SUBCMD_GET_PMON_PMAX).map(|pmax| {
-        // Offset and slope are a separate command and only interesting
-        // alongside a full scale, so don't fail the whole thing over them
-        let config = mchbar.vr(MAILBOX_SUBCMD_GET_PMON_CONFIG).unwrap_or(0);
-        PsysConfig {
+    let psys = mchbar
+        .vr(MAILBOX_SUBCMD_GET_PMON_PMAX)
+        .map(|pmax| PsysConfig {
             pmax: unsigned_fixed_point(pmax, 6),
-            offset: signed_fixed_point(config, 8),
-            slope: unsigned_fixed_point(config >> 16, 15),
-        }
-    });
+            // A separate command, and only interesting alongside a full scale, so
+            // don't fail the whole thing over it
+            correction: mchbar
+                .vr(MAILBOX_SUBCMD_GET_PMON_CONFIG)
+                .map(|config| PsysCorrection {
+                    offset: signed_fixed_point(config, 8),
+                    slope: unsigned_fixed_point(config >> 16, 15),
+                }),
+        });
 
     let vsys_max = mchbar
         .vr(MAILBOX_SUBCMD_GET_VSYS_MAX)
