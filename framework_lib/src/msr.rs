@@ -970,6 +970,21 @@ fn print_power_limits(cpuid: &CpuId) {
             println!("      {:<20} {:>6}", "PSys Locked:", "Yes");
         }
     }
+
+    // The full scale of all of the above PSys numbers isn't in an MSR, it only
+    // exists inside pcode. Worth reporting next to them, because it's what
+    // decides whether they mean anything.
+    match crate::pcode::psys_pmax() {
+        Some(watts) if watts > 0.0 => println!(
+            "      {:<20} {:>6.1} W  Full scale of the PSys readings",
+            "PSys Pmax:", watts
+        ),
+        Some(_) => println!(
+            "      {:<20} {:>6}     Firmware left it at the pcode default",
+            "PSys Pmax:", "Unset"
+        ),
+        None => info!("{}", crate::pcode::unavailable_hint()),
+    }
 }
 
 /// Print how the processor is configured to react to PROCHOT
