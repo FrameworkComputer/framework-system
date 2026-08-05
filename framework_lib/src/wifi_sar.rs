@@ -1,6 +1,7 @@
 //! Get the Intel CNVi Wi-Fi SAR power tables from UEFI variables.
 //!
-//! Currently only implemented on Linux (needs root) and UEFI.
+//! Currently only implemented on Linux (needs root), Windows (needs
+//! Administrator) and UEFI.
 //!
 //! SAR (Specific Absorption Rate) limits are the maximum TX power the Wi-Fi
 //! module may use per frequency sub-band. The BIOS hands them to the driver in
@@ -16,6 +17,25 @@ use std::prelude::v1::*;
 
 #[cfg(all(not(feature = "uefi"), target_os = "linux"))]
 use std::fs;
+
+#[cfg(all(not(feature = "uefi"), target_os = "windows"))]
+use core::ffi::c_void;
+#[cfg(all(not(feature = "uefi"), target_os = "windows"))]
+use windows::core::PCWSTR;
+#[cfg(all(not(feature = "uefi"), target_os = "windows"))]
+use windows::Win32::Foundation::{
+    CloseHandle, GetLastError, ERROR_ENVVAR_NOT_FOUND, ERROR_INVALID_FUNCTION,
+    ERROR_NOT_ALL_ASSIGNED, ERROR_PRIVILEGE_NOT_HELD, HANDLE, LUID,
+};
+#[cfg(all(not(feature = "uefi"), target_os = "windows"))]
+use windows::Win32::Security::{
+    AdjustTokenPrivileges, LookupPrivilegeValueW, LUID_AND_ATTRIBUTES, SE_PRIVILEGE_ENABLED,
+    SE_SYSTEM_ENVIRONMENT_NAME, TOKEN_ADJUST_PRIVILEGES, TOKEN_PRIVILEGES,
+};
+#[cfg(all(not(feature = "uefi"), target_os = "windows"))]
+use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+#[cfg(all(not(feature = "uefi"), target_os = "windows"))]
+use windows::Win32::System::WindowsProgramming::GetFirmwareEnvironmentVariableW;
 
 #[cfg(feature = "uefi")]
 use uefi::runtime::{self, VariableVendor};
@@ -290,7 +310,103 @@ fn get_variable(name: &str) -> Option<Vec<u8>> {
         .map(|(data, _attributes)| data.to_vec())
 }
 
-#[cfg(all(not(feature = "uefi"), not(target_os = "linux")))]
+/// Enable SeSystemEnvironmentPrivilege, which is required to read UEFI variables
+///
+/// Elevated processes have the privilege in their token, but it's disabled by
+/// default, so we have to enable it ourselves.
+#[cfg(all(not(feature = "uefi"), target_os = "windows"))]
+fn enable_system_environment_privilege() -> bool {
+    let mut token = HANDLE::default();
+    // SAFETY: Both handles are only used within this function and the token is
+    // closed before returning
+    unsafe {
+        if let Err(err) = OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, &mut token)
+        {
+            error!("Failed to open process token: {}", err);
+            return false;
+        }
+
+        let mut luid = LUID::default();
+        let res = LookupPrivilegeValueW(PCWSTR::null(), SE_SYSTEM_ENVIRONMENT_NAME, &mut luid)
+            .and_then(|_| {
+                let privileges = TOKEN_PRIVILEGES {
+                    PrivilegeCount: 1,
+                    Privileges: [LUID_AND_ATTRIBUTES {
+                        Luid: luid,
+                        Attributes: SE_PRIVILEGE_ENABLED,
+                    }],
+                };
+                AdjustTokenPrivileges(token, false, Some(&privileges), 0, None, None)
+            });
+        // AdjustTokenPrivileges succeeds even if it couldn't assign the
+        // privilege, that's only reported by the last error
+        let assigned = GetLastError() != ERROR_NOT_ALL_ASSIGNED;
+        let _ = CloseHandle(token);
+
+        if let Err(err) = res {
+            error!("Failed to enable SeSystemEnvironmentPrivilege: {}", err);
+            return false;
+        }
+        if !assigned {
+            error!("Not allowed to enable SeSystemEnvironmentPrivilege");
+            info!("Make sure to run as Administrator to access UEFI variables on Windows");
+            return false;
+        }
+    }
+    true
+}
+
+/// Encode a string as a NUL terminated wide string for the Win32 API
+#[cfg(all(not(feature = "uefi"), target_os = "windows"))]
+fn wide(s: &str) -> Vec<u16> {
+    s.encode_utf16().chain(core::iter::once(0)).collect()
+}
+
+/// Read a UEFI variable of the Intel CNVi Wi-Fi vendor GUID
+#[cfg(all(not(feature = "uefi"), target_os = "windows"))]
+fn get_variable(name: &str) -> Option<Vec<u8>> {
+    if !enable_system_environment_privilege() {
+        return None;
+    }
+
+    let name_wide = wide(name);
+    // Win32 wants the vendor GUID as a string in braces
+    let guid_wide = wide(&format!("{{{}}}", CNVI_WIFI_GUID));
+    // Plenty for all revisions of the tables we know about
+    let mut buf = [0; 1024];
+    // SAFETY: Both strings are NUL terminated and the buffer length is passed along
+    let len = unsafe {
+        GetFirmwareEnvironmentVariableW(
+            PCWSTR(name_wide.as_ptr()),
+            PCWSTR(guid_wide.as_ptr()),
+            Some(buf.as_mut_ptr() as *mut c_void),
+            buf.len() as u32,
+        )
+    };
+    if len == 0 {
+        // SAFETY: Called right after the failed call above
+        match unsafe { GetLastError() } {
+            ERROR_INVALID_FUNCTION => {
+                error!("Failed to read UEFI variable {}", name);
+                info!("UEFI variables are only available when booted in UEFI mode");
+            }
+            ERROR_PRIVILEGE_NOT_HELD => {
+                error!("Not allowed to read UEFI variable {}", name);
+                info!("Make sure to run as Administrator to access UEFI variables on Windows");
+            }
+            ERROR_ENVVAR_NOT_FOUND => error!("UEFI variable {} does not exist", name),
+            err => error!("Failed to read UEFI variable {}: {:?}", name, err),
+        }
+        return None;
+    }
+    Some(buf[..len as usize].to_vec())
+}
+
+#[cfg(all(
+    not(feature = "uefi"),
+    not(target_os = "linux"),
+    not(target_os = "windows")
+))]
 fn get_variable(_name: &str) -> Option<Vec<u8>> {
     error!("Reading UEFI variables is not implemented on this OS");
     None
