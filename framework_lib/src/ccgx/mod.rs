@@ -31,8 +31,8 @@ const FW2_METADATA_ROW_CCG8: u32 = 0x3FF;
 const METADATA_OFFSET: usize = 0xC0; // TODO: Is this 0x40 on ADL?
 const CCG8_METADATA_OFFSET: usize = 0x80;
 const CCG3_METADATA_OFFSET: usize = 0x40;
-const METADATA_MAGIC: u16 = u16::from_le_bytes([b'Y', b'C']); // CY (Cypress)
-const CCG8_METADATA_MAGIC: u16 = u16::from_le_bytes([b'F', b'I']); // IF (Infineon)
+const METADATA_MAGIC: u16 = u16::from_be_bytes(*b"CY"); // CY (Cypress)
+const CCG8_METADATA_MAGIC: u16 = u16::from_be_bytes(*b"IF"); // IF (Infineon)
 
 #[repr(C, packed)]
 #[derive(FromBytes, KnownLayout, Debug, Copy, Clone)]
