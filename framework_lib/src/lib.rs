@@ -65,6 +65,7 @@ pub mod power;
 pub mod smart_battery;
 pub mod smbios;
 mod util;
+pub mod wifi_sar;
 
 pub mod built_info {
     // The file has been placed there by the build script.

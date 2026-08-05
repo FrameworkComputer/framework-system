@@ -99,6 +99,7 @@ pub fn parse(args: &[String]) -> Cli {
         switches: false,
         port80read: false,
         panicinfo: false,
+        wifisar: false,
         hash: None,
         // This is the only driver that works on UEFI
         driver: Some(CrosEcDriverType::Portio),
@@ -592,6 +593,9 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--panicinfo" {
             cli.panicinfo = true;
+            found_an_option = true;
+        } else if arg == "--wifisar" {
+            cli.wifisar = true;
             found_an_option = true;
         } else if arg == "-t" || arg == "--test" {
             cli.test = true;

@@ -470,3 +470,47 @@ r12:         sp :00000000 lr :         pc :
 
 cfsr = 0, shcsr = 0, hfsr = 0, dfsr = 0
 ```
+
+
+## WiFi SAR
+
+```
+> framework_tool --wifisar
+WRDS - Wi-Fi SAR limits
+  Revision:             2 (4 chains, 11 sub-bands)
+  Mode:                 0x00000001 (SAR enabled)
+  Profile 1
+    Subband  Range (MHz)  ChainA         ChainB
+    2.4G     2400         0x80 16.0 dBm  0x80 16.0 dBm
+    5G2/3    5180-5320    0x70 14.0 dBm  0x70 14.0 dBm
+    5G4      5340-5480    0x70 14.0 dBm  0x70 14.0 dBm
+    5G6      5500-5720    0x74 14.5 dBm  0x74 14.5 dBm
+    5G8/9    5745-5885    0x6C 13.5 dBm  0x6C 13.5 dBm
+    6G1      5955-6175    0x6C 13.5 dBm  0x6C 13.5 dBm
+    6G3      6195-6415    0x6C 13.5 dBm  0x6C 13.5 dBm
+    6G5      6435-6515    0x6C 13.5 dBm  0x6C 13.5 dBm
+    6G6      6535-6695    0x6C 13.5 dBm  0x6C 13.5 dBm
+    6G8      6715-6855    0x6C 13.5 dBm  0x6C 13.5 dBm
+    7G0      6875-7115    0x6C 13.5 dBm  0x6C 13.5 dBm
+    All zero: CdbChainA, CdbChainB
+EWRD - Additional Wi-Fi SAR limits
+  Revision:             2 (4 chains, 11 sub-bands)
+  Mode:                 0x00000001 (SAR enabled)
+  Profiles in use:      1
+  Profile 2
+    Subband  Range (MHz)  ChainA         ChainB
+    2.4G     2400         0xA8 21.0 dBm  0xA8 21.0 dBm
+    5G2/3    5180-5320    0xA8 21.0 dBm  0xA8 21.0 dBm
+    5G4      5340-5480    0xA8 21.0 dBm  0xA8 21.0 dBm
+    5G6      5500-5720    0xAC 21.5 dBm  0xAC 21.5 dBm
+    5G8/9    5745-5885    0xAC 21.5 dBm  0xAC 21.5 dBm
+    6G1      5955-6175    0xAC 21.5 dBm  0xAC 21.5 dBm
+    6G3      6195-6415    0xAC 21.5 dBm  0xAC 21.5 dBm
+    6G5      6435-6515    0xA8 21.0 dBm  0xA8 21.0 dBm
+    6G6      6535-6695    0xA8 21.0 dBm  0xA8 21.0 dBm
+    6G8      6715-6855    0xA8 21.0 dBm  0xA8 21.0 dBm
+    7G0      6875-7115    0x70 14.0 dBm  0x70 14.0 dBm
+    All zero: CdbChainA, CdbChainB
+  Profile 3 (unused): All zero
+  Profile 4 (unused): All zero
+```

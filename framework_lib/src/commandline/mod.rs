@@ -71,6 +71,7 @@ use crate::touchscreen;
 #[cfg(feature = "rusb")]
 use crate::usbhub::check_usbhub_version;
 use crate::util::{self, Config, Platform, PlatformFamily};
+use crate::wifi_sar;
 use dmidecode::Structure;
 #[cfg(feature = "hidapi")]
 use hidapi::HidApi;
@@ -256,6 +257,7 @@ pub struct Cli {
     pub switches: bool,
     pub port80read: bool,
     pub panicinfo: bool,
+    pub wifisar: bool,
     pub hash: Option<String>,
     pub pd_addrs: Option<(u16, u16, u16)>,
     pub pd_ports: Option<(u8, u8, u8)>,
@@ -355,6 +357,7 @@ pub fn parse(args: &[String]) -> Cli {
             switches: cli.switches,
             port80read: cli.port80read,
             panicinfo: cli.panicinfo,
+            wifisar: cli.wifisar,
             hash: cli.hash,
             pd_addrs: cli.pd_addrs,
             pd_ports: cli.pd_ports,
@@ -1660,6 +1663,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 return 1;
             }
         }
+    } else if args.wifisar {
+        if wifi_sar::print_wifi_sar().is_none() {
+            println!("Failed to read Wi-Fi SAR limits");
+            return 1;
+        }
     } else if args.test {
         println!("Self-Test");
         let result = selftest(&ec);
@@ -2086,6 +2094,7 @@ Options:
       --switches             Show current EC switch positions (lid, power button, ...)
       --port80read           Show history of port 80 writes (POST codes)
       --panicinfo            Show saved EC panic info
+      --wifisar              Show Wi-Fi SAR power limits from UEFI variables (WRDS, EWRD)
       --intrusion            Show status of intrusion switch
       --inputdeck            Show status of the input deck
       --inputdeck-mode       Set input deck power mode [possible values: auto, off, on] (Laptop 12, 13, 16)
