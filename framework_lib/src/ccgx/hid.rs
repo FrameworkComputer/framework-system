@@ -144,10 +144,10 @@ fn decode_fw_info(buf: &[u8]) -> HidFirmwareInfo {
 
     // TODO: Return Option?
     assert_eq!(info.report_id, ReportIdCmd::E0Read as u8);
-    if info.signature != [b'C', b'Y'] {
+    if info.signature != *b"CY" {
         println!("{:X?}", info);
     }
-    assert_eq!(info.signature, [b'C', b'Y']);
+    assert_eq!(info.signature, *b"CY");
 
     info
 }
@@ -157,7 +157,7 @@ fn print_fw_info(info: &HidFirmwareInfo, verbose: bool) {
 
     info!("  Signature:            {:X?}", info.signature);
     // Something's totally off if the signature is invalid
-    if info.signature != [b'C', b'Y'] {
+    if info.signature != *b"CY" {
         error!("Firmware Signature is invalid.");
         return;
     }
