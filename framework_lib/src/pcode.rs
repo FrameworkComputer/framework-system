@@ -22,7 +22,8 @@
 //! The PSys power limits themselves are in MSR_PLATFORM_POWER_LIMIT, see
 //! [crate::msr], and so is PL4. What's left over and only reachable here is the
 //! rest of the PSYS calibration (offset and slope), the maximum system voltage,
-//! and the Isys battery current limits.
+//! the Isys battery current limits, and the second copy of the package power
+//! limits that lives in MCHBAR rather than in an MSR.
 //!
 //! Only Intel processors have any of this.
 //!
@@ -53,6 +54,8 @@ const PCODE_MAILBOX_DATA: u64 = 0x5DA0;
 const PCODE_MAILBOX_INTERFACE: u64 = 0x5DA4;
 /// Isys (battery) current limits, the ThETA Ibatt feature. 64 bit.
 const ISYS_CONTROL: u64 = 0x5E90;
+/// PL1 and PL2 again, in the same layout as MSR_PACKAGE_RAPL_LIMIT. 64 bit.
+const PACKAGE_RAPL_LIMIT: u64 = 0x59A0;
 
 /// Set by the caller to hand a command over, cleared by pcode when it's done
 const MAILBOX_RUN_BUSY: u32 = 1 << 31;
@@ -156,6 +159,11 @@ pub struct PlatformPower {
     /// Only programmed together with [IsysControl].
     pub vsys_max: Option<f32>,
     pub isys: Option<IsysControl>,
+    /// Raw MCHBAR copy of the package power limits
+    ///
+    /// The same fields as MSR_PACKAGE_RAPL_LIMIT, so decode it with
+    /// [crate::msr]. `None` if the register didn't read back plausibly.
+    pub package_rapl_limit: Option<u64>,
 }
 
 // -------------------------------------------------------------------------
@@ -295,10 +303,20 @@ pub fn platform_power() -> Option<PlatformPower> {
         l2_enabled: raw & (1 << 47) != 0,
     });
 
+    let raw = mchbar.read64(PACKAGE_RAPL_LIMIT);
+    debug!(
+        "PACKAGE_RAPL_LIMIT ({:#X}): {:#018X}",
+        PACKAGE_RAPL_LIMIT, raw
+    );
+    // An MMIO read that doesn't decode comes back as all ones, which is not a
+    // limit register anyone could have programmed
+    let package_rapl_limit = if raw == u64::MAX { None } else { Some(raw) };
+
     Some(PlatformPower {
         psys,
         vsys_max,
         isys,
+        package_rapl_limit,
     })
 }
 
