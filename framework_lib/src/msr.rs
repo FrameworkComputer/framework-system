@@ -16,7 +16,9 @@
 //!
 //! References:
 //! - Intel SDM Volume 4 (Model-Specific Registers)
-//! - Panther Lake reference code, `Include/Register/Ptl/Msr/MsrRegs.h`
+//! - Panther Lake reference code, `Include/Register/Ptl/Msr/MsrRegs.h`,
+//!   `PeiCpuPowerManagementLib` and `CpuCommonLib.c` for the tau encoding
+//! - coreboot `src/soc/intel/common/block/cpu/cpulib.c` and `power_limit.c`
 //! - Linux `arch/x86/include/asm/msr-index.h` and `tools/power/x86/turbostat`
 
 use alloc::format;
@@ -54,6 +56,8 @@ pub const MSR_PACKAGE_POWER_SKU_UNIT: u32 = 0x00000606;
 pub const MSR_PACKAGE_RAPL_LIMIT: u32 = 0x00000610;
 /// TDP and the power range of this SKU (MSR_PACKAGE_POWER_SKU)
 pub const MSR_PACKAGE_POWER_SKU: u32 = 0x00000614;
+/// PL3, how often the package may exceed a peak power (MSR_PL3_CONTROL)
+pub const MSR_PL3_CONTROL: u32 = 0x00000615;
 /// PSys PL1 and PL2, limiting the whole platform instead of the package
 pub const MSR_PLATFORM_POWER_LIMIT: u32 = 0x0000065C;
 
@@ -459,6 +463,12 @@ pub struct TemperatureTarget {
     pub fan_temp_offset: u8,
     /// Allow RATL throttling below P1
     pub tcc_offset_clamping: bool,
+    /// Raw 7 bit tau field of the running average temperature limit (RATL)
+    ///
+    /// Zero means RATL is off. coreboot programs 0x66 here, the closest the tau
+    /// format gets to the 100 ms it aims for, so RATL is on for us whenever the
+    /// board configures a TCC offset at all.
+    pub ratl_tau: u64,
     /// The whole MSR is read-only
     pub locked: bool,
 }
@@ -472,7 +482,32 @@ impl From<u64> for TemperatureTarget {
             tcc_offset: ((msr >> 24) & 0x3F) as u8,
             fan_temp_offset: ((msr >> 8) & 0xFF) as u8,
             tcc_offset_clamping: bit(msr, 7),
+            ratl_tau: msr & 0x7F,
             locked: bit(msr, 31),
+        }
+    }
+}
+
+impl TemperatureTarget {
+    /// Whether the running average temperature limit is enabled
+    ///
+    /// RATL lets the die exceed the TCC activation temperature in bursts as
+    /// long as the average over the tau stays below it. The reference code
+    /// decides this the same way, by the tau field being nonzero.
+    pub fn ratl(&self) -> bool {
+        self.ratl_tau != 0
+    }
+
+    /// Temperature at which PROCHOT# is asserted, in degrees C
+    ///
+    /// With RATL enabled the TCC offset only applies to the running average, so
+    /// the instantaneous trip point is the reference temperature itself. That's
+    /// what the reference code's `CpuGetCrossThrottlingTripPoint` returns.
+    pub fn tcc_activation(&self) -> u8 {
+        if self.ratl() {
+            self.ref_temp
+        } else {
+            self.ref_temp.saturating_sub(self.tcc_offset)
         }
     }
 }
@@ -610,19 +645,29 @@ pub struct PowerLimit {
     pub enabled: bool,
     /// Processor may go below the OS requested P-State to hold the limit
     pub clamping: bool,
-    /// Averaging window, None if this limit has no time window field
-    pub time_window: Option<f32>,
+    /// Averaging window in seconds, None if this limit has no tau field
+    pub tau: Option<f32>,
 }
 
-/// Decode the 7 bit time window field of a RAPL limit register
+/// Decode a 7 bit tau (averaging time window) field
 ///
-/// Time Window = (1 + X/4) * 2^Y in units of `RaplUnits::time`, where Y is
-/// bits 4:0 and X is bits 6:5 of the field.
-fn time_window(field: u64, units: &RaplUnits) -> f32 {
+/// Tau = (1 + X/4) * 2^Y in units of `unit` seconds, where Y is bits 4:0 and X
+/// is bits 6:5 of the field. Every averaging window the processor has is
+/// encoded this way: the RAPL power limits, the platform current limits, PL3
+/// and the running average temperature limit.
+fn tau(field: u64, unit: f32) -> f32 {
     let y = field & 0x1F;
     let x = (field >> 5) & 0x3;
-    (1.0 + x as f32 / 4.0) * (1u64 << y) as f32 * units.time
+    (1.0 + x as f32 / 4.0) * (1u64 << y) as f32 * unit
 }
+
+/// The time unit of the tau fields that have no unit register of their own
+///
+/// The RAPL limits scale their tau by `RaplUnits::time`, which is 1/1024 s on
+/// every processor we've seen. RATL and PL3 have no such register and the
+/// reference code assumes 1/1024 s for them, which is what its seconds and
+/// milliseconds conversion tables are built from.
+const DEFAULT_TIME_UNIT: f32 = 1.0 / 1024.0;
 
 /// Decode one PL1/PL2 style limit out of a RAPL limit register
 ///
@@ -632,8 +677,8 @@ fn decode_limit(raw: u64, shift: u32, has_time: bool, units: &RaplUnits) -> Powe
         watts: ((raw >> shift) & 0x7FFF) as f32 * units.power,
         enabled: bit(raw, shift + 15),
         clamping: bit(raw, shift + 16),
-        time_window: if has_time {
-            Some(time_window((raw >> (shift + 17)) & 0x7F, units))
+        tau: if has_time {
+            Some(tau((raw >> (shift + 17)) & 0x7F, units.time))
         } else {
             None
         },
@@ -669,16 +714,30 @@ pub fn print_thermal_msrs() {
 
     println!("  Intel Thermal MSRs");
     println!("    TjMax:              {:>4} C", target.ref_temp);
-    println!(
-        "    TCC Activation:     {:>4} C (Offset {} C{})",
-        target.ref_temp - target.tcc_offset,
-        target.tcc_offset,
-        if target.tcc_offset_clamping {
-            ", clamping"
-        } else {
-            ""
-        }
-    );
+    let clamping = if target.tcc_offset_clamping {
+        ", clamping"
+    } else {
+        ""
+    };
+    if target.ratl() {
+        // The offset limits the average temperature over the tau instead of the
+        // instantaneous one, so the die may run hotter than TjMax minus offset
+        println!(
+            "    TCC Activation:     {:>4} C ({} C average over {:.3} s tau{})",
+            target.tcc_activation(),
+            target.ref_temp.saturating_sub(target.tcc_offset),
+            tau(target.ratl_tau, DEFAULT_TIME_UNIT),
+            clamping
+        );
+    } else {
+        debug!("No RATL tau, the TCC offset limits the instantaneous temperature");
+        println!(
+            "    TCC Activation:     {:>4} C (Offset {} C{})",
+            target.tcc_activation(),
+            target.tcc_offset,
+            clamping
+        );
+    }
     // Our EC does its own fan control, so this is usually left at 0 (unused)
     if target.fan_temp_offset > 0 {
         println!(
@@ -890,8 +949,8 @@ fn print_limit(name: &str, limit: &PowerLimit) {
     if limit.clamping {
         notes.push("Clamping".to_string());
     }
-    if let Some(window) = limit.time_window {
-        notes.push(format!("{:.3} s window", window));
+    if let Some(tau) = limit.tau {
+        notes.push(format!("{:.3} s tau", tau));
     }
     println!(
         "      {:<20} {:>6.1} W  {}",
@@ -914,6 +973,9 @@ fn print_power_limits(cpuid: &CpuId) {
         return;
     };
 
+    // Read once, the limits and the platform configuration below both need it
+    let platform = crate::pcode::platform_power();
+
     println!("    Power Limits");
     if let Some(sku) = read_msr(0, MSR_PACKAGE_POWER_SKU) {
         println!(
@@ -930,6 +992,16 @@ fn print_power_limits(cpuid: &CpuId) {
                 "SKU Max Power:", max, min
             );
         }
+        // The ceiling on the PL1 tau below. Anything longer gets clamped to it,
+        // so a tau that looks too short may simply be all this SKU allows.
+        let max_win = (sku >> 48) & 0x7F;
+        if max_win != 0 {
+            println!(
+                "      {:<20} {:>6.1} s  Longest averaging window this SKU allows",
+                "Max Tau:",
+                tau(max_win, units.time)
+            );
+        }
     }
 
     if let Some(raw) = read_msr(0, MSR_PACKAGE_RAPL_LIMIT) {
@@ -940,9 +1012,13 @@ fn print_power_limits(cpuid: &CpuId) {
         }
     }
 
-    // These two are not on pre-Skylake processors
+    // These are not on pre-Skylake processors
     if !cpuid.skylake_or_newer() {
         return;
+    }
+
+    if let Some(raw) = read_msr(0, MSR_PL3_CONTROL) {
+        print_pl3(raw, &units);
     }
 
     if let Some(raw) = read_msr(0, MSR_VR_CURRENT_CONFIG) {
@@ -955,6 +1031,26 @@ fn print_power_limits(cpuid: &CpuId) {
             (raw & 0xFFFF) as f32 * units.power,
             if bit(raw, 31) { "Locked" } else { "" }
         );
+    }
+
+    // PL1 and PL2 exist a second time in MCHBAR, in the same layout. Both
+    // copies are live and hold their own tau: Intel's Dual Tau Boost feature
+    // deliberately programs a higher PL1 with a shorter tau in MCHBAR and a
+    // lower PL1 with a longer tau in the MSR. On Linux this copy is also the one
+    // the OS gets at, as powercap's intel-rapl-mmio, so the MSR alone doesn't
+    // necessarily say what the package is being held to.
+    match platform.and_then(|power| power.package_rapl_limit) {
+        // Firmware programs this register alongside the MSR, so all zeroes means
+        // nothing is being limited through it
+        Some(0) => debug!("No power limits programmed in MCHBAR"),
+        Some(raw) => {
+            print_limit("MMIO PL1", &decode_limit(raw, 0, true, &units));
+            print_limit("MMIO PL2", &decode_limit(raw, 32, true, &units));
+            if bit(raw, 63) {
+                println!("      {:<20} {:>6}", "MMIO Locked:", "Yes");
+            }
+        }
+        None => (),
     }
 
     if let Some(raw) = read_msr(0, MSR_PLATFORM_POWER_LIMIT) {
@@ -974,15 +1070,52 @@ fn print_power_limits(cpuid: &CpuId) {
     // The full scale of all of the above PSys numbers, and the platform's
     // current limits, aren't in MSRs. Report them next to the limits anyway,
     // because the full scale is what decides whether they mean anything.
-    print_platform_power(&units);
+    print_platform_power(platform, &units);
+}
+
+/// Print PL3, the limit on how often the package may exceed a peak power
+///
+/// PL3 doesn't cap power the way the other limits do. It allows the package to
+/// exceed its power level for a fraction of the averaging window, so it takes a
+/// duty cycle as well as a tau. Firmware leaves it disabled on our systems.
+fn print_pl3(raw: u64, units: &RaplUnits) {
+    let mut notes = Vec::new();
+    if bit(raw, 15) {
+        // Programmed in milliseconds, but encoded like every other tau
+        notes.push(format!(
+            "{:.3} s tau",
+            tau((raw >> 17) & 0x7F, DEFAULT_TIME_UNIT)
+        ));
+        notes.push(format!("{} % duty cycle", (raw >> 24) & 0x7F));
+        // The reference code only documents this as how quickly pcode brings
+        // power back down, gradually or aggressively
+        notes.push(
+            if bit(raw, 16) {
+                "aggressive response"
+            } else {
+                "gradual response"
+            }
+            .to_string(),
+        );
+    } else {
+        notes.push("Disabled".to_string());
+    }
+    if bit(raw, 31) {
+        notes.push("Locked".to_string());
+    }
+    println!(
+        "      {:<20} {:>6.1} W  {}",
+        "PL3 (occurrence):",
+        (raw & 0x7FFF) as f32 * units.power,
+        notes.join(", ")
+    );
 }
 
 /// Print the platform power delivery configuration that isn't in any MSR
 ///
-/// `units` is only needed for the Isys time window, which is encoded like a
-/// RAPL one.
-fn print_platform_power(units: &RaplUnits) {
-    let Some(power) = crate::pcode::platform_power() else {
+/// `units` is only needed for the Isys tau, which is encoded like a RAPL one.
+fn print_platform_power(power: Option<crate::pcode::PlatformPower>, units: &RaplUnits) {
+    let Some(power) = power else {
         info!("{}", crate::pcode::unavailable_hint());
         return;
     };
@@ -1021,7 +1154,7 @@ fn print_platform_power(units: &RaplUnits) {
     if let Some(isys) = power.isys {
         if isys.l1_amps > 0.0 || isys.l2_amps > 0.0 {
             print_isys_limit("Isys Limit L1", isys.l1_amps, isys.l1_enabled, {
-                Some(time_window(isys.l1_tau, units))
+                Some(tau(isys.l1_tau, units.time))
             });
             print_isys_limit("Isys Limit L2", isys.l2_amps, isys.l2_enabled, None);
         } else {
@@ -1031,13 +1164,13 @@ fn print_platform_power(units: &RaplUnits) {
 }
 
 /// Print one of the two Isys current limits, in the style of [print_limit]
-fn print_isys_limit(name: &str, amps: f32, enabled: bool, time_window: Option<f32>) {
+fn print_isys_limit(name: &str, amps: f32, enabled: bool, tau: Option<f32>) {
     let mut notes = Vec::new();
     if !enabled {
         notes.push("Disabled".to_string());
     }
-    if let Some(window) = time_window {
-        notes.push(format!("{:.3} s window", window));
+    if let Some(tau) = tau {
+        notes.push(format!("{:.3} s tau", tau));
     }
     println!(
         "      {:<20} {:>6.1} A  {}",
@@ -1087,14 +1220,25 @@ mod tests {
     }
 
     #[test]
-    // Time Window = (1 + X/4) * 2^Y, Y is bits 4:0 and X is bits 6:5
-    fn rapl_time_window() {
+    // Tau = (1 + X/4) * 2^Y, Y is bits 4:0 and X is bits 6:5
+    fn rapl_tau() {
         let units = RaplUnits::from(0x000A_0E03);
         // The reset default of 0xA is Y=10, X=0, so 1024 * 1/1024 s
-        assert_eq!(time_window(0x0A, &units), 1.0);
+        assert_eq!(tau(0x0A, units.time), 1.0);
         // Y=10, X=2 gives 1.5 * 1024 * 1/1024 s
-        assert_eq!(time_window(0x4A, &units), 1.5);
-        assert_eq!(time_window(0, &units), 1.0 / 1024.0);
+        assert_eq!(tau(0x4A, units.time), 1.5);
+        assert_eq!(tau(0, units.time), 1.0 / 1024.0);
+        // The entries of the reference code's seconds conversion table, which
+        // only lines up with 1/1024 s units
+        assert_eq!(tau(0x4B, DEFAULT_TIME_UNIT), 3.0);
+        assert_eq!(tau(0x6E, DEFAULT_TIME_UNIT), 28.0);
+        assert_eq!(tau(0x71, DEFAULT_TIME_UNIT), 224.0);
+        // And of its milliseconds table, used for PL3 and RATL
+        assert_eq!(tau(0x41, DEFAULT_TIME_UNIT), 3.0 / 1024.0);
+        assert_eq!(tau(0x09, DEFAULT_TIME_UNIT), 0.5);
+        assert_eq!(tau(0x49, DEFAULT_TIME_UNIT), 0.75);
+        // The maximum time window MSR_PACKAGE_POWER_SKU defaults to
+        assert_eq!(tau(0x12, DEFAULT_TIME_UNIT), 256.0);
     }
 
     #[test]
@@ -1106,19 +1250,19 @@ mod tests {
         assert_eq!(pl1.watts, 28.0);
         assert!(pl1.enabled);
         assert!(pl1.clamping);
-        assert_eq!(pl1.time_window, Some(1.0));
+        assert_eq!(pl1.tau, Some(1.0));
 
         let pl2 = decode_limit(raw, 32, true, &units);
         assert_eq!(pl2.watts, 64.0);
         assert!(pl2.enabled);
         assert!(!pl2.clamping);
         // Y=1, X=1 gives 1.25 * 2 * 1/1024 s
-        assert_eq!(pl2.time_window, Some(1.25 * 2.0 / 1024.0));
+        assert_eq!(pl2.tau, Some(1.25 * 2.0 / 1024.0));
 
         // Bit 63 is the lock
         assert!(bit(raw, 63));
-        // A limit without a time window field
-        assert_eq!(decode_limit(raw, 32, false, &units).time_window, None);
+        // A limit without a tau field
+        assert_eq!(decode_limit(raw, 32, false, &units).tau, None);
     }
 
     #[test]
@@ -1147,6 +1291,36 @@ mod tests {
         assert_eq!(target.tcc_offset, 8);
         assert_eq!(target.fan_temp_offset, 0);
         assert!(!target.locked);
+        // Without a tau, RATL is off and the offset trips PROCHOT directly
+        assert!(!target.ratl());
+        assert_eq!(target.tcc_activation(), 92);
+    }
+
+    #[test]
+    // What coreboot leaves behind: the same 8 C offset, but with the low byte
+    // written as 0xE6, which is a 0.109 s tau (its "100 ms") plus clamping. The
+    // offset then only limits the average, so PROCHOT# trips at TjMax.
+    fn temperature_target_ratl() {
+        let target = TemperatureTarget::from(0x0864_00E6);
+        assert_eq!(target.ref_temp, 100);
+        assert_eq!(target.tcc_offset, 8);
+        assert!(target.ratl());
+        assert!(target.tcc_offset_clamping);
+        assert_eq!(tau(target.ratl_tau, DEFAULT_TIME_UNIT), 112.0 / 1024.0);
+        assert_eq!(target.tcc_activation(), 100);
+    }
+
+    #[test]
+    // PL3 25 W with a 4 ms tau at a 90 % duty cycle, enabled and unlocked
+    fn pl3() {
+        let units = RaplUnits::from(0x000A_0E03);
+        let raw = 0x5A04_80C8;
+        assert_eq!((raw & 0x7FFF) as f32 * units.power, 25.0);
+        assert!(bit(raw, 15));
+        assert!(!bit(raw, 16));
+        assert_eq!(tau((raw >> 17) & 0x7F, DEFAULT_TIME_UNIT), 4.0 / 1024.0);
+        assert_eq!((raw >> 24) & 0x7F, 90);
+        assert!(!bit(raw, 31));
     }
 
     #[test]
