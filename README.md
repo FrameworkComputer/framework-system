@@ -15,6 +15,8 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
   - `nix-shell -p framework-tool`
 - [ArchLinux](https://archlinux.org/packages/extra/x86_64/framework-system/) [![Arch Linux package](https://repology.org/badge/version-for-repo/arch/framework-system.svg)](https://repology.org/project/framework-system/versions)
   - `pacman -S framework-system`
+- [Aurora / Project Bluefin](https://github.com/ublue-os/homebrew-tap/blob/main/Casks/framework-tool.rb)
+  - `brew tap ublue-os/tap`, then `brew install --cask framework-tool`
 - [Bazzite](https://github.com/ublue-os/bazzite/pull/3026)
   - No need to install - included in the base image
 - [Fedora (via the Terra repo)](https://github.com/terrapkg/packages/pull/8554)
