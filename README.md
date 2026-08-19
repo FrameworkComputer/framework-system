@@ -15,10 +15,12 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
   - `nix-shell -p framework-tool`
 - [ArchLinux](https://archlinux.org/packages/extra/x86_64/framework-system/) [![Arch Linux package](https://repology.org/badge/version-for-repo/arch/framework-system.svg)](https://repology.org/project/framework-system/versions)
   - `pacman -S framework-system`
-- [Aurora / Project Bluefin](https://github.com/ublue-os/homebrew-tap/blob/main/Casks/framework-tool.rb)
+- [Aurora](https://github.com/ublue-os/homebrew-tap/blob/main/Casks/framework-tool.rb)
   - `brew tap ublue-os/tap`, then `brew install --cask framework-tool`
 - [Bazzite](https://github.com/ublue-os/bazzite/pull/3026)
   - No need to install - included in the base image
+- [Project Bluefin](https://github.com/ublue-os/bluefin/commit/f2b61ac363fa1ed0626acd2ff15cd4b9fd6a776f)
+  - Automatically installed on Framework devices by the system
 - [Fedora (via the Terra repo)](https://github.com/terrapkg/packages/pull/8554)
   - Install the [Terra repository](https://terra.fyralabs.com/), then `dnf install framework-system`
 - OpenSUSE [![openSUSE Tumbleweed package](https://repology.org/badge/version-for-repo/opensuse_tumbleweed/framework-tool.svg)](https://repology.org/project/framework-tool/versions)
