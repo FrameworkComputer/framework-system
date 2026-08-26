@@ -82,8 +82,9 @@ const EC_FAN_SPEED_ENTRIES: usize = 4;
 const EC_FAN_SPEED_STALLED_DEPRECATED: u16 = 0xFFFE;
 const EC_FAN_SPEED_NOT_PRESENT: u16 = 0xFFFF;
 
-#[derive(Debug, PartialEq)]
-enum TempSensor {
+/// Reading of a single temperature sensor
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TempSensor {
     Ok(u8),
     NotPresent,
     Error,
@@ -250,20 +251,51 @@ pub fn print_memmap_version_info(ec: &CrosEc) {
     let _events_ver = ec.read_memory(EC_MEMMAP_EVENTS_VERSION, 2).unwrap();
 }
 
-/// Format a thermal threshold in degrees Celsius, zero means disabled
-fn format_threshold(kelvin: u32) -> String {
+/// Thermal thresholds of a single temperature sensor
+///
+/// All temperatures are in degrees Celsius, `None` means the threshold is disabled.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ThermalThresholds {
+    /// Index of the sensor in the EC memory map
+    pub index: u32,
+    /// Name as reported by the EC
+    pub name: String,
+    /// Warn the OS above this temperature
+    pub warn: Option<i32>,
+    /// Tell the OS to shut down above this temperature
+    pub high: Option<i32>,
+    /// Hard shutdown above this temperature
+    pub halt: Option<i32>,
+    /// Turn the fan off below this temperature
+    pub fan_off: Option<i32>,
+    /// Run the fan at maximum speed above this temperature
+    pub fan_max: Option<i32>,
+}
+
+/// Convert a threshold from Kelvin to Celsius, zero means disabled
+fn threshold_celsius(kelvin: u32) -> Option<i32> {
     if kelvin == 0 {
-        "-".to_string()
+        None
     } else {
-        (kelvin as i32 - 273).to_string()
+        Some(kelvin as i32 - 273)
     }
 }
 
-/// Print the thermal thresholds of all temperature sensors
-pub fn print_thermal_thresholds(ec: &CrosEc) -> Option<()> {
+/// Format a thermal threshold in degrees Celsius, `None` means disabled
+fn format_threshold(celsius: Option<i32>) -> String {
+    if let Some(celsius) = celsius {
+        celsius.to_string()
+    } else {
+        "-".to_string()
+    }
+}
+
+/// Read the thermal thresholds of all present temperature sensors
+///
+/// Stops at the first sensor that fails to respond, like ectool does.
+pub fn get_thermal_thresholds(ec: &CrosEc) -> Option<Vec<ThermalThresholds>> {
     let temps = ec.read_memory(EC_MEMMAP_TEMP_SENSOR, 0x0F)?;
-    println!("sensor  warn  high  halt   fan_off fan_max   name");
-    let mut printed = 0;
+    let mut thresholds = vec![];
     for (i, temp) in temps.iter().enumerate() {
         if TempSensor::from(*temp) == TempSensor::NotPresent {
             continue;
@@ -277,19 +309,36 @@ pub fn print_thermal_thresholds(ec: &CrosEc) -> Option<()> {
             .unwrap_or_else(|_| "?".to_string());
         // Copy out of the packed struct to allow taking references
         let temp_host = { cfg.temp_host };
+        thresholds.push(ThermalThresholds {
+            index: i as u32,
+            name,
+            warn: threshold_celsius(temp_host[EcTempThreshold::Warn as usize]),
+            high: threshold_celsius(temp_host[EcTempThreshold::High as usize]),
+            halt: threshold_celsius(temp_host[EcTempThreshold::Halt as usize]),
+            fan_off: threshold_celsius(cfg.temp_fan_off),
+            fan_max: threshold_celsius(cfg.temp_fan_max),
+        });
+    }
+    Some(thresholds)
+}
+
+/// Print the thermal thresholds of all temperature sensors
+pub fn print_thermal_thresholds(ec: &CrosEc) -> Option<()> {
+    let thresholds = get_thermal_thresholds(ec)?;
+    println!("sensor  warn  high  halt   fan_off fan_max   name");
+    for threshold in &thresholds {
         println!(
             " {:2}      {:>3}   {:>3}    {:>3}    {:>3}     {:>3}     {}",
-            i,
-            format_threshold(temp_host[EcTempThreshold::Warn as usize]),
-            format_threshold(temp_host[EcTempThreshold::High as usize]),
-            format_threshold(temp_host[EcTempThreshold::Halt as usize]),
-            format_threshold(cfg.temp_fan_off),
-            format_threshold(cfg.temp_fan_max),
-            name
+            threshold.index,
+            format_threshold(threshold.warn),
+            format_threshold(threshold.high),
+            format_threshold(threshold.halt),
+            format_threshold(threshold.fan_off),
+            format_threshold(threshold.fan_max),
+            threshold.name
         );
-        printed += 1;
     }
-    if printed > 0 {
+    if !thresholds.is_empty() {
         println!("(all temps in degrees Celsius)");
     }
     Some(())
@@ -473,9 +522,77 @@ pub fn print_sensors(ec: &CrosEc) {
     }
 }
 
-pub fn print_thermal(ec: &CrosEc) {
-    let temps = ec.read_memory(EC_MEMMAP_TEMP_SENSOR, 0x0F).unwrap();
-    let fans = ec.read_memory(EC_MEMMAP_FAN, 0x08).unwrap();
+/// All thermal information the EC reports at once
+///
+/// Use [`get_thermal`] to read it and [`print_thermal`] to show it like the
+/// commandline tool does.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ThermalInfo {
+    /// All temperature sensors that are present
+    pub sensors: Vec<TempSensorInfo>,
+    /// All fan slots, including those that have no fan connected
+    pub fans: Vec<FanInfo>,
+    /// Whether the EC is throttling the AP, `None` if it doesn't report it
+    pub throttle: Option<ApThrottleInfo>,
+}
+
+/// A single temperature sensor and its current reading
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TempSensorInfo {
+    /// Index of the sensor in the EC memory map
+    pub index: u8,
+    /// Name as reported by the EC
+    pub name: String,
+    /// Current reading
+    pub temp: TempSensor,
+}
+
+/// A single fan and its current speed
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FanInfo {
+    /// Index of the fan in the EC memory map
+    pub index: usize,
+    /// Human readable name, depends on the platform
+    pub name: String,
+    /// Current speed
+    pub speed: FanSpeed,
+}
+
+/// Current speed of a single fan
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FanSpeed {
+    /// Current speed in RPM
+    Rpm(u16),
+    /// Fan is stalled, only reported by EC firmware from before 2023
+    Stalled,
+    /// No fan is connected to this slot
+    NotPresent,
+}
+impl From<u16> for FanSpeed {
+    fn from(rpm: u16) -> Self {
+        match rpm {
+            EC_FAN_SPEED_STALLED_DEPRECATED => FanSpeed::Stalled,
+            EC_FAN_SPEED_NOT_PRESENT => FanSpeed::NotPresent,
+            rpm => FanSpeed::Rpm(rpm),
+        }
+    }
+}
+
+/// Whether the EC is throttling the AP
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ApThrottleInfo {
+    pub soft: bool,
+    pub hard: bool,
+}
+
+/// Read temperatures, fan speeds and AP throttle status from the EC
+pub fn get_thermal(ec: &CrosEc) -> EcResult<ThermalInfo> {
+    let temps = ec
+        .read_memory(EC_MEMMAP_TEMP_SENSOR, 0x0F)
+        .ok_or_else(|| EcError::DeviceError("Failed to read temperature sensors".to_string()))?;
+    let fans = ec
+        .read_memory(EC_MEMMAP_FAN, 0x08)
+        .ok_or_else(|| EcError::DeviceError("Failed to read fan speeds".to_string()))?;
 
     let family = smbios::get_family();
 
@@ -489,17 +606,14 @@ pub fn print_thermal(ec: &CrosEc) {
         let name = ec
             .get_temp_sensor_name(i as u8)
             .unwrap_or_else(|_| format!("Temp {}", i));
-        sensors.push((name, temp));
-    }
-    let width = sensors
-        .iter()
-        .map(|(name, _)| name.len() + 1)
-        .max()
-        .unwrap_or(13);
-    for (name, temp) in sensors {
-        println!("  {:<width$} {:>4}", format!("{name}:"), temp);
+        sensors.push(TempSensorInfo {
+            index: i as u8,
+            name,
+            temp,
+        });
     }
 
+    let mut fan_infos = vec![];
     for i in 0..EC_FAN_SPEED_ENTRIES {
         let name = match (i, family) {
             (0, Some(PlatformFamily::Framework12)) => "APU Fan".to_string(),
@@ -511,22 +625,66 @@ pub fn print_thermal(ec: &CrosEc) {
             (2, Some(PlatformFamily::FrameworkDesktop)) => "Third Fan".to_string(),
             _ => format!("Fan {i}"),
         };
-        let name = format!("{name}:");
+        fan_infos.push(FanInfo {
+            index: i,
+            name,
+            speed: FanSpeed::from(u16::from_le_bytes([fans[i * 2], fans[1 + i * 2]])),
+        });
+    }
 
-        let fan = u16::from_le_bytes([fans[i * 2], fans[1 + i * 2]]);
-        if fan == EC_FAN_SPEED_STALLED_DEPRECATED {
-            println!("  {name:<width$} {:>4} RPM (Stalled)", fan);
-        } else if fan == EC_FAN_SPEED_NOT_PRESENT {
-            info!("  {name:<width$} Not present");
-        } else {
-            println!("  {name:<width$} {:>4} RPM", fan);
+    let throttle = ec
+        .get_ap_throttle_status()
+        .ok()
+        .map(|throttle| ApThrottleInfo {
+            soft: throttle.soft_ap_throttle == 1,
+            hard: throttle.hard_ap_throttle == 1,
+        });
+
+    Ok(ThermalInfo {
+        sensors,
+        fans: fan_infos,
+        throttle,
+    })
+}
+
+/// Print temperatures, fan speeds and AP throttle status
+pub fn print_thermal(ec: &CrosEc) {
+    let info = match get_thermal(ec) {
+        Ok(info) => info,
+        Err(err) => {
+            println!("Failed to read thermal information: {:?}", err);
+            return;
+        }
+    };
+
+    let width = info
+        .sensors
+        .iter()
+        .map(|sensor| sensor.name.len() + 1)
+        .max()
+        .unwrap_or(13);
+    for sensor in &info.sensors {
+        let name = format!("{}:", sensor.name);
+        println!("  {:<width$} {:>4}", name, sensor.temp);
+    }
+
+    for fan in &info.fans {
+        let name = format!("{}:", fan.name);
+        match fan.speed {
+            // Keep printing the raw value, like we always did
+            FanSpeed::Stalled => println!(
+                "  {name:<width$} {:>4} RPM (Stalled)",
+                EC_FAN_SPEED_STALLED_DEPRECATED
+            ),
+            FanSpeed::NotPresent => info!("  {name:<width$} Not present"),
+            FanSpeed::Rpm(rpm) => println!("  {name:<width$} {:>4} RPM", rpm),
         }
     }
 
     println!("  AP Throttle Status");
-    if let Ok(throttle) = ec.get_ap_throttle_status() {
-        println!("    Soft:        {:?}", throttle.soft_ap_throttle == 1);
-        println!("    Hard:        {:?}", throttle.hard_ap_throttle == 1);
+    if let Some(throttle) = info.throttle {
+        println!("    Soft:        {:?}", throttle.soft);
+        println!("    Hard:        {:?}", throttle.hard);
     } else {
         println!("    Unknown");
     }
@@ -1131,5 +1289,52 @@ pub fn standalone_mode(ec: &CrosEc) -> bool {
     } else {
         // Default to true, when we can't find battery status, assume it's not there. Safe default.
         true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decode_fan_speed() {
+        assert_eq!(FanSpeed::from(0), FanSpeed::Rpm(0));
+        assert_eq!(FanSpeed::from(3500), FanSpeed::Rpm(3500));
+        // Just below the first special value is still a valid speed
+        assert_eq!(FanSpeed::from(0xFFFD), FanSpeed::Rpm(0xFFFD));
+        assert_eq!(
+            FanSpeed::from(EC_FAN_SPEED_STALLED_DEPRECATED),
+            FanSpeed::Stalled
+        );
+        assert_eq!(
+            FanSpeed::from(EC_FAN_SPEED_NOT_PRESENT),
+            FanSpeed::NotPresent
+        );
+    }
+
+    #[test]
+    fn decode_temp_sensor() {
+        assert_eq!(TempSensor::from(0xFF), TempSensor::NotPresent);
+        assert_eq!(TempSensor::from(0xFE), TempSensor::Error);
+        assert_eq!(TempSensor::from(0xFD), TempSensor::NotPowered);
+        assert_eq!(TempSensor::from(0xFC), TempSensor::NotCalibrated);
+        // Raw sensor values are offset by 73 K
+        assert_eq!(TempSensor::from(73), TempSensor::Ok(0));
+        assert_eq!(TempSensor::from(100), TempSensor::Ok(27));
+    }
+
+    #[test]
+    fn decode_threshold() {
+        // Zero means the threshold is disabled
+        assert_eq!(threshold_celsius(0), None);
+        assert_eq!(threshold_celsius(273), Some(0));
+        assert_eq!(threshold_celsius(373), Some(100));
+    }
+
+    #[test]
+    fn format_disabled_threshold() {
+        assert_eq!(format_threshold(None), "-");
+        assert_eq!(format_threshold(Some(0)), "0");
+        assert_eq!(format_threshold(Some(100)), "100");
     }
 }
