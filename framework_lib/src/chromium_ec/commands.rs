@@ -1999,3 +1999,33 @@ impl EcRequest<EcResponseGetApThrottleStatus> for EcRequestGetApThrottleStatus {
         EcCommands::GetApThrottleStatus
     }
 }
+
+/// Verbose PD message logging (cypdctl verbose)
+pub const EC_DEBUG_PD_VERBOSE_MSG: u8 = 0x01;
+/// UCSI command tracing (cypdctl ucsi)
+pub const EC_DEBUG_PD_UCSI: u8 = 0x02;
+/// Disable the UCSI tunnel (cypdctl ucsitun 0)
+pub const EC_DEBUG_PD_UCSI_TUNNEL_DIS: u8 = 0x04;
+/// Log every HID report from the keyboard controller (kbdebug)
+pub const EC_DEBUG_KEYBOARD: u8 = 0x08;
+
+#[repr(C, packed)]
+pub struct EcRequestDebugControl {
+    /// Which EC_DEBUG_* flags to modify; 0 = pure read, nothing changed
+    pub set_mask: u8,
+    /// New values for the flags selected in set_mask
+    pub flags: u8,
+}
+
+#[repr(C, packed)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EcResponseDebugControl {
+    /// Current flag values, after any modification
+    pub flags: u8,
+}
+
+impl EcRequest<EcResponseDebugControl> for EcRequestDebugControl {
+    fn command_id() -> EcCommands {
+        EcCommands::DebugControl
+    }
+}

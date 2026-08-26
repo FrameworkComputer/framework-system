@@ -11,7 +11,10 @@ use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::{CrosEcDriverType, HardwareDeviceType};
 use crate::commandline::{Cli, LogLevel};
 
-use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, RebootEcArg, TabletModeArg};
+use super::{
+    ConsoleArg, FpBrightnessArg, InputDeckModeArg, KbdDebugArg, PdDebugArg, RebootEcArg,
+    TabletModeArg,
+};
 
 /// Get commandline arguments from UEFI environment
 pub fn get_args() -> Vec<String> {
@@ -55,6 +58,8 @@ pub fn parse(args: &[String]) -> Cli {
         pd_reset: None,
         pd_disable: None,
         pd_enable: None,
+        pd_debug: None,
+        kbd_debug: None,
         dp_hdmi_info: false,
         dp_hdmi_update: None,
         audio_card_info: false,
@@ -659,6 +664,52 @@ pub fn parse(args: &[String]) -> Cli {
                 }
             } else {
                 println!("--pd-enable requires specifying the PD controller");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--pd-debug" {
+            cli.pd_debug = if args.len() > i + 1 {
+                let pd_debug_arg = &args[i + 1];
+                if pd_debug_arg == "status" {
+                    Some(PdDebugArg::Status)
+                } else if pd_debug_arg == "off" {
+                    Some(PdDebugArg::Off)
+                } else if pd_debug_arg == "verbose" {
+                    Some(PdDebugArg::Verbose)
+                } else if pd_debug_arg == "ucsi" {
+                    Some(PdDebugArg::Ucsi)
+                } else if pd_debug_arg == "all" {
+                    Some(PdDebugArg::All)
+                } else {
+                    println!(
+                        "Invalid value for --pd-debug: '{}'. Must be one of 'status', 'off', 'verbose', 'ucsi', 'all'.",
+                        pd_debug_arg
+                    );
+                    None
+                }
+            } else {
+                println!("--pd-debug requires specifying the mode");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--kbd-debug" {
+            cli.kbd_debug = if args.len() > i + 1 {
+                let kbd_debug_arg = &args[i + 1];
+                if kbd_debug_arg == "status" {
+                    Some(KbdDebugArg::Status)
+                } else if kbd_debug_arg == "off" {
+                    Some(KbdDebugArg::Off)
+                } else if kbd_debug_arg == "on" {
+                    Some(KbdDebugArg::On)
+                } else {
+                    println!(
+                        "Invalid value for --kbd-debug: '{}'. Must be one of 'status', 'off', 'on'.",
+                        kbd_debug_arg
+                    );
+                    None
+                }
+            } else {
+                println!("--kbd-debug requires specifying the mode");
                 None
             };
             found_an_option = true;
