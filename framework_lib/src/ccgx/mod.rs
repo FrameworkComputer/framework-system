@@ -111,6 +111,9 @@ pub enum SiliconFamily {
     Ccg6 = 0x30A0,
     Ccg8D = 0x3580,
     Ccg8S = 0x3581,
+    /// CCG6xF_CFP, e.g. CYPD6229
+    Ccg6Cfp = 0x3E03,
+    /// CCG8xF_CFP, e.g. CYPD8229
     Ccg8Cfp = 0x3E81,
 }
 

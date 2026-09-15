@@ -112,10 +112,11 @@ fn read_metadata(
         SiliconFamily::Ccg5 | SiliconFamily::Ccg6Adl | SiliconFamily::Ccg6 => {
             parse_metadata_cyacd(&buffer)
         }
-        SiliconFamily::Ccg8D | SiliconFamily::Ccg8S | SiliconFamily::Ccg8Cfp => {
-            parse_metadata_cyacd2(&buffer)
-                .map(|(fw_row_start, fw_size)| (fw_row_start / (flash_row_size as u32), fw_size))
-        }
+        SiliconFamily::Ccg8D
+        | SiliconFamily::Ccg8S
+        | SiliconFamily::Ccg6Cfp
+        | SiliconFamily::Ccg8Cfp => parse_metadata_cyacd2(&buffer)
+            .map(|(fw_row_start, fw_size)| (fw_row_start / (flash_row_size as u32), fw_size)),
     }
 }
 
@@ -181,6 +182,7 @@ pub fn read_versions(file_buffer: &[u8], ccgx: SiliconFamily) -> Option<PdFirmwa
         SiliconFamily::Ccg6 => (SMALL_ROW, 0x1FE, 0x1FD),
         SiliconFamily::Ccg8D => (LARGE_ROW, 0x3FE, 0x3FF),
         SiliconFamily::Ccg8S => (LARGE_ROW, 0x3FE, 0x3FF),
+        SiliconFamily::Ccg6Cfp => (LARGE_ROW, 0x1FE, 0x1FF),
         SiliconFamily::Ccg8Cfp => (LARGE_ROW, 0x1FE, 0x1FF),
     };
     let backup_fw = read_version(file_buffer, flash_row_size, f1_metadata_row, ccgx)?;
@@ -223,12 +225,14 @@ mod tests {
         let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
         let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
         let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
         let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_some());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());
         assert!(ccg8d_ver.is_none());
         assert!(ccg8s_ver.is_none());
+        assert!(ccg6cfp_ver.is_none());
         assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
@@ -289,12 +293,14 @@ mod tests {
         let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
         let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
         let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
         let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_some());
         assert!(ccg6_ver.is_none());
         assert!(ccg8d_ver.is_none());
         assert!(ccg8s_ver.is_none());
+        assert!(ccg6cfp_ver.is_none());
         assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
@@ -355,12 +361,14 @@ mod tests {
         let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
         let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
         let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
         let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_some());
         assert!(ccg8d_ver.is_none());
         assert!(ccg8s_ver.is_none());
+        assert!(ccg6cfp_ver.is_none());
         assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
@@ -421,12 +429,14 @@ mod tests {
         let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
         let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
         let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
         let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_some());
         assert!(ccg8d_ver.is_none());
         assert!(ccg8s_ver.is_none());
+        assert!(ccg6cfp_ver.is_none());
         assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
@@ -487,12 +497,14 @@ mod tests {
         let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
         let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
         let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
         let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_some());
         assert!(ccg8d_ver.is_none());
         assert!(ccg8s_ver.is_none());
+        assert!(ccg6cfp_ver.is_none());
         assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
@@ -553,12 +565,14 @@ mod tests {
         let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
         let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
         let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
         let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());
         assert!(ccg8d_ver.is_some());
         assert!(ccg8s_ver.is_some());
+        assert!(ccg6cfp_ver.is_none());
         assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
@@ -619,12 +633,14 @@ mod tests {
         let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
         let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
         let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
         let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());
         assert!(ccg8d_ver.is_some());
         assert!(ccg8s_ver.is_some());
+        assert!(ccg6cfp_ver.is_none());
         assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
@@ -685,12 +701,14 @@ mod tests {
         let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
         let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
         let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
         let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());
         assert!(ccg8d_ver.is_some());
         assert!(ccg8s_ver.is_some());
+        assert!(ccg6cfp_ver.is_none());
         assert!(ccg8cfp_ver.is_none());
 
         assert_eq!(
@@ -751,12 +769,14 @@ mod tests {
         let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
         let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
         let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
         let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());
         assert!(ccg8d_ver.is_none());
         assert!(ccg8s_ver.is_none());
+        assert!(ccg6cfp_ver.is_some());
         assert!(ccg8cfp_ver.is_some());
 
         assert_eq!(
@@ -799,6 +819,74 @@ mod tests {
                         },
                         start_row: 7,
                         size: 24120,
+                        row_size: 0x100,
+                    },
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn can_parse_ccg8_binary_dahlia() {
+        let mut pd_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        pd_bin_path.push("test_bins/dahlia-0.0.0A.bin");
+
+        let data = fs::read(pd_bin_path).unwrap();
+        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
+        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
+        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
+        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
+        assert!(ccg3_ver.is_none());
+        assert!(ccg5_ver.is_none());
+        assert!(ccg6_ver.is_none());
+        assert!(ccg8d_ver.is_none());
+        assert!(ccg8s_ver.is_none());
+        assert!(ccg6cfp_ver.is_some());
+        assert!(ccg8cfp_ver.is_some());
+
+        assert_eq!(
+            ccg8cfp_ver,
+            Some({
+                PdFirmwareFile {
+                    backup_fw: PdFirmware {
+                        silicon_id: 0x11CE,
+                        silicon_family: 0x3E03,
+                        base_version: BaseVersion {
+                            major: 3,
+                            minor: 9,
+                            patch: 0,
+                            build_number: 826,
+                        },
+                        app_version: AppVersion {
+                            application: Application::Notebook,
+                            major: 0,
+                            minor: 0,
+                            circuit: 0x0A,
+                        },
+                        start_row: 116,
+                        size: 82160,
+                        row_size: 0x100,
+                    },
+                    main_fw: PdFirmware {
+                        silicon_id: 0x11CE,
+                        silicon_family: 0x3E03,
+                        base_version: BaseVersion {
+                            major: 3,
+                            minor: 9,
+                            patch: 0,
+                            build_number: 826,
+                        },
+                        app_version: AppVersion {
+                            application: Application::Notebook,
+                            major: 0,
+                            minor: 0,
+                            circuit: 0x0A,
+                        },
+                        start_row: 7,
+                        size: 24832,
                         row_size: 0x100,
                     },
                 }
