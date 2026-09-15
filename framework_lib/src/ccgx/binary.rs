@@ -104,14 +104,18 @@ fn read_metadata(
     file_buffer: &[u8],
     flash_row_size: usize,
     metadata_offset: u32,
-    ccgx: SiliconId,
+    ccgx: SiliconFamily,
 ) -> Option<(u32, u32)> {
     let buffer = read_256_bytes(file_buffer, metadata_offset, flash_row_size)?;
     match ccgx {
-        SiliconId::Ccg3 => parse_metadata_ccg3(&buffer),
-        SiliconId::Ccg5 | SiliconId::Ccg6Adl | SiliconId::Ccg6 => parse_metadata_cyacd(&buffer),
-        SiliconId::Ccg8D | SiliconId::Ccg8S | SiliconId::Ccg8Cfp => parse_metadata_cyacd2(&buffer)
-            .map(|(fw_row_start, fw_size)| (fw_row_start / (flash_row_size as u32), fw_size)),
+        SiliconFamily::Ccg3 => parse_metadata_ccg3(&buffer),
+        SiliconFamily::Ccg5 | SiliconFamily::Ccg6Adl | SiliconFamily::Ccg6 => {
+            parse_metadata_cyacd(&buffer)
+        }
+        SiliconFamily::Ccg8D | SiliconFamily::Ccg8S | SiliconFamily::Ccg8Cfp => {
+            parse_metadata_cyacd2(&buffer)
+                .map(|(fw_row_start, fw_size)| (fw_row_start / (flash_row_size as u32), fw_size))
+        }
     }
 }
 
@@ -141,7 +145,7 @@ fn read_version(
     file_buffer: &[u8],
     flash_row_size: usize,
     metadata_offset: u32,
-    ccgx: SiliconId,
+    ccgx: SiliconFamily,
 ) -> Option<PdFirmware> {
     let (fw_row_start, fw_size) =
         read_metadata(file_buffer, flash_row_size, metadata_offset, ccgx)?;
@@ -169,15 +173,15 @@ fn read_version(
 }
 
 /// Parse all PD information, given a binary file (buffer)
-pub fn read_versions(file_buffer: &[u8], ccgx: SiliconId) -> Option<PdFirmwareFile> {
+pub fn read_versions(file_buffer: &[u8], ccgx: SiliconFamily) -> Option<PdFirmwareFile> {
     let (flash_row_size, f1_metadata_row, fw2_metadata_row) = match ccgx {
-        SiliconId::Ccg3 => (SMALL_ROW, 0x03FF, 0x03FE),
-        SiliconId::Ccg5 => (LARGE_ROW, 0x1FE, 0x1FF),
-        SiliconId::Ccg6Adl => (SMALL_ROW, 0x1FE, 0x1FD),
-        SiliconId::Ccg6 => (SMALL_ROW, 0x1FE, 0x1FD),
-        SiliconId::Ccg8D => (LARGE_ROW, 0x3FE, 0x3FF),
-        SiliconId::Ccg8S => (LARGE_ROW, 0x3FE, 0x3FF),
-        SiliconId::Ccg8Cfp => (LARGE_ROW, 0x1FE, 0x1FF),
+        SiliconFamily::Ccg3 => (SMALL_ROW, 0x03FF, 0x03FE),
+        SiliconFamily::Ccg5 => (LARGE_ROW, 0x1FE, 0x1FF),
+        SiliconFamily::Ccg6Adl => (SMALL_ROW, 0x1FE, 0x1FD),
+        SiliconFamily::Ccg6 => (SMALL_ROW, 0x1FE, 0x1FD),
+        SiliconFamily::Ccg8D => (LARGE_ROW, 0x3FE, 0x3FF),
+        SiliconFamily::Ccg8S => (LARGE_ROW, 0x3FE, 0x3FF),
+        SiliconFamily::Ccg8Cfp => (LARGE_ROW, 0x1FE, 0x1FF),
     };
     let backup_fw = read_version(file_buffer, flash_row_size, f1_metadata_row, ccgx)?;
     let main_fw = read_version(file_buffer, flash_row_size, fw2_metadata_row, ccgx)?;
@@ -214,12 +218,12 @@ mod tests {
         pd_bin_path.push("test_bins/dp-pd-3.0.17.100.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
-        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
+        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
+        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
+        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_some());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());
@@ -280,12 +284,12 @@ mod tests {
         pd_bin_path.push("test_bins/tgl-pd-3.8.0.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
-        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
+        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
+        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
+        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_some());
         assert!(ccg6_ver.is_none());
@@ -346,12 +350,12 @@ mod tests {
         pd_bin_path.push("test_bins/adl-pd-0.1.33.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
-        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
+        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
+        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
+        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_some());
@@ -412,12 +416,12 @@ mod tests {
         pd_bin_path.push("test_bins/mtl-pd-0.0.A.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
-        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
+        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
+        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
+        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_some());
@@ -478,12 +482,12 @@ mod tests {
         pd_bin_path.push("test_bins/dogwood-pd-0.0E.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
-        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
+        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
+        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
+        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_some());
@@ -544,12 +548,12 @@ mod tests {
         pd_bin_path.push("test_bins/fl16-pd-0.0.03.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
-        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
+        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
+        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
+        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());
@@ -610,12 +614,12 @@ mod tests {
         pd_bin_path.push("test_bins/fl16-ai300-pd-0.0.22.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
-        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
+        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
+        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
+        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());
@@ -676,12 +680,12 @@ mod tests {
         pd_bin_path.push("test_bins/gn22-pd-0.0.22.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
-        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
+        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
+        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
+        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());
@@ -742,12 +746,12 @@ mod tests {
         pd_bin_path.push("test_bins/sakura-pd-1.0.0A.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconId::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconId::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconId::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconId::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconId::Ccg8S);
-        let ccg8cfp_ver = read_versions(&data, SiliconId::Ccg8Cfp);
+        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
+        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
+        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
+        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
+        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
+        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
         assert!(ccg3_ver.is_none());
         assert!(ccg5_ver.is_none());
         assert!(ccg6_ver.is_none());

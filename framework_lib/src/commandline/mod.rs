@@ -33,7 +33,7 @@ use crate::capsule_content::{
 use crate::ccgx::device::{FwMode, PdController, PdPort};
 #[cfg(feature = "hidapi")]
 use crate::ccgx::hid::{check_ccg_fw_version, find_devices, DP_CARD_PID, HDMI_CARD_PID};
-use crate::ccgx::{self, MainPdVersions, PdVersions, SiliconId::*};
+use crate::ccgx::{self, MainPdVersions, PdVersions, SiliconFamily::*};
 use crate::chromium_ec;
 use crate::chromium_ec::commands::BoardIdType;
 use crate::chromium_ec::commands::DeckStateMode;

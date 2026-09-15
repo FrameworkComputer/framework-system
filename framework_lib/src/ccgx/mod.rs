@@ -97,9 +97,14 @@ struct CyAcd2Metadata {
     _md_crc32: u32,
 }
 
+/// Silicon family of a CCGX controller
+///
+/// These are the values stored in the silicon family field of a firmware binary,
+/// not the silicon ID that the HPI READ_SILICON_ID register reports. The two are
+/// different: CCG8D and CCG8S share silicon ID 0x11C5 but differ in family.
 #[non_exhaustive]
 #[derive(Debug, PartialEq, FromPrimitive, Clone, Copy)]
-pub enum SiliconId {
+pub enum SiliconFamily {
     Ccg3 = 0x1D00,
     Ccg5 = 0x2100,
     Ccg6Adl = 0x3000,
