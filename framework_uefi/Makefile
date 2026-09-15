@@ -8,13 +8,16 @@ QEMU?=qemu-system-x86_64
 OVMF_CODE?=$(BUILD)/OVMF_CODE.fd
 OVMF_VARS?=$(BUILD)/OVMF_VARS.fd
 
+# The edk2 firmware we download is built with Secure Boot support, which
+# refuses to run unless the varstore pflash is protected by SMM.
 QEMU_FLAGS=\
-	-M q35 \
+	-M q35,smm=on \
 	-m 1024 \
 	-net none \
 	-vga std \
-	-drive if=pflash,format=raw,readonly=on,file=$(OVMF_CODE) \
-	-drive if=pflash,format=raw,file=$(BUILD)/ovmf_vars.fd
+	-global driver=cfi.pflash01,property=secure,value=on \
+	-drive if=pflash,format=raw,unit=0,readonly=on,file=$(OVMF_CODE) \
+	-drive if=pflash,format=raw,unit=1,file=$(BUILD)/ovmf_vars.fd
 
 QEMU_TEST_FLAGS=\
 	$(QEMU_FLAGS) \
