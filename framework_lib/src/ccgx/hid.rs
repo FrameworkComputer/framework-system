@@ -2,7 +2,7 @@ use hidapi::{DeviceInfo, HidApi, HidDevice, HidError};
 
 use crate::ccgx;
 use crate::ccgx::device::{decode_flash_row_size, FwMode};
-use crate::ccgx::{BaseVersion, SiliconId};
+use crate::ccgx::{BaseVersion, SiliconFamily};
 use crate::os_specific;
 use crate::util;
 
@@ -287,12 +287,13 @@ pub fn find_devices(api: &HidApi, filter_devs: &[u16], sn: Option<&str>) -> Vec<
 }
 
 pub fn flash_firmware(fw_binary: &[u8]) {
-    let versions = if let Some(versions) = ccgx::binary::read_versions(fw_binary, SiliconId::Ccg3) {
-        versions
-    } else {
-        println!("Incompatible firmware. Need CCG3 firmware.");
-        return;
-    };
+    let versions =
+        if let Some(versions) = ccgx::binary::read_versions(fw_binary, SiliconFamily::Ccg3) {
+            versions
+        } else {
+            println!("Incompatible firmware. Need CCG3 firmware.");
+            return;
+        };
 
     // Not sure if there's a better way to check whether the firmware is for DP or HDMI card
     let dp_string = b"F\0r\0a\0m\0e\0w\0o\0r\0k\x006\x03D\0i\0s\0p\0l\0a\0y\0P\0o\0r\0t\0 \0E\0x\0p\0a\0n\0s\0i\0o\0n\0 \0C\0a\0r\0d\0";
