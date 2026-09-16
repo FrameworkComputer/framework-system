@@ -42,6 +42,9 @@ use crate::chromium_ec::commands::RebootEcCmd;
 use crate::chromium_ec::commands::RgbS;
 use crate::chromium_ec::commands::TabletModeOverride;
 use crate::chromium_ec::commands::EC_PROTOCOL_INFO_IN_PROGRESS_SUPPORTED;
+use crate::chromium_ec::commands::{
+    EC_DEBUG_KEYBOARD, EC_DEBUG_PD_UCSI, EC_DEBUG_PD_UCSI_TUNNEL_DIS, EC_DEBUG_PD_VERBOSE_MSG,
+};
 use crate::chromium_ec::commands::{PORT_80_EVENT_RESET, PORT_80_EVENT_RESUME};
 use crate::chromium_ec::EcResponseStatus;
 use crate::chromium_ec::Port80History;
@@ -97,6 +100,24 @@ pub enum TabletModeArg {
 pub enum ConsoleArg {
     Recent,
     Follow,
+}
+
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Debug, PartialEq)]
+pub enum PdDebugArg {
+    Status,
+    Off,
+    Verbose,
+    Ucsi,
+    All,
+}
+
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Debug, PartialEq)]
+pub enum KbdDebugArg {
+    Status,
+    Off,
+    On,
 }
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
@@ -207,6 +228,8 @@ pub struct Cli {
     pub pd_reset: Option<u8>,
     pub pd_disable: Option<u8>,
     pub pd_enable: Option<u8>,
+    pub pd_debug: Option<PdDebugArg>,
+    pub kbd_debug: Option<KbdDebugArg>,
     pub dp_hdmi_info: bool,
     pub dp_hdmi_update: Option<String>,
     pub audio_card_info: bool,
@@ -308,6 +331,8 @@ pub fn parse(args: &[String]) -> Cli {
             // pd_reset
             // pd_disable
             // pd_enable
+            // pd_debug
+            // kbd_debug
             dp_hdmi_info: cli.dp_hdmi_info,
             // dp_hdmi_update
             audio_card_info: cli.audio_card_info,
@@ -1782,6 +1807,50 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 Ok(())
             }
         });
+    } else if let Some(pd_debug) = &args.pd_debug {
+        let (set_mask, flags) = match pd_debug {
+            PdDebugArg::Status => (0, 0),
+            PdDebugArg::Off => (EC_DEBUG_PD_VERBOSE_MSG | EC_DEBUG_PD_UCSI, 0),
+            PdDebugArg::Verbose => (EC_DEBUG_PD_VERBOSE_MSG, EC_DEBUG_PD_VERBOSE_MSG),
+            PdDebugArg::Ucsi => (EC_DEBUG_PD_UCSI, EC_DEBUG_PD_UCSI),
+            PdDebugArg::All => (
+                EC_DEBUG_PD_VERBOSE_MSG | EC_DEBUG_PD_UCSI,
+                EC_DEBUG_PD_VERBOSE_MSG | EC_DEBUG_PD_UCSI,
+            ),
+        };
+        match ec.debug_control(set_mask, flags) {
+            Ok(cur) => {
+                println!("PD debug logging:");
+                println!(
+                    "  Verbose:              {}",
+                    cur & EC_DEBUG_PD_VERBOSE_MSG != 0
+                );
+                println!("  UCSI:                 {}", cur & EC_DEBUG_PD_UCSI != 0);
+                println!(
+                    "  UCSI tunnel disabled: {}",
+                    cur & EC_DEBUG_PD_UCSI_TUNNEL_DIS != 0
+                );
+                if cur & (EC_DEBUG_PD_VERBOSE_MSG | EC_DEBUG_PD_UCSI) != 0 {
+                    println!("Read the log output with --console follow");
+                }
+            }
+            Err(err) => println!("Failed to control PD debug logging: {:?}", err),
+        }
+    } else if let Some(kbd_debug) = &args.kbd_debug {
+        let (set_mask, flags) = match kbd_debug {
+            KbdDebugArg::Status => (0, 0),
+            KbdDebugArg::Off => (EC_DEBUG_KEYBOARD, 0),
+            KbdDebugArg::On => (EC_DEBUG_KEYBOARD, EC_DEBUG_KEYBOARD),
+        };
+        match ec.debug_control(set_mask, flags) {
+            Ok(cur) => {
+                println!("Keyboard debug logging: {}", cur & EC_DEBUG_KEYBOARD != 0);
+                if cur & EC_DEBUG_KEYBOARD != 0 {
+                    println!("Read the log output with --console follow");
+                }
+            }
+            Err(err) => println!("Failed to control keyboard debug logging: {:?}", err),
+        }
     } else if args.dp_hdmi_info {
         #[cfg(feature = "hidapi")]
         print_dp_hdmi_details(true);
@@ -2109,6 +2178,8 @@ Options:
                              Set the color of a key to RGB. Multiple colors for adjacent keys can be set at once
       --tablet-mode <MODE>   Set tablet mode override [possible values: auto, tablet, laptop]
       --console <CONSOLE>    Get EC console, choose whether recent or to follow the output [possible values: recent, follow]
+      --pd-debug <MODE>      Get or set PD debug logging, read it via --console [possible values: status, off, verbose, ucsi, all]
+      --kbd-debug <MODE>     Get or set keyboard controller debug logging, read it via --console [possible values: status, off, on]
       --hash <HASH>          Hash a file of arbitrary data
       --flash-gpu-descriptor <MAGIC> <18 DIGIT SN> Overwrite the GPU bay descriptor SN and type.
       --flash-gpu-descriptor-file <DESCRIPTOR_FILE> Write the GPU bay descriptor with a descriptor file.

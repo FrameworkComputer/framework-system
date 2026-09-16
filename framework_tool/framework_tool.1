@@ -8,7 +8,7 @@ framework_tool \- Swiss army knife for Framework laptops
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
 .SH SYNOPSIS
-\fBframework_tool\fR [\fB\-\-flash\-gpu\-descriptor\fR] [\fB\-v\fR|\fB\-\-verbose\fR]... [\fB\-q\fR|\fB\-\-quiet\fR]... [\fB\-\-versions\fR] [\fB\-\-version\fR] [\fB\-\-features\fR] [\fB\-\-esrt\fR] [\fB\-\-device\fR] [\fB\-\-compare\-version\fR] [\fB\-\-power\fR] [\fB\-\-smartbattery\fR] [\fB\-\-smartbattery\-auth\fR] [\fB\-\-thermal\fR] [\fB\-\-thermalget\fR] [\fB\-\-thermalset\fR] [\fB\-\-sensors\fR] [\fB\-\-fansetduty\fR] [\fB\-\-fansetrpm\fR] [\fB\-\-autofanctrl\fR] [\fB\-\-pdports\fR] [\fB\-\-pdports\-chromebook\fR] [\fB\-\-info\fR] [\fB\-\-meinfo\fR] [\fB\-\-pd\-info\fR] [\fB\-\-pd\-reset\fR] [\fB\-\-pd\-disable\fR] [\fB\-\-pd\-enable\fR] [\fB\-\-dp\-hdmi\-info\fR] [\fB\-\-dp\-hdmi\-update\fR] [\fB\-\-audio\-card\-info\fR] [\fB\-\-privacy\fR] [\fB\-\-pd\-bin\fR] [\fB\-\-ec\-bin\fR] [\fB\-\-capsule\fR] [\fB\-\-dump\fR] [\fB\-\-h2o\-capsule\fR] [\fB\-\-dump\-ec\-flash\fR] [\fB\-\-flash\-full\-ec\fR] [\fB\-\-flash\-ec\fR] [\fB\-\-flash\-ro\-ec\fR] [\fB\-\-flash\-rw\-ec\fR] [\fB\-\-intrusion\fR] [\fB\-\-inputdeck\fR] [\fB\-\-inputdeck\-mode\fR] [\fB\-\-expansion\-bay\fR] [\fB\-\-charge\-limit\fR] [\fB\-\-charge\-current\-limit\fR] [\fB\-\-charge\-rate\-limit\fR] [\fB\-\-get\-gpio\fR] [\fB\-\-fp\-led\-level\fR] [\fB\-\-fp\-brightness\fR] [\fB\-\-kblight\fR] [\fB\-\-remap\-key\fR] [\fB\-\-rgbkbd\fR] [\fB\-\-tablet\-mode\fR] [\fB\-\-touchscreen\-enable\fR] [\fB\-\-haptic\-intensity\fR] [\fB\-\-click\-force\fR] [\fB\-\-stylus\-battery\fR] [\fB\-\-console\fR] [\fB\-\-reboot\-ec\fR] [\fB\-\-ec\-hib\-delay\fR] [\fB\-\-sysinfo\fR] [\fB\-\-uptimeinfo\fR] [\fB\-\-s0ix\-counter\fR] [\fB\-\-hello\fR] [\fB\-\-protoinfo\fR] [\fB\-\-switches\fR] [\fB\-\-port80read\fR] [\fB\-\-panicinfo\fR] [\fB\-\-hash\fR] [\fB\-\-driver\fR] [\fB\-\-pd\-addrs\fR] [\fB\-\-pd\-ports\fR] [\fB\-t\fR|\fB\-\-test\fR] [\fB\-\-test\-retimer\fR] [\fB\-\-boardid\fR] [\fB\-f\fR|\fB\-\-force\fR] [\fB\-\-dry\-run\fR] [\fB\-\-flash\-gpu\-descriptor\-file\fR] [\fB\-\-dump\-gpu\-descriptor\-file\fR] [\fB\-\-validate\-gpu\-descriptor\-file\fR] [\fB\-\-nvidia\fR] [\fB\-\-host\-command\fR] [\fB\-h\fR|\fB\-\-help\fR] 
+\fBframework_tool\fR [\fB\-\-flash\-gpu\-descriptor\fR] [\fB\-v\fR|\fB\-\-verbose\fR]... [\fB\-q\fR|\fB\-\-quiet\fR]... [\fB\-\-versions\fR] [\fB\-\-version\fR] [\fB\-\-features\fR] [\fB\-\-esrt\fR] [\fB\-\-device\fR] [\fB\-\-compare\-version\fR] [\fB\-\-power\fR] [\fB\-\-smartbattery\fR] [\fB\-\-smartbattery\-auth\fR] [\fB\-\-thermal\fR] [\fB\-\-thermalget\fR] [\fB\-\-thermalset\fR] [\fB\-\-sensors\fR] [\fB\-\-fansetduty\fR] [\fB\-\-fansetrpm\fR] [\fB\-\-autofanctrl\fR] [\fB\-\-pdports\fR] [\fB\-\-pdports\-chromebook\fR] [\fB\-\-info\fR] [\fB\-\-meinfo\fR] [\fB\-\-pd\-info\fR] [\fB\-\-pd\-reset\fR] [\fB\-\-pd\-disable\fR] [\fB\-\-pd\-enable\fR] [\fB\-\-pd\-debug\fR] [\fB\-\-kbd\-debug\fR] [\fB\-\-dp\-hdmi\-info\fR] [\fB\-\-dp\-hdmi\-update\fR] [\fB\-\-audio\-card\-info\fR] [\fB\-\-privacy\fR] [\fB\-\-pd\-bin\fR] [\fB\-\-ec\-bin\fR] [\fB\-\-capsule\fR] [\fB\-\-dump\fR] [\fB\-\-h2o\-capsule\fR] [\fB\-\-dump\-ec\-flash\fR] [\fB\-\-flash\-full\-ec\fR] [\fB\-\-flash\-ec\fR] [\fB\-\-flash\-ro\-ec\fR] [\fB\-\-flash\-rw\-ec\fR] [\fB\-\-intrusion\fR] [\fB\-\-inputdeck\fR] [\fB\-\-inputdeck\-mode\fR] [\fB\-\-expansion\-bay\fR] [\fB\-\-charge\-limit\fR] [\fB\-\-charge\-current\-limit\fR] [\fB\-\-charge\-rate\-limit\fR] [\fB\-\-get\-gpio\fR] [\fB\-\-fp\-led\-level\fR] [\fB\-\-fp\-brightness\fR] [\fB\-\-kblight\fR] [\fB\-\-remap\-key\fR] [\fB\-\-rgbkbd\fR] [\fB\-\-tablet\-mode\fR] [\fB\-\-touchscreen\-enable\fR] [\fB\-\-haptic\-intensity\fR] [\fB\-\-click\-force\fR] [\fB\-\-stylus\-battery\fR] [\fB\-\-console\fR] [\fB\-\-reboot\-ec\fR] [\fB\-\-ec\-hib\-delay\fR] [\fB\-\-sysinfo\fR] [\fB\-\-uptimeinfo\fR] [\fB\-\-s0ix\-counter\fR] [\fB\-\-hello\fR] [\fB\-\-protoinfo\fR] [\fB\-\-switches\fR] [\fB\-\-port80read\fR] [\fB\-\-panicinfo\fR] [\fB\-\-hash\fR] [\fB\-\-driver\fR] [\fB\-\-pd\-addrs\fR] [\fB\-\-pd\-ports\fR] [\fB\-t\fR|\fB\-\-test\fR] [\fB\-\-test\-retimer\fR] [\fB\-\-boardid\fR] [\fB\-f\fR|\fB\-\-force\fR] [\fB\-\-dry\-run\fR] [\fB\-\-flash\-gpu\-descriptor\-file\fR] [\fB\-\-dump\-gpu\-descriptor\-file\fR] [\fB\-\-validate\-gpu\-descriptor\-file\fR] [\fB\-\-nvidia\fR] [\fB\-\-host\-command\fR] [\fB\-h\fR|\fB\-\-help\fR] 
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
 .SH DESCRIPTION
@@ -123,6 +123,40 @@ Disable all ports on a specific PD controller (for debugging only)
 .TP
 \fB\-\-pd\-enable\fR \fI<PD_ENABLE>\fR
 Enable all ports on a specific PD controller (for debugging only)
+.TP
+\fB\-\-pd\-debug\fR \fI<PD_DEBUG>\fR
+Get or set PD debug logging, read the output via \-\-console
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+status
+.IP \(bu 2
+off
+.IP \(bu 2
+verbose
+.IP \(bu 2
+ucsi
+.IP \(bu 2
+all
+.RE
+.TP
+\fB\-\-kbd\-debug\fR \fI<KBD_DEBUG>\fR
+Get or set keyboard controller debug logging, read the output via \-\-console
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+status
+.IP \(bu 2
+off
+.IP \(bu 2
+on
+.RE
 .TP
 \fB\-\-dp\-hdmi\-info\fR
 Show details about connected DP or HDMI Expansion Cards
