@@ -162,6 +162,15 @@ fn read_version(
     let fw_silicon_id = version_info.silicon_id.get();
     let fw_silicon_family = version_info.silicon_family.get();
 
+    if fw_silicon_family != ccgx as u16 {
+        trace!(
+            "Silicon family mismatch. Expected {:#06x}, binary has {:#06x}",
+            ccgx as u16,
+            fw_silicon_family
+        );
+        return None;
+    }
+
     Some(PdFirmware {
         silicon_id: fw_silicon_id,
         silicon_family: fw_silicon_family,
@@ -214,72 +223,83 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
 
+    /// Find the silicon family whose parameters match this binary
+    fn detect_family(data: &[u8]) -> Option<(SiliconFamily, PdFirmwareFile)> {
+        let families = [
+            SiliconFamily::Ccg3,
+            SiliconFamily::Ccg5,
+            SiliconFamily::Ccg6Adl,
+            SiliconFamily::Ccg6,
+            SiliconFamily::Ccg8D,
+            SiliconFamily::Ccg8S,
+            SiliconFamily::Ccg6Cfp,
+            SiliconFamily::Ccg8Cfp,
+        ];
+        let mut found = None;
+        for family in families {
+            if let Some(versions) = read_versions(data, family) {
+                assert!(
+                    found.is_none(),
+                    "{:?} matched but so did an earlier family",
+                    family
+                );
+                found = Some((family, versions));
+            }
+        }
+        found
+    }
+
     #[test]
     fn can_parse_ccg3_binary() {
         let mut pd_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         pd_bin_path.push("test_bins/dp-pd-3.0.17.100.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
-        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
-        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
-        assert!(ccg3_ver.is_some());
-        assert!(ccg5_ver.is_none());
-        assert!(ccg6_ver.is_none());
-        assert!(ccg8d_ver.is_none());
-        assert!(ccg8s_ver.is_none());
-        assert!(ccg6cfp_ver.is_none());
-        assert!(ccg8cfp_ver.is_none());
+        let (family, versions) = detect_family(&data).unwrap();
+        assert_eq!(family, SiliconFamily::Ccg3);
 
-        assert_eq!(
-            ccg3_ver,
-            Some({
-                PdFirmwareFile {
-                    backup_fw: PdFirmware {
-                        silicon_id: 0x11AD,
-                        silicon_family: 0x1D00,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 0,
-                            patch: 17,
-                            build_number: 100,
-                        },
-                        app_version: AppVersion {
-                            application: Application::AA,
-                            major: 0,
-                            minor: 0,
-                            circuit: 2,
-                        },
-                        start_row: 48,
-                        size: 58624,
-                        row_size: 128,
+        assert_eq!(versions, {
+            PdFirmwareFile {
+                backup_fw: PdFirmware {
+                    silicon_id: 0x11AD,
+                    silicon_family: 0x1D00,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 0,
+                        patch: 17,
+                        build_number: 100,
                     },
-                    main_fw: PdFirmware {
-                        silicon_id: 0x11AD,
-                        silicon_family: 0x1D00,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 0,
-                            patch: 17,
-                            build_number: 100,
-                        },
-                        app_version: AppVersion {
-                            application: Application::AA,
-                            major: 0,
-                            minor: 0,
-                            circuit: 2,
-                        },
-                        start_row: 512,
-                        size: 58624,
-                        row_size: 128,
+                    app_version: AppVersion {
+                        application: Application::AA,
+                        major: 0,
+                        minor: 0,
+                        circuit: 2,
                     },
-                }
-            })
-        );
+                    start_row: 48,
+                    size: 58624,
+                    row_size: 128,
+                },
+                main_fw: PdFirmware {
+                    silicon_id: 0x11AD,
+                    silicon_family: 0x1D00,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 0,
+                        patch: 17,
+                        build_number: 100,
+                    },
+                    app_version: AppVersion {
+                        application: Application::AA,
+                        major: 0,
+                        minor: 0,
+                        circuit: 2,
+                    },
+                    start_row: 512,
+                    size: 58624,
+                    row_size: 128,
+                },
+            }
+        });
     }
 
     #[test]
@@ -288,66 +308,51 @@ mod tests {
         pd_bin_path.push("test_bins/tgl-pd-3.8.0.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
-        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
-        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
-        assert!(ccg3_ver.is_none());
-        assert!(ccg5_ver.is_some());
-        assert!(ccg6_ver.is_none());
-        assert!(ccg8d_ver.is_none());
-        assert!(ccg8s_ver.is_none());
-        assert!(ccg6cfp_ver.is_none());
-        assert!(ccg8cfp_ver.is_none());
+        let (family, versions) = detect_family(&data).unwrap();
+        assert_eq!(family, SiliconFamily::Ccg5);
 
-        assert_eq!(
-            ccg5_ver,
-            Some({
-                PdFirmwareFile {
-                    backup_fw: PdFirmware {
-                        silicon_id: 0x11B1,
-                        silicon_family: 0x2100,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 4,
-                            patch: 0,
-                            build_number: 2575,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 3,
-                            minor: 8,
-                            circuit: 0,
-                        },
-                        start_row: 163,
-                        size: 88832,
-                        row_size: 256,
+        assert_eq!(versions, {
+            PdFirmwareFile {
+                backup_fw: PdFirmware {
+                    silicon_id: 0x11B1,
+                    silicon_family: 0x2100,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 4,
+                        patch: 0,
+                        build_number: 2575,
                     },
-                    main_fw: PdFirmware {
-                        silicon_id: 0x11B1,
-                        silicon_family: 0x2100,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 4,
-                            patch: 0,
-                            build_number: 2575,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 3,
-                            minor: 8,
-                            circuit: 0,
-                        },
-                        start_row: 20,
-                        size: 36352,
-                        row_size: 256,
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 3,
+                        minor: 8,
+                        circuit: 0,
                     },
-                }
-            })
-        );
+                    start_row: 163,
+                    size: 88832,
+                    row_size: 256,
+                },
+                main_fw: PdFirmware {
+                    silicon_id: 0x11B1,
+                    silicon_family: 0x2100,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 4,
+                        patch: 0,
+                        build_number: 2575,
+                    },
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 3,
+                        minor: 8,
+                        circuit: 0,
+                    },
+                    start_row: 20,
+                    size: 36352,
+                    row_size: 256,
+                },
+            }
+        });
     }
 
     #[test]
@@ -356,66 +361,51 @@ mod tests {
         pd_bin_path.push("test_bins/adl-pd-0.1.33.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
-        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
-        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
-        assert!(ccg3_ver.is_none());
-        assert!(ccg5_ver.is_none());
-        assert!(ccg6_ver.is_some());
-        assert!(ccg8d_ver.is_none());
-        assert!(ccg8s_ver.is_none());
-        assert!(ccg6cfp_ver.is_none());
-        assert!(ccg8cfp_ver.is_none());
+        let (family, versions) = detect_family(&data).unwrap();
+        assert_eq!(family, SiliconFamily::Ccg6Adl);
 
-        assert_eq!(
-            ccg6_ver,
-            Some({
-                PdFirmwareFile {
-                    backup_fw: PdFirmware {
-                        silicon_id: 0x11C0,
-                        silicon_family: 0x3000,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 4,
-                            patch: 0,
-                            build_number: 425,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 0,
-                            minor: 1,
-                            circuit: 33,
-                        },
-                        start_row: 22,
-                        size: 12160,
-                        row_size: 128,
+        assert_eq!(versions, {
+            PdFirmwareFile {
+                backup_fw: PdFirmware {
+                    silicon_id: 0x11C0,
+                    silicon_family: 0x3000,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 4,
+                        patch: 0,
+                        build_number: 425,
                     },
-                    main_fw: PdFirmware {
-                        silicon_id: 0x11C0,
-                        silicon_family: 0x3000,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 4,
-                            patch: 0,
-                            build_number: 425,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 0,
-                            minor: 1,
-                            circuit: 33,
-                        },
-                        start_row: 118,
-                        size: 49408,
-                        row_size: 128,
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 0,
+                        minor: 1,
+                        circuit: 33,
                     },
-                }
-            })
-        );
+                    start_row: 22,
+                    size: 12160,
+                    row_size: 128,
+                },
+                main_fw: PdFirmware {
+                    silicon_id: 0x11C0,
+                    silicon_family: 0x3000,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 4,
+                        patch: 0,
+                        build_number: 425,
+                    },
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 0,
+                        minor: 1,
+                        circuit: 33,
+                    },
+                    start_row: 118,
+                    size: 49408,
+                    row_size: 128,
+                },
+            }
+        });
     }
 
     #[test]
@@ -424,66 +414,51 @@ mod tests {
         pd_bin_path.push("test_bins/mtl-pd-0.0.A.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
-        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
-        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
-        assert!(ccg3_ver.is_none());
-        assert!(ccg5_ver.is_none());
-        assert!(ccg6_ver.is_some());
-        assert!(ccg8d_ver.is_none());
-        assert!(ccg8s_ver.is_none());
-        assert!(ccg6cfp_ver.is_none());
-        assert!(ccg8cfp_ver.is_none());
+        let (family, versions) = detect_family(&data).unwrap();
+        assert_eq!(family, SiliconFamily::Ccg6Adl);
 
-        assert_eq!(
-            ccg6_ver,
-            Some({
-                PdFirmwareFile {
-                    backup_fw: PdFirmware {
-                        silicon_id: 0x11C0,
-                        silicon_family: 0x3000,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 6,
-                            patch: 0,
-                            build_number: 115,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 0,
-                            minor: 0,
-                            circuit: 0x0A,
-                        },
-                        start_row: 10,
-                        size: 12288,
-                        row_size: 128,
+        assert_eq!(versions, {
+            PdFirmwareFile {
+                backup_fw: PdFirmware {
+                    silicon_id: 0x11C0,
+                    silicon_family: 0x3000,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 6,
+                        patch: 0,
+                        build_number: 115,
                     },
-                    main_fw: PdFirmware {
-                        silicon_id: 0x11C0,
-                        silicon_family: 0x3000,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 6,
-                            patch: 0,
-                            build_number: 115,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 0,
-                            minor: 0,
-                            circuit: 0x0A,
-                        },
-                        start_row: 112,
-                        size: 47744,
-                        row_size: 128,
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 0,
+                        minor: 0,
+                        circuit: 0x0A,
                     },
-                }
-            })
-        );
+                    start_row: 10,
+                    size: 12288,
+                    row_size: 128,
+                },
+                main_fw: PdFirmware {
+                    silicon_id: 0x11C0,
+                    silicon_family: 0x3000,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 6,
+                        patch: 0,
+                        build_number: 115,
+                    },
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 0,
+                        minor: 0,
+                        circuit: 0x0A,
+                    },
+                    start_row: 112,
+                    size: 47744,
+                    row_size: 128,
+                },
+            }
+        });
     }
 
     #[test]
@@ -492,66 +467,51 @@ mod tests {
         pd_bin_path.push("test_bins/dogwood-pd-0.0E.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
-        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
-        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
-        assert!(ccg3_ver.is_none());
-        assert!(ccg5_ver.is_none());
-        assert!(ccg6_ver.is_some());
-        assert!(ccg8d_ver.is_none());
-        assert!(ccg8s_ver.is_none());
-        assert!(ccg6cfp_ver.is_none());
-        assert!(ccg8cfp_ver.is_none());
+        let (family, versions) = detect_family(&data).unwrap();
+        assert_eq!(family, SiliconFamily::Ccg6Adl);
 
-        assert_eq!(
-            ccg6_ver,
-            Some({
-                PdFirmwareFile {
-                    backup_fw: PdFirmware {
-                        silicon_id: 0x11C0,
-                        silicon_family: 0x3000,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 7,
-                            patch: 0,
-                            build_number: 159,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 0,
-                            minor: 0,
-                            circuit: 0x0E,
-                        },
-                        start_row: 10,
-                        size: 9344,
-                        row_size: 128,
+        assert_eq!(versions, {
+            PdFirmwareFile {
+                backup_fw: PdFirmware {
+                    silicon_id: 0x11C0,
+                    silicon_family: 0x3000,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 7,
+                        patch: 0,
+                        build_number: 159,
                     },
-                    main_fw: PdFirmware {
-                        silicon_id: 0x11C0,
-                        silicon_family: 0x3000,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 7,
-                            patch: 0,
-                            build_number: 159,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 0,
-                            minor: 0,
-                            circuit: 0x0E,
-                        },
-                        start_row: 112,
-                        size: 50816,
-                        row_size: 128,
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 0,
+                        minor: 0,
+                        circuit: 0x0E,
                     },
-                }
-            })
-        );
+                    start_row: 10,
+                    size: 9344,
+                    row_size: 128,
+                },
+                main_fw: PdFirmware {
+                    silicon_id: 0x11C0,
+                    silicon_family: 0x3000,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 7,
+                        patch: 0,
+                        build_number: 159,
+                    },
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 0,
+                        minor: 0,
+                        circuit: 0x0E,
+                    },
+                    start_row: 112,
+                    size: 50816,
+                    row_size: 128,
+                },
+            }
+        });
     }
 
     #[test]
@@ -560,66 +520,51 @@ mod tests {
         pd_bin_path.push("test_bins/fl16-pd-0.0.03.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
-        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
-        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
-        assert!(ccg3_ver.is_none());
-        assert!(ccg5_ver.is_none());
-        assert!(ccg6_ver.is_none());
-        assert!(ccg8d_ver.is_some());
-        assert!(ccg8s_ver.is_some());
-        assert!(ccg6cfp_ver.is_none());
-        assert!(ccg8cfp_ver.is_none());
+        let (family, versions) = detect_family(&data).unwrap();
+        assert_eq!(family, SiliconFamily::Ccg8D);
 
-        assert_eq!(
-            ccg8d_ver,
-            Some({
-                PdFirmwareFile {
-                    backup_fw: PdFirmware {
-                        silicon_id: 0x11C5,
-                        silicon_family: 0x3580,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 6,
-                            patch: 0,
-                            build_number: 160,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 0,
-                            minor: 0,
-                            circuit: 3,
-                        },
-                        start_row: 290,
-                        size: 111536,
-                        row_size: 0x100,
+        assert_eq!(versions, {
+            PdFirmwareFile {
+                backup_fw: PdFirmware {
+                    silicon_id: 0x11C5,
+                    silicon_family: 0x3580,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 6,
+                        patch: 0,
+                        build_number: 160,
                     },
-                    main_fw: PdFirmware {
-                        silicon_id: 0x11C5,
-                        silicon_family: 0x3580,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 6,
-                            patch: 0,
-                            build_number: 160,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 0,
-                            minor: 0,
-                            circuit: 3,
-                        },
-                        start_row: 29,
-                        size: 42312,
-                        row_size: 0x100,
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 0,
+                        minor: 0,
+                        circuit: 3,
                     },
-                }
-            })
-        );
+                    start_row: 290,
+                    size: 111536,
+                    row_size: 0x100,
+                },
+                main_fw: PdFirmware {
+                    silicon_id: 0x11C5,
+                    silicon_family: 0x3580,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 6,
+                        patch: 0,
+                        build_number: 160,
+                    },
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 0,
+                        minor: 0,
+                        circuit: 3,
+                    },
+                    start_row: 29,
+                    size: 42312,
+                    row_size: 0x100,
+                },
+            }
+        });
     }
 
     #[test]
@@ -628,66 +573,51 @@ mod tests {
         pd_bin_path.push("test_bins/fl16-ai300-pd-0.0.22.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
-        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
-        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
-        assert!(ccg3_ver.is_none());
-        assert!(ccg5_ver.is_none());
-        assert!(ccg6_ver.is_none());
-        assert!(ccg8d_ver.is_some());
-        assert!(ccg8s_ver.is_some());
-        assert!(ccg6cfp_ver.is_none());
-        assert!(ccg8cfp_ver.is_none());
+        let (family, versions) = detect_family(&data).unwrap();
+        assert_eq!(family, SiliconFamily::Ccg8D);
 
-        assert_eq!(
-            ccg8d_ver,
-            Some({
-                PdFirmwareFile {
-                    backup_fw: PdFirmware {
-                        silicon_id: 0x11C5,
-                        silicon_family: 0x3580,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 7,
-                            patch: 0,
-                            build_number: 407,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 0,
-                            minor: 0,
-                            circuit: 0x22,
-                        },
-                        start_row: 290,
-                        size: 129912,
-                        row_size: 0x100,
+        assert_eq!(versions, {
+            PdFirmwareFile {
+                backup_fw: PdFirmware {
+                    silicon_id: 0x11C5,
+                    silicon_family: 0x3580,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 7,
+                        patch: 0,
+                        build_number: 407,
                     },
-                    main_fw: PdFirmware {
-                        silicon_id: 0x11C5,
-                        silicon_family: 0x3580,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 7,
-                            patch: 0,
-                            build_number: 407,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 0,
-                            minor: 0,
-                            circuit: 0x22,
-                        },
-                        start_row: 29,
-                        size: 42816,
-                        row_size: 0x100,
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 0,
+                        minor: 0,
+                        circuit: 0x22,
                     },
-                }
-            })
-        );
+                    start_row: 290,
+                    size: 129912,
+                    row_size: 0x100,
+                },
+                main_fw: PdFirmware {
+                    silicon_id: 0x11C5,
+                    silicon_family: 0x3580,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 7,
+                        patch: 0,
+                        build_number: 407,
+                    },
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 0,
+                        minor: 0,
+                        circuit: 0x22,
+                    },
+                    start_row: 29,
+                    size: 42816,
+                    row_size: 0x100,
+                },
+            }
+        });
     }
 
     #[test]
@@ -696,66 +626,51 @@ mod tests {
         pd_bin_path.push("test_bins/gn22-pd-0.0.22.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
-        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
-        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
-        assert!(ccg3_ver.is_none());
-        assert!(ccg5_ver.is_none());
-        assert!(ccg6_ver.is_none());
-        assert!(ccg8d_ver.is_some());
-        assert!(ccg8s_ver.is_some());
-        assert!(ccg6cfp_ver.is_none());
-        assert!(ccg8cfp_ver.is_none());
+        let (family, versions) = detect_family(&data).unwrap();
+        assert_eq!(family, SiliconFamily::Ccg8S);
 
-        assert_eq!(
-            ccg8s_ver,
-            Some({
-                PdFirmwareFile {
-                    backup_fw: PdFirmware {
-                        silicon_id: 0x11C5,
-                        silicon_family: 0x3581,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 7,
-                            patch: 0,
-                            build_number: 407,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 0,
-                            minor: 0,
-                            circuit: 0x22,
-                        },
-                        start_row: 290,
-                        size: 126700,
-                        row_size: 0x100,
+        assert_eq!(versions, {
+            PdFirmwareFile {
+                backup_fw: PdFirmware {
+                    silicon_id: 0x11C5,
+                    silicon_family: 0x3581,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 7,
+                        patch: 0,
+                        build_number: 407,
                     },
-                    main_fw: PdFirmware {
-                        silicon_id: 0x11C5,
-                        silicon_family: 0x3581,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 7,
-                            patch: 0,
-                            build_number: 407,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 0,
-                            minor: 0,
-                            circuit: 0x22,
-                        },
-                        start_row: 29,
-                        size: 41588,
-                        row_size: 0x100,
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 0,
+                        minor: 0,
+                        circuit: 0x22,
                     },
-                }
-            })
-        );
+                    start_row: 290,
+                    size: 126700,
+                    row_size: 0x100,
+                },
+                main_fw: PdFirmware {
+                    silicon_id: 0x11C5,
+                    silicon_family: 0x3581,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 7,
+                        patch: 0,
+                        build_number: 407,
+                    },
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 0,
+                        minor: 0,
+                        circuit: 0x22,
+                    },
+                    start_row: 29,
+                    size: 41588,
+                    row_size: 0x100,
+                },
+            }
+        });
     }
 
     #[test]
@@ -764,133 +679,103 @@ mod tests {
         pd_bin_path.push("test_bins/sakura-pd-1.0.0A.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
-        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
-        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
-        assert!(ccg3_ver.is_none());
-        assert!(ccg5_ver.is_none());
-        assert!(ccg6_ver.is_none());
-        assert!(ccg8d_ver.is_none());
-        assert!(ccg8s_ver.is_none());
-        assert!(ccg6cfp_ver.is_some());
-        assert!(ccg8cfp_ver.is_some());
+        let (family, versions) = detect_family(&data).unwrap();
+        assert_eq!(family, SiliconFamily::Ccg8Cfp);
 
-        assert_eq!(
-            ccg8cfp_ver,
-            Some({
-                PdFirmwareFile {
-                    backup_fw: PdFirmware {
-                        silicon_id: 0x11CE,
-                        silicon_family: 0x3E81,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 8,
-                            patch: 0x50,
-                            build_number: 10,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 1,
-                            minor: 0,
-                            circuit: 0x0A,
-                        },
-                        start_row: 108,
-                        size: 79092,
-                        row_size: 0x100,
+        assert_eq!(versions, {
+            PdFirmwareFile {
+                backup_fw: PdFirmware {
+                    silicon_id: 0x11CE,
+                    silicon_family: 0x3E81,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 8,
+                        patch: 0x50,
+                        build_number: 10,
                     },
-                    main_fw: PdFirmware {
-                        silicon_id: 0x11CE,
-                        silicon_family: 0x3E81,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 8,
-                            patch: 0x50,
-                            build_number: 10,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 1,
-                            minor: 0,
-                            circuit: 0x0A,
-                        },
-                        start_row: 7,
-                        size: 24120,
-                        row_size: 0x100,
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 1,
+                        minor: 0,
+                        circuit: 0x0A,
                     },
-                }
-            })
-        );
+                    start_row: 108,
+                    size: 79092,
+                    row_size: 0x100,
+                },
+                main_fw: PdFirmware {
+                    silicon_id: 0x11CE,
+                    silicon_family: 0x3E81,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 8,
+                        patch: 0x50,
+                        build_number: 10,
+                    },
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 1,
+                        minor: 0,
+                        circuit: 0x0A,
+                    },
+                    start_row: 7,
+                    size: 24120,
+                    row_size: 0x100,
+                },
+            }
+        });
     }
 
     #[test]
-    fn can_parse_ccg8_binary_dahlia() {
+    fn can_parse_ccg6_binary_dahlia() {
         let mut pd_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         pd_bin_path.push("test_bins/dahlia-0.0.0A.bin");
 
         let data = fs::read(pd_bin_path).unwrap();
-        let ccg3_ver = read_versions(&data, SiliconFamily::Ccg3);
-        let ccg5_ver = read_versions(&data, SiliconFamily::Ccg5);
-        let ccg6_ver = read_versions(&data, SiliconFamily::Ccg6);
-        let ccg8d_ver = read_versions(&data, SiliconFamily::Ccg8D);
-        let ccg8s_ver = read_versions(&data, SiliconFamily::Ccg8S);
-        let ccg6cfp_ver = read_versions(&data, SiliconFamily::Ccg6Cfp);
-        let ccg8cfp_ver = read_versions(&data, SiliconFamily::Ccg8Cfp);
-        assert!(ccg3_ver.is_none());
-        assert!(ccg5_ver.is_none());
-        assert!(ccg6_ver.is_none());
-        assert!(ccg8d_ver.is_none());
-        assert!(ccg8s_ver.is_none());
-        assert!(ccg6cfp_ver.is_some());
-        assert!(ccg8cfp_ver.is_some());
+        let (family, versions) = detect_family(&data).unwrap();
+        assert_eq!(family, SiliconFamily::Ccg6Cfp);
 
-        assert_eq!(
-            ccg8cfp_ver,
-            Some({
-                PdFirmwareFile {
-                    backup_fw: PdFirmware {
-                        silicon_id: 0x11CE,
-                        silicon_family: 0x3E03,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 9,
-                            patch: 0,
-                            build_number: 826,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 0,
-                            minor: 0,
-                            circuit: 0x0A,
-                        },
-                        start_row: 116,
-                        size: 82160,
-                        row_size: 0x100,
+        assert_eq!(versions, {
+            PdFirmwareFile {
+                backup_fw: PdFirmware {
+                    silicon_id: 0x11CE,
+                    silicon_family: 0x3E03,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 9,
+                        patch: 0,
+                        build_number: 826,
                     },
-                    main_fw: PdFirmware {
-                        silicon_id: 0x11CE,
-                        silicon_family: 0x3E03,
-                        base_version: BaseVersion {
-                            major: 3,
-                            minor: 9,
-                            patch: 0,
-                            build_number: 826,
-                        },
-                        app_version: AppVersion {
-                            application: Application::Notebook,
-                            major: 0,
-                            minor: 0,
-                            circuit: 0x0A,
-                        },
-                        start_row: 7,
-                        size: 24832,
-                        row_size: 0x100,
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 0,
+                        minor: 0,
+                        circuit: 0x0A,
                     },
-                }
-            })
-        );
+                    start_row: 116,
+                    size: 82160,
+                    row_size: 0x100,
+                },
+                main_fw: PdFirmware {
+                    silicon_id: 0x11CE,
+                    silicon_family: 0x3E03,
+                    base_version: BaseVersion {
+                        major: 3,
+                        minor: 9,
+                        patch: 0,
+                        build_number: 826,
+                    },
+                    app_version: AppVersion {
+                        application: Application::Notebook,
+                        major: 0,
+                        minor: 0,
+                        circuit: 0x0A,
+                    },
+                    start_row: 7,
+                    size: 24832,
+                    row_size: 0x100,
+                },
+            }
+        });
     }
 }

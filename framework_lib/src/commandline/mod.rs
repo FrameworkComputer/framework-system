@@ -2608,44 +2608,30 @@ fn me_info(verbose: bool, dump_path: Option<&str>) {
 }
 
 fn analyze_ccgx_pd_fw(data: &[u8]) {
-    if let Some(versions) = ccgx::binary::read_versions(data, Ccg3) {
-        println!("Detected CCG3 firmware");
-        println!("FW 1");
-        ccgx::binary::print_fw(&versions.backup_fw);
+    // Each silicon family validates the family field in the binary, so at most
+    // one of these can match
+    let families = [
+        (Ccg3, "CCG3"),
+        (Ccg5, "CCG5"),
+        (Ccg6Adl, "CCG6"),
+        (Ccg6, "CCG6"),
+        (Ccg8D, "CCG8D"),
+        (Ccg8S, "CCG8S"),
+        (Ccg6Cfp, "CCG6 CFP"),
+        (Ccg8Cfp, "CCG8 CFP"),
+    ];
+    for (family, name) in families {
+        if let Some(versions) = ccgx::binary::read_versions(data, family) {
+            println!("Detected {} firmware", name);
+            println!("FW 1");
+            ccgx::binary::print_fw(&versions.backup_fw);
 
-        println!("FW 2");
-        ccgx::binary::print_fw(&versions.main_fw);
-    } else if let Some(versions) = ccgx::binary::read_versions(data, Ccg8D) {
-        println!("Detected CCG8D/CCG8S firmware");
-        println!("FW 1");
-        ccgx::binary::print_fw(&versions.backup_fw);
-
-        println!("FW 2");
-        ccgx::binary::print_fw(&versions.main_fw);
-    } else if let Some(versions) = ccgx::binary::read_versions(data, Ccg8Cfp) {
-        println!("Detected CCG6/CCG8 CFP firmware");
-        println!("FW 1");
-        ccgx::binary::print_fw(&versions.backup_fw);
-
-        println!("FW 2");
-        ccgx::binary::print_fw(&versions.main_fw);
-    } else if let Some(versions) = ccgx::binary::read_versions(data, Ccg5) {
-        println!("Detected CCG5 firmware");
-        println!("FW 1");
-        ccgx::binary::print_fw(&versions.backup_fw);
-
-        println!("FW 2");
-        ccgx::binary::print_fw(&versions.main_fw);
-    } else if let Some(versions) = ccgx::binary::read_versions(data, Ccg6) {
-        println!("Detected CCG6 firmware");
-        println!("FW 1 (Backup)");
-        ccgx::binary::print_fw(&versions.backup_fw);
-
-        println!("FW 2 (Main)");
-        ccgx::binary::print_fw(&versions.main_fw);
-    } else {
-        println!("Failed to read PD versions")
+            println!("FW 2");
+            ccgx::binary::print_fw(&versions.main_fw);
+            return;
+        }
     }
+    println!("Failed to read PD versions")
 }
 
 pub fn analyze_ec_fw(data: &[u8]) {
