@@ -1739,7 +1739,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(None) = args.autofanctrl {
         print_err(ec.autofanctrl(None));
     } else if args.pdports {
-        power::get_and_print_cypd_pd_info(&ec);
+        power::print_cypd_pd_info(&ec);
     } else if args.pdports_chromebook {
         power::get_and_print_pd_info(&ec);
     } else if args.info {
