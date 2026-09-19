@@ -1602,7 +1602,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             chromium_ec::print_sysinfo(&info);
         }
     } else if args.uptimeinfo {
-        print_err(ec.get_uptime_info());
+        if let Some(info) = print_err(ec.get_uptime_info()) {
+            chromium_ec::print_uptime_info(&info);
+        }
     } else if args.s0ix_counter {
         if let Some(counter) = print_err(ec.get_s0ix_counter()) {
             println!("s0ix_counter: {}", counter);

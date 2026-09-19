@@ -2055,46 +2055,26 @@ impl CrosEc {
         })
     }
 
-    pub fn get_uptime_info(&self) -> EcResult<()> {
+    /// Read how long the EC has been running and how often it reset the AP
+    pub fn get_uptime_info(&self) -> EcResult<UptimeInfo> {
         let res = EcRequestGetUptimeInfo {}.send_command(self)?;
-        let t_since_boot = Duration::from_millis(res.time_since_ec_boot.into());
-        println!("EC Uptime");
-        println!(
-            "  Time since EC Boot:      {}",
-            util::format_duration(&t_since_boot)
-        );
-        println!("  AP Resets since EC Boot: {}", {
-            res.ap_resets_since_ec_boot
-        });
-        println!("  EC Reset Flags");
-        for flag in 0..(EcResetFlag::Count as usize) {
-            if ((1 << flag) & res.ec_reset_flags) > 0 {
-                // Safe to unwrap unless coding mistake
-                println!(
-                    "    {:?}",
-                    <EcResetFlag as FromPrimitive>::from_usize(flag).unwrap()
-                );
-            }
-        }
-        println!("  Recent AP Resets");
-        for reset in res.recent_ap_resets {
-            if reset.reset_time_ms == 0 {
-                // Empty entry
-                continue;
-            }
-            let reset_time = Duration::from_millis(reset.reset_time_ms.into());
-            println!(
-                "      Reset Time:          {}",
-                util::format_duration(&reset_time)
-            );
-            let reset_cause: Option<ResetCause> = FromPrimitive::from_u16(reset.reset_cause);
-            if let Some(cause) = reset_cause {
-                println!("            Cause:         {:?}", cause);
-            } else {
-                println!("            Cause:         Unknown");
-            }
-        }
-        Ok(())
+        let recent_ap_resets = res
+            .recent_ap_resets
+            .iter()
+            // Empty entries have a zero timestamp
+            .filter(|reset| reset.reset_time_ms != 0)
+            .map(|reset| ApReset {
+                time_since_ec_boot: Duration::from_millis(reset.reset_time_ms.into()),
+                cause: FromPrimitive::from_u16(reset.reset_cause),
+                raw_cause: reset.reset_cause,
+            })
+            .collect();
+        Ok(UptimeInfo {
+            time_since_ec_boot: Duration::from_millis(res.time_since_ec_boot.into()),
+            ap_resets_since_ec_boot: res.ap_resets_since_ec_boot,
+            ec_reset_flags: res.ec_reset_flags,
+            recent_ap_resets,
+        })
     }
 
     pub fn get_ap_throttle_status(&self) -> EcResult<EcResponseGetApThrottleStatus> {
@@ -2254,6 +2234,69 @@ impl SysInfo {
     }
 }
 
+/// One entry of the EC's log of AP resets
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ApReset {
+    /// When the reset happened, relative to EC boot
+    pub time_since_ec_boot: Duration,
+    /// Why the EC reset the AP, `None` if the cause is not known to us
+    pub cause: Option<ResetCause>,
+    /// Raw reset cause, for causes we can't decode
+    pub raw_cause: u16,
+}
+
+/// EC uptime and AP reset log, as reported by EC_CMD_GET_UPTIME_INFO
+///
+/// Use [`CrosEc::get_uptime_info`] to read it and [`print_uptime_info`] to
+/// show it like the commandline tool does.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UptimeInfo {
+    pub time_since_ec_boot: Duration,
+    /// How often the AP was reset by the EC since last EC boot
+    /// The first AP boot may count as more than one
+    pub ap_resets_since_ec_boot: u32,
+    /// Raw EC reset flags, see [`UptimeInfo::ec_reset_flags`]
+    pub ec_reset_flags: u32,
+    /// Most recent AP resets, oldest first, at most 4
+    pub recent_ap_resets: Vec<ApReset>,
+}
+
+impl UptimeInfo {
+    /// Why the EC was reset
+    pub fn ec_reset_flags(&self) -> Vec<EcResetFlag> {
+        decode_flags(self.ec_reset_flags, EcResetFlag::Count as usize)
+    }
+}
+
+/// Print EC uptime and AP reset log like the commandline tool does
+pub fn print_uptime_info(info: &UptimeInfo) {
+    println!("EC Uptime");
+    println!(
+        "  Time since EC Boot:      {}",
+        util::format_duration(&info.time_since_ec_boot)
+    );
+    println!(
+        "  AP Resets since EC Boot: {}",
+        info.ap_resets_since_ec_boot
+    );
+    println!("  EC Reset Flags");
+    for flag in info.ec_reset_flags() {
+        println!("    {:?}", flag);
+    }
+    println!("  Recent AP Resets");
+    for reset in &info.recent_ap_resets {
+        println!(
+            "      Reset Time:          {}",
+            util::format_duration(&reset.time_since_ec_boot)
+        );
+        if let Some(cause) = reset.cause {
+            println!("            Cause:         {:?}", cause);
+        } else {
+            println!("            Cause:         Unknown");
+        }
+    }
+}
+
 /// Print EC system information like the commandline tool does
 pub fn print_sysinfo(info: &SysInfo) {
     println!("EC System Info");
@@ -2331,5 +2374,20 @@ mod tests {
             vec![SysinfoFlag::JumpEnabled, SysinfoFlag::JumpedToCurrentImage]
         );
         assert!(decode_flags::<SysinfoFlag>(0, SysinfoFlag::Count as usize).is_empty());
+    }
+
+    #[test]
+    fn decode_uptime_reset_flags() {
+        let info = UptimeInfo {
+            time_since_ec_boot: Duration::from_millis(1234),
+            ap_resets_since_ec_boot: 1,
+            // Brownout and Watchdog
+            ec_reset_flags: 0b10100,
+            recent_ap_resets: vec![],
+        };
+        assert_eq!(
+            info.ec_reset_flags(),
+            vec![EcResetFlag::Brownout, EcResetFlag::Watchdog]
+        );
     }
 }

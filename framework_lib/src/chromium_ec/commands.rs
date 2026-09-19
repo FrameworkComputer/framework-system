@@ -1191,7 +1191,7 @@ pub enum EcResetFlag {
 }
 
 #[repr(u16)]
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
 pub enum ResetCause {
     ResetUnknown = 0x0000,
     /// Custom reason defined by a board.c or baseboard.c file
