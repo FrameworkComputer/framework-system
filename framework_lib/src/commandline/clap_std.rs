@@ -26,6 +26,10 @@ struct ClapCli {
     #[command(flatten)]
     verbosity: clap_verbosity_flag::Verbosity,
 
+    /// Print the result as JSON instead of text (read-only info commands only)
+    #[arg(long)]
+    json: bool,
+
     /// List current firmware versions
     #[arg(long)]
     versions: bool,
@@ -627,6 +631,7 @@ pub fn parse(args: &[String]) -> Cli {
 
     Cli {
         verbosity: LogLevel(args.verbosity.log_level_filter()),
+        json: args.json,
         versions: args.versions,
         version: args.version,
         features: args.features,

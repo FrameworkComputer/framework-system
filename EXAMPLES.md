@@ -137,6 +137,24 @@ Options:
           Print help
 ```
 
+## JSON output
+
+Read-only information commands can print their result as JSON instead of
+text by adding `--json`, for use in scripts or by other programs:
+
+```
+> sudo framework_tool --thermal --json
+> sudo framework_tool --power --json
+```
+
+Supported: `--power`, `--thermal`, `--thermalget`, `--sensors`, `--switches`,
+`--pdports`, `--pdports-chromebook`, `--sysinfo`, `--uptimeinfo`, `--features`,
+`--inputdeck`, `--expansion-bay`, `--panicinfo`.
+
+Only the JSON goes to stdout, errors are logged to stderr. Values that come
+from a bitmask are included both raw (`*_raw` or `flags`) and decoded into
+names. Other commands reject `--json` with an error.
+
 ## Check firmware versions
 
 ### BIOS (Mainboard, UEFI, EC, PD, Retimer)

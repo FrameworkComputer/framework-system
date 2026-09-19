@@ -32,6 +32,7 @@ pub fn get_args() -> Vec<String> {
 pub fn parse(args: &[String]) -> Cli {
     let mut cli = Cli {
         verbosity: LogLevel(log::LevelFilter::Error),
+        json: false,
         paginate: false,
         versions: false,
         version: false,
