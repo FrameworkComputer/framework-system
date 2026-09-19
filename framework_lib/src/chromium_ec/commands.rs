@@ -886,7 +886,7 @@ impl EcRequest<EcResponseS0ixCounter> for EcRequestS0ixCounter {
 }
 
 /// Supported features
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
 pub enum EcFeatureCode {
     /// This image contains a limited set of features. Another image
     /// in RW partition may support more features.
