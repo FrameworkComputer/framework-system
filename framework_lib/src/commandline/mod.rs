@@ -1741,7 +1741,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.pdports {
         power::print_cypd_pd_info(&ec);
     } else if args.pdports_chromebook {
-        power::get_and_print_pd_info(&ec);
+        power::print_pd_info(&ec);
     } else if args.info {
         smbios_info();
     } else if let Some(dump_path) = &args.meinfo {
