@@ -787,13 +787,44 @@ pub fn get_and_print_power_info(ec: &CrosEc) -> i32 {
     }
 
     if let Some(power_info) = power_info(ec) {
-        print_err_ref(&ec.get_charge_state(&power_info));
+        let charge_state = ec.get_charge_state();
+        print_err_ref(&charge_state);
+        if let Ok(charge_state) = charge_state {
+            print_charge_state(&charge_state, &power_info);
+        }
         print_battery_information(&power_info);
         if let Some(_battery) = &power_info.battery {
             return 0;
         }
     }
     1
+}
+
+/// Print the charger state like the commandline tool does
+///
+/// The battery information is used to show the charge current relative to
+/// the battery's design capacity (C-rate).
+pub fn print_charge_state(charge_state: &ChargeState, power_info: &PowerInfo) {
+    println!("Charger Status");
+    println!(
+        "  AC is:            {}",
+        if charge_state.ac_present {
+            "connected"
+        } else {
+            "not connected"
+        }
+    );
+    println!("  Charger Voltage:  {}mV", charge_state.charger_voltage);
+    println!("  Charger Current:  {}mA", charge_state.charger_current);
+    if let Some(battery) = &power_info.battery {
+        let charge_rate = (charge_state.charger_current as f32) / (battery.design_capacity as f32);
+        println!("                    {:.2}C", charge_rate);
+    }
+    println!(
+        "  Chg Input Current:{}mA",
+        charge_state.charger_input_current
+    );
+    println!("  Battery SoC:      {}%", charge_state.battery_soc);
 }
 
 fn print_battery_information(power_info: &PowerInfo) {

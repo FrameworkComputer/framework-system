@@ -1681,31 +1681,20 @@ impl CrosEc {
         }
     }
 
-    pub fn get_charge_state(&self, power_info: &power::PowerInfo) -> EcResult<()> {
+    /// Read the current state of the charger
+    pub fn get_charge_state(&self) -> EcResult<ChargeState> {
         let res = EcRequestChargeStateGetV0 {
             cmd: ChargeStateCmd::GetState as u8,
             param: 0,
         }
         .send_command(self)?;
-        println!("Charger Status");
-        println!(
-            "  AC is:            {}",
-            if res.ac == 1 {
-                "connected"
-            } else {
-                "not connected"
-            }
-        );
-        println!("  Charger Voltage:  {}mV", { res.chg_voltage });
-        println!("  Charger Current:  {}mA", { res.chg_current });
-        if let Some(battery) = &power_info.battery {
-            let charge_rate = (res.chg_current as f32) / (battery.design_capacity as f32);
-            println!("                    {:.2}C", charge_rate);
-        }
-        println!("  Chg Input Current:{}mA", { res.chg_input_current });
-        println!("  Battery SoC:      {}%", { res.batt_state_of_charge });
-
-        Ok(())
+        Ok(ChargeState {
+            ac_present: res.ac == 1,
+            charger_voltage: res.chg_voltage,
+            charger_current: res.chg_current,
+            charger_input_current: res.chg_input_current,
+            battery_soc: res.batt_state_of_charge,
+        })
     }
 
     pub fn set_ec_hib_delay(&self, seconds: u32) -> EcResult<()> {
@@ -2221,6 +2210,23 @@ pub fn print_err_ref<T>(something: &EcResult<T>) {
 pub fn print_err<T>(something: EcResult<T>) -> Option<T> {
     print_err_ref(&something);
     something.ok()
+}
+
+/// Current state of the charger, as reported by EC_CMD_CHARGE_STATE
+///
+/// Use [`CrosEc::get_charge_state`] to read it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ChargeState {
+    /// Whether the charger reports AC as connected
+    pub ac_present: bool,
+    /// Charger output voltage in mV
+    pub charger_voltage: u32,
+    /// Charger output current in mA
+    pub charger_current: u32,
+    /// Charger input current limit in mA
+    pub charger_input_current: u32,
+    /// Battery state of charge in percent
+    pub battery_soc: u32,
 }
 
 /// Which of the two EC images is currently in-use
