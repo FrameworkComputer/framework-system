@@ -332,42 +332,27 @@ impl PdController {
         })
     }
 
+    /// Print the versions of all firmware images like the commandline tool does
     pub fn print_fw_info(&self) {
-        let data = self.ccgx_read(ControlRegisters::BootLoaderVersion, 8);
-        let data = match data {
-            Ok(data) => data,
+        let versions = match self.get_fw_versions() {
+            Ok(versions) => versions,
             Err(err) => {
                 println!("Failed to get PD Info: {:?}", err);
                 return;
             }
         };
 
-        assert_win_len(data.len(), 8);
-        let base_ver = BaseVersion::from(&data[..4]);
-        let app_ver = AppVersion::from(&data[4..]);
         println!(
             "  Bootloader Version:   Base: {},  App: {}",
-            base_ver, app_ver
+            versions.bootloader.base, versions.bootloader.app
         );
-
-        let data = self.ccgx_read(ControlRegisters::Firmware1Version, 8);
-        let data = data.unwrap();
-        assert_win_len(data.len(), 8);
-        let base_ver = BaseVersion::from(&data[..4]);
-        let app_ver = AppVersion::from(&data[4..]);
         println!(
             "  FW1 (Backup) Version: Base: {},  App: {}",
-            base_ver, app_ver
+            versions.backup_fw.base, versions.backup_fw.app
         );
-
-        let data = self.ccgx_read(ControlRegisters::Firmware2Version, 8);
-        let data = data.unwrap();
-        assert_win_len(data.len(), 8);
-        let base_ver = BaseVersion::from(&data[..4]);
-        let app_ver = AppVersion::from(&data[4..]);
         println!(
             "  FW2 (Main)   Version: Base: {},  App: {}",
-            base_ver, app_ver
+            versions.main_fw.base, versions.main_fw.app
         );
     }
 
