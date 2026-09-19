@@ -1563,11 +1563,11 @@ impl CrosEc {
         Ok(())
     }
 
+    /// Read after how many seconds in G3 the EC hibernates
     pub fn get_ec_hib_delay(&self) -> EcResult<u32> {
         let res = EcRequesetHibernationDelay { seconds: 0 }.send_command(self)?;
         debug!("Time in G3:        {:?}", { res.time_g3 });
         debug!("Time remaining:    {:?}", { res.time_remaining });
-        println!("EC Hibernation Delay: {:?}s", { res.hibernation_delay });
         Ok(res.hibernation_delay)
     }
 
