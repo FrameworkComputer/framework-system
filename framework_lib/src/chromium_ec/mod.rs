@@ -1838,23 +1838,9 @@ impl CrosEc {
     }
 
     /// Check features supported by the firmware
-    pub fn get_features(&self) -> EcResult<()> {
+    pub fn get_features(&self) -> EcResult<EcFeatures> {
         let data = EcRequestGetFeatures {}.send_command(self)?;
-        println!(" ID | Name                        | Enabled?");
-        println!(" -- | --------------------------- | --------");
-        for i in 0..64 {
-            let byte = i / 32;
-            let bit = i % 32;
-            let val = (data.flags[byte] & (1 << bit)) > 0;
-            let feat: Option<EcFeatureCode> = FromPrimitive::from_usize(i);
-
-            if let Some(feat) = feat {
-                let name = format!("{:?}", feat);
-                println!(" {:>2} | {:<27} | {:>5}", i, name, val);
-            }
-        }
-
-        Ok(())
+        Ok(EcFeatures { flags: data.flags })
     }
 
     /// Instantly reboot EC and host
@@ -2234,6 +2220,59 @@ impl SysInfo {
     }
 }
 
+/// Features supported by the EC firmware, as reported by EC_CMD_GET_FEATURES
+///
+/// Use [`CrosEc::get_features`] to read it and [`print_features`] to show it
+/// like the commandline tool does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EcFeatures {
+    /// Raw feature bitmask, bit N is feature N
+    pub flags: [u32; 2],
+}
+
+impl EcFeatures {
+    /// Number of bits in the feature bitmask
+    const BITS: usize = 64;
+
+    fn bit(&self, i: usize) -> bool {
+        self.flags[i / 32] & (1 << (i % 32)) != 0
+    }
+
+    /// Whether the firmware supports a feature
+    pub fn is_enabled(&self, feature: EcFeatureCode) -> bool {
+        self.bit(feature as usize)
+    }
+
+    /// All features known to us and whether the firmware supports them
+    pub fn known(&self) -> Vec<(EcFeatureCode, bool)> {
+        (0..Self::BITS)
+            .filter_map(|i| {
+                let feature: EcFeatureCode = FromPrimitive::from_usize(i)?;
+                Some((feature, self.bit(i)))
+            })
+            .collect()
+    }
+
+    /// All features known to us that the firmware supports
+    pub fn enabled(&self) -> Vec<EcFeatureCode> {
+        self.known()
+            .into_iter()
+            .filter(|(_, enabled)| *enabled)
+            .map(|(feature, _)| feature)
+            .collect()
+    }
+}
+
+/// Print supported EC features like the commandline tool does
+pub fn print_features(features: &EcFeatures) {
+    println!(" ID | Name                        | Enabled?");
+    println!(" -- | --------------------------- | --------");
+    for (feature, enabled) in features.known() {
+        let name = format!("{:?}", feature);
+        println!(" {:>2} | {:<27} | {:>5}", feature as usize, name, enabled);
+    }
+}
+
 /// One entry of the EC's log of AP resets
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ApReset {
@@ -2374,6 +2413,25 @@ mod tests {
             vec![SysinfoFlag::JumpEnabled, SysinfoFlag::JumpedToCurrentImage]
         );
         assert!(decode_flags::<SysinfoFlag>(0, SysinfoFlag::Count as usize).is_empty());
+    }
+
+    #[test]
+    fn decode_features() {
+        let features = EcFeatures {
+            // Limited (bit 0) and UcsiPpm (bit 54)
+            flags: [0x1, 1 << (54 - 32)],
+        };
+        assert!(features.is_enabled(EcFeatureCode::Limited));
+        assert!(features.is_enabled(EcFeatureCode::UcsiPpm));
+        assert!(!features.is_enabled(EcFeatureCode::Dp21));
+        assert_eq!(
+            features.enabled(),
+            vec![EcFeatureCode::Limited, EcFeatureCode::UcsiPpm]
+        );
+        // Every known feature shows up exactly once
+        let known = features.known();
+        assert!(known.len() > 2);
+        assert!(known.contains(&(EcFeatureCode::Dp21, false)));
     }
 
     #[test]
