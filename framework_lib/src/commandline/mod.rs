@@ -1598,7 +1598,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
         print_err(ec.get_ec_hib_delay());
     } else if args.sysinfo {
-        print_err(ec.get_sysinfo());
+        if let Some(info) = print_err(ec.get_sysinfo()) {
+            chromium_ec::print_sysinfo(&info);
+        }
     } else if args.uptimeinfo {
         print_err(ec.get_uptime_info());
     } else if args.s0ix_counter {

@@ -202,7 +202,7 @@ pub struct EcRequestSysinfo {}
 
 /// Bits of EcResponseSysinfo flags (enum sysinfo_flags)
 #[repr(usize)]
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
 pub enum SysinfoFlag {
     /// Write protect is asserted, debug features are disabled
     Locked,
@@ -1139,7 +1139,7 @@ impl EcRequest<EcResponseUsbPdPowerInfo> for EcRequestUsbPdPowerInfo {
 }
 
 #[repr(usize)]
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
 pub enum EcResetFlag {
     /// Other known reason
     Other,

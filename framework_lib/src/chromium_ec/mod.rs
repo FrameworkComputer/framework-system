@@ -2041,36 +2041,18 @@ impl CrosEc {
         }
     }
 
-    pub fn get_sysinfo(&self) -> EcResult<()> {
+    /// Read which image the EC runs and why it was reset
+    pub fn get_sysinfo(&self) -> EcResult<SysInfo> {
         let res = EcRequestSysinfo {}.send_command(self)?;
-        let current_image = match res.current_image {
-            1 => EcCurrentImage::RO,
-            2 => EcCurrentImage::RW,
-            _ => EcCurrentImage::Unknown,
-        };
-        println!("EC System Info");
-        println!("  Current Image: {:?}", current_image);
-        println!("  Reset Flags:   {:#010X}", { res.reset_flags });
-        for flag in 0..(EcResetFlag::Count as usize) {
-            if ((1 << flag) & res.reset_flags) > 0 {
-                // Safe to unwrap unless coding mistake
-                println!(
-                    "    {:?}",
-                    <EcResetFlag as FromPrimitive>::from_usize(flag).unwrap()
-                );
-            }
-        }
-        println!("  Flags:         {:#010X}", { res.flags });
-        for flag in 0..(SysinfoFlag::Count as usize) {
-            if ((1 << flag) & res.flags) > 0 {
-                // Safe to unwrap unless coding mistake
-                println!(
-                    "    {:?}",
-                    <SysinfoFlag as FromPrimitive>::from_usize(flag).unwrap()
-                );
-            }
-        }
-        Ok(())
+        Ok(SysInfo {
+            current_image: match res.current_image {
+                1 => EcCurrentImage::RO,
+                2 => EcCurrentImage::RW,
+                _ => EcCurrentImage::Unknown,
+            },
+            reset_flags: res.reset_flags,
+            flags: res.flags,
+        })
     }
 
     pub fn get_uptime_info(&self) -> EcResult<()> {
@@ -2230,11 +2212,60 @@ pub struct ChargeState {
 }
 
 /// Which of the two EC images is currently in-use
-#[derive(PartialEq, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EcCurrentImage {
     Unknown = 0,
     RO = 1,
     RW = 2,
+}
+
+/// Decode a bitmask into the enum variants of the set bits
+///
+/// Bits without a known variant are skipped.
+fn decode_flags<T: FromPrimitive>(flags: u32, count: usize) -> Vec<T> {
+    (0..count)
+        .filter(|bit| flags & (1 << bit) != 0)
+        .filter_map(T::from_usize)
+        .collect()
+}
+
+/// EC system information, as reported by EC_CMD_SYSINFO
+///
+/// Use [`CrosEc::get_sysinfo`] to read it and [`print_sysinfo`] to show it
+/// like the commandline tool does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SysInfo {
+    pub current_image: EcCurrentImage,
+    /// Raw reset flags of the current boot, see [`SysInfo::reset_flags`]
+    pub reset_flags: u32,
+    /// Raw sysinfo flags, see [`SysInfo::flags`]
+    pub flags: u32,
+}
+
+impl SysInfo {
+    /// Why the EC was reset
+    pub fn reset_flags(&self) -> Vec<EcResetFlag> {
+        decode_flags(self.reset_flags, EcResetFlag::Count as usize)
+    }
+
+    /// Decoded sysinfo flags
+    pub fn flags(&self) -> Vec<SysinfoFlag> {
+        decode_flags(self.flags, SysinfoFlag::Count as usize)
+    }
+}
+
+/// Print EC system information like the commandline tool does
+pub fn print_sysinfo(info: &SysInfo) {
+    println!("EC System Info");
+    println!("  Current Image: {:?}", info.current_image);
+    println!("  Reset Flags:   {:#010X}", info.reset_flags);
+    for flag in info.reset_flags() {
+        println!("    {:?}", flag);
+    }
+    println!("  Flags:         {:#010X}", info.flags);
+    for flag in info.flags() {
+        println!("    {:?}", flag);
+    }
 }
 
 pub struct IntrusionStatus {
@@ -2276,4 +2307,29 @@ pub struct GpuCfgDescriptor {
     pub descriptor_crc32: u32,
     /// CRC of header before this value
     pub crc32: u32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decode_sysinfo_flags() {
+        let info = SysInfo {
+            current_image: EcCurrentImage::RW,
+            // Bits 0 and 3 set, plus an unknown high bit
+            reset_flags: 0x8000_0009,
+            // JumpEnabled and JumpedToCurrentImage
+            flags: 0b1100,
+        };
+        assert_eq!(
+            info.reset_flags(),
+            vec![EcResetFlag::Other, EcResetFlag::PowerOn]
+        );
+        assert_eq!(
+            info.flags(),
+            vec![SysinfoFlag::JumpEnabled, SysinfoFlag::JumpedToCurrentImage]
+        );
+        assert!(decode_flags::<SysinfoFlag>(0, SysinfoFlag::Count as usize).is_empty());
+    }
 }
