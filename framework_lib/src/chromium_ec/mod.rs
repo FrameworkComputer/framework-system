@@ -14,7 +14,7 @@ use crate::fw_uefi::shell_get_execution_break_flag;
 use crate::os_specific;
 use crate::power;
 use crate::smbios;
-use crate::util::{self, Platform};
+use crate::util;
 
 use no_std_compat::time::Duration;
 
@@ -648,128 +648,6 @@ impl CrosEc {
         .send_command(self)?;
 
         Ok(InputDeckStatus::from(status))
-    }
-
-    pub fn print_fw12_inputdeck_status(&self) -> EcResult<()> {
-        let intrusion = self.get_intrusion_status()?;
-        let pwrbtn = self.read_board_id_npc_db(Framework12Adc::PowerButtonBoardId as u8)?;
-        let audio = self.read_board_id_npc_db(Framework12Adc::AudioBoardId as u8)?;
-        let tp = self.read_board_id_npc_db(Framework12Adc::TouchpadBoardId as u8)?;
-
-        let is_present = |p| if p { "Present" } else { "Missing" };
-
-        println!("Input Deck");
-        println!("  Chassis Closed:      {}", !intrusion.currently_open);
-        println!(
-            "  Power Button Board:  {}",
-            if let Some(pwrbtn) = pwrbtn {
-                format!("{} ({})", is_present(true), pwrbtn)
-            } else {
-                is_present(false).to_string()
-            }
-        );
-        if let Ok(adc) = self.adc_read(Framework12Adc::PowerButtonBoardId as u8) {
-            println!("    ADC Value          {:04}mV", adc);
-        }
-        println!(
-            "  Audio Daughterboard: {}",
-            if let Some(audio) = audio {
-                format!("{} ({})", is_present(true), audio)
-            } else {
-                is_present(false).to_string()
-            }
-        );
-        if let Ok(adc) = self.adc_read(Framework12Adc::AudioBoardId as u8) {
-            println!("    ADC Value          {:04}mV", adc);
-        }
-        println!(
-            "  Touchpad:            {}",
-            if let Some(tp) = tp {
-                format!("{} ({})", is_present(true), tp)
-            } else {
-                is_present(false).to_string()
-            }
-        );
-        if let Ok(adc) = self.adc_read(Framework12Adc::TouchpadBoardId as u8) {
-            println!("    ADC Value          {:04}mV", adc);
-        }
-
-        if let Ok(status) = self.get_input_deck_status() {
-            println!("  Deck State:          {:?}", status.state);
-            println!("  Touchpad present:    {}", status.touchpad_present);
-        }
-
-        Ok(())
-    }
-
-    pub fn print_fw13_inputdeck_status(&self) -> EcResult<()> {
-        let intrusion = self.get_intrusion_status()?;
-
-        let (audio, tp) = match smbios::get_platform() {
-            Some(Platform::IntelGen11)
-            | Some(Platform::IntelGen12)
-            | Some(Platform::IntelGen13) => (
-                self.read_board_id(FrameworkHx20Hx30Adc::AudioBoardId as u8)?,
-                self.read_board_id(FrameworkHx20Hx30Adc::TouchpadBoardId as u8)?,
-            ),
-
-            _ => (
-                self.read_board_id_npc_db(Framework13Adc::AudioBoardId as u8)?,
-                self.read_board_id_npc_db(Framework13Adc::TouchpadBoardId as u8)?,
-            ),
-        };
-
-        let is_present = |p| if p { "Present" } else { "Missing" };
-
-        println!("Input Deck");
-        println!("  Chassis Closed:      {}", !intrusion.currently_open);
-
-        println!(
-            "  Audio Daughterboard: {}",
-            if let Some(audio) = audio {
-                format!("{} ({})", is_present(true), audio)
-            } else {
-                is_present(false).to_string()
-            }
-        );
-        if let Ok(adc) = self.adc_read(Framework13Adc::AudioBoardId as u8) {
-            println!("    ADC Value          {:04}mV", adc);
-        }
-        println!(
-            "  Touchpad:            {}",
-            if let Some(tp) = tp {
-                format!("{} ({})", is_present(true), tp)
-            } else {
-                is_present(false).to_string()
-            }
-        );
-        if let Ok(adc) = self.adc_read(Framework13Adc::TouchpadBoardId as u8) {
-            println!("    ADC Value          {:04}mV", adc);
-        }
-
-        if let Ok(status) = self.get_input_deck_status() {
-            println!("  Deck State:          {:?}", status.state);
-            println!("  Touchpad present:    {}", status.touchpad_present);
-        }
-
-        Ok(())
-    }
-
-    pub fn print_fw16_inputdeck_status(&self) -> EcResult<()> {
-        let intrusion = self.get_intrusion_status()?;
-        let status = self.get_input_deck_status()?;
-        let sleep_l = self.get_gpio("sleep_l")?;
-        println!("Chassis Closed:   {}", !intrusion.currently_open);
-        println!("Input Deck State: {:?}", status.state);
-        println!("Touchpad present: {}", status.touchpad_present);
-        println!("SLEEP# GPIO high: {}", sleep_l);
-        println!("Positions:");
-        println!("  Pos 0: {:?}", status.top_row.pos0);
-        println!("  Pos 1: {:?}", status.top_row.pos1);
-        println!("  Pos 2: {:?}", status.top_row.pos2);
-        println!("  Pos 3: {:?}", status.top_row.pos3);
-        println!("  Pos 4: {:?}", status.top_row.pos4);
-        Ok(())
     }
 
     pub fn set_input_deck_mode(&self, mode: DeckStateMode) -> EcResult<InputDeckStatus> {
