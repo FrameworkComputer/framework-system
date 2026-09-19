@@ -375,21 +375,53 @@ pub fn set_thermal_thresholds(ec: &CrosEc, sensor: u32, values: &[i32]) -> EcRes
     ec.set_thermal_threshold(sensor, cfg)
 }
 
+/// Current positions of the EC switches (lid, power button, ...)
+///
+/// Use [`get_switches`] to read it and [`print_switches`] to show it like the
+/// commandline tool does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Switches {
+    /// Raw switch bits as read from the EC memory map
+    pub raw: u8,
+    /// Whether the lid is open
+    pub lid_open: bool,
+    /// Whether the power button is currently pressed
+    pub power_button_pressed: bool,
+    /// Whether EC firmware write protect is disabled
+    pub write_protect_disabled: bool,
+    /// Whether the dedicated recovery switch is enabled
+    pub dedicated_recovery: bool,
+}
+
+impl From<u8> for Switches {
+    fn from(switches: u8) -> Self {
+        Switches {
+            raw: switches,
+            lid_open: switches & EC_SWITCH_LID_OPEN != 0,
+            power_button_pressed: switches & EC_SWITCH_POWER_BUTTON_PRESSED != 0,
+            write_protect_disabled: switches & EC_SWITCH_WRITE_PROTECT_DISABLED != 0,
+            dedicated_recovery: switches & EC_SWITCH_DEDICATED_RECOVERY != 0,
+        }
+    }
+}
+
+/// Read the current EC switch positions (lid, power button, ...)
+pub fn get_switches(ec: &CrosEc) -> Option<Switches> {
+    let switches = *ec.read_memory(EC_MEMMAP_SWITCHES, 1)?.first()?;
+    Some(Switches::from(switches))
+}
+
 /// Print the current EC switch positions (lid, power button, ...)
 pub fn print_switches(ec: &CrosEc) -> Option<()> {
-    let switches = *ec.read_memory(EC_MEMMAP_SWITCHES, 1)?.first()?;
-    println!("Current switches:   {:#04x}", switches);
+    let switches = get_switches(ec)?;
+    println!("Current switches:   {:#04x}", switches.raw);
     println!(
         "Lid switch:         {}",
-        if switches & EC_SWITCH_LID_OPEN != 0 {
-            "OPEN"
-        } else {
-            "CLOSED"
-        }
+        if switches.lid_open { "OPEN" } else { "CLOSED" }
     );
     println!(
         "Power button:       {}",
-        if switches & EC_SWITCH_POWER_BUTTON_PRESSED != 0 {
+        if switches.power_button_pressed {
             "DOWN"
         } else {
             "UP"
@@ -397,7 +429,7 @@ pub fn print_switches(ec: &CrosEc) -> Option<()> {
     );
     println!(
         "Write protect:      {}ABLED",
-        if switches & EC_SWITCH_WRITE_PROTECT_DISABLED != 0 {
+        if switches.write_protect_disabled {
             "DIS"
         } else {
             "EN"
@@ -405,7 +437,7 @@ pub fn print_switches(ec: &CrosEc) -> Option<()> {
     );
     println!(
         "Dedicated recovery: {}ABLED",
-        if switches & EC_SWITCH_DEDICATED_RECOVERY != 0 {
+        if switches.dedicated_recovery {
             "EN"
         } else {
             "DIS"
@@ -1490,6 +1522,16 @@ mod tests {
         assert_eq!(pd_port_name(2, fl16), "Left Middle");
         assert_eq!(pd_port_name(3, fl16), "Left Back");
         assert_eq!(pd_port_name(4, fl16), "??");
+    }
+
+    #[test]
+    fn decode_switches() {
+        let switches = Switches::from(EC_SWITCH_LID_OPEN | EC_SWITCH_WRITE_PROTECT_DISABLED);
+        assert!(switches.lid_open);
+        assert!(!switches.power_button_pressed);
+        assert!(switches.write_protect_disabled);
+        assert!(!switches.dedicated_recovery);
+        assert_eq!(switches.raw, 0x05);
     }
 
     #[test]
