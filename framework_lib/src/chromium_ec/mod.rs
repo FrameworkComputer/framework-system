@@ -1250,39 +1250,22 @@ impl CrosEc {
         res
     }
 
-    pub fn check_bay_status(&self) -> EcResult<()> {
-        println!("Expansion Bay");
-
+    /// Read the state of the expansion bay (Framework 16)
+    pub fn get_bay_status(&self) -> EcResult<ExpansionBayInfo> {
         let info = EcRequestExpansionBayStatus {}.send_command(self)?;
-        println!("  Enabled:       {}", info.module_enabled());
-        println!("  No fault:      {}", !info.module_fault());
-        println!("  Door closed:   {}", info.hatch_switch_closed());
-        match info.expansion_bay_board() {
-            Ok(board) => println!("  Board:         {:?}", board),
-            Err(err) => println!("  Board:         {:?}", err),
-        }
-
-        if let Ok(sn) = self.get_gpu_serial() {
-            println!("  Serial Number: {}", sn);
-        } else {
-            println!("  Serial Number: Unknown");
-        }
-
+        let serial = self.get_gpu_serial().ok();
         let res = EcRequestGetGpuPcie {}.send_command(self)?;
-        let config: Option<GpuPcieConfig> = FromPrimitive::from_u8(res.gpu_pcie_config);
-        let vendor: Option<GpuVendor> = FromPrimitive::from_u8(res.gpu_vendor);
-        if let Some(config) = config {
-            println!("  Config:        {:?}", config);
-        } else {
-            println!("  Config:        Unknown ({})", res.gpu_pcie_config);
-        }
-        if let Some(vendor) = vendor {
-            println!("  Vendor:        {:?}", vendor);
-        } else {
-            println!("  Vendor:        Unknown ({})", res.gpu_vendor);
-        }
-
-        Ok(())
+        Ok(ExpansionBayInfo {
+            enabled: info.module_enabled(),
+            fault: info.module_fault(),
+            door_closed: info.hatch_switch_closed(),
+            board: info.expansion_bay_board(),
+            serial,
+            pcie_config: FromPrimitive::from_u8(res.gpu_pcie_config),
+            raw_pcie_config: res.gpu_pcie_config,
+            vendor: FromPrimitive::from_u8(res.gpu_vendor),
+            raw_vendor: res.gpu_vendor,
+        })
     }
 
     /// Get the GPU Serial
@@ -2095,6 +2078,57 @@ impl SysInfo {
     /// Decoded sysinfo flags
     pub fn flags(&self) -> Vec<SysinfoFlag> {
         decode_flags(self.flags, SysinfoFlag::Count as usize)
+    }
+}
+
+/// State of the expansion bay (Framework 16)
+///
+/// Use [`CrosEc::get_bay_status`] to read it and [`print_bay_status`] to
+/// show it like the commandline tool does.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExpansionBayInfo {
+    /// Whether the module in the bay is powered
+    pub enabled: bool,
+    /// Whether the EC detected a fault with the module
+    pub fault: bool,
+    /// Whether the bay door is closed
+    pub door_closed: bool,
+    /// Which board is connected, or why none could be identified
+    pub board: Result<ExpansionBayBoard, ExpansionBayIssue>,
+    /// Serial number of the module, `None` if it has none or can't be read
+    pub serial: Option<String>,
+    /// PCIe lane configuration, `None` if unknown to us
+    pub pcie_config: Option<GpuPcieConfig>,
+    pub raw_pcie_config: u8,
+    /// Kind of module, `None` if unknown to us
+    pub vendor: Option<GpuVendor>,
+    pub raw_vendor: u8,
+}
+
+/// Print the state of the expansion bay like the commandline tool does
+pub fn print_bay_status(info: &ExpansionBayInfo) {
+    println!("Expansion Bay");
+    println!("  Enabled:       {}", info.enabled);
+    println!("  No fault:      {}", !info.fault);
+    println!("  Door closed:   {}", info.door_closed);
+    match &info.board {
+        Ok(board) => println!("  Board:         {:?}", board),
+        Err(err) => println!("  Board:         {:?}", err),
+    }
+    if let Some(serial) = &info.serial {
+        println!("  Serial Number: {}", serial);
+    } else {
+        println!("  Serial Number: Unknown");
+    }
+    if let Some(config) = info.pcie_config {
+        println!("  Config:        {:?}", config);
+    } else {
+        println!("  Config:        Unknown ({})", info.raw_pcie_config);
+    }
+    if let Some(vendor) = info.vendor {
+        println!("  Vendor:        {:?}", vendor);
+    } else {
+        println!("  Vendor:        Unknown ({})", info.raw_vendor);
     }
 }
 

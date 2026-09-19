@@ -1590,14 +1590,14 @@ pub enum ExpansionByStates {
     ModuleFault = 0x02,
     HatchSwitchClosed = 0x04,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExpansionBayBoard {
     DualInterposer,
     SingleInterposer,
     UmaFans,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExpansionBayIssue {
     NoModule,
     BadConnection(u8, u8),
@@ -1869,7 +1869,7 @@ impl EcRequest<EcResponseGetGpuSerial> for EcRequestGetGpuSerial {
 pub struct EcRequestGetGpuPcie {}
 
 #[repr(u8)]
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
 pub enum GpuPcieConfig {
     /// PCIe 8x1
     Pcie8x1 = 0,
@@ -1880,7 +1880,7 @@ pub enum GpuPcieConfig {
 }
 
 #[repr(u8)]
-#[derive(Debug, FromPrimitive, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
 pub enum GpuVendor {
     Initializing = 0x00,
     FanOnly = 0x01,

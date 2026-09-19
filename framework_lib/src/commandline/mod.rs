@@ -1427,8 +1427,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             ec.set_input_deck_mode((*mode).into()).unwrap();
         }
     } else if args.expansion_bay {
-        if let Err(err) = ec.check_bay_status() {
-            error!("{:?}", err);
+        match ec.get_bay_status() {
+            Ok(info) => chromium_ec::print_bay_status(&info),
+            Err(err) => error!("{:?}", err),
         }
         if let Ok(header) = ec.read_gpu_desc_header() {
             println!("  Expansion Bay EEPROM");
