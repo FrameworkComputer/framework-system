@@ -20,6 +20,8 @@ use no_std_compat::time::Duration;
 
 use log::Level;
 use num_derive::FromPrimitive;
+#[cfg(feature = "serde")]
+use serde::Serialize;
 
 pub mod command;
 pub mod commands;
@@ -2025,6 +2027,7 @@ pub fn print_err<T>(something: EcResult<T>) -> Option<T> {
 ///
 /// Use [`CrosEc::get_charge_state`] to read it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ChargeState {
     /// Whether the charger reports AC as connected
     pub ac_present: bool,
@@ -2040,10 +2043,62 @@ pub struct ChargeState {
 
 /// Which of the two EC images is currently in-use
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum EcCurrentImage {
     Unknown = 0,
     RO = 1,
     RW = 2,
+}
+
+/// Serialize a duration as whole milliseconds
+#[cfg(feature = "serde")]
+fn duration_ms<S: serde::Serializer>(
+    duration: &Duration,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    serializer.serialize_u64(duration.as_millis() as u64)
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for SysInfo {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut s = serializer.serialize_struct("SysInfo", 5)?;
+        s.serialize_field("current_image", &self.current_image)?;
+        s.serialize_field("reset_flags_raw", &self.reset_flags)?;
+        s.serialize_field("reset_flags", &self.reset_flags())?;
+        s.serialize_field("flags_raw", &self.flags)?;
+        s.serialize_field("flags", &self.flags())?;
+        s.end()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for UptimeInfo {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut s = serializer.serialize_struct("UptimeInfo", 5)?;
+        s.serialize_field(
+            "time_since_ec_boot_ms",
+            &(self.time_since_ec_boot.as_millis() as u64),
+        )?;
+        s.serialize_field("ap_resets_since_ec_boot", &self.ap_resets_since_ec_boot)?;
+        s.serialize_field("ec_reset_flags_raw", &self.ec_reset_flags)?;
+        s.serialize_field("ec_reset_flags", &self.ec_reset_flags())?;
+        s.serialize_field("recent_ap_resets", &self.recent_ap_resets)?;
+        s.end()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for EcFeatures {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut s = serializer.serialize_struct("EcFeatures", 2)?;
+        s.serialize_field("flags", &self.flags)?;
+        s.serialize_field("enabled", &self.enabled())?;
+        s.end()
+    }
 }
 
 /// Decode a bitmask into the enum variants of the set bits
@@ -2086,6 +2141,7 @@ impl SysInfo {
 /// Use [`CrosEc::get_bay_status`] to read it and [`print_bay_status`] to
 /// show it like the commandline tool does.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ExpansionBayInfo {
     /// Whether the module in the bay is powered
     pub enabled: bool,
@@ -2187,8 +2243,13 @@ pub fn print_features(features: &EcFeatures) {
 
 /// One entry of the EC's log of AP resets
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ApReset {
     /// When the reset happened, relative to EC boot
+    #[cfg_attr(
+        feature = "serde",
+        serde(rename = "time_since_ec_boot_ms", serialize_with = "duration_ms")
+    )]
     pub time_since_ec_boot: Duration,
     /// Why the EC reset the AP, `None` if the cause is not known to us
     pub cause: Option<ResetCause>,
@@ -2325,6 +2386,21 @@ mod tests {
             vec![SysinfoFlag::JumpEnabled, SysinfoFlag::JumpedToCurrentImage]
         );
         assert!(decode_flags::<SysinfoFlag>(0, SysinfoFlag::Count as usize).is_empty());
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serialize_sysinfo() {
+        let info = SysInfo {
+            current_image: EcCurrentImage::RW,
+            reset_flags: 0x9,
+            flags: 0b1100,
+        };
+        let json: serde_json::Value = serde_json::to_value(info).unwrap();
+        assert_eq!(json["current_image"], "RW");
+        assert_eq!(json["reset_flags_raw"], 9);
+        assert_eq!(json["reset_flags"][1], "PowerOn");
+        assert_eq!(json["flags"][0], "JumpEnabled");
     }
 
     #[test]

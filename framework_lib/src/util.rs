@@ -1,6 +1,8 @@
 //! Miscellaneous utility functions to use across modules
 
 use num::{Num, NumCast};
+#[cfg(feature = "serde")]
+use serde::Serialize;
 use std::prelude::v1::*;
 
 #[cfg(feature = "uefi")]
@@ -50,6 +52,7 @@ pub enum Platform {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum PlatformFamily {
     Framework12,
     Framework13,

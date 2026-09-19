@@ -1,6 +1,8 @@
 use core::fmt;
 
 use num_derive::FromPrimitive;
+#[cfg(feature = "serde")]
+use serde::Serialize;
 
 use super::{command::*, input_deck::INPUT_DECK_SLOTS};
 #[cfg(feature = "uefi")]
@@ -203,6 +205,7 @@ pub struct EcRequestSysinfo {}
 /// Bits of EcResponseSysinfo flags (enum sysinfo_flags)
 #[repr(usize)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum SysinfoFlag {
     /// Write protect is asserted, debug features are disabled
     Locked,
@@ -425,6 +428,7 @@ pub enum MotionSenseType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum MotionSenseLocation {
     Base = 0,
     Lid = 1,
@@ -887,6 +891,7 @@ impl EcRequest<EcResponseS0ixCounter> for EcRequestS0ixCounter {
 
 /// Supported features
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum EcFeatureCode {
     /// This image contains a limited set of features. Another image
     /// in RW partition may support more features.
@@ -1140,6 +1145,7 @@ impl EcRequest<EcResponseUsbPdPowerInfo> for EcRequestUsbPdPowerInfo {
 
 #[repr(usize)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum EcResetFlag {
     /// Other known reason
     Other,
@@ -1192,6 +1198,7 @@ pub enum EcResetFlag {
 
 #[repr(u16)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum ResetCause {
     ResetUnknown = 0x0000,
     /// Custom reason defined by a board.c or baseboard.c file
@@ -1591,6 +1598,7 @@ pub enum ExpansionByStates {
     HatchSwitchClosed = 0x04,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum ExpansionBayBoard {
     DualInterposer,
     SingleInterposer,
@@ -1598,6 +1606,7 @@ pub enum ExpansionBayBoard {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum ExpansionBayIssue {
     NoModule,
     BadConnection(u8, u8),
@@ -1870,6 +1879,7 @@ pub struct EcRequestGetGpuPcie {}
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum GpuPcieConfig {
     /// PCIe 8x1
     Pcie8x1 = 0,
@@ -1881,6 +1891,7 @@ pub enum GpuPcieConfig {
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum GpuVendor {
     Initializing = 0x00,
     FanOnly = 0x01,
