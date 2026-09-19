@@ -8,6 +8,8 @@ use core::convert::TryInto;
 use core::fmt;
 use core::prelude::v1::derive;
 use log::Level;
+#[cfg(feature = "serde")]
+use serde::Serialize;
 
 use crate::ccgx::{AppVersion, Application, BaseVersion, ControllerVersion, MainPdVersions};
 use crate::chromium_ec::command::EcRequestRaw;
@@ -84,6 +86,7 @@ const EC_FAN_SPEED_NOT_PRESENT: u16 = 0xFFFF;
 
 /// Reading of a single temperature sensor
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum TempSensor {
     Ok(u8),
     NotPresent,
@@ -113,6 +116,7 @@ impl fmt::Display for TempSensor {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct BatteryInformation {
     pub present_voltage: u32,
     pub present_rate: u32,
@@ -137,12 +141,14 @@ pub struct BatteryInformation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct PowerInfo {
     pub ac_present: bool,
     pub battery: Option<BatteryInformation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ReducedBatteryInformation {
     pub cycle_count: u32,
     pub charge_percentage: u32, // Calculated based on Remaining Capacity / LFCC
@@ -155,6 +161,7 @@ pub struct ReducedBatteryInformation {
 /// Some of them (e.g. present_voltage) will vary with a high frequency, so it's not good to
 /// compare two PowerInfo structs to see whether the battery status has changed.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ReducedPowerInfo {
     pub ac_present: bool,
     pub battery: Option<ReducedBatteryInformation>,
@@ -177,6 +184,7 @@ impl From<PowerInfo> for ReducedPowerInfo {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct AccelData {
     pub x: i16,
     pub y: i16,
@@ -202,6 +210,7 @@ impl fmt::Display for AccelData {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum LidAngle {
     Angle(u16),
     Unreliable,
@@ -255,6 +264,7 @@ pub fn print_memmap_version_info(ec: &CrosEc) {
 ///
 /// All temperatures are in degrees Celsius, `None` means the threshold is disabled.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ThermalThresholds {
     /// Index of the sensor in the EC memory map
     pub index: u32,
@@ -380,6 +390,7 @@ pub fn set_thermal_thresholds(ec: &CrosEc, sensor: u32, values: &[i32]) -> EcRes
 /// Use [`get_switches`] to read it and [`print_switches`] to show it like the
 /// commandline tool does.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Switches {
     /// Raw switch bits as read from the EC memory map
     pub raw: u8,
@@ -483,6 +494,7 @@ pub fn get_accel_data(ec: &CrosEc) -> (AccelData, AccelData, LidAngle) {
 
 /// A single accelerometer and its current reading
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Accelerometer {
     /// Where the sensor is mounted
     pub location: MotionSenseLocation,
@@ -491,6 +503,7 @@ pub struct Accelerometer {
 
 /// All accelerometer data the EC reports in its memory map
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct AccelInfo {
     /// Whether the EC was updating the data while we read it
     pub busy: bool,
@@ -504,6 +517,7 @@ pub struct AccelInfo {
 /// Use [`get_sensors`] to read it and [`print_sensors`] to show it like the
 /// commandline tool does.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct SensorInfo {
     /// Ambient light in Lux, `None` if the system has no ambient light sensor
     pub als: Option<u32>,
@@ -622,6 +636,7 @@ pub fn print_sensors(ec: &CrosEc) {
 /// Use [`get_thermal`] to read it and [`print_thermal`] to show it like the
 /// commandline tool does.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ThermalInfo {
     /// All temperature sensors that are present
     pub sensors: Vec<TempSensorInfo>,
@@ -633,6 +648,7 @@ pub struct ThermalInfo {
 
 /// A single temperature sensor and its current reading
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct TempSensorInfo {
     /// Index of the sensor in the EC memory map
     pub index: u8,
@@ -644,6 +660,7 @@ pub struct TempSensorInfo {
 
 /// A single fan and its current speed
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct FanInfo {
     /// Index of the fan in the EC memory map
     pub index: usize,
@@ -655,6 +672,7 @@ pub struct FanInfo {
 
 /// Current speed of a single fan
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum FanSpeed {
     /// Current speed in RPM
     Rpm(u16),
@@ -675,6 +693,7 @@ impl From<u16> for FanSpeed {
 
 /// Whether the EC is throttling the AP
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct ApThrottleInfo {
     pub soft: bool,
     pub hard: bool,
@@ -873,6 +892,29 @@ pub fn get_cutoff_status(ec: &CrosEc) -> Option<bool> {
         .map(|res| res.status != 0)
 }
 
+/// Everything `--power` reports at once
+///
+/// Use [`get_power_status`] to read it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct PowerStatus {
+    /// Whether the battery is cut off (ship mode), `None` if the EC doesn't report it
+    pub cutoff: Option<bool>,
+    /// Charger state, `None` if the EC doesn't report it
+    pub charger: Option<ChargeState>,
+    /// AC and battery state, `None` if the memory map couldn't be read
+    pub power: Option<PowerInfo>,
+}
+
+/// Read battery cutoff, charger and battery state
+pub fn get_power_status(ec: &CrosEc) -> PowerStatus {
+    PowerStatus {
+        cutoff: get_cutoff_status(ec),
+        charger: ec.get_charge_state().ok(),
+        power: power_info(ec),
+    }
+}
+
 pub fn get_and_print_power_info(ec: &CrosEc) -> i32 {
     print!("Battery Cutoff:     ");
     match get_cutoff_status(ec) {
@@ -1004,6 +1046,7 @@ pub fn check_update_ready(power_info: &PowerInfo) -> bool {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum UsbChargingType {
     None = 0,
     PD = 1,
@@ -1017,6 +1060,7 @@ pub enum UsbChargingType {
     Unknown = 9,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum UsbPowerRoles {
     Disconnected = 0,
     Source = 1,
@@ -1026,6 +1070,7 @@ pub enum UsbPowerRoles {
 
 /// Voltage and current measurements of a USB-C port, in mV and mA
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct UsbChargeMeasures {
     pub voltage_max: u16,
     pub voltage_now: u16,
@@ -1038,6 +1083,7 @@ pub struct UsbChargeMeasures {
 /// Use [`get_pd_info`] to read it and [`print_pd_info`] to show it like the
 /// commandline tool does.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct UsbPdPowerInfo {
     pub role: UsbPowerRoles,
     pub charging_type: UsbChargingType,
@@ -1103,6 +1149,7 @@ pub fn get_pd_info(ec: &CrosEc, ports: u8) -> Vec<EcResult<UsbPdPowerInfo>> {
 
 /// Type-C connection state of a PD port
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum CypdTypeCState {
     Nothing,
     Sink,
@@ -1131,6 +1178,7 @@ impl From<u8> for CypdTypeCState {
 
 /// PD power role of a port
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum CypdPdPowerRole {
     Sink,
     Source,
@@ -1149,6 +1197,7 @@ impl From<u8> for CypdPdPowerRole {
 
 /// PD data role of a port
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum CypdPdDataRole {
     Ufp,
     Dfp,
@@ -1169,6 +1218,7 @@ impl From<u8> for CypdPdDataRole {
 
 /// Which CC line the port partner is connected on
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum CcPolarity {
     Cc1,
     Cc2,
@@ -1268,6 +1318,32 @@ impl CypdPortInfo {
             .filter(|(bit, _)| self.dp_alt_mode_status & (1 << bit) != 0)
             .map(|(_, name)| *name)
             .collect()
+    }
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for CypdPortInfo {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut s = serializer.serialize_struct("CypdPortInfo", 17)?;
+        s.serialize_field("port", &self.port)?;
+        s.serialize_field("connected", &self.connected())?;
+        s.serialize_field("c_state", &self.c_state)?;
+        s.serialize_field("pd_contract", &self.pd_contract)?;
+        s.serialize_field("power_role", &self.power_role)?;
+        s.serialize_field("data_role", &self.data_role)?;
+        s.serialize_field("vconn", &self.vconn)?;
+        s.serialize_field("voltage_mv", &self.voltage)?;
+        s.serialize_field("current_ma", &self.current)?;
+        s.serialize_field("power_mw", &self.power_mw())?;
+        s.serialize_field("cc_polarity", &self.cc_polarity)?;
+        s.serialize_field("epr_active", &self.epr_active)?;
+        s.serialize_field("epr_support", &self.epr_support)?;
+        s.serialize_field("sink_active", &self.sink_active)?;
+        s.serialize_field("dp_alt_mode_status", &self.dp_alt_mode_status)?;
+        s.serialize_field("dp_alt_mode_active", &self.dp_alt_mode_active())?;
+        s.serialize_field("dp_alt_modes", &self.dp_alt_modes())?;
+        s.end()
     }
 }
 

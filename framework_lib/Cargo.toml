@@ -13,7 +13,7 @@ rust-version = "1.89"
 build = "build.rs"
 
 [features]
-default = ["hidapi", "rusb"]
+default = ["hidapi", "rusb", "serde"]
 readonly = [ ]
 rusb = ["dep:rusb"]
 hidapi = ["dep:hidapi"]
@@ -21,6 +21,8 @@ uefi = [ "lazy_static/spin_no_std" ]
 nvidia = ["dep:nvml-wrapper"]
 # Needs libsmartmon (GPL-2.0-or-later), see README
 smartmontools = ["dep:smartmon"]
+# Serialize the data structures, e.g. for JSON output. Not available in UEFI
+serde = ["dep:serde", "dep:serde_json"]
 
 [build-dependencies]
 built = { version = "0.8", features = ["chrono", "git2"] }
@@ -42,6 +44,8 @@ rusb = { version = "0.9.4", optional = true }
 guid-create = { version = "0.5.0", default-features = false }
 zerocopy = { version = "0.8", default-features = false, features = ["derive"] }
 smartmon = { version = "0.1", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
 
 [target.'cfg(target_os = "uefi")'.dependencies]
 uefi = { version = "0.41", features = ["alloc", "global_allocator", "panic_handler", "logger"] }

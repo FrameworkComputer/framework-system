@@ -1,5 +1,7 @@
 use alloc::format;
 use alloc::string::{String, ToString};
+#[cfg(feature = "serde")]
+use serde::Serialize;
 
 use super::commands::EcResponseDeckState;
 use super::{CrosEc, EcResult, Framework12Adc, Framework13Adc, FrameworkHx20Hx30Adc};
@@ -38,6 +40,7 @@ enum InputDeckMux {
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum InputModuleType {
     Short,
     Reserved1,
@@ -106,6 +109,7 @@ impl InputModuleType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum InputDeckState {
     /// Manual workaround during EVT
     Off,
@@ -138,6 +142,7 @@ impl From<u8> for InputDeckState {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct InputDeckStatus {
     pub state: InputDeckState,
     pub hubboard_present: bool,
@@ -210,6 +215,7 @@ impl From<EcResponseDeckState> for InputDeckStatus {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct TopRowPositions {
     /// C1 all the way left
     /// B1 all the way left
@@ -230,6 +236,7 @@ pub struct TopRowPositions {
 
 /// A daughterboard connected to the input deck
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Daughterboard {
     /// Board ID, `None` if the board is not connected
     pub board_id: Option<u8>,
@@ -249,6 +256,7 @@ impl Daughterboard {
 /// [`CrosEc::get_inputdeck_status`] to read it and [`print_inputdeck_status`]
 /// to show it like the commandline tool does.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct InputDeckInfo {
     /// Platform family the layout was decoded for, `None` if unknown
     pub family: Option<PlatformFamily>,

@@ -5,6 +5,8 @@
 
 use alloc::vec::Vec;
 use core::convert::TryInto;
+#[cfg(feature = "serde")]
+use serde::Serialize;
 
 use crate::util;
 
@@ -168,6 +170,28 @@ impl CortexMPanic {
     }
 }
 
+#[cfg(feature = "serde")]
+impl Serialize for CortexMPanic {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut s = serializer.serialize_struct("CortexMPanic", 13)?;
+        s.serialize_field("exception", &self.exception)?;
+        s.serialize_field("handler_mode", &self.handler_mode)?;
+        s.serialize_field("regs", &self.regs)?;
+        s.serialize_field("xpsr", &self.xpsr)?;
+        s.serialize_field("cfsr", &self.cfsr)?;
+        s.serialize_field("bfar", &self.bfar)?;
+        s.serialize_field("bfar_valid", &self.bfar_valid())?;
+        s.serialize_field("mfar", &self.mfar)?;
+        s.serialize_field("mfar_valid", &self.mfar_valid())?;
+        s.serialize_field("shcsr", &self.shcsr)?;
+        s.serialize_field("hfsr", &self.hfsr)?;
+        s.serialize_field("dfsr", &self.dfsr)?;
+        s.serialize_field("fault_names", &self.fault_names())?;
+        s.end()
+    }
+}
+
 /// Parse panic data of a Cortex-M EC
 ///
 /// Returns `None` if the data is too short to hold all registers.
@@ -317,6 +341,28 @@ impl PanicInfo {
     }
 }
 
+#[cfg(feature = "serde")]
+impl Serialize for PanicInfo {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut s = serializer.serialize_struct("PanicInfo", 13)?;
+        s.serialize_field("arch", &self.arch)?;
+        s.serialize_field("is_cortex_m", &self.is_cortex_m())?;
+        s.serialize_field("struct_version", &self.struct_version)?;
+        s.serialize_field("version_known", &self.version_known())?;
+        s.serialize_field("flags", &self.flags)?;
+        s.serialize_field("flag_names", &self.flag_names())?;
+        s.serialize_field("already_reported", &self.already_reported())?;
+        s.serialize_field("struct_size", &self.struct_size)?;
+        s.serialize_field("data_len", &self.data_len)?;
+        s.serialize_field("size_consistent", &self.size_consistent())?;
+        s.serialize_field("magic", &self.magic)?;
+        s.serialize_field("magic_valid", &self.magic_valid())?;
+        s.serialize_field("cortex_m", &self.cortex_m)?;
+        s.end()
+    }
+}
+
 /// Parse panic data as returned by EC_CMD_GET_PANIC_INFO
 ///
 /// Returns `None` if the data is too short to hold the header and trailer.
@@ -458,6 +504,18 @@ mod tests {
 
         // Must not panic
         print_panic_info(&data);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serialize_cm_v2() {
+        let info = parse_panic_info(&cm_v2_blob()).unwrap();
+        let json: serde_json::Value = serde_json::to_value(info).unwrap();
+        assert_eq!(json["magic_valid"], true);
+        assert_eq!(json["flag_names"][0], "FRAME_VALID");
+        assert_eq!(json["cortex_m"]["exception"], 3);
+        assert_eq!(json["cortex_m"]["regs"][13], 0x2000_1000);
+        assert_eq!(json["cortex_m"]["fault_names"][0], "Forced hard fault");
     }
 
     #[test]
