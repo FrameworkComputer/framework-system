@@ -108,36 +108,70 @@ fn print_reg(regnum: usize, value: Option<u32>) {
     }
 }
 
-/// Print a textual representation of the fault registers
-fn print_fault(cfsr: u32, hfsr: u32, dfsr: u32) {
-    let mut names = CFSR_NAME
-        .iter()
-        .filter(|(bit, _)| cfsr & (1 << bit) != 0)
-        .map(|(_, name)| *name)
-        .collect::<Vec<_>>();
-    if hfsr & CPU_NVIC_HFSR_DEBUGEVT != 0 {
-        names.push("Debug event");
-    }
-    if hfsr & CPU_NVIC_HFSR_FORCED != 0 {
-        names.push("Forced hard fault");
-    }
-    if hfsr & CPU_NVIC_HFSR_VECTTBL != 0 {
-        names.push("Vector table bus fault");
-    }
-    for (bit, name) in DFSR_NAME.iter().enumerate() {
-        if dfsr & (1 << bit) != 0 {
-            names.push(name);
-        }
-    }
-    print!("{}", names.join(", "));
+/// Decoded registers of a Cortex-M EC panic
+///
+/// Port of the register handling in panic_data_print() in the EC's
+/// core/cortex-m/panic.c, with handling for the older struct version 1
+/// (missing MSP, LR at another position) like the EC's util/ec_panicinfo.c.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CortexMPanic {
+    /// Exception number (IPSR)
+    pub exception: u32,
+    /// Whether the exception happened in handler mode, otherwise process mode
+    pub handler_mode: bool,
+    /// r0-r12, sp, lr, pc. Registers from the exception stack frame
+    /// (r0-r3, r12, lr, pc) are `None` if the frame is not valid.
+    pub regs: [Option<u32>; 16],
+    /// xPSR from the exception stack frame, `None` if the frame is not valid
+    pub xpsr: Option<u32>,
+    pub cfsr: u32,
+    pub bfar: u32,
+    pub mfar: u32,
+    pub shcsr: u32,
+    pub hfsr: u32,
+    pub dfsr: u32,
 }
 
-/// Print panic data of a Cortex-M EC
+impl CortexMPanic {
+    /// Textual representation of the set bits in the fault registers
+    pub fn fault_names(&self) -> Vec<&'static str> {
+        let mut names = CFSR_NAME
+            .iter()
+            .filter(|(bit, _)| self.cfsr & (1 << bit) != 0)
+            .map(|(_, name)| *name)
+            .collect::<Vec<_>>();
+        if self.hfsr & CPU_NVIC_HFSR_DEBUGEVT != 0 {
+            names.push("Debug event");
+        }
+        if self.hfsr & CPU_NVIC_HFSR_FORCED != 0 {
+            names.push("Forced hard fault");
+        }
+        if self.hfsr & CPU_NVIC_HFSR_VECTTBL != 0 {
+            names.push("Vector table bus fault");
+        }
+        for (bit, name) in DFSR_NAME.iter().enumerate() {
+            if self.dfsr & (1 << bit) != 0 {
+                names.push(name);
+            }
+        }
+        names
+    }
+
+    /// Whether the bus fault address register holds a valid address
+    pub fn bfar_valid(&self) -> bool {
+        self.cfsr & CPU_NVIC_CFSR_BFARVALID != 0
+    }
+
+    /// Whether the memory management fault address register holds a valid address
+    pub fn mfar_valid(&self) -> bool {
+        self.cfsr & CPU_NVIC_CFSR_MFARVALID != 0
+    }
+}
+
+/// Parse panic data of a Cortex-M EC
 ///
-/// Port of panic_data_print() in the EC's core/cortex-m/panic.c, with
-/// handling for the older struct version 1 (missing MSP, LR at another
-/// position) like the EC's util/ec_panicinfo.c.
-fn print_panic_info_cm(data: &[u8], struct_version: u8, flags: u8) -> Option<()> {
+/// Returns `None` if the data is too short to hold all registers.
+fn parse_panic_info_cm(data: &[u8], struct_version: u8, flags: u8) -> Option<CortexMPanic> {
     // Register offsets into the data blob. Registers not saved on the
     // exception stack frame come first (lregs), the stack frame follows
     // (sregs). See struct cortex_panic_data(_v1) in the EC.
@@ -162,56 +196,158 @@ fn print_panic_info_cm(data: &[u8], struct_version: u8, flags: u8) -> Option<()>
     let sreg = |i: usize| frame_valid.then(|| u32_at(data, frame_offset + 4 * i));
 
     let exc_lr = lreg(exc_lr_idx);
-    println!(
-        "=== {} EXCEPTION: {:02x} ====== xPSR: {:08x} ===",
-        if is_exception_from_handler_mode(exc_lr) {
-            "HANDLER"
-        } else {
-            "PROCESS"
-        },
-        lreg(1) & 0xff,
-        sreg(7).unwrap_or(0xffffffff),
-    );
-    for i in 0..4 {
-        print_reg(i, sreg(i));
-    }
-    for i in 4..10 {
-        print_reg(i, Some(lreg(i - 1)));
-    }
-    print_reg(10, Some(lreg(9)));
-    print_reg(11, Some(lreg(10)));
-    print_reg(12, sreg(4));
     // v1 does not save the MSP, fall back to the PSP
     let sp = if struct_version != 1 && is_frame_in_handler_stack(exc_lr) {
         lreg(2) // msp
     } else {
         lreg(0) // psp
     };
-    print_reg(13, Some(sp));
-    print_reg(14, sreg(5));
-    print_reg(15, sreg(6));
 
-    let cfsr = u32_at(data, fault_offset);
-    let bfar = u32_at(data, fault_offset + 4);
-    let mfar = u32_at(data, fault_offset + 8);
-    let shcsr = u32_at(data, fault_offset + 12);
-    let hfsr = u32_at(data, fault_offset + 16);
-    let dfsr = u32_at(data, fault_offset + 20);
-
-    print_fault(cfsr, hfsr, dfsr);
-    if cfsr & CPU_NVIC_CFSR_BFARVALID != 0 {
-        print!(", bfar = {:x}", bfar);
+    let mut regs = [None; 16];
+    for (i, reg) in regs.iter_mut().enumerate().take(4) {
+        *reg = sreg(i);
     }
-    if cfsr & CPU_NVIC_CFSR_MFARVALID != 0 {
-        print!(", mfar = {:x}", mfar);
+    for (i, reg) in regs.iter_mut().enumerate().take(10).skip(4) {
+        *reg = Some(lreg(i - 1));
+    }
+    regs[10] = Some(lreg(9));
+    regs[11] = Some(lreg(10));
+    regs[12] = sreg(4);
+    regs[13] = Some(sp);
+    regs[14] = sreg(5);
+    regs[15] = sreg(6);
+
+    Some(CortexMPanic {
+        exception: lreg(1) & 0xff,
+        handler_mode: is_exception_from_handler_mode(exc_lr),
+        regs,
+        xpsr: sreg(7),
+        cfsr: u32_at(data, fault_offset),
+        bfar: u32_at(data, fault_offset + 4),
+        mfar: u32_at(data, fault_offset + 8),
+        shcsr: u32_at(data, fault_offset + 12),
+        hfsr: u32_at(data, fault_offset + 16),
+        dfsr: u32_at(data, fault_offset + 20),
+    })
+}
+
+/// Print panic data of a Cortex-M EC like the EC's console does
+fn print_panic_info_cm(panic: &CortexMPanic) {
+    println!(
+        "=== {} EXCEPTION: {:02x} ====== xPSR: {:08x} ===",
+        if panic.handler_mode {
+            "HANDLER"
+        } else {
+            "PROCESS"
+        },
+        panic.exception,
+        panic.xpsr.unwrap_or(0xffffffff),
+    );
+    for (i, reg) in panic.regs.iter().enumerate() {
+        print_reg(i, *reg);
+    }
+
+    print!("{}", panic.fault_names().join(", "));
+    if panic.bfar_valid() {
+        print!(", bfar = {:x}", panic.bfar);
+    }
+    if panic.mfar_valid() {
+        print!(", mfar = {:x}", panic.mfar);
     }
     println!();
     println!(
         "cfsr = {:x}, shcsr = {:x}, hfsr = {:x}, dfsr = {:x}",
-        cfsr, shcsr, hfsr, dfsr
+        panic.cfsr, panic.shcsr, panic.hfsr, panic.dfsr
     );
+}
 
-    Some(())
+/// Decoded EC panic data (struct panic_data)
+///
+/// Use [`parse_panic_info`] to decode it and [`print_panic_info`] to show it
+/// like the commandline tool does.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PanicInfo {
+    /// Architecture of the EC, see [`PanicInfo::cortex_m`]
+    pub arch: u8,
+    pub struct_version: u8,
+    /// Raw flags, see [`PanicInfo::flag_names`]
+    pub flags: u8,
+    /// Size of the struct as recorded by the EC
+    pub struct_size: u32,
+    /// Should be [`PANIC_DATA_MAGIC`]
+    pub magic: u32,
+    /// Length of the data we actually received
+    pub data_len: usize,
+    /// Decoded registers, `None` if the architecture is unknown or the
+    /// data is too short
+    pub cortex_m: Option<CortexMPanic>,
+}
+
+impl PanicInfo {
+    pub fn magic_valid(&self) -> bool {
+        self.magic == PANIC_DATA_MAGIC
+    }
+
+    /// Whether the recorded struct size matches the data we received
+    pub fn size_consistent(&self) -> bool {
+        self.struct_size as usize == self.data_len
+    }
+
+    pub fn version_known(&self) -> bool {
+        self.struct_version <= 2
+    }
+
+    /// Whether this panic was already reported via host command before
+    pub fn already_reported(&self) -> bool {
+        self.flags & PANIC_DATA_FLAG_OLD_HOSTCMD != 0
+    }
+
+    /// Whether the EC is a Cortex-M, the only architecture we can decode
+    pub fn is_cortex_m(&self) -> bool {
+        self.arch == PANIC_ARCH_CORTEX_M
+    }
+
+    /// Names of the set flags
+    pub fn flag_names(&self) -> Vec<&'static str> {
+        FLAG_NAMES
+            .iter()
+            .filter(|(bit, _)| self.flags & bit != 0)
+            .map(|(_, name)| *name)
+            .collect()
+    }
+}
+
+/// Parse panic data as returned by EC_CMD_GET_PANIC_INFO
+///
+/// Returns `None` if the data is too short to hold the header and trailer.
+/// Implausible data is not rejected, check the `PanicInfo` methods.
+pub fn parse_panic_info(data: &[u8]) -> Option<PanicInfo> {
+    // arch, struct_version, flags, reserved
+    const HEADER_SIZE: usize = 4;
+    // struct_size, magic - at the very end of the struct
+    const TRAILER_SIZE: usize = 8;
+    if data.len() < HEADER_SIZE + TRAILER_SIZE {
+        return None;
+    }
+
+    let arch = data[0];
+    let struct_version = data[1];
+    let flags = data[2];
+    let cortex_m = if arch == PANIC_ARCH_CORTEX_M {
+        parse_panic_info_cm(data, struct_version, flags)
+    } else {
+        None
+    };
+
+    Some(PanicInfo {
+        arch,
+        struct_version,
+        flags,
+        struct_size: u32_at(data, data.len() - 8),
+        magic: u32_at(data, data.len() - 4),
+        data_len: data.len(),
+        cortex_m,
+    })
 }
 
 /// Parse and print panic data as returned by EC_CMD_GET_PANIC_INFO
@@ -219,65 +355,51 @@ fn print_panic_info_cm(data: &[u8], struct_version: u8, flags: u8) -> Option<()>
 /// The data must not be empty. Prints warnings if the data looks
 /// implausible and falls back to a hex dump if it cannot be decoded.
 pub fn print_panic_info(data: &[u8]) {
-    // arch, struct_version, flags, reserved
-    const HEADER_SIZE: usize = 4;
-    // struct_size, magic - at the very end of the struct
-    const TRAILER_SIZE: usize = 8;
-    if data.len() < HEADER_SIZE + TRAILER_SIZE {
+    let Some(info) = parse_panic_info(data) else {
         println!("Panic data too short ({} bytes), hex dump:", data.len());
         util::print_multiline_buffer(data, 0);
         return;
-    }
+    };
 
-    let arch = data[0];
-    let struct_version = data[1];
-    let flags = data[2];
-    let struct_size = u32_at(data, data.len() - 8);
-    let magic = u32_at(data, data.len() - 4);
-
-    if magic != PANIC_DATA_MAGIC {
+    if !info.magic_valid() {
         println!(
             "WARNING: Incorrect panic magic ({:#010x}), following data may be incorrect!",
-            magic
+            info.magic
         );
     }
-    if struct_size as usize != data.len() {
+    if !info.size_consistent() {
         println!(
             "WARNING: Panic struct size inconsistent ({} vs {}), following data may be incorrect!",
-            struct_size,
-            data.len()
+            info.struct_size, info.data_len
         );
     }
-    if struct_version > 2 {
+    if !info.version_known() {
         println!(
             "WARNING: Unknown panic data version ({}), following data may be incorrect!",
-            struct_version
+            info.struct_version
         );
     }
 
     println!(
         "Saved panic data:{}",
-        if flags & PANIC_DATA_FLAG_OLD_HOSTCMD != 0 {
+        if info.already_reported() {
             ""
         } else {
             " (NEW)"
         }
     );
-    let flag_names = FLAG_NAMES
-        .iter()
-        .filter(|(bit, _)| flags & bit != 0)
-        .map(|(_, name)| *name)
-        .collect::<Vec<_>>();
-    println!("Flags: {:#04x} ({})", flags, flag_names.join(" | "));
+    println!(
+        "Flags: {:#04x} ({})",
+        info.flags,
+        info.flag_names().join(" | ")
+    );
 
-    let decoded = match arch {
-        PANIC_ARCH_CORTEX_M => print_panic_info_cm(data, struct_version, flags),
-        _ => {
-            println!("Unknown architecture ({})", arch);
-            None
-        }
-    };
-    if decoded.is_none() {
+    if !info.is_cortex_m() {
+        println!("Unknown architecture ({})", info.arch);
+    }
+    if let Some(cortex_m) = &info.cortex_m {
+        print_panic_info_cm(cortex_m);
+    } else {
         println!("Cannot decode panic data, hex dump:");
         util::print_multiline_buffer(data, 0);
     }
@@ -294,8 +416,20 @@ mod tests {
         data[0] = PANIC_ARCH_CORTEX_M;
         data[1] = 2; // struct_version
         data[2] = PANIC_DATA_FLAG_FRAME_VALID;
+        // psp (lregs[0])
+        data[4..8].copy_from_slice(&0x2000_1000u32.to_le_bytes());
+        // ipsr (lregs[1]): exception 3 (hard fault)
+        data[8..12].copy_from_slice(&3u32.to_le_bytes());
         // exc_lr (lregs[11]): exception from process mode, PSP used
         data[4 + 4 * 11..4 + 4 * 12].copy_from_slice(&0xfffffffdu32.to_le_bytes());
+        // pc (sregs[6])
+        let frame_offset = 4 + 4 * 12;
+        data[frame_offset + 4 * 6..frame_offset + 4 * 7]
+            .copy_from_slice(&0x0800_1234u32.to_le_bytes());
+        // hfsr: forced hard fault
+        let fault_offset = frame_offset + 4 * 8;
+        data[fault_offset + 16..fault_offset + 20]
+            .copy_from_slice(&CPU_NVIC_HFSR_FORCED.to_le_bytes());
         let len = data.len();
         data[len - 8..len - 4].copy_from_slice(&116u32.to_le_bytes());
         data[len - 4..].copy_from_slice(&PANIC_DATA_MAGIC.to_le_bytes());
@@ -305,12 +439,50 @@ mod tests {
     #[test]
     fn decode_cm_v2() {
         let data = cm_v2_blob();
-        assert!(print_panic_info_cm(&data, data[1], data[2]).is_some());
-        // Must not panic, falls back to hex dump on unknown arch
+        let info = parse_panic_info(&data).unwrap();
+        assert!(info.magic_valid());
+        assert!(info.size_consistent());
+        assert!(info.version_known());
+        assert!(!info.already_reported());
+        assert!(info.is_cortex_m());
+        assert_eq!(info.flag_names(), vec!["FRAME_VALID"]);
+
+        let cm = info.cortex_m.as_ref().unwrap();
+        assert_eq!(cm.exception, 3);
+        assert!(!cm.handler_mode);
+        assert_eq!(cm.regs[13], Some(0x2000_1000)); // sp = psp
+        assert_eq!(cm.regs[15], Some(0x0800_1234)); // pc
+        assert_eq!(cm.xpsr, Some(0));
+        assert_eq!(cm.fault_names(), vec!["Forced hard fault"]);
+        assert!(!cm.bfar_valid());
+
+        // Must not panic
         print_panic_info(&data);
+    }
+
+    #[test]
+    fn invalid_frame_has_no_stack_registers() {
+        let mut data = cm_v2_blob();
+        data[2] = 0; // no FRAME_VALID
+        let info = parse_panic_info(&data).unwrap();
+        let cm = info.cortex_m.as_ref().unwrap();
+        assert_eq!(cm.regs[0], None);
+        assert_eq!(cm.regs[4], Some(0)); // r4 comes from lregs, always valid
+        assert_eq!(cm.regs[15], None);
+        assert_eq!(cm.xpsr, None);
+    }
+
+    #[test]
+    fn unknown_arch_and_short_data() {
         let mut unknown_arch = cm_v2_blob();
         unknown_arch[0] = 42;
+        let info = parse_panic_info(&unknown_arch).unwrap();
+        assert!(!info.is_cortex_m());
+        assert!(info.cortex_m.is_none());
+        // Must not panic, falls back to hex dump
         print_panic_info(&unknown_arch);
+
+        assert!(parse_panic_info(&[1, 2, 3]).is_none());
         print_panic_info(&[1, 2, 3]);
     }
 
@@ -319,6 +491,10 @@ mod tests {
         // Valid header/trailer but not enough space for Cortex-M registers
         let mut data = cm_v2_blob();
         data.truncate(50);
-        assert!(print_panic_info_cm(&data, 2, 0).is_none());
+        assert!(parse_panic_info_cm(&data, 2, 0).is_none());
+        let info = parse_panic_info(&data).unwrap();
+        assert!(info.is_cortex_m());
+        assert!(info.cortex_m.is_none());
+        print_panic_info(&data);
     }
 }
