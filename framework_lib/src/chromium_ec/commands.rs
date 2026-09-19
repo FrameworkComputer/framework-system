@@ -424,7 +424,7 @@ pub enum MotionSenseType {
     LightRgb = 8,
 }
 
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, FromPrimitive)]
 pub enum MotionSenseLocation {
     Base = 0,
     Lid = 1,

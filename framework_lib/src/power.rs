@@ -481,7 +481,40 @@ pub fn get_accel_data(ec: &CrosEc) -> (AccelData, AccelData, LidAngle) {
     )
 }
 
-pub fn print_sensors(ec: &CrosEc) {
+/// A single accelerometer and its current reading
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Accelerometer {
+    /// Where the sensor is mounted
+    pub location: MotionSenseLocation,
+    pub data: AccelData,
+}
+
+/// All accelerometer data the EC reports in its memory map
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AccelInfo {
+    /// Whether the EC was updating the data while we read it
+    pub busy: bool,
+    pub lid_angle: LidAngle,
+    /// Present accelerometers, usually lid and base
+    pub sensors: Vec<Accelerometer>,
+}
+
+/// All sensor readings the EC reports at once
+///
+/// Use [`get_sensors`] to read it and [`print_sensors`] to show it like the
+/// commandline tool does.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SensorInfo {
+    /// Ambient light in Lux, `None` if the system has no ambient light sensor
+    pub als: Option<u32>,
+    /// `None` if the system has no accelerometers
+    pub accel: Option<AccelInfo>,
+}
+
+/// Read ambient light and accelerometer sensors from the EC
+///
+/// Returns `None` if the EC memory map could not be read.
+pub fn get_sensors(ec: &CrosEc) -> Option<SensorInfo> {
     let mut has_als = false;
     let mut accel_locations = vec![];
 
@@ -513,44 +546,74 @@ pub fn print_sensors(ec: &CrosEc) {
         Some(PlatformFamily::Framework13) | Some(PlatformFamily::Framework16) | None
     );
 
-    if has_als || als_family {
-        let als_int = get_als_reading(ec, 0).unwrap();
-        println!("ALS: {:>4} Lux", als_int);
-    }
+    let als = if has_als || als_family {
+        Some(get_als_reading(ec, 0)?)
+    } else {
+        None
+    };
 
     // bit 4 = busy
     // bit 7 = present
     // #define EC_MEMMAP_ACC_STATUS_SAMPLE_ID_MASK 0x0f
-    let acc_status = ec.read_memory(EC_MEMMAP_ACC_STATUS, 0x01).unwrap()[0];
+    let acc_status = *ec.read_memory(EC_MEMMAP_ACC_STATUS, 0x01)?.first()?;
     // While busy, keep reading
 
-    let lid_angle = ec.read_memory(EC_MEMMAP_ACC_DATA, 0x02).unwrap();
-    let lid_angle = u16::from_le_bytes([lid_angle[0], lid_angle[1]]);
-    let accel_1 = ec.read_memory(EC_MEMMAP_ACC_DATA + 2, 0x06).unwrap();
-    let accel_2 = ec.read_memory(EC_MEMMAP_ACC_DATA + 8, 0x06).unwrap();
-
     let present = (acc_status & 0x80) > 0;
-    if present {
+    let busy = (acc_status & 0x8) > 0;
+    debug!("  Status Bit: {} 0x{:X}", acc_status, acc_status);
+    debug!("  Present:    {}", present);
+    debug!("  Busy:       {}", busy);
+
+    let accel = if present {
+        let lid_angle = ec.read_memory(EC_MEMMAP_ACC_DATA, 0x02)?;
+        let lid_angle = u16::from_le_bytes([lid_angle[0], lid_angle[1]]);
+        let accel_1 = ec.read_memory(EC_MEMMAP_ACC_DATA + 2, 0x06)?;
+        let accel_2 = ec.read_memory(EC_MEMMAP_ACC_DATA + 8, 0x06)?;
+
+        // The memory map has room for exactly two accelerometers, in the
+        // order motionsense lists them
+        let sensors = accel_locations
+            .into_iter()
+            .zip([AccelData::from(accel_1), AccelData::from(accel_2)])
+            .map(|(location, data)| Accelerometer { location, data })
+            .collect();
+
+        Some(AccelInfo {
+            busy,
+            lid_angle: LidAngle::from(lid_angle),
+            sensors,
+        })
+    } else {
+        None
+    };
+
+    Some(SensorInfo { als, accel })
+}
+
+/// Print ambient light and accelerometer sensors like the commandline tool does
+pub fn print_sensors(ec: &CrosEc) {
+    let Some(info) = get_sensors(ec) else {
+        println!("Failed to read sensors");
+        return;
+    };
+
+    if let Some(als) = info.als {
+        println!("ALS: {:>4} Lux", als);
+    }
+
+    if let Some(accel) = &info.accel {
         println!("Accelerometers:");
-        debug!("  Status Bit: {} 0x{:X}", acc_status, acc_status);
-        debug!("  Present:    {}", present);
-        debug!("  Busy:       {}", (acc_status & 0x8) > 0);
-        print!("  Lid Angle:   ");
-        if lid_angle == LID_ANGLE_UNRELIABLE {
-            println!("Unreliable");
-        } else {
-            println!("{} Deg", lid_angle);
+        match accel.lid_angle {
+            LidAngle::Angle(deg) => println!("  Lid Angle:   {} Deg", deg),
+            LidAngle::Unreliable => println!("  Lid Angle:   Unreliable"),
         }
-        println!(
-            "  {:<12} {}",
-            format!("{:?} Sensor:", accel_locations[0]),
-            AccelData::from(accel_1)
-        );
-        println!(
-            "  {:<12} {}",
-            format!("{:?} Sensor:", accel_locations[1]),
-            AccelData::from(accel_2)
-        );
+        for sensor in &accel.sensors {
+            println!(
+                "  {:<12} {}",
+                format!("{:?} Sensor:", sensor.location),
+                sensor.data
+            );
+        }
     }
 }
 
@@ -1532,6 +1595,23 @@ mod tests {
         assert!(switches.write_protect_disabled);
         assert!(!switches.dedicated_recovery);
         assert_eq!(switches.raw, 0x05);
+    }
+
+    #[test]
+    fn decode_accel_data() {
+        // 1G on Z, slightly negative X
+        let data = AccelData::from(vec![0xF0, 0xFF, 0x00, 0x00, 0xFF, 0x3F]);
+        assert_eq!(
+            data,
+            AccelData {
+                x: -16,
+                y: 0,
+                z: 16383
+            }
+        );
+        assert_eq!(data.to_string(), "X=-0.00G Y=+0.00G, Z=+1.00G");
+        assert_eq!(LidAngle::from(500), LidAngle::Unreliable);
+        assert_eq!(LidAngle::from(118), LidAngle::Angle(118));
     }
 
     #[test]
