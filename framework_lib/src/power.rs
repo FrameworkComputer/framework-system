@@ -908,7 +908,7 @@ pub fn check_update_ready(power_info: &PowerInfo) -> bool {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UsbChargingType {
     None = 0,
     PD = 1,
@@ -921,7 +921,7 @@ pub enum UsbChargingType {
     VBus = 8,
     Unknown = 9,
 }
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UsbPowerRoles {
     Disconnected = 0,
     Source = 1,
@@ -929,6 +929,8 @@ pub enum UsbPowerRoles {
     SinkNotCharging = 3,
 }
 
+/// Voltage and current measurements of a USB-C port, in mV and mA
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UsbChargeMeasures {
     pub voltage_max: u16,
     pub voltage_now: u16,
@@ -936,6 +938,11 @@ pub struct UsbChargeMeasures {
     pub current_lim: u16,
 }
 
+/// Power state of a USB-C port as reported by EC_CMD_USB_PD_POWER_INFO
+///
+/// Use [`get_pd_info`] to read it and [`print_pd_info`] to show it like the
+/// commandline tool does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UsbPdPowerInfo {
     pub role: UsbPowerRoles,
     pub charging_type: UsbChargingType,
@@ -1274,63 +1281,44 @@ pub fn print_cypd_pd_info(ec: &CrosEc) {
     }
 }
 
-pub fn get_and_print_pd_info(ec: &CrosEc) {
-    let fl16 = Some(PlatformFamily::Framework16) == smbios::get_family();
+/// Physical location of a USB-C port, as the user sees it
+///
+/// The port numbering does not match diagrams you might see elsewhere.
+pub fn pd_port_name(port: usize, family: Option<PlatformFamily>) -> &'static str {
+    let fl16 = family == Some(PlatformFamily::Framework16);
+    match port {
+        0 => "Right Back",
+        1 => {
+            if fl16 {
+                "Right Middle"
+            } else {
+                "Right Front"
+            }
+        }
+        2 => {
+            if fl16 {
+                "Left Middle"
+            } else {
+                "Left Front"
+            }
+        }
+        3 => "Left Back",
+        _ => "??",
+    }
+}
+
+/// Print the power state of all USB-C ports like the commandline tool does
+pub fn print_pd_info(ec: &CrosEc) {
+    let family = smbios::get_family();
     let ports = 4; // All our platforms have 4 PD ports so far
     let infos = get_pd_info(ec, ports);
     for (port, info) in infos.iter().enumerate().take(ports.into()) {
-        println!(
-            "USB-C Port {} ({}):",
-            port,
-            match port {
-                0 => "Right Back",
-                1 =>
-                    if fl16 {
-                        "Right Middle"
-                    } else {
-                        "Right Front"
-                    },
-                2 =>
-                    if fl16 {
-                        "Left Middle"
-                    } else {
-                        "Left Front"
-                    },
-                3 => "Left Back",
-                _ => "??",
-            }
-        );
+        println!("USB-C Port {} ({}):", port, pd_port_name(port, family));
         print_err_ref(info);
 
         // TODO: I haven't checked the encoding/endianness of these numbers. They're likely incorrectly decoded
         if let Ok(info) = info {
-            println!("  Role:          {:?}", info.role);
-
-            println!("  Charging Type: {:?}", info.charging_type);
-
-            let volt_max = { info.meas.voltage_max };
-            let volt_now = { info.meas.voltage_now };
-            println!(
-                "  Voltage Now:   {}.{} V, Max: {}.{} V",
-                volt_now / 1000,
-                volt_now % 1000,
-                volt_max / 1000,
-                volt_max % 1000,
-            );
-
-            let cur_lim = { info.meas.current_lim };
-            let cur_max = { info.meas.current_max };
-            println!("  Current Lim:   {} mA, Max: {} mA", cur_lim, cur_max);
-            println!(
-                "  Dual Role:     {}",
-                if info.dualrole { "DRP" } else { "Charger" }
-            );
-            let max_power_mw = { info.max_power } / 1000;
-            println!(
-                "  Max Power:     {}.{} W",
-                max_power_mw / 1000,
-                max_power_mw % 1000
-            );
+            print_pd_port_info(info);
         } else {
             println!("  Role:          Unknown");
             println!("  Charging Type: Unknown");
@@ -1341,6 +1329,37 @@ pub fn get_and_print_pd_info(ec: &CrosEc) {
             println!("  Max Power:     Unknown");
         }
     }
+}
+
+/// Print the power state of a single USB-C port like the commandline tool does
+pub fn print_pd_port_info(info: &UsbPdPowerInfo) {
+    println!("  Role:          {:?}", info.role);
+
+    println!("  Charging Type: {:?}", info.charging_type);
+
+    let volt_max = info.meas.voltage_max;
+    let volt_now = info.meas.voltage_now;
+    println!(
+        "  Voltage Now:   {}.{} V, Max: {}.{} V",
+        volt_now / 1000,
+        volt_now % 1000,
+        volt_max / 1000,
+        volt_max % 1000,
+    );
+
+    let cur_lim = info.meas.current_lim;
+    let cur_max = info.meas.current_max;
+    println!("  Current Lim:   {} mA, Max: {} mA", cur_lim, cur_max);
+    println!(
+        "  Dual Role:     {}",
+        if info.dualrole { "DRP" } else { "Charger" }
+    );
+    let max_power_mw = info.max_power / 1000;
+    println!(
+        "  Max Power:     {}.{} W",
+        max_power_mw / 1000,
+        max_power_mw % 1000
+    );
 }
 
 // TODO: Improve return type to be more obvious
@@ -1458,6 +1477,19 @@ mod tests {
             info.dp_alt_modes(),
             vec!["DFP_D Connected", "Enabled", "Multi-Function", "HPD High"]
         );
+    }
+
+    #[test]
+    fn pd_port_names() {
+        let fl13 = Some(PlatformFamily::Framework13);
+        let fl16 = Some(PlatformFamily::Framework16);
+        assert_eq!(pd_port_name(0, fl13), "Right Back");
+        assert_eq!(pd_port_name(1, fl13), "Right Front");
+        assert_eq!(pd_port_name(1, fl16), "Right Middle");
+        assert_eq!(pd_port_name(2, None), "Left Front");
+        assert_eq!(pd_port_name(2, fl16), "Left Middle");
+        assert_eq!(pd_port_name(3, fl16), "Left Back");
+        assert_eq!(pd_port_name(4, fl16), "??");
     }
 
     #[test]
