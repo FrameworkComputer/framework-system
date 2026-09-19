@@ -1385,7 +1385,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.version {
         print_tool_version();
     } else if args.features {
-        print_err(ec.get_features());
+        if let Some(features) = print_err(ec.get_features()) {
+            chromium_ec::print_features(&features);
+        }
     } else if args.esrt {
         print_esrt();
     } else if let Some(compare_version_ver) = &args.compare_version {
