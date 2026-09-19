@@ -1,4 +1,10 @@
+use alloc::format;
+use alloc::string::{String, ToString};
+
 use super::commands::EcResponseDeckState;
+use super::{CrosEc, EcResult, Framework12Adc, Framework13Adc, FrameworkHx20Hx30Adc};
+use crate::smbios;
+use crate::util::{Platform, PlatformFamily};
 
 /// The number of slots on the input deck, where modules can be connected to
 pub const INPUT_DECK_SLOTS: usize = 8;
@@ -220,4 +226,222 @@ pub struct TopRowPositions {
     pub pos3: InputModuleType,
     /// C1 all the way right
     pub pos4: InputModuleType,
+}
+
+/// A daughterboard connected to the input deck
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Daughterboard {
+    /// Board ID, `None` if the board is not connected
+    pub board_id: Option<u8>,
+    /// Raw reading of the board ID ADC channel in mV, `None` if it couldn't be read
+    pub adc_mv: Option<i32>,
+}
+
+impl Daughterboard {
+    pub fn present(&self) -> bool {
+        self.board_id.is_some()
+    }
+}
+
+/// Everything we know about the input deck
+///
+/// Which fields are filled depends on the platform family. Use
+/// [`CrosEc::get_inputdeck_status`] to read it and [`print_inputdeck_status`]
+/// to show it like the commandline tool does.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InputDeckInfo {
+    /// Platform family the layout was decoded for, `None` if unknown
+    pub family: Option<PlatformFamily>,
+    /// Whether the chassis intrusion switch reports the chassis as closed
+    pub chassis_closed: Option<bool>,
+    /// Framework 12 only
+    pub power_button_board: Option<Daughterboard>,
+    /// Framework 12 and 13
+    pub audio_board: Option<Daughterboard>,
+    /// Framework 12 and 13
+    pub touchpad_board: Option<Daughterboard>,
+    /// State of the input deck, `None` if the EC doesn't report it
+    pub deck_status: Option<InputDeckStatus>,
+    /// Framework 16 only, whether the SLEEP# GPIO is high
+    pub sleep_l: Option<bool>,
+}
+
+impl CrosEc {
+    fn daughterboard(&self, board_id: Option<u8>, adc_channel: u8) -> Daughterboard {
+        Daughterboard {
+            board_id,
+            adc_mv: self.adc_read(adc_channel).ok(),
+        }
+    }
+
+    /// Read the state of the input deck and the boards connected to it
+    ///
+    /// If the platform family is unknown, tries to detect a Framework 16 by
+    /// its SLEEP# GPIO and otherwise only reads the generic deck state.
+    pub fn get_inputdeck_status(&self) -> EcResult<InputDeckInfo> {
+        let family = match smbios::get_family() {
+            family @ Some(
+                PlatformFamily::Framework12
+                | PlatformFamily::Framework13
+                | PlatformFamily::Framework16,
+            ) => family,
+            // If we don't know which platform it is, we can use some heuristics
+            // Only Framework Laptop 16 has this GPIO
+            _ if self.get_gpio("sleep_l").is_ok() => Some(PlatformFamily::Framework16),
+            _ => None,
+        };
+
+        let mut info = InputDeckInfo {
+            family,
+            chassis_closed: None,
+            power_button_board: None,
+            audio_board: None,
+            touchpad_board: None,
+            deck_status: None,
+            sleep_l: None,
+        };
+
+        match family {
+            Some(PlatformFamily::Framework12) => {
+                info.chassis_closed = Some(!self.get_intrusion_status()?.currently_open);
+                let pwrbtn = self.read_board_id_npc_db(Framework12Adc::PowerButtonBoardId as u8)?;
+                let audio = self.read_board_id_npc_db(Framework12Adc::AudioBoardId as u8)?;
+                let tp = self.read_board_id_npc_db(Framework12Adc::TouchpadBoardId as u8)?;
+                info.power_button_board =
+                    Some(self.daughterboard(pwrbtn, Framework12Adc::PowerButtonBoardId as u8));
+                info.audio_board =
+                    Some(self.daughterboard(audio, Framework12Adc::AudioBoardId as u8));
+                info.touchpad_board =
+                    Some(self.daughterboard(tp, Framework12Adc::TouchpadBoardId as u8));
+                info.deck_status = self.get_input_deck_status().ok();
+            }
+            Some(PlatformFamily::Framework13) => {
+                info.chassis_closed = Some(!self.get_intrusion_status()?.currently_open);
+                let (audio, tp) = match smbios::get_platform() {
+                    Some(Platform::IntelGen11)
+                    | Some(Platform::IntelGen12)
+                    | Some(Platform::IntelGen13) => (
+                        self.read_board_id(FrameworkHx20Hx30Adc::AudioBoardId as u8)?,
+                        self.read_board_id(FrameworkHx20Hx30Adc::TouchpadBoardId as u8)?,
+                    ),
+
+                    _ => (
+                        self.read_board_id_npc_db(Framework13Adc::AudioBoardId as u8)?,
+                        self.read_board_id_npc_db(Framework13Adc::TouchpadBoardId as u8)?,
+                    ),
+                };
+                // TODO: On Intel 11th-13th Gen the ADC channels differ, the
+                // raw reading below comes from the wrong channel there
+                info.audio_board =
+                    Some(self.daughterboard(audio, Framework13Adc::AudioBoardId as u8));
+                info.touchpad_board =
+                    Some(self.daughterboard(tp, Framework13Adc::TouchpadBoardId as u8));
+                info.deck_status = self.get_input_deck_status().ok();
+            }
+            Some(PlatformFamily::Framework16) => {
+                info.chassis_closed = Some(!self.get_intrusion_status()?.currently_open);
+                info.deck_status = Some(self.get_input_deck_status()?);
+                info.sleep_l = Some(self.get_gpio("sleep_l")?);
+            }
+            Some(PlatformFamily::FrameworkDesktop) | None => {
+                info.deck_status = self.get_input_deck_status().ok();
+            }
+        }
+
+        Ok(info)
+    }
+}
+
+/// Format a daughterboard like the commandline tool does
+fn format_daughterboard(board: &Daughterboard) -> String {
+    if let Some(board_id) = board.board_id {
+        format!("Present ({})", board_id)
+    } else {
+        "Missing".to_string()
+    }
+}
+
+fn print_daughterboard(label: &str, board: &Daughterboard) {
+    println!("  {:<20} {}", label, format_daughterboard(board));
+    if let Some(adc) = board.adc_mv {
+        println!("    ADC Value          {:04}mV", adc);
+    }
+}
+
+/// Print the state of the input deck like the commandline tool does
+pub fn print_inputdeck_status(info: &InputDeckInfo) {
+    match info.family {
+        Some(PlatformFamily::Framework16) => {
+            if let Some(closed) = info.chassis_closed {
+                println!("Chassis Closed:   {}", closed);
+            }
+            if let Some(status) = &info.deck_status {
+                println!("Input Deck State: {:?}", status.state);
+                println!("Touchpad present: {}", status.touchpad_present);
+            }
+            if let Some(sleep_l) = info.sleep_l {
+                println!("SLEEP# GPIO high: {}", sleep_l);
+            }
+            if let Some(status) = &info.deck_status {
+                println!("Positions:");
+                println!("  Pos 0: {:?}", status.top_row.pos0);
+                println!("  Pos 1: {:?}", status.top_row.pos1);
+                println!("  Pos 2: {:?}", status.top_row.pos2);
+                println!("  Pos 3: {:?}", status.top_row.pos3);
+                println!("  Pos 4: {:?}", status.top_row.pos4);
+            }
+        }
+        Some(PlatformFamily::Framework12) | Some(PlatformFamily::Framework13) => {
+            println!("Input Deck");
+            if let Some(closed) = info.chassis_closed {
+                println!("  Chassis Closed:      {}", closed);
+            }
+            if let Some(board) = &info.power_button_board {
+                print_daughterboard("Power Button Board:", board);
+            }
+            if let Some(board) = &info.audio_board {
+                print_daughterboard("Audio Daughterboard:", board);
+            }
+            if let Some(board) = &info.touchpad_board {
+                print_daughterboard("Touchpad:", board);
+            }
+            if let Some(status) = &info.deck_status {
+                println!("  Deck State:          {:?}", status.state);
+                println!("  Touchpad present:    {}", status.touchpad_present);
+            }
+        }
+        Some(PlatformFamily::FrameworkDesktop) | None => {
+            if let Some(status) = &info.deck_status {
+                println!("  Deck State:          {:?}", status.state);
+                println!(
+                    "  Touchpad present:    {} ({})",
+                    status.touchpad_present, status.touchpad_id
+                );
+            } else {
+                println!("  Unable to tell");
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn format_daughterboards() {
+        let present = Daughterboard {
+            board_id: Some(7),
+            adc_mv: Some(1056),
+        };
+        assert!(present.present());
+        assert_eq!(format_daughterboard(&present), "Present (7)");
+
+        let missing = Daughterboard {
+            board_id: None,
+            adc_mv: None,
+        };
+        assert!(!missing.present());
+        assert_eq!(format_daughterboard(&missing), "Missing");
+    }
 }

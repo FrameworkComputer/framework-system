@@ -50,7 +50,7 @@ pub enum Platform {
     UnknownSystem,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum PlatformFamily {
     Framework12,
     Framework13,
