@@ -999,8 +999,9 @@ pub fn get_pd_info(ec: &CrosEc, ports: u8) -> Vec<EcResult<UsbPdPowerInfo>> {
     info
 }
 
-#[derive(Debug)]
-enum CypdTypeCState {
+/// Type-C connection state of a PD port
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CypdTypeCState {
     Nothing,
     Sink,
     Source,
@@ -1026,8 +1027,9 @@ impl From<u8> for CypdTypeCState {
     }
 }
 
-#[derive(Debug, PartialEq)]
-enum CypdPdPowerRole {
+/// PD power role of a port
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CypdPdPowerRole {
     Sink,
     Source,
     Unknown,
@@ -1043,8 +1045,9 @@ impl From<u8> for CypdPdPowerRole {
     }
 }
 
-#[derive(Debug)]
-enum CypdPdDataRole {
+/// PD data role of a port
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CypdPdDataRole {
     Ufp,
     Dfp,
     Disconnected,
@@ -1062,117 +1065,211 @@ impl From<u8> for CypdPdDataRole {
     }
 }
 
-pub fn get_and_print_cypd_pd_info(ec: &CrosEc) {
+/// Which CC line the port partner is connected on
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CcPolarity {
+    Cc1,
+    Cc2,
+    Cc1Debug,
+    Cc2Debug,
+    Unknown(u8),
+}
+
+impl From<u8> for CcPolarity {
+    fn from(v: u8) -> Self {
+        match v {
+            0 => CcPolarity::Cc1,
+            1 => CcPolarity::Cc2,
+            2 => CcPolarity::Cc1Debug,
+            3 => CcPolarity::Cc2Debug,
+            v => CcPolarity::Unknown(v),
+        }
+    }
+}
+
+impl fmt::Display for CcPolarity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CcPolarity::Cc1 => write!(f, "CC1"),
+            CcPolarity::Cc2 => write!(f, "CC2"),
+            CcPolarity::Cc1Debug => write!(f, "CC1 (Debug)"),
+            CcPolarity::Cc2Debug => write!(f, "CC2 (Debug)"),
+            CcPolarity::Unknown(_) => write!(f, "Unknown"),
+        }
+    }
+}
+
+/// Names of the DP alt mode status bits, lowest bit first
+const DP_ALT_MODE_STATUS_NAMES: [&str; 8] = [
+    "DFP_D Connected",
+    "UFP_D Connected",
+    "Power Low",
+    "Enabled",
+    "Multi-Function",
+    "USB Config",
+    "Exit Request",
+    "HPD High",
+];
+
+/// State of a single USB-C port as reported by the Cypress PD controller
+///
+/// Use [`get_cypd_pd_info`] to read it and [`print_cypd_pd_info`] to show it
+/// like the commandline tool does.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CypdPortInfo {
+    /// Port number, 0-3
+    pub port: u8,
+    /// Type-C connection state, [`CypdTypeCState::Nothing`] if nothing is connected
+    pub c_state: CypdTypeCState,
+    /// Whether a PD contract has been negotiated
+    pub pd_contract: bool,
+    pub power_role: CypdPdPowerRole,
+    pub data_role: CypdPdDataRole,
+    /// Whether this port supplies VCONN
+    pub vconn: bool,
+    /// Negotiated voltage in mV
+    pub voltage: u16,
+    /// Negotiated current in mA
+    pub current: u16,
+    pub cc_polarity: CcPolarity,
+    /// Whether an EPR (Extended Power Range) contract is active
+    pub epr_active: bool,
+    /// Whether the port partner supports EPR
+    pub epr_support: bool,
+    /// Whether this port is the one the system currently charges from
+    pub sink_active: bool,
+    /// Raw DP alt mode status bits, see [`CypdPortInfo::dp_alt_modes`]
+    pub dp_alt_mode_status: u8,
+}
+
+impl CypdPortInfo {
+    /// Whether anything is connected to the port
+    pub fn connected(&self) -> bool {
+        !matches!(self.c_state, CypdTypeCState::Nothing)
+    }
+
+    /// Negotiated power in mW
+    pub fn power_mw(&self) -> u32 {
+        self.voltage as u32 * self.current as u32 / 1000
+    }
+
+    /// Whether DP alt mode is active (DFP_D/TBT or UFP_D connected)
+    pub fn dp_alt_mode_active(&self) -> bool {
+        self.dp_alt_mode_status & 0x03 != 0
+    }
+
+    /// Names of all set DP alt mode status bits
+    pub fn dp_alt_modes(&self) -> Vec<&'static str> {
+        DP_ALT_MODE_STATUS_NAMES
+            .iter()
+            .enumerate()
+            .filter(|(bit, _)| self.dp_alt_mode_status & (1 << bit) != 0)
+            .map(|(_, name)| *name)
+            .collect()
+    }
+}
+
+/// Read the state of a single USB-C port from the Cypress PD controller
+///
+/// Returns `Ok(None)` if the port does not exist on this system.
+pub fn get_cypd_port_info(ec: &CrosEc, port: u8) -> EcResult<Option<CypdPortInfo>> {
+    let info = match (EcRequestGetPdPortState { port }).send_command(ec) {
+        Ok(info) => info,
+        Err(EcError::Response(EcResponseStatus::InvalidParameter)) => {
+            debug!("Port {port} does not exist");
+            return Ok(None);
+        }
+        Err(e) => return Err(e),
+    };
+
+    Ok(Some(CypdPortInfo {
+        port,
+        c_state: CypdTypeCState::from(info.c_state),
+        pd_contract: info.pd_state != 0,
+        power_role: CypdPdPowerRole::from(info.power_role),
+        data_role: CypdPdDataRole::from(info.data_role),
+        vconn: info.vconn != 0,
+        voltage: { info.voltage },
+        current: { info.current },
+        cc_polarity: CcPolarity::from(info.cc_polarity),
+        epr_active: info.epr_active != 0,
+        epr_support: info.epr_support != 0,
+        sink_active: info.active_port != 0,
+        dp_alt_mode_status: info.pd_alt_mode_status,
+    }))
+}
+
+/// Read the state of all USB-C ports from the Cypress PD controller
+///
+/// Ports that do not exist on this system are left out, ports that failed
+/// to respond are kept as errors.
+pub fn get_cypd_pd_info(ec: &CrosEc) -> Vec<EcResult<CypdPortInfo>> {
     // All of our systems have a maximum of 4 PD enabled ports
     let ports = 4u8;
 
-    for port in 0..ports {
-        let result = EcRequestGetPdPortState { port }.send_command(ec);
+    (0..ports)
+        .filter_map(|port| get_cypd_port_info(ec, port).transpose())
+        .collect()
+}
 
-        let info = match result {
-            Ok(info) => info,
-            Err(EcError::Response(EcResponseStatus::InvalidParameter)) => {
-                debug!("Port {port} does not exist");
-                continue;
-            }
+/// Print the state of a single USB-C port like the commandline tool does
+pub fn print_cypd_port_info(info: &CypdPortInfo) {
+    println!("USB-C Port {}:", info.port);
+    println!(
+        "  PD Contract:   {}",
+        if info.pd_contract { "Yes" } else { "No" }
+    );
+    println!("  Power Role:    {:?}", info.power_role);
+    println!("  Data Role:     {:?}", info.data_role);
+    if info.connected() {
+        println!("  VCONN:         {}", if info.vconn { "On" } else { "Off" });
+        let watts_mw = info.power_mw();
+        println!(
+            "  Negotiated:    {}.{:03} V, {} mA, {}.{} W",
+            info.voltage / 1000,
+            info.voltage % 1000,
+            info.current,
+            watts_mw / 1000,
+            watts_mw % 1000,
+        );
+        println!("  CC Polarity:   {}", info.cc_polarity);
+    }
+    if info.pd_contract {
+        println!("  Port Partner:  {:?}", info.c_state);
+        println!(
+            "  EPR:           {}{}",
+            if info.epr_active {
+                "Active"
+            } else {
+                "Inactive"
+            },
+            if info.epr_support { " (Supported)" } else { "" }
+        );
+        if info.power_role == CypdPdPowerRole::Sink {
+            println!(
+                "  Sink Active:   {}",
+                if info.sink_active { "Yes" } else { "No" }
+            );
+        }
+    }
+    // Only show when actually in DP alt mode
+    if info.connected() && info.dp_alt_mode_active() {
+        println!(
+            "  DP Alt Mode:   {} (0x{:02X})",
+            info.dp_alt_modes().join(", "),
+            info.dp_alt_mode_status
+        );
+    }
+}
+
+/// Print the state of all USB-C ports like the commandline tool does
+pub fn print_cypd_pd_info(ec: &CrosEc) {
+    for info in get_cypd_pd_info(ec) {
+        match info {
+            Ok(info) => print_cypd_port_info(&info),
             Err(e) => {
                 print_err::<()>(Err(e));
-                continue;
             }
-        };
-
-        println!("USB-C Port {}:", port);
-        let c_state = CypdTypeCState::from(info.c_state);
-        let connected = !matches!(c_state, CypdTypeCState::Nothing);
-        let power_role = CypdPdPowerRole::from(info.power_role);
-        let data_role = CypdPdDataRole::from(info.data_role);
-        let voltage = { info.voltage };
-        let current = { info.current };
-        let watts_mw = voltage as u32 * current as u32 / 1000;
-        let has_pd_contract = info.pd_state != 0;
-
-        println!(
-            "  PD Contract:   {}",
-            if info.pd_state != 0 { "Yes" } else { "No" }
-        );
-        println!("  Power Role:    {:?}", power_role);
-        println!("  Data Role:     {:?}", data_role);
-        if connected {
-            println!(
-                "  VCONN:         {}",
-                if info.vconn != 0 { "On" } else { "Off" }
-            );
-            println!(
-                "  Negotiated:    {}.{:03} V, {} mA, {}.{} W",
-                voltage / 1000,
-                voltage % 1000,
-                current,
-                watts_mw / 1000,
-                watts_mw % 1000,
-            );
-            println!(
-                "  CC Polarity:   {}",
-                match info.cc_polarity {
-                    0 => "CC1",
-                    1 => "CC2",
-                    2 => "CC1 (Debug)",
-                    3 => "CC2 (Debug)",
-                    _ => "Unknown",
-                }
-            );
-        }
-        if has_pd_contract {
-            println!("  Port Partner:  {:?}", c_state);
-            println!(
-                "  EPR:           {}{}",
-                if info.epr_active != 0 {
-                    "Active"
-                } else {
-                    "Inactive"
-                },
-                if info.epr_support != 0 {
-                    " (Supported)"
-                } else {
-                    ""
-                }
-            );
-            if power_role == CypdPdPowerRole::Sink {
-                println!(
-                    "  Sink Active:   {}",
-                    if info.active_port != 0 { "Yes" } else { "No" }
-                );
-            }
-        }
-        let alt = info.pd_alt_mode_status;
-        // Bits 0-1 indicate DP alt mode is active (bit 0 = DFP_D/TBT,
-        // bit 1 = UFP_D). Only show when actually in DP alt mode.
-        if connected && (alt & 0x03) != 0 {
-            let mut modes = vec![];
-            if alt & 0x01 != 0 {
-                modes.push("DFP_D Connected");
-            }
-            if alt & 0x02 != 0 {
-                modes.push("UFP_D Connected");
-            }
-            if alt & 0x04 != 0 {
-                modes.push("Power Low");
-            }
-            if alt & 0x08 != 0 {
-                modes.push("Enabled");
-            }
-            if alt & 0x10 != 0 {
-                modes.push("Multi-Function");
-            }
-            if alt & 0x20 != 0 {
-                modes.push("USB Config");
-            }
-            if alt & 0x40 != 0 {
-                modes.push("Exit Request");
-            }
-            if alt & 0x80 != 0 {
-                modes.push("HPD High");
-            }
-            println!("  DP Alt Mode:   {} (0x{:02X})", modes.join(", "), alt);
         }
     }
 }
@@ -1326,6 +1423,42 @@ pub fn standalone_mode(ec: &CrosEc) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn decode_dp_alt_modes() {
+        let mut info = CypdPortInfo {
+            port: 0,
+            c_state: CypdTypeCState::Sink,
+            pd_contract: true,
+            power_role: CypdPdPowerRole::Source,
+            data_role: CypdPdDataRole::Dfp,
+            vconn: true,
+            voltage: 20000,
+            current: 3000,
+            cc_polarity: CcPolarity::from(1),
+            epr_active: false,
+            epr_support: false,
+            sink_active: false,
+            dp_alt_mode_status: 0x00,
+        };
+        assert!(info.connected());
+        assert_eq!(info.power_mw(), 60000);
+        assert_eq!(info.cc_polarity, CcPolarity::Cc2);
+        assert!(!info.dp_alt_mode_active());
+        assert!(info.dp_alt_modes().is_empty());
+
+        // Bit 2 (Power Low) alone doesn't mean DP alt mode is active
+        info.dp_alt_mode_status = 0x04;
+        assert!(!info.dp_alt_mode_active());
+        assert_eq!(info.dp_alt_modes(), vec!["Power Low"]);
+
+        info.dp_alt_mode_status = 0x99;
+        assert!(info.dp_alt_mode_active());
+        assert_eq!(
+            info.dp_alt_modes(),
+            vec!["DFP_D Connected", "Enabled", "Multi-Function", "HPD High"]
+        );
+    }
 
     #[test]
     fn decode_fan_speed() {
