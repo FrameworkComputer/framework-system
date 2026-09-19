@@ -85,6 +85,7 @@ powershell\t''
 zsh\t''"
 complete -c framework_tool -s v -l verbose -d 'Increase logging verbosity'
 complete -c framework_tool -s q -l quiet -d 'Decrease logging verbosity'
+complete -c framework_tool -l json -d 'Print the result as JSON instead of text (read-only info commands only)'
 complete -c framework_tool -l versions -d 'List current firmware versions'
 complete -c framework_tool -l version -d 'Show tool version information (Add -vv for more details)'
 complete -c framework_tool -l features -d 'Show features support by the firmware'

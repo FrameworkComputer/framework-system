@@ -69,6 +69,7 @@ _framework_tool() {
 '*--verbose[Increase logging verbosity]' \
 '(-v --verbose)*-q[Decrease logging verbosity]' \
 '(-v --verbose)*--quiet[Decrease logging verbosity]' \
+'--json[Print the result as JSON instead of text (read-only info commands only)]' \
 '--versions[List current firmware versions]' \
 '--version[Show tool version information (Add -vv for more details)]' \
 '--features[Show features support by the firmware]' \

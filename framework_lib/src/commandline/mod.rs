@@ -184,6 +184,7 @@ impl Default for LogLevel {
 #[derive(Debug, Default)]
 pub struct Cli {
     pub verbosity: LogLevel,
+    pub json: bool,
     pub versions: bool,
     pub version: bool,
     pub features: bool,
@@ -287,6 +288,7 @@ pub fn parse(args: &[String]) -> Cli {
         // TODO: Instead of silently ignoring blocked command, we should remind the user
         Cli {
             verbosity: cli.verbosity,
+            json: cli.json,
             versions: cli.versions,
             version: cli.version,
             features: cli.features,
@@ -1333,6 +1335,37 @@ fn compare_version(device: Option<HardwareDeviceType>, version: String, ec: &Cro
     1
 }
 
+/// Print a value as pretty JSON, for --json
+#[cfg(feature = "serde")]
+fn print_json<T: serde::Serialize>(value: &T) {
+    match serde_json::to_string_pretty(value) {
+        Ok(json) => println!("{}", json),
+        Err(err) => error!("Failed to serialize to JSON: {}", err),
+    }
+}
+
+#[cfg(not(feature = "serde"))]
+fn print_json<T>(_value: &T) {
+    error!("Not built with JSON support");
+}
+
+/// Whether the command selected by the arguments supports --json
+fn supports_json(args: &Cli) -> bool {
+    args.features
+        || args.inputdeck
+        || args.expansion_bay
+        || args.sysinfo
+        || args.uptimeinfo
+        || args.switches
+        || args.panicinfo
+        || args.power
+        || args.thermal
+        || args.thermalget
+        || args.sensors
+        || args.pdports
+        || args.pdports_chromebook
+}
+
 pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     #[cfg(feature = "uefi")]
     {
@@ -1374,6 +1407,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         enable_page_break();
     }
 
+    if args.json && !supports_json(args) {
+        error!("--json is not supported for this command");
+        return 1;
+    }
+
     if args.help {
         // Only print with uefi feature here because without clap will already
         // have printed the help by itself.
@@ -1386,7 +1424,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_tool_version();
     } else if args.features {
         if let Some(features) = print_err(ec.get_features()) {
-            chromium_ec::print_features(&features);
+            if args.json {
+                print_json(&features);
+            } else {
+                chromium_ec::print_features(&features);
+            }
         }
     } else if args.esrt {
         print_esrt();
@@ -1413,7 +1455,11 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if args.inputdeck {
         if let Some(info) = print_err(ec.get_inputdeck_status()) {
-            chromium_ec::input_deck::print_inputdeck_status(&info);
+            if args.json {
+                print_json(&info);
+            } else {
+                chromium_ec::input_deck::print_inputdeck_status(&info);
+            }
         }
     } else if let Some(mode) = &args.inputdeck_mode {
         if *mode == InputDeckModeArg::Reset {
@@ -1428,10 +1474,13 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if args.expansion_bay {
         match ec.get_bay_status() {
+            Ok(info) if args.json => print_json(&info),
             Ok(info) => chromium_ec::print_bay_status(&info),
             Err(err) => error!("{:?}", err),
         }
-        if let Ok(header) = ec.read_gpu_desc_header() {
+        if args.json {
+            // TODO: The EEPROM header is not part of the JSON output yet
+        } else if let Ok(header) = ec.read_gpu_desc_header() {
             println!("  Expansion Bay EEPROM");
             println!(
                 "    Valid:       {:?}",
@@ -1583,11 +1632,19 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if args.sysinfo {
         if let Some(info) = print_err(ec.get_sysinfo()) {
-            chromium_ec::print_sysinfo(&info);
+            if args.json {
+                print_json(&info);
+            } else {
+                chromium_ec::print_sysinfo(&info);
+            }
         }
     } else if args.uptimeinfo {
         if let Some(info) = print_err(ec.get_uptime_info()) {
-            chromium_ec::print_uptime_info(&info);
+            if args.json {
+                print_json(&info);
+            } else {
+                chromium_ec::print_uptime_info(&info);
+            }
         }
     } else if args.s0ix_counter {
         if let Some(counter) = print_err(ec.get_s0ix_counter()) {
@@ -1627,7 +1684,12 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             return 1;
         }
     } else if args.switches {
-        if power::print_switches(&ec).is_none() {
+        let switches = if args.json {
+            power::get_switches(&ec).map(|switches| print_json(&switches))
+        } else {
+            power::print_switches(&ec)
+        };
+        if switches.is_none() {
             println!("Failed to read EC switch state");
             return 1;
         }
@@ -1642,7 +1704,10 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.panicinfo {
         match ec.get_panic_info() {
             Ok(data) => {
-                if data.is_empty() {
+                if args.json {
+                    // null if there is no panic data
+                    print_json(&chromium_ec::panic::parse_panic_info(&data));
+                } else if data.is_empty() {
                     println!("No panic data.");
                 } else {
                     chromium_ec::panic::print_panic_info(&data);
@@ -1668,6 +1733,13 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.boardid {
         print_board_ids(&ec);
     } else if args.power {
+        if args.json {
+            let status = power::get_power_status(&ec);
+            print_json(&status);
+            // Same exit code as the text output: 0 only if a battery is present
+            let has_battery = status.power.is_some_and(|power| power.battery.is_some());
+            return if has_battery { 0 } else { 1 };
+        }
         return power::get_and_print_power_info(&ec);
     } else if let Some(smartbattery_arg) = &args.smartbattery {
         #[cfg(not(feature = "uefi"))]
@@ -1697,9 +1769,20 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             print_err(bat.interactive_authenticate(&ec));
         }
     } else if args.thermal {
-        power::print_thermal(&ec);
+        if args.json {
+            if let Some(info) = print_err(power::get_thermal(&ec)) {
+                print_json(&info);
+            }
+        } else {
+            power::print_thermal(&ec);
+        }
     } else if args.thermalget {
-        if power::print_thermal_thresholds(&ec).is_none() {
+        let thresholds = if args.json {
+            power::get_thermal_thresholds(&ec).map(|thresholds| print_json(&thresholds))
+        } else {
+            power::print_thermal_thresholds(&ec)
+        };
+        if thresholds.is_none() {
             println!("Failed to read thermal thresholds");
             return 1;
         }
@@ -1717,7 +1800,16 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         // Show the resulting configuration
         let _ = power::print_thermal_thresholds(&ec);
     } else if args.sensors {
-        power::print_sensors(&ec);
+        if args.json {
+            if let Some(info) = power::get_sensors(&ec) {
+                print_json(&info);
+            } else {
+                println!("Failed to read sensors");
+                return 1;
+            }
+        } else {
+            power::print_sensors(&ec);
+        }
     } else if let Some((fan, percent)) = args.fansetduty {
         print_err(ec.fan_set_duty(fan, percent));
     } else if let Some((fan, rpm)) = args.fansetrpm {
@@ -1727,9 +1819,27 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(None) = args.autofanctrl {
         print_err(ec.autofanctrl(None));
     } else if args.pdports {
-        power::print_cypd_pd_info(&ec);
+        if args.json {
+            // Ports that failed to respond are left out, the error is logged
+            let ports: Vec<_> = power::get_cypd_pd_info(&ec)
+                .into_iter()
+                .filter_map(print_err)
+                .collect();
+            print_json(&ports);
+        } else {
+            power::print_cypd_pd_info(&ec);
+        }
     } else if args.pdports_chromebook {
-        power::print_pd_info(&ec);
+        if args.json {
+            // Ports that failed to respond are null, the error is logged
+            let ports: Vec<_> = power::get_pd_info(&ec, 4)
+                .into_iter()
+                .map(print_err)
+                .collect();
+            print_json(&ports);
+        } else {
+            power::print_pd_info(&ec);
+        }
     } else if args.info {
         smbios_info();
     } else if let Some(dump_path) = &args.meinfo {
