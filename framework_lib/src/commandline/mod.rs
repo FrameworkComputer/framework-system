@@ -1578,7 +1578,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         if let Some(delay) = delay {
             print_err(ec.set_ec_hib_delay(*delay));
         }
-        print_err(ec.get_ec_hib_delay());
+        if let Some(delay) = print_err(ec.get_ec_hib_delay()) {
+            println!("EC Hibernation Delay: {:?}s", delay);
+        }
     } else if args.sysinfo {
         if let Some(info) = print_err(ec.get_sysinfo()) {
             chromium_ec::print_sysinfo(&info);
