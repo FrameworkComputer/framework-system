@@ -649,13 +649,19 @@ impl CrosEc {
         }
         .send_command(self)?;
 
-        Ok(InputDeckStatus::from(status))
+        Ok(InputDeckStatus::from_response(
+            status,
+            crate::smbios::get_family(),
+        ))
     }
 
     pub fn set_input_deck_mode(&self, mode: DeckStateMode) -> EcResult<InputDeckStatus> {
         let status = EcRequestDeckState { mode }.send_command(self)?;
 
-        Ok(InputDeckStatus::from(status))
+        Ok(InputDeckStatus::from_response(
+            status,
+            crate::smbios::get_family(),
+        ))
     }
 
     /// Change the keyboard baclight brightness
