@@ -2334,6 +2334,9 @@ pub fn print_sysinfo(info: &SysInfo) {
     }
 }
 
+/// Chassis intrusion status, as reported by the EC
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct IntrusionStatus {
     /// Whether the chassis is currently open
     pub currently_open: bool,
