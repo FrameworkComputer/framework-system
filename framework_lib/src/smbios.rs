@@ -136,7 +136,7 @@ pub fn get_product_name() -> Option<String> {
     }
 
     let Some(smbios) = get_smbios() else {
-        println!("Failed to find SMBIOS");
+        error!("Failed to find SMBIOS");
         return None;
     };
     smbios.structures().find_map(|result| match result {
@@ -219,7 +219,7 @@ pub fn get_platform() -> Option<Platform> {
     if let Some(platform) = platform {
         Config::set(platform);
     } else {
-        println!("Failed to find PlatformFamily");
+        warn!("Failed to find PlatformFamily");
     }
 
     assert!(cached_platform.is_none());
@@ -266,18 +266,18 @@ pub fn get_smbios() -> Option<SmbiosStore> {
     let ep_bytes = match std::fs::read("/sys/firmware/dmi/tables/smbios_entry_point") {
         Ok(data) => data,
         Err(ref e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
-            println!("Must be root to get SMBIOS data.");
+            error!("Must be root to get SMBIOS data.");
             return None;
         }
         Err(err) => {
-            println!("Failed to get SMBIOS: {:?}", err);
+            error!("Failed to get SMBIOS: {:?}", err);
             return None;
         }
     };
     let table_data = match std::fs::read("/sys/firmware/dmi/tables/DMI") {
         Ok(data) => data,
         Err(err) => {
-            println!("Failed to read SMBIOS table: {:?}", err);
+            error!("Failed to read SMBIOS table: {:?}", err);
             return None;
         }
     };
@@ -294,14 +294,14 @@ pub fn get_smbios() -> Option<SmbiosStore> {
     let signature = FIRMWARE_TABLE_PROVIDER(u32::from_be_bytes(*b"RSMB"));
     let size = unsafe { GetSystemFirmwareTable(signature, 0, None) };
     if size == 0 {
-        println!("Failed to get SMBIOS table size");
+        error!("Failed to get SMBIOS table size");
         return None;
     }
 
     let mut buf = vec![0u8; size as usize];
     let written = unsafe { GetSystemFirmwareTable(signature, 0, Some(&mut buf)) };
     if written == 0 {
-        println!("Failed to read SMBIOS table data");
+        error!("Failed to read SMBIOS table data");
         return None;
     }
 
