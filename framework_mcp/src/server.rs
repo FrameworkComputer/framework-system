@@ -33,13 +33,19 @@ fn section<T: Serialize>(result: Result<T, String>) -> Value {
 /// Turn a read result into a tool result
 ///
 /// Successful reads carry the JSON both as pretty text and as structured
-/// content, failed reads become tool errors.
+/// content, failed reads become tool errors. Structured content must be a
+/// JSON object, so anything else is wrapped in one.
 fn to_tool_result<T: Serialize>(result: Result<T, String>) -> ToolResult {
     match result {
         Ok(value) => {
             let value = serde_json::to_value(value).map_err(|err| {
                 ErrorData::internal_error(format!("Failed to serialize: {}", err), None)
             })?;
+            let value = if value.is_object() {
+                value
+            } else {
+                json!({ "value": value })
+            };
             let text = serde_json::to_string_pretty(&value).unwrap_or_else(|_| value.to_string());
             let mut result = CallToolResult::structured(value);
             result.content = vec![ContentBlock::text(text)];
@@ -194,6 +200,23 @@ fn versions(ec: &CrosEc) -> Versions {
     }
 }
 
+/// Wrapper because structured tool results must be JSON objects, not arrays
+#[derive(Debug, Serialize)]
+struct Ports<T> {
+    ports: Vec<T>,
+}
+
+#[derive(Debug, Serialize)]
+struct Thresholds<T> {
+    sensors: Vec<T>,
+}
+
+#[derive(Debug, Serialize)]
+struct Panic<T> {
+    /// null if the EC never panicked
+    panic: Option<T>,
+}
+
 #[derive(Debug, Serialize)]
 struct ChargeLimit {
     /// Charging starts below this percentage
@@ -292,12 +315,13 @@ impl FrameworkServer {
     }
 
     #[tool(
-        description = "Per-sensor thermal thresholds in degrees Celsius: warn, high (CPU throttle), halt (shutdown), fan_off and fan_max. null means the threshold is disabled. Same as `framework_tool --thermalget`.",
+        description = "Per-sensor thermal thresholds in degrees Celsius: warn, high (CPU throttle), halt (shutdown), fan_off and fan_max. null means the threshold is disabled. Returns {\"sensors\": [...]}. Same as `framework_tool --thermalget`.",
         annotations(title = "Thermal Thresholds", read_only_hint = true)
     )]
     async fn thermal_thresholds(&self) -> ToolResult {
         self.read(|ec| {
             power::get_thermal_thresholds(ec)
+                .map(|sensors| Thresholds { sensors })
                 .ok_or_else(|| "Failed to read thermal thresholds from the EC".to_string())
         })
         .await
@@ -364,7 +388,7 @@ impl FrameworkServer {
     }
 
     #[tool(
-        description = "USB-C port state from the PD controller, per port: connection state, PD contract, power/data role, negotiated voltage (mV), current (mA) and power (mW), CC polarity, EPR, whether it is the active charging port and DP alt mode. Port 0 is right back, 3 is left back. Ports that don't exist are left out. Same as `framework_tool --pdports`.",
+        description = "USB-C port state from the PD controller, per port: connection state, PD contract, power/data role, negotiated voltage (mV), current (mA) and power (mW), CC polarity, EPR, whether it is the active charging port and DP alt mode. Port 0 is right back, 3 is left back. Ports that don't exist are left out. Returns {\"ports\": [...]}. Same as `framework_tool --pdports`.",
         annotations(title = "USB-C PD Ports", read_only_hint = true)
     )]
     async fn pd_ports(&self) -> ToolResult {
@@ -373,13 +397,13 @@ impl FrameworkServer {
             for port in power::get_cypd_pd_info(ec) {
                 ports.push(port.map_err(ec_err)?);
             }
-            Ok(ports)
+            Ok(Ports { ports })
         })
         .await
     }
 
     #[tool(
-        description = "USB-C power info as the EC sees it (ChromeOS EC_CMD_USB_PD_POWER_INFO), per port: role, charging type, voltage now/max (mV), current limit/max (mA), dual role and max power (uW). Ports that failed to respond are null. Same as `framework_tool --pdports-chromebook`.",
+        description = "USB-C power info as the EC sees it (ChromeOS EC_CMD_USB_PD_POWER_INFO), per port: role, charging type, voltage now/max (mV), current limit/max (mA), dual role and max power (uW). Ports that failed to respond are null. Returns {\"ports\": [...]}. Same as `framework_tool --pdports-chromebook`.",
         annotations(title = "USB-C Power Info", read_only_hint = true)
     )]
     async fn pd_power_info(&self) -> ToolResult {
@@ -388,7 +412,7 @@ impl FrameworkServer {
                 .into_iter()
                 .map(|port| port.ok())
                 .collect();
-            Ok(ports)
+            Ok(Ports { ports })
         })
         .await
     }
@@ -435,13 +459,15 @@ impl FrameworkServer {
     }
 
     #[tool(
-        description = "Saved EC panic (crash) data, null if the EC never panicked: architecture, flags, plausibility checks and for Cortex-M the exception, registers (r0-r12, sp, lr, pc as array index 0-15) and decoded fault names. Same as `framework_tool --panicinfo`.",
+        description = "Saved EC panic (crash) data as {\"panic\": ...}, null if the EC never panicked: architecture, flags, plausibility checks and for Cortex-M the exception, registers (r0-r12, sp, lr, pc as array index 0-15) and decoded fault names. Same as `framework_tool --panicinfo`.",
         annotations(title = "EC Panic Info", read_only_hint = true)
     )]
     async fn ec_panic_info(&self) -> ToolResult {
         self.read(|ec| {
             ec.get_panic_info()
-                .map(|data| framework_lib::chromium_ec::panic::parse_panic_info(&data))
+                .map(|data| Panic {
+                    panic: framework_lib::chromium_ec::panic::parse_panic_info(&data),
+                })
                 .map_err(ec_err)
         })
         .await
