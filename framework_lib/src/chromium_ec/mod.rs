@@ -228,6 +228,40 @@ const BOARD_VERSION_NPC_DB: [i32; BOARD_VERSION_COUNT] = [
     85, 233, 360, 492, 649, 844, 965, 1094, 1380, 1562, 1710, 2040, 2197, 2557, 2766, 2814,
 ];
 
+/// Decode a board ID ADC reading in mV into a board version
+///
+/// `Ok(None)` means no board is connected. Split out from reading the channel
+/// so that a caller can report the reading it decoded, instead of sampling the
+/// same channel twice and reporting two different samples.
+pub(crate) fn decode_board_id(
+    mv: i32,
+    table: [i32; BOARD_VERSION_COUNT],
+) -> EcResult<Option<u8>> {
+    if mv < 0 {
+        return Err(EcError::DeviceError(format!(
+            "Failed to read board ID ADC, got {}mv",
+            mv
+        )));
+    }
+
+    for (board_id, board_id_res) in table.iter().enumerate() {
+        if mv < *board_id_res {
+            debug!("Board ID {} from {}mv", board_id, mv);
+            // 15 is not present, less than 2 is undefined
+            return Ok(if board_id == 15 || board_id < 2 {
+                None
+            } else {
+                Some(board_id as u8)
+            });
+        }
+    }
+
+    Err(EcError::DeviceError(format!(
+        "Unknown board id. ADC mv: {}",
+        mv
+    )))
+}
+
 pub trait CrosEcDriver {
     fn read_memory(&self, offset: u16, length: u16) -> Option<Vec<u8>>;
     fn send_command(&self, command: u16, command_version: u8, data: &[u8]) -> EcResult<Vec<u8>>;
@@ -1824,45 +1858,6 @@ impl CrosEc {
         Ok(res.adc_value)
     }
 
-    fn read_board_id(&self, channel: u8) -> EcResult<Option<u8>> {
-        self.read_board_id_raw(channel, BOARD_VERSION)
-    }
-    fn read_board_id_npc_db(&self, channel: u8) -> EcResult<Option<u8>> {
-        self.read_board_id_raw(channel, BOARD_VERSION_NPC_DB)
-    }
-
-    fn read_board_id_raw(
-        &self,
-        channel: u8,
-        table: [i32; BOARD_VERSION_COUNT],
-    ) -> EcResult<Option<u8>> {
-        let mv = self.adc_read(channel)?;
-        if mv < 0 {
-            return Err(EcError::DeviceError(format!(
-                "Failed to read ADC channel {}",
-                channel
-            )));
-        }
-
-        debug!("ADC Channel {} - Measured {}mv", channel, mv);
-        for (board_id, board_id_res) in table.iter().enumerate() {
-            if mv < *board_id_res {
-                debug!("ADC Channel {} - Board ID {}", channel, board_id);
-                // 15 is not present, less than 2 is undefined
-                return Ok(if board_id == 15 || board_id < 2 {
-                    None
-                } else {
-                    Some(board_id as u8)
-                });
-            }
-        }
-
-        Err(EcError::DeviceError(format!(
-            "Unknown board id. ADC mv: {}",
-            mv
-        )))
-    }
-
     pub fn rgbkbd_set_color(&self, start_key: u8, colors: Vec<RgbS>) -> EcResult<()> {
         for (chunk, colors) in colors.chunks(EC_RGBKBD_MAX_KEY_COUNT).enumerate() {
             let mut request = EcRequestRgbKbdSetColor {
@@ -2444,5 +2439,22 @@ mod tests {
             info.ec_reset_flags(),
             vec![EcResetFlag::Brownout, EcResetFlag::Watchdog]
         );
+    }
+
+    #[test]
+    fn board_id_from_adc() {
+        // Readings measured on a Framework 13 (sakura)
+        assert_eq!(decode_board_id(1042, BOARD_VERSION_NPC_DB), Ok(Some(7)));
+        assert_eq!(decode_board_id(1058, BOARD_VERSION_NPC_DB), Ok(Some(7)));
+        // An older touchpad
+        assert_eq!(decode_board_id(1471, BOARD_VERSION_NPC_DB), Ok(Some(9)));
+
+        // Nothing connected, the pin floats. Board ID 0 and 1 are undefined.
+        assert_eq!(decode_board_id(0, BOARD_VERSION_NPC_DB), Ok(None));
+        assert_eq!(decode_board_id(200, BOARD_VERSION_NPC_DB), Ok(None));
+
+        // Above the whole table, and a failed read
+        assert!(decode_board_id(3300, BOARD_VERSION_NPC_DB).is_err());
+        assert!(decode_board_id(-1, BOARD_VERSION_NPC_DB).is_err());
     }
 }
