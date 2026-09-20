@@ -9,11 +9,15 @@ members = [
     "framework_tool",
     # UEFI tool to inspect and customize the system
     "framework_uefi",
+    # MCP server to expose hardware information to AI assistants
+    "framework_mcp",
     # Catchall library that we'll probably want to split up further
     "framework_lib",
 ]
 
 # Don't build UEFI by default. Needs special cargo invocation
+# framework_mcp is not a default member either, so `cargo run` keeps
+# starting framework_tool. Build it with `cargo build -p framework_mcp`.
 default-members = [
     "framework_lib",
     "framework_tool",
