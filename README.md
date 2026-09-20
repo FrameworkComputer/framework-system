@@ -127,6 +127,7 @@ On UEFI and FreeBSD raw port I/O is used - on Linux this can also be used as a f
 
   - [x] Show system information
     - [x] As JSON for scripting (`--json`, not on UEFI)
+    - [x] As MCP server for AI assistants (`framework_mcp`, see [framework_mcp/README.md](framework_mcp/README.md))
     - [x] ESRT table (UEFI, Linux, FreeBSD only) (`--esrt`)
     - [x] SMBIOS
   - [x] Get firmware version from binary file

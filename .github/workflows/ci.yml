@@ -49,6 +49,12 @@ jobs:
     - name: Check if Linux tool can start
       run: cargo run -- --help
 
+    - name: Build MCP server
+      run: cargo build -p framework_mcp
+
+    - name: Check if MCP server can start
+      run: ./target/debug/framework_mcp --help
+
     - name: Upload Linux App
       uses: actions/upload-artifact@v6
       with:
@@ -196,7 +202,7 @@ jobs:
       run: cargo fmt --all -- --check
 
     - name: Run cargo clippy
-      run: cargo clippy -p framework_lib -p framework_tool -- -D warnings
+      run: cargo clippy -p framework_lib -p framework_tool -p framework_mcp -- -D warnings
 
     - name: Check shell completions are up to date
       run: |
