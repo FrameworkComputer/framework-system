@@ -121,7 +121,9 @@ pub struct Config {
 impl Config {
     pub fn set(platform: Platform) {
         #[cfg(not(feature = "uefi"))]
-        let mut config = CONFIG.lock().unwrap();
+        let mut config = CONFIG
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         #[cfg(feature = "uefi")]
         let mut config = CONFIG.lock();
 
@@ -134,7 +136,9 @@ impl Config {
     }
     pub fn is_set() -> bool {
         #[cfg(not(feature = "uefi"))]
-        let config = CONFIG.lock().unwrap();
+        let config = CONFIG
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         #[cfg(feature = "uefi")]
         let config = CONFIG.lock();
 
@@ -145,7 +149,9 @@ impl Config {
         trace!("Config::get() entry");
         let unset = {
             #[cfg(not(feature = "uefi"))]
-            let config = CONFIG.lock().unwrap();
+            let config = CONFIG
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             #[cfg(feature = "uefi")]
             let config = CONFIG.lock();
             (*config).is_none()
@@ -162,7 +168,9 @@ impl Config {
         };
 
         #[cfg(not(feature = "uefi"))]
-        let mut config = CONFIG.lock().unwrap();
+        let mut config = CONFIG
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         #[cfg(feature = "uefi")]
         let mut config = CONFIG.lock();
 

@@ -178,7 +178,9 @@ pub fn get_platform() -> Option<Platform> {
     #[cfg(feature = "uefi")]
     let mut cached_platform = CACHED_PLATFORM.lock();
     #[cfg(not(feature = "uefi"))]
-    let mut cached_platform = CACHED_PLATFORM.lock().unwrap();
+    let mut cached_platform = CACHED_PLATFORM
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
 
     if let Some(platform) = *cached_platform {
         return platform;
