@@ -20,6 +20,7 @@ use no_std_compat::time::Duration;
 use crate::smbios;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(Serialize))]
 pub enum Platform {
     /// Framework Laptop 12
     Framework12IntelGen13,
