@@ -4,7 +4,10 @@ use alloc::string::{String, ToString};
 use serde::Serialize;
 
 use super::commands::EcResponseDeckState;
-use super::{CrosEc, EcResult, Framework12Adc, Framework13Adc, FrameworkHx20Hx30Adc};
+use super::{
+    decode_board_id, CrosEc, EcResult, Framework12Adc, Framework13Adc, FrameworkHx20Hx30Adc,
+    BOARD_VERSION, BOARD_VERSION_COUNT, BOARD_VERSION_NPC_DB,
+};
 use crate::smbios;
 use crate::util::{Platform, PlatformFamily};
 
@@ -353,10 +356,24 @@ pub struct InputDeckInfo {
 }
 
 impl CrosEc {
-    fn daughterboard(&self, board_id: Option<u8>, adc_channel: u8) -> Daughterboard {
+    /// Read a daughterboard's board ID channel
+    ///
+    /// Reads the channel once and decodes that same reading, so that board_id
+    /// and adc_mv can't disagree. They did when the channel was sampled twice:
+    /// a disconnected board leaves the pin floating, so the two samples
+    /// differed and we reported a board ID next to millivolts it didn't come
+    /// from.
+    fn daughterboard(&self, adc_channel: u8, table: [i32; BOARD_VERSION_COUNT]) -> Daughterboard {
+        let adc_mv = self.adc_read(adc_channel).ok();
         Daughterboard {
-            board_id,
-            adc_mv: self.adc_read(adc_channel).ok(),
+            board_id: adc_mv.and_then(|mv| match decode_board_id(mv, table) {
+                Ok(board_id) => board_id,
+                Err(err) => {
+                    log::debug!("ADC channel {}: {:?}", adc_channel, err);
+                    None
+                }
+            }),
+            adc_mv,
         }
     }
 
@@ -390,38 +407,37 @@ impl CrosEc {
         match family {
             Some(PlatformFamily::Framework12) => {
                 info.chassis_closed = Some(!self.get_intrusion_status()?.currently_open);
-                let pwrbtn = self.read_board_id_npc_db(Framework12Adc::PowerButtonBoardId as u8)?;
-                let audio = self.read_board_id_npc_db(Framework12Adc::AudioBoardId as u8)?;
-                let tp = self.read_board_id_npc_db(Framework12Adc::TouchpadBoardId as u8)?;
-                info.power_button_board =
-                    Some(self.daughterboard(pwrbtn, Framework12Adc::PowerButtonBoardId as u8));
-                info.audio_board =
-                    Some(self.daughterboard(audio, Framework12Adc::AudioBoardId as u8));
-                info.touchpad_board =
-                    Some(self.daughterboard(tp, Framework12Adc::TouchpadBoardId as u8));
+                info.power_button_board = Some(self.daughterboard(
+                    Framework12Adc::PowerButtonBoardId as u8,
+                    BOARD_VERSION_NPC_DB,
+                ));
+                info.audio_board = Some(
+                    self.daughterboard(Framework12Adc::AudioBoardId as u8, BOARD_VERSION_NPC_DB),
+                );
+                info.touchpad_board = Some(
+                    self.daughterboard(Framework12Adc::TouchpadBoardId as u8, BOARD_VERSION_NPC_DB),
+                );
                 info.deck_status = self.get_input_deck_status().ok();
             }
             Some(PlatformFamily::Framework13) => {
                 info.chassis_closed = Some(!self.get_intrusion_status()?.currently_open);
-                let (audio, tp) = match smbios::get_platform() {
+                let (audio_channel, touchpad_channel, table) = match smbios::get_platform() {
                     Some(Platform::IntelGen11)
                     | Some(Platform::IntelGen12)
                     | Some(Platform::IntelGen13) => (
-                        self.read_board_id(FrameworkHx20Hx30Adc::AudioBoardId as u8)?,
-                        self.read_board_id(FrameworkHx20Hx30Adc::TouchpadBoardId as u8)?,
+                        FrameworkHx20Hx30Adc::AudioBoardId as u8,
+                        FrameworkHx20Hx30Adc::TouchpadBoardId as u8,
+                        BOARD_VERSION,
                     ),
 
                     _ => (
-                        self.read_board_id_npc_db(Framework13Adc::AudioBoardId as u8)?,
-                        self.read_board_id_npc_db(Framework13Adc::TouchpadBoardId as u8)?,
+                        Framework13Adc::AudioBoardId as u8,
+                        Framework13Adc::TouchpadBoardId as u8,
+                        BOARD_VERSION_NPC_DB,
                     ),
                 };
-                // TODO: On Intel 11th-13th Gen the ADC channels differ, the
-                // raw reading below comes from the wrong channel there
-                info.audio_board =
-                    Some(self.daughterboard(audio, Framework13Adc::AudioBoardId as u8));
-                info.touchpad_board =
-                    Some(self.daughterboard(tp, Framework13Adc::TouchpadBoardId as u8));
+                info.audio_board = Some(self.daughterboard(audio_channel, table));
+                info.touchpad_board = Some(self.daughterboard(touchpad_channel, table));
                 info.deck_status = self.get_input_deck_status().ok();
             }
             Some(PlatformFamily::Framework16) => {
