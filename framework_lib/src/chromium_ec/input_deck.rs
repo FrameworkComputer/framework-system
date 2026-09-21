@@ -3,13 +3,10 @@ use alloc::string::{String, ToString};
 #[cfg(feature = "serde")]
 use serde::Serialize;
 
-use super::commands::EcResponseDeckState;
-use super::{
-    decode_board_id, CrosEc, EcResult, Framework12Adc, Framework13Adc, FrameworkHx20Hx30Adc,
-    BOARD_VERSION, BOARD_VERSION_COUNT, BOARD_VERSION_NPC_DB,
-};
+use super::commands::{BoardIdType, EcResponseDeckState};
+use super::{board_id_adc_channel, board_version_table, decode_board_id, CrosEc, EcResult};
 use crate::smbios;
-use crate::util::{Platform, PlatformFamily};
+use crate::util::PlatformFamily;
 
 /// The number of slots on the input deck, where modules can be connected to
 pub const INPUT_DECK_SLOTS: usize = 8;
@@ -263,7 +260,8 @@ impl InputDeckStatus {
                     state,
                     touchpad_present: touchpad_present_13(tp_raw, state),
                     touchpad_module: None,
-                    touchpad_board_version: (tp_raw <= BOARD_VERSION_NOT_INSTALLED).then_some(tp_raw),
+                    touchpad_board_version: (tp_raw <= BOARD_VERSION_NOT_INSTALLED)
+                        .then_some(tp_raw),
                     hubboard_present: None,
                     top_row: None,
                 }
@@ -363,7 +361,14 @@ impl CrosEc {
     /// a disconnected board leaves the pin floating, so the two samples
     /// differed and we reported a board ID next to millivolts it didn't come
     /// from.
-    fn daughterboard(&self, adc_channel: u8, table: [i32; BOARD_VERSION_COUNT]) -> Daughterboard {
+    fn daughterboard(&self, board_id_type: BoardIdType) -> Daughterboard {
+        let Some(adc_channel) = board_id_adc_channel(board_id_type) else {
+            return Daughterboard {
+                board_id: None,
+                adc_mv: None,
+            };
+        };
+        let table = board_version_table();
         let adc_mv = self.adc_read(adc_channel).ok();
         Daughterboard {
             board_id: adc_mv.and_then(|mv| match decode_board_id(mv, table) {
@@ -407,37 +412,15 @@ impl CrosEc {
         match family {
             Some(PlatformFamily::Framework12) => {
                 info.chassis_closed = Some(!self.get_intrusion_status()?.currently_open);
-                info.power_button_board = Some(self.daughterboard(
-                    Framework12Adc::PowerButtonBoardId as u8,
-                    BOARD_VERSION_NPC_DB,
-                ));
-                info.audio_board = Some(
-                    self.daughterboard(Framework12Adc::AudioBoardId as u8, BOARD_VERSION_NPC_DB),
-                );
-                info.touchpad_board = Some(
-                    self.daughterboard(Framework12Adc::TouchpadBoardId as u8, BOARD_VERSION_NPC_DB),
-                );
+                info.power_button_board = Some(self.daughterboard(BoardIdType::PowerButtonBoard));
+                info.audio_board = Some(self.daughterboard(BoardIdType::AudioBoard));
+                info.touchpad_board = Some(self.daughterboard(BoardIdType::Touchpad));
                 info.deck_status = self.get_input_deck_status().ok();
             }
             Some(PlatformFamily::Framework13) => {
                 info.chassis_closed = Some(!self.get_intrusion_status()?.currently_open);
-                let (audio_channel, touchpad_channel, table) = match smbios::get_platform() {
-                    Some(Platform::IntelGen11)
-                    | Some(Platform::IntelGen12)
-                    | Some(Platform::IntelGen13) => (
-                        FrameworkHx20Hx30Adc::AudioBoardId as u8,
-                        FrameworkHx20Hx30Adc::TouchpadBoardId as u8,
-                        BOARD_VERSION,
-                    ),
-
-                    _ => (
-                        Framework13Adc::AudioBoardId as u8,
-                        Framework13Adc::TouchpadBoardId as u8,
-                        BOARD_VERSION_NPC_DB,
-                    ),
-                };
-                info.audio_board = Some(self.daughterboard(audio_channel, table));
-                info.touchpad_board = Some(self.daughterboard(touchpad_channel, table));
+                info.audio_board = Some(self.daughterboard(BoardIdType::AudioBoard));
+                info.touchpad_board = Some(self.daughterboard(BoardIdType::Touchpad));
                 info.deck_status = self.get_input_deck_status().ok();
             }
             Some(PlatformFamily::Framework16) => {

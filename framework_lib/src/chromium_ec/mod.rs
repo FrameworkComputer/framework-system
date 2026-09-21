@@ -15,6 +15,7 @@ use crate::os_specific;
 use crate::power;
 use crate::smbios;
 use crate::util;
+use crate::util::{Platform, PlatformFamily};
 
 use no_std_compat::time::Duration;
 
@@ -228,15 +229,65 @@ const BOARD_VERSION_NPC_DB: [i32; BOARD_VERSION_COUNT] = [
     85, 233, 360, 492, 649, 844, 965, 1094, 1380, 1562, 1710, 2040, 2197, 2557, 2766, 2814,
 ];
 
+/// ADC channel a board ID type is wired to on this platform
+///
+/// The host command decodes the board ID itself, but not the voltage it came
+/// from. To report both, we have to know which channel the EC read, and the
+/// channel numbering differs per platform. `None` means the platform has no
+/// such board, or we don't know which platform this is.
+pub fn board_id_adc_channel(board_id_type: BoardIdType) -> Option<u8> {
+    match smbios::get_family()? {
+        PlatformFamily::Framework12 => match board_id_type {
+            BoardIdType::Mainboard => Some(Framework12Adc::MainboardBoardId as u8),
+            BoardIdType::PowerButtonBoard => Some(Framework12Adc::PowerButtonBoardId as u8),
+            BoardIdType::Touchpad => Some(Framework12Adc::TouchpadBoardId as u8),
+            BoardIdType::AudioBoard => Some(Framework12Adc::AudioBoardId as u8),
+            _ => None,
+        },
+        PlatformFamily::Framework13 => {
+            let hx = matches!(
+                smbios::get_platform(),
+                Some(Platform::IntelGen11 | Platform::IntelGen12 | Platform::IntelGen13)
+            );
+            match (board_id_type, hx) {
+                (BoardIdType::Mainboard, true) => {
+                    Some(FrameworkHx20Hx30Adc::MainboardBoardId as u8)
+                }
+                (BoardIdType::Touchpad, true) => Some(FrameworkHx20Hx30Adc::TouchpadBoardId as u8),
+                (BoardIdType::AudioBoard, true) => Some(FrameworkHx20Hx30Adc::AudioBoardId as u8),
+                (BoardIdType::Mainboard, false) => Some(Framework13Adc::MainboardBoardId as u8),
+                (BoardIdType::Touchpad, false) => Some(Framework13Adc::TouchpadBoardId as u8),
+                (BoardIdType::AudioBoard, false) => Some(Framework13Adc::AudioBoardId as u8),
+                _ => None,
+            }
+        }
+        PlatformFamily::Framework16 => match board_id_type {
+            BoardIdType::Mainboard => Some(Framework16Adc::MainboardBoardId as u8),
+            BoardIdType::DGpu0 => Some(Framework16Adc::GpuBoardId0 as u8),
+            BoardIdType::DGpu1 => Some(Framework16Adc::GpuBoardId1 as u8),
+            _ => None,
+        },
+        PlatformFamily::FrameworkDesktop => None,
+    }
+}
+
+/// Thresholds for decoding a board ID ADC reading on this platform
+///
+/// The hx20/hx30 EC uses an evenly spaced ladder, every Zephyr EC since uses
+/// the table in `zephyr/program/framework/src/adc.c`.
+pub(crate) fn board_version_table() -> [i32; BOARD_VERSION_COUNT] {
+    match smbios::get_platform() {
+        Some(Platform::IntelGen11 | Platform::IntelGen12 | Platform::IntelGen13) => BOARD_VERSION,
+        _ => BOARD_VERSION_NPC_DB,
+    }
+}
+
 /// Decode a board ID ADC reading in mV into a board version
 ///
 /// `Ok(None)` means no board is connected. Split out from reading the channel
 /// so that a caller can report the reading it decoded, instead of sampling the
 /// same channel twice and reporting two different samples.
-pub(crate) fn decode_board_id(
-    mv: i32,
-    table: [i32; BOARD_VERSION_COUNT],
-) -> EcResult<Option<u8>> {
+pub(crate) fn decode_board_id(mv: i32, table: [i32; BOARD_VERSION_COUNT]) -> EcResult<Option<u8>> {
     if mv < 0 {
         return Err(EcError::DeviceError(format!(
             "Failed to read board ID ADC, got {}mv",
