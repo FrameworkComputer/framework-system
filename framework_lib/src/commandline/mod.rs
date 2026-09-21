@@ -2267,31 +2267,49 @@ fn hash(data: &[u8]) {
     util::print_buffer(sha512);
 }
 
+/// Format a board ID together with the ADC voltage it was decoded from
+///
+/// The voltage is a second sample of the same channel, so it can differ from
+/// the one the EC decoded, but it's what tells apart a solid reading from one
+/// sitting on a threshold.
+fn format_board_id(ec: &CrosEc, board_id_type: BoardIdType) -> String {
+    let board_id = match ec.read_board_id_hc(board_id_type) {
+        Ok(Some(board_id)) => format!("{}", board_id),
+        Ok(None) => "Not present".to_string(),
+        Err(err) => return format!("{:?}", err),
+    };
+
+    match chromium_ec::board_id_adc_channel(board_id_type).map(|ch| ec.adc_read(ch)) {
+        Some(Ok(mv)) => format!("{} ({}mV)", board_id, mv),
+        _ => board_id,
+    }
+}
+
 fn print_board_ids(ec: &CrosEc) {
     println!("Board IDs");
     println!(
-        "  Mainboard:    {:?}",
-        ec.read_board_id_hc(BoardIdType::Mainboard)
+        "  Mainboard:    {}",
+        format_board_id(ec, BoardIdType::Mainboard)
     );
     println!(
-        "  PowerButton:  {:?}",
-        ec.read_board_id_hc(BoardIdType::PowerButtonBoard)
+        "  PowerButton:  {}",
+        format_board_id(ec, BoardIdType::PowerButtonBoard)
     );
     println!(
-        "  Touchpad:     {:?}",
-        ec.read_board_id_hc(BoardIdType::Touchpad)
+        "  Touchpad:     {}",
+        format_board_id(ec, BoardIdType::Touchpad)
     );
     println!(
-        "  AudioBoard:   {:?}",
-        ec.read_board_id_hc(BoardIdType::AudioBoard)
+        "  AudioBoard:   {}",
+        format_board_id(ec, BoardIdType::AudioBoard)
     );
     println!(
-        "  dGPU0:        {:?}",
-        ec.read_board_id_hc(BoardIdType::DGpu0)
+        "  dGPU0:        {}",
+        format_board_id(ec, BoardIdType::DGpu0)
     );
     println!(
-        "  dGPU1:        {:?}",
-        ec.read_board_id_hc(BoardIdType::DGpu1)
+        "  dGPU1:        {}",
+        format_board_id(ec, BoardIdType::DGpu1)
     );
 }
 
