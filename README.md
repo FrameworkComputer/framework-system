@@ -50,6 +50,8 @@ You can find lots of examples in [EXAMPLES.md](./EXAMPLES.md).
 - Others
   - Build from source
   - Or download [latest binary](https://github.com/FrameworkComputer/framework-system/releases/latest/download/framework_tool)
+- MCP server for AI assistants (`framework_mcp`, see [framework_mcp/README.md](framework_mcp/README.md))
+  - Ships in the .deb/.rpm/snap packages from this repo (`framework-mcp`, `framework-tool.mcp`), `nix run .#mcp`, or `cargo install --locked framework_mcp`
 - ChromeOS
   - Build from source
 - Homebrew

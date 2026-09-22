@@ -23,6 +23,7 @@ jobs:
         run: |
           cargo build -p framework_lib
           cargo build -p framework_tool
+          cargo build -p framework_mcp
 
   build:
     name: Build Linux
@@ -69,6 +70,15 @@ jobs:
       with:
         name: framework_tool
         path: target/release/framework_tool
+
+    - name: Build MCP server (Release)
+      run: cargo build -p framework_mcp --release
+
+    - name: Upload MCP server
+      uses: actions/upload-artifact@v6
+      with:
+        name: framework_mcp
+        path: target/release/framework_mcp
 
     - name: Make sure nothing changed (e.g. Cargo.lock)
       run: git diff --exit-code
@@ -160,6 +170,18 @@ jobs:
       with:
         name: framework_tool.exe
         path: target/release/framework_tool.exe
+
+    - name: Build Windows MCP server
+      run: cargo build -p framework_mcp --release
+
+    - name: Check if Windows MCP server can start
+      run: ./target/release/framework_mcp.exe --help
+
+    - name: Upload Windows MCP server
+      uses: actions/upload-artifact@v6
+      with:
+        name: framework_mcp.exe
+        path: target/release/framework_mcp.exe
 
 
   test:
