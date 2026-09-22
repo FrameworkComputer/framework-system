@@ -68,6 +68,7 @@
                 "framework_lib"
                 "framework_tool"
                 "framework_uefi"
+                "framework_mcp"
                 "res"
                 ".cargo"
               ];
@@ -83,14 +84,15 @@
             isIncludedRoot || builtins.elem baseName includedFiles;
         };
 
-        # Build function for the CLI tool (Linux/macOS)
-        buildFrameworkTool = { release ? false, features ? [] }:
+        # Build function for the CLI tool and the MCP server (Linux/macOS)
+        # `package` is the cargo package and binary name
+        buildFrameworkTool = { release ? false, features ? [], package ? "framework_tool" }:
           let
             profile = if release then "release" else "debug";
             featuresStr = if features == [] then "" else "--features ${builtins.concatStringsSep "," features}";
           in
           rustPlatform.buildRustPackage {
-            pname = "framework_tool";
+            pname = package;
             version = "0.6.5";
 
             src = buildSrc;
@@ -101,12 +103,12 @@
 
             buildType = profile;
 
-            # Build only the tool, not the UEFI package
+            # Build only the requested package, not the UEFI package
             buildPhase = ''
               runHook preBuild
               cargo build \
                 ${if release then "--release" else ""} \
-                -p framework_tool \
+                -p ${package} \
                 ${featuresStr}
               runHook postBuild
             '';
@@ -121,7 +123,7 @@
             installPhase = ''
               runHook preInstall
               mkdir -p $out/bin
-              cp target/${profile}/framework_tool $out/bin/
+              cp target/${profile}/${package} $out/bin/
               runHook postInstall
             '';
 
@@ -138,12 +140,12 @@
         mingwPthreads = pkgs.pkgsCross.mingwW64.windows.pthreads;
 
         # Build function for Windows cross-compilation (Linux -> Windows)
-        buildFrameworkToolWindows = { release ? false }:
+        buildFrameworkToolWindows = { release ? false, package ? "framework_tool" }:
           let
             profile = if release then "release" else "debug";
           in
           rustPlatformWindows.buildRustPackage {
-            pname = "framework_tool";
+            pname = package;
             version = "0.6.5";
 
             src = buildSrc;
@@ -163,7 +165,7 @@
               cargo build \
                 ${if release then "--release" else ""} \
                 --target x86_64-pc-windows-gnu \
-                -p framework_tool
+                -p ${package}
               runHook postBuild
             '';
 
@@ -173,7 +175,7 @@
             installPhase = ''
               runHook preInstall
               mkdir -p $out/bin
-              cp target/x86_64-pc-windows-gnu/${profile}/framework_tool.exe $out/bin/
+              cp target/x86_64-pc-windows-gnu/${profile}/${package}.exe $out/bin/
               runHook postInstall
             '';
 
@@ -244,6 +246,9 @@
         framework-uefi-release = buildFrameworkUefi { release = true; };
         framework-tool-windows = buildFrameworkToolWindows { release = true; };
         framework-tool-windows-debug = buildFrameworkToolWindows { release = false; };
+        framework-mcp-debug = buildFrameworkTool { release = false; package = "framework_mcp"; };
+        framework-mcp-release = buildFrameworkTool { release = true; package = "framework_mcp"; };
+        framework-mcp-windows = buildFrameworkToolWindows { release = true; package = "framework_mcp"; };
 
         # Wrapper script to run the UEFI build in an emulator
         run-qemu = pkgs.writeShellScriptBin "run-framework-uefi-qemu" ''
@@ -310,7 +315,7 @@
       in
       {
         checks = {
-          inherit framework-tool-release framework-uefi-release;
+          inherit framework-tool-release framework-uefi-release framework-mcp-release;
         };
 
         packages = {
@@ -321,6 +326,9 @@
           uefi-debug = framework-uefi-debug;
           windows = framework-tool-windows;
           windows-debug = framework-tool-windows-debug;
+          mcp = framework-mcp-release;
+          mcp-debug = framework-mcp-debug;
+          mcp-windows = framework-mcp-windows;
           run-qemu = run-qemu;
           run-qemu-release = run-qemu-release;
         };
@@ -329,6 +337,7 @@
         apps = {
           default = flake-utils.lib.mkApp { drv = framework-tool-release; exePath = "/bin/framework_tool"; };
           tool = flake-utils.lib.mkApp { drv = framework-tool-release; exePath = "/bin/framework_tool"; };
+          mcp = flake-utils.lib.mkApp { drv = framework-mcp-release; exePath = "/bin/framework_mcp"; };
           qemu = flake-utils.lib.mkApp { drv = run-qemu; };
           qemu-release = flake-utils.lib.mkApp { drv = run-qemu-release; };
         };
