@@ -2,8 +2,8 @@
 
 1. Make sure to update all versions in Cargo.toml and Cargo.lock files
 2. Tag
-3. Download binaries from github action run on tag
-4. Sign windows exe with EV cert
+3. Download binaries from github action run on tag (framework_tool, framework_mcp, both also .exe, .deb, .rpm)
+4. Sign windows exe with EV cert (framework_tool.exe and framework_mcp.exe)
 5. Create release on GitHub with release notes and upload binaries
 6. Notify distribution maintainers (See README)
 7. Do winget release (See below)
@@ -41,8 +41,10 @@ Dry run and review included files
 ```
 cargo publish -p framework_lib --dry-run
 cargo publish -p framework_tool --dry-run
+cargo publish -p framework_mcp --dry-run
 cargo package --list -p framework_lib
 cargo package --list -p framework_tool
+cargo package --list -p framework_mcp
 ```
 
 Publish
@@ -50,6 +52,7 @@ Publish
 ```
 cargo publish -p framework_lib
 cargo publish -p framework_tool
+cargo publish -p framework_mcp
 ```
 
 ## FreeBSD
