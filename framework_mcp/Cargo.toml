@@ -9,6 +9,7 @@ license = "BSD-3-Clause"
 edition = "2021"
 # rmcp needs a newer compiler than framework_lib
 rust-version = "1.88"
+build = "build.rs"
 
 [[bin]]
 name = "framework_mcp"
@@ -27,3 +28,36 @@ dmidecode = { version = "1", default-features = false }
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.30", features = ["user"] }
+
+[build-dependencies]
+static_vcruntime = "3.0"
+winresource = "0.1.17"
+
+[package.metadata.deb]
+name = "framework-mcp"
+maintainer = "Framework Computer Inc <linux@frame.work>"
+depends = "libudev1"
+section = "utils"
+priority = "optional"
+extended-description = """\
+MCP (Model Context Protocol) server that gives AI assistants read-only \
+access to the hardware state of a Framework Computer system: battery and \
+charger, USB-C PD ports, temperatures and fans, sensors, switches, firmware \
+versions and Embedded Controller diagnostics. Needs root, see the README \
+for how to configure your MCP client."""
+assets = [
+    ["target/release/framework_mcp", "usr/bin/", "755"],
+    ["README.md", "usr/share/doc/framework-mcp/README.md", "644"],
+    ["../LICENSE.md", "usr/share/doc/framework-mcp/LICENSE.md", "644"],
+]
+
+[package.metadata.generate-rpm]
+name = "framework-mcp"
+assets = [
+    { source = "target/release/framework_mcp", dest = "/usr/bin/framework_mcp", mode = "755" },
+    { source = "README.md", dest = "/usr/share/doc/framework-mcp/README.md", mode = "644", doc = true },
+    { source = "../LICENSE.md", dest = "/usr/share/doc/framework-mcp/LICENSE.md", mode = "644", doc = true },
+]
+
+[package.metadata.generate-rpm.requires]
+systemd-libs = "*"

@@ -29,7 +29,10 @@ jobs:
     - name: Build .deb package
       run: cargo deb -p framework_tool
 
-    - name: Upload .deb package
+    - name: Build MCP server .deb package
+      run: cargo deb -p framework_mcp
+
+    - name: Upload .deb packages
       uses: actions/upload-artifact@v6
       with:
         name: framework-tool-deb
@@ -54,16 +57,20 @@ jobs:
     - name: Install cargo-generate-rpm
       run: cargo install cargo-generate-rpm
 
-    - name: Build release binary
-      run: cargo build -p framework_tool --release --features nvidia
+    - name: Build release binaries
+      run: |
+        cargo build -p framework_tool --release --features nvidia
+        cargo build -p framework_mcp --release
 
-    - name: Strip binary
-      run: strip -s target/release/framework_tool
+    - name: Strip binaries
+      run: strip -s target/release/framework_tool target/release/framework_mcp
 
-    - name: Build .rpm package
-      run: cargo generate-rpm -p framework_tool
+    - name: Build .rpm packages
+      run: |
+        cargo generate-rpm -p framework_tool
+        cargo generate-rpm -p framework_mcp
 
-    - name: Upload .rpm package
+    - name: Upload .rpm packages
       uses: actions/upload-artifact@v6
       with:
         name: framework-tool-rpm
