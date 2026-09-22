@@ -566,7 +566,9 @@ dependencies = [
  "rmcp",
  "serde",
  "serde_json",
+ "static_vcruntime",
  "tokio",
+ "winresource",
 ]
 
 [[package]]

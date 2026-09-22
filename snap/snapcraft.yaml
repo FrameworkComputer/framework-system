@@ -12,6 +12,7 @@ description: |
   - Expansion card management (HDMI/DP/audio cards)
   - Framework 16 specific features (input deck, expansion bay)
   - NVIDIA GPU support
+  - MCP server for AI assistants (framework-tool.mcp)
   .
   Note: Most features require root privileges (sudo framework-tool ...).
 
@@ -42,7 +43,9 @@ parts:
     override-build: |
       cd "${CRAFT_PART_SRC}"
       cargo build --release -p framework_tool --features nvidia
+      cargo build --release -p framework_mcp
       install -Dm755 target/release/framework_tool "${CRAFT_PART_INSTALL}/bin/framework_tool"
+      install -Dm755 target/release/framework_mcp "${CRAFT_PART_INSTALL}/bin/framework_mcp"
       install -Dm644 "${CRAFT_PART_SRC}/framework_tool/completions/bash/framework_tool" \
         "${CRAFT_PART_INSTALL}/share/bash-completion/completions/framework_tool"
       install -Dm644 "${CRAFT_PART_SRC}/framework_tool/completions/zsh/_framework_tool" \
@@ -53,3 +56,5 @@ parts:
 apps:
   framework-tool:
     command: bin/framework_tool
+  mcp:
+    command: bin/framework_mcp
