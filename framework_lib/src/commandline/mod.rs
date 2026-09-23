@@ -868,7 +868,7 @@ fn print_versions(ec: &CrosEc) {
 
 #[cfg(feature = "smartmontools")]
 fn print_disk_versions() {
-    match smartmon_sys::scan_disks() {
+    match smartmon::scan_disks() {
         Ok(disks) => {
             for disk in disks {
                 println!(
