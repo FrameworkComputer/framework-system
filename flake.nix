@@ -97,8 +97,6 @@
 
             cargoLock = {
               lockFile = ./Cargo.lock;
-              # For smartmon-sys, fetched by the rev pinned in Cargo.lock
-              allowBuiltinFetchGit = true;
             };
 
             buildType = profile;
@@ -152,8 +150,6 @@
 
             cargoLock = {
               lockFile = ./Cargo.lock;
-              # For smartmon-sys, fetched by the rev pinned in Cargo.lock
-              allowBuiltinFetchGit = true;
             };
 
             buildType = profile;
@@ -204,8 +200,6 @@
 
             cargoLock = {
               lockFile = ./Cargo.lock;
-              # For smartmon-sys, fetched by the rev pinned in Cargo.lock
-              allowBuiltinFetchGit = true;
             };
 
             buildType = profile;

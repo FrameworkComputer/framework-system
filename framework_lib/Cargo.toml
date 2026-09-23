@@ -20,7 +20,7 @@ hidapi = ["dep:hidapi"]
 uefi = [ "lazy_static/spin_no_std" ]
 nvidia = ["dep:nvml-wrapper"]
 # Needs libsmartmon (GPL-2.0-or-later), see README
-smartmontools = ["dep:smartmon-sys"]
+smartmontools = ["dep:smartmon"]
 
 [build-dependencies]
 built = { version = "0.8", features = ["chrono", "git2"] }
@@ -41,7 +41,7 @@ hidapi = { version = "2.6.3", features = [ "windows-native" ], optional = true }
 rusb = { version = "0.9.4", optional = true }
 guid-create = { version = "0.5.0", default-features = false }
 zerocopy = { version = "0.8", default-features = false, features = ["derive"] }
-smartmon-sys = { git = "https://github.com/FrameworkComputer/smartmontools-sys", optional = true }
+smartmon = { version = "0.1", optional = true }
 
 [target.'cfg(target_os = "uefi")'.dependencies]
 uefi = { version = "0.36.1", features = ["alloc", "global_allocator", "panic_handler", "logger"] }

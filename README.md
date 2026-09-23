@@ -301,8 +301,9 @@ With the `smartmontools` feature, `--versions` uses libsmartmon to show model,
 serial and firmware version of all disks, including the Storage Expansion Card
 and other NVMe drives behind USB bridges.
 
-The library is built from source by the `smartmon-sys` crate, only a C++
-compiler is needed.
+The library is built from source by the
+[`smartmon`](https://crates.io/crates/smartmon) crate, only a C++ compiler is
+needed.
 
 Note: smartmontools is licensed GPL-2.0-or-later, so a binary built with this
 feature must be distributed under the GPL.
