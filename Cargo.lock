@@ -435,6 +435,7 @@ dependencies = [
  "rusb",
  "sha1",
  "sha2",
+ "smartmon-sys",
  "spin 0.10.0",
  "uefi",
  "uefi-raw",
@@ -1201,6 +1202,14 @@ name = "slab"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
+
+[[package]]
+name = "smartmon-sys"
+version = "0.1.0"
+source = "git+https://github.com/FrameworkComputer/smartmontools-sys#d622244834c27ac5931500a603846f3e5b21081f"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "spin"

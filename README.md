@@ -149,6 +149,8 @@ On UEFI and FreeBSD raw port I/O is used - on Linux this can also be used as a f
     - [x] Retimer
     - [x] Touchpad (Linux, Windows, FreeBSD, not UEFI)
     - [x] Touchscreen (Linux, Windows, FreeBSD, not UEFI)
+    - [x] NVMe SSD (Linux only)
+    - [x] Storage Expansion Card, NVMe/SATA/SCSI disks (Needs `smartmontools` feature)
   - [x] Get Expansion Card Firmware (Not on UEFI so far)
     - [x] HDMI Expansion Card (`--dp-hdmi-info`)
     - [x] DisplayPort Expansion Card (`--dp-hdmi-info`)
@@ -291,6 +293,22 @@ ls -l target/debug/framework_tool
 # Can't be built with cargo! That's why we need to exclude it in the other commands.
 make -C framework_uefi
 ls -l framework_uefi/build/x86_64-unknown-uefi/boot.efi
+```
+
+#### Optional: smartmontools
+
+With the `smartmontools` feature, `--versions` uses libsmartmon to show model,
+serial and firmware version of all disks, including the Storage Expansion Card
+and other NVMe drives behind USB bridges.
+
+The library is built from source by the `smartmon-sys` crate, only a C++
+compiler is needed.
+
+Note: smartmontools is licensed GPL-2.0-or-later, so a binary built with this
+feature must be distributed under the GPL.
+
+```
+cargo build --features smartmontools
 ```
 
 ## Install local package

@@ -240,6 +240,28 @@ Touchpad
   Firmware Version: v0E07
 ```
 
+### Disks (needs `smartmontools` feature)
+
+Shows model, serial and firmware version of all ATA, NVMe and SCSI disks,
+including NVMe drives behind USB bridges, like the Storage Expansion Card.
+
+```
+> framework_tool --versions
+[...]
+NVMe Device: /dev/sda (sntasmedia)
+  Model Number:     250GB Expansion Card
+  Serial Number:    071C4BE9098A2D57
+  Firmware Version: UHFM00.7
+NVMe Device: /dev/sdb (sntasmedia)
+  Model Number:     USB DISK 3.2
+  Serial Number:    07001A60B3A20F79
+  Firmware Version: UHFM10.0
+NVMe Device: /dev/nvme0 (nvme)
+  Model Number:     WD PC SN8000S SDEPNRG-2T00
+  Serial Number:    24434D800023
+  Firmware Version: 63100000
+```
+
 ### Input modules (Laptop 16)
 
 Shows firmware version and location of the modules.
