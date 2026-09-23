@@ -54,7 +54,7 @@ use crate::esrt::{self, ResourceType};
 use crate::fw_uefi::enable_page_break;
 #[cfg(feature = "rusb")]
 use crate::inputmodule::check_inputmodule_version;
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(feature = "smartmontools")))]
 use crate::nvme;
 use crate::os_specific;
 use crate::parade_retimer;
@@ -843,7 +843,10 @@ fn print_versions(ec: &CrosEc) {
     #[cfg(feature = "hidapi")]
     print_dp_hdmi_details(false);
 
-    #[cfg(target_os = "linux")]
+    #[cfg(feature = "smartmontools")]
+    print_disk_versions();
+
+    #[cfg(all(target_os = "linux", not(feature = "smartmontools")))]
     for i in 0..4 {
         let device = format!("/dev/nvme{i}");
         match nvme::get_nvme_firmware_version(&device) {
@@ -861,6 +864,26 @@ fn print_versions(ec: &CrosEc) {
 
     #[cfg(feature = "nvidia")]
     print_nvidia_details();
+}
+
+#[cfg(feature = "smartmontools")]
+fn print_disk_versions() {
+    match smartmon_sys::scan_disks() {
+        Ok(disks) => {
+            for disk in disks {
+                println!(
+                    "{} Device: {} ({})",
+                    disk.protocol, disk.name, disk.dev_type
+                );
+                println!("  Model Number:     {}", disk.model);
+                if !disk.serial.is_empty() {
+                    println!("  Serial Number:    {}", disk.serial);
+                }
+                println!("  Firmware Version: {}", disk.firmware);
+            }
+        }
+        Err(err) => error!("{}", err),
+    }
 }
 
 #[cfg(feature = "nvidia")]
