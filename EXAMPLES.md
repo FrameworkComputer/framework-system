@@ -157,6 +157,7 @@ EC Firmware
 PD Controllers
   Right (01):       0.0.0E (MainFw)
   Left  (23):       0.0.0E (MainFw)
+AGESA:            AGESA!V9 StrixKrackanPI-FP8 1.1.0.0c
 [...]
 ```
 

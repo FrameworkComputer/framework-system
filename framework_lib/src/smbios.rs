@@ -4,7 +4,7 @@ use std::prelude::v1::*;
 
 use crate::util::Config;
 pub use crate::util::{Platform, PlatformFamily};
-use dmidecode::{EntryPoint, Structure};
+use dmidecode::{EntryPoint, InfoType, RawStructure, Structure};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 #[cfg(feature = "uefi")]
@@ -172,6 +172,57 @@ pub fn get_baseboard_version() -> Option<ConfigDigit0> {
 
 pub fn get_family() -> Option<PlatformFamily> {
     get_platform().and_then(Platform::which_family)
+}
+
+/// Minimum size of an Additional Information entry (SMBIOS Type 40)
+const DMI_A_INFO_ENT_MIN_SIZE: usize = 6;
+
+/// Extract AGESA version string from an SMBIOS Type 40 (Additional Information) structure.
+///
+/// On AMD Zen systems, the AGESA version is stored here.
+/// Sample string: "AGESA!V9 StrixKrackanPI-FP8 1.1.0.0c"
+fn find_agesa_in_type40(raw: &RawStructure) -> Option<String> {
+    if raw.info != InfoType::Oem(40) {
+        return None;
+    }
+
+    // raw.data layout (after the 4-byte header):
+    //   [0]:    count — number of Additional Information entries
+    //   [1..]:  entries, each starting with a length byte
+    let count = *raw.data.first()? as usize;
+    let mut remaining = raw.data.get(1..)?;
+
+    for _ in 0..count {
+        if remaining.len() < DMI_A_INFO_ENT_MIN_SIZE {
+            break;
+        }
+        let entry_len = remaining[0] as usize;
+        if entry_len == 0 || entry_len > remaining.len() {
+            break;
+        }
+        // String number is at offset 4 within the entry
+        let str_num = remaining[4];
+        if let Ok(s) = raw.find_string(str_num) {
+            if s.starts_with("AGESA") {
+                return Some(s.to_string());
+            }
+        }
+        remaining = &remaining[entry_len..];
+    }
+
+    None
+}
+
+/// Get the AGESA version from SMBIOS Type 40 Additional Information entries
+pub fn get_agesa_version() -> Option<String> {
+    let smbios = get_smbios()?;
+    smbios.structures().find_map(|result| {
+        if let Ok(Structure::Other(ref raw)) = result {
+            find_agesa_in_type40(raw)
+        } else {
+            None
+        }
+    })
 }
 
 pub fn get_platform() -> Option<Platform> {
