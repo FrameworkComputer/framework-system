@@ -959,6 +959,78 @@ pub fn parse(args: &[String]) -> Cli {
                 None
             };
             found_an_option = true;
+        } else if arg == "--pd-jump-boot" {
+            cli.pd_jump_boot = if args.len() > i + 1 {
+                if let Ok(pd) = args[i + 1].parse::<u8>() {
+                    Some(pd)
+                } else {
+                    println!(
+                        "Invalid value for --pd-jump-boot: '{}'. Must be 0, 1 or 2.",
+                        args[i + 1],
+                    );
+                    None
+                }
+            } else {
+                println!("--pd-jump-boot requires specifying the PD controller");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--pd-jump-backup" {
+            cli.pd_jump_backup = if args.len() > i + 1 {
+                if let Ok(pd) = args[i + 1].parse::<u8>() {
+                    Some(pd)
+                } else {
+                    println!(
+                        "Invalid value for --pd-jump-backup: '{}'. Must be 0, 1 or 2.",
+                        args[i + 1],
+                    );
+                    None
+                }
+            } else {
+                println!("--pd-jump-backup requires specifying the PD controller");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--pd-jump-main" {
+            cli.pd_jump_main = if args.len() > i + 1 {
+                if let Ok(pd) = args[i + 1].parse::<u8>() {
+                    Some(pd)
+                } else {
+                    println!(
+                        "Invalid value for --pd-jump-main: '{}'. Must be 0, 1 or 2.",
+                        args[i + 1],
+                    );
+                    None
+                }
+            } else {
+                println!("--pd-jump-main requires specifying the PD controller");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--pd-validate" {
+            cli.pd_validate = if args.len() > i + 1 {
+                if let Ok(pd) = args[i + 1].parse::<u8>() {
+                    Some(pd)
+                } else {
+                    println!(
+                        "Invalid value for --pd-validate: '{}'. Must be 0, 1 or 2.",
+                        args[i + 1],
+                    );
+                    None
+                }
+            } else {
+                println!("--pd-validate requires specifying the PD controller");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--pd-dump-fw" {
+            cli.pd_dump_fw = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--pd-dump-fw requires an argument: <port>:<output_file>");
+                None
+            };
+            found_an_option = true;
         } else if arg == "--flash-gpu-descriptor-file" {
             cli.flash_gpu_descriptor_file = if args.len() > i + 1 {
                 Some(args[i + 1].clone())
