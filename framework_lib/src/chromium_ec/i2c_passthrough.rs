@@ -71,7 +71,7 @@ pub fn i2c_read(
     addr: u16,
     len: u16,
 ) -> EcResult<EcI2cPassthruResponse> {
-    let addr_bytes = if addr < 0xFF {
+    let addr_bytes = if addr <= 0xFF {
         vec![addr as u8]
     } else {
         u16::to_le_bytes(addr).to_vec()
