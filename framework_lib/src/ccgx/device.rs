@@ -636,6 +636,9 @@ impl PdController {
     /// Disable the PD ports and reset the controller, then wait for it
     ///
     /// The bootloader decides which firmware to boot, normally the main one.
+    /// The EC reinitializes the controller afterwards. If the charger was
+    /// on this controller, the EC switches charge ports and picks it up
+    /// again a second later.
     pub fn reset(&self) -> EcResult<()> {
         let _lock = PdBusLock::new(&self.ec)?;
         println!("Disabling PD ports");
@@ -675,25 +678,29 @@ impl PdController {
         }
     }
 
-    /// Enable or disable all PD ports
-    ///
-    /// Disabling waits until the controller confirms. That can take up to a
-    /// second if it currently provides power.
-    pub fn enable_ports(&self, enable: bool) -> EcResult<()> {
-        let _lock = PdBusLock::new(&self.ec)?;
-        self.set_ports_enabled(enable)
+    /// Mask with all PD ports of this controller set
+    fn all_ports_mask(&self) -> EcResult<u8> {
+        Ok((1u8 << self.get_port_count()?) - 1)
     }
 
-    /// Same as enable_ports, for callers that already hold the PD bus lock
+    /// Enable or disable all PD ports
     ///
-    /// The command handshake clears and polls the device interrupt, which
-    /// must not happen while the EC still talks to the controller.
+    /// A plain register write without the PD bus lock and without waiting
+    /// for the response, the EC consumes that. Disabling drops a charger on
+    /// this controller and the EC won't pick it up again until it's replugged.
+    pub fn enable_ports(&self, enable: bool) -> EcResult<()> {
+        let mask = if enable { self.all_ports_mask()? } else { 0 };
+        self.ccgx_write(ControlRegisters::PdPortsEnable, &[mask])
+    }
+
+    /// Enable or disable all PD ports and wait until the controller confirms
+    ///
+    /// Only for callers that hold the PD bus lock: the command handshake
+    /// clears and polls the device interrupt, which must not happen while the
+    /// EC still talks to the controller. Disabling can take up to a second if
+    /// the controller currently provides power.
     fn set_ports_enabled(&self, enable: bool) -> EcResult<()> {
-        let mask = if enable {
-            (1u8 << self.get_port_count()?) - 1
-        } else {
-            0
-        };
+        let mask = if enable { self.all_ports_mask()? } else { 0 };
         let response = self.command(ControlRegisters::PdPortsEnable, &[mask], 2000)?;
         match response {
             HpiResponse::Success => Ok(()),
