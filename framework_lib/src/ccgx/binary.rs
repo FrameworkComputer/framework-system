@@ -59,9 +59,11 @@ struct VersionInfo {
     silicon_family: U16,
 }
 
-pub const CCG5_PD_LEN: usize = 0x20_000;
-pub const CCG6_PD_LEN: usize = 0x20_000;
-pub const CCG8_PD_LEN: usize = 0x40_000;
+/// Flash sizes of all supported PD controllers, smallest first
+///
+/// Chips of the same generation come in different sizes, e.g. CCG6 with 64K
+/// and CCG6 CFP with 128K, so the size can't be derived from the generation.
+pub const PD_FLASH_SIZES: [usize; 3] = [0x10_000, 0x20_000, 0x40_000];
 
 /// Information about all the firmware in a PD binary file
 ///
