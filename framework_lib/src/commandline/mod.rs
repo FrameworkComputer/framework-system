@@ -33,7 +33,7 @@ use crate::capsule_content::{
 use crate::ccgx::device::{FwMode, PdController, PdImageSelection, PdPort};
 #[cfg(feature = "hidapi")]
 use crate::ccgx::hid::{check_ccg_fw_version, find_devices, DP_CARD_PID, HDMI_CARD_PID};
-use crate::ccgx::{self, MainPdVersions, PdVersions, SiliconFamily::*};
+use crate::ccgx::{self, MainPdVersions, PdVersions};
 use crate::chromium_ec;
 use crate::chromium_ec::commands::BoardIdType;
 use crate::chromium_ec::commands::DeckStateMode;
@@ -2837,30 +2837,16 @@ fn me_info(verbose: bool, dump_path: Option<&str>) {
 }
 
 fn analyze_ccgx_pd_fw(data: &[u8]) {
-    // Each silicon family validates the family field in the binary, so at most
-    // one of these can match
-    let families = [
-        (Ccg3, "CCG3"),
-        (Ccg5, "CCG5"),
-        (Ccg6Adl, "CCG6"),
-        (Ccg6, "CCG6"),
-        (Ccg8D, "CCG8D"),
-        (Ccg8S, "CCG8S"),
-        (Ccg6Cfp, "CCG6 CFP"),
-        (Ccg8Cfp, "CCG8 CFP"),
-    ];
-    for (family, name) in families {
-        if let Some(versions) = ccgx::binary::read_versions(data, family) {
-            println!("Detected {} firmware", name);
-            println!("FW 1");
-            ccgx::binary::print_fw(&versions.backup_fw);
+    if let Some((family, versions)) = ccgx::binary::detect_family(data) {
+        println!("Detected {} firmware", family);
+        println!("FW 1");
+        ccgx::binary::print_fw(&versions.backup_fw);
 
-            println!("FW 2");
-            ccgx::binary::print_fw(&versions.main_fw);
-            return;
-        }
+        println!("FW 2");
+        ccgx::binary::print_fw(&versions.main_fw);
+    } else {
+        println!("Failed to read PD versions")
     }
-    println!("Failed to read PD versions")
 }
 
 pub fn analyze_ec_fw(data: &[u8]) {

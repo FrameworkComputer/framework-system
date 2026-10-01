@@ -129,6 +129,21 @@ pub enum SiliconFamily {
     Ccg8Cfp = 0x3E81,
 }
 
+impl fmt::Display for SiliconFamily {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            SiliconFamily::Ccg3 => "CCG3",
+            SiliconFamily::Ccg5 => "CCG5",
+            SiliconFamily::Ccg6Adl | SiliconFamily::Ccg6 => "CCG6",
+            SiliconFamily::Ccg8D => "CCG8D",
+            SiliconFamily::Ccg8S => "CCG8S",
+            SiliconFamily::Ccg6Cfp => "CCG6 CFP",
+            SiliconFamily::Ccg8Cfp => "CCG8 CFP",
+        };
+        write!(f, "{}", name)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
 pub struct BaseVersion {
     /// Major part of the version. X of X.Y.Z.BB
