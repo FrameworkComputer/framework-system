@@ -1878,82 +1878,37 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         print_pd_details(&ec);
     } else if let Some(pd) = args.pd_reset {
         println!("Resetting PD {}...", pd);
-        print_err(match pd {
-            0 => PdController::new(PdPort::Right01, ec.clone()).reset(),
-            1 => PdController::new(PdPort::Left23, ec.clone()).reset(),
-            2 => PdController::new(PdPort::Back, ec.clone()).reset(),
-            _ => {
-                error!("PD {} does not exist", pd);
-                Ok(())
-            }
-        });
+        if let Some(ctrl) = pd_controller(pd, &ec) {
+            print_err(ctrl.reset());
+        }
     } else if let Some(pd) = args.pd_disable {
         println!("Disabling PD {}...", pd);
-        print_err(match pd {
-            0 => PdController::new(PdPort::Right01, ec.clone()).enable_ports(false),
-            1 => PdController::new(PdPort::Left23, ec.clone()).enable_ports(false),
-            2 => PdController::new(PdPort::Back, ec.clone()).enable_ports(false),
-            _ => {
-                error!("PD {} does not exist", pd);
-                Ok(())
-            }
-        });
+        if let Some(ctrl) = pd_controller(pd, &ec) {
+            print_err(ctrl.enable_ports(false));
+        }
     } else if let Some(pd) = args.pd_enable {
         println!("Enabling PD {}...", pd);
-        print_err(match pd {
-            0 => PdController::new(PdPort::Right01, ec.clone()).enable_ports(true),
-            1 => PdController::new(PdPort::Left23, ec.clone()).enable_ports(true),
-            2 => PdController::new(PdPort::Back, ec.clone()).enable_ports(true),
-            _ => {
-                error!("PD {} does not exist", pd);
-                Ok(())
-            }
-        });
+        if let Some(ctrl) = pd_controller(pd, &ec) {
+            print_err(ctrl.enable_ports(true));
+        }
     } else if let Some(pd) = args.pd_jump_boot {
         println!("Jumping PD {} to bootloader...", pd);
-        print_err(match pd {
-            0 => PdController::new(PdPort::Right01, ec.clone()).jump_to_boot(),
-            1 => PdController::new(PdPort::Left23, ec.clone()).jump_to_boot(),
-            2 => PdController::new(PdPort::Back, ec.clone()).jump_to_boot(),
-            _ => {
-                error!("PD {} does not exist", pd);
-                Ok(())
-            }
-        });
+        if let Some(ctrl) = pd_controller(pd, &ec) {
+            print_err(ctrl.jump_to_boot());
+        }
     } else if let Some(pd) = args.pd_jump_backup {
         println!("Jumping PD {} to backup firmware...", pd);
-        print_err(match pd {
-            0 => PdController::new(PdPort::Right01, ec.clone()).jump_to_backup(),
-            1 => PdController::new(PdPort::Left23, ec.clone()).jump_to_backup(),
-            2 => PdController::new(PdPort::Back, ec.clone()).jump_to_backup(),
-            _ => {
-                error!("PD {} does not exist", pd);
-                Ok(())
-            }
-        });
+        if let Some(ctrl) = pd_controller(pd, &ec) {
+            print_err(ctrl.jump_to_backup());
+        }
     } else if let Some(pd) = args.pd_jump_main {
         println!("Jumping PD {} to main firmware...", pd);
-        print_err(match pd {
-            0 => PdController::new(PdPort::Right01, ec.clone()).jump_to_main(),
-            1 => PdController::new(PdPort::Left23, ec.clone()).jump_to_main(),
-            2 => PdController::new(PdPort::Back, ec.clone()).jump_to_main(),
-            _ => {
-                error!("PD {} does not exist", pd);
-                Ok(())
-            }
-        });
+        if let Some(ctrl) = pd_controller(pd, &ec) {
+            print_err(ctrl.jump_to_main());
+        }
     } else if let Some(pd) = args.pd_validate {
         println!("Validating firmware on PD {}...", pd);
-        let controller = match pd {
-            0 => Some(PdController::new(PdPort::Right01, ec.clone())),
-            1 => Some(PdController::new(PdPort::Left23, ec.clone())),
-            2 => Some(PdController::new(PdPort::Back, ec.clone())),
-            _ => {
-                error!("PD {} does not exist", pd);
-                None
-            }
-        };
-        if let Some(ctrl) = controller {
+        if let Some(ctrl) = pd_controller(pd, &ec) {
             if let Some((mode, _)) = print_err(ctrl.get_device_info()) {
                 println!("Current mode: {:?}", mode);
             }
@@ -1968,16 +1923,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             let pd: u8 = parts[0].parse().unwrap_or(255);
             let output_file = parts[1];
             println!("Dumping firmware from PD {} to {}...", pd, output_file);
-            let controller = match pd {
-                0 => Some(PdController::new(PdPort::Right01, ec.clone())),
-                1 => Some(PdController::new(PdPort::Left23, ec.clone())),
-                2 => Some(PdController::new(PdPort::Back, ec.clone())),
-                _ => {
-                    error!("PD {} does not exist", pd);
-                    None
-                }
-            };
-            if let Some(ctrl) = controller {
+            if let Some(ctrl) = pd_controller(pd, &ec) {
                 if let Some(data) = print_err(ctrl.dump_firmware()) {
                     dump_pd_flash(output_file, &data);
                 }
@@ -2834,6 +2780,23 @@ fn me_info(verbose: bool, dump_path: Option<&str>) {
     } else {
         error!("No Intel ME FWSTS table found in SMBIOS (type 0xDB)");
     }
+}
+
+/// PD controller by the index used on the command line
+///
+/// 0 and 1 are the right and left controllers on laptops, 2 is the one on
+/// the Framework Desktop and Framework Laptop 16.
+fn pd_controller(pd: u8, ec: &CrosEc) -> Option<PdController> {
+    let port = match pd {
+        0 => PdPort::Right01,
+        1 => PdPort::Left23,
+        2 => PdPort::Back,
+        _ => {
+            error!("PD {} does not exist", pd);
+            return None;
+        }
+    };
+    Some(PdController::new(port, ec.clone()))
 }
 
 fn analyze_ccgx_pd_fw(data: &[u8]) {
