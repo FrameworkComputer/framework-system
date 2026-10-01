@@ -640,13 +640,33 @@ impl PdController {
     /// on this controller, the EC switches charge ports and picks it up
     /// again a second later.
     pub fn reset(&self) -> EcResult<()> {
-        let _lock = PdBusLock::new(&self.ec)?;
+        let lock = PdBusLock::new(&self.ec)?;
         println!("Disabling PD ports");
         self.set_ports_enabled(false)?;
         self.reset_device()?;
         let mode = self.wait_for_device(3000)?;
         println!("Controller is running {:?}", mode);
-        Ok(())
+        drop(lock);
+        self.reattach_ports()
+    }
+
+    /// Make the EC pick up a charger connected to this controller again
+    ///
+    /// After the EC reinitializes the controller, which it does when the PD
+    /// bus lock is released, it only adopts an attached charger if that port
+    /// was its active charge port before. Otherwise the charger stays
+    /// undetected until the cable is replugged. Toggling the ports gives
+    /// the EC a fresh connect event, like a replug does.
+    ///
+    /// Must be called without the PD bus lock.
+    fn reattach_ports(&self) -> EcResult<()> {
+        // Give the EC time to reinitialize the controller after the unlock
+        os_specific::sleep(2_000_000);
+        println!("Toggling PD ports so the EC picks up an attached charger");
+        self.enable_ports(false)?;
+        // Can take up to a second if the controller currently provides power
+        os_specific::sleep(1_000_000);
+        self.enable_ports(true)
     }
 
     /// Wait until the controller answers again and return its mode
@@ -724,26 +744,33 @@ impl PdController {
 
     /// Jump to bootloader firmware
     pub fn jump_to_boot(&self) -> EcResult<()> {
-        let _lock = PdBusLock::new(&self.ec)?;
-        let (current_mode, _) = self.get_device_info()?;
-        println!("Current mode: {:?}, jumping to BootLoader", current_mode);
-        self.jump_to_other_fw(current_mode, FwMode::BootLoader)
+        self.jump(FwMode::BootLoader)
     }
 
     /// Jump to backup firmware (FW1)
     pub fn jump_to_backup(&self) -> EcResult<()> {
-        let _lock = PdBusLock::new(&self.ec)?;
-        let (current_mode, _) = self.get_device_info()?;
-        println!("Current mode: {:?}, jumping to BackupFw", current_mode);
-        self.jump_to_other_fw(current_mode, FwMode::BackupFw)
+        self.jump(FwMode::BackupFw)
     }
 
     /// Jump to main firmware (FW2)
     pub fn jump_to_main(&self) -> EcResult<()> {
-        let _lock = PdBusLock::new(&self.ec)?;
+        self.jump(FwMode::MainFw)
+    }
+
+    fn jump(&self, target_mode: FwMode) -> EcResult<()> {
+        let lock = PdBusLock::new(&self.ec)?;
         let (current_mode, _) = self.get_device_info()?;
-        println!("Current mode: {:?}, jumping to MainFw", current_mode);
-        self.jump_to_other_fw(current_mode, FwMode::MainFw)
+        println!(
+            "Current mode: {:?}, jumping to {:?}",
+            current_mode, target_mode
+        );
+        self.jump_to_other_fw(current_mode, target_mode)?;
+        drop(lock);
+        // The bootloader has no PD ports to toggle
+        if target_mode == FwMode::BootLoader {
+            return Ok(());
+        }
+        self.reattach_ports()
     }
 
     /// Switch to a different firmware
@@ -1153,7 +1180,7 @@ impl PdController {
         fw_bin: &[u8],
         images: PdImageSelection,
     ) -> EcResult<()> {
-        let _lock = PdBusLock::new(&self.ec)?;
+        let lock = PdBusLock::new(&self.ec)?;
 
         self.check_firmware_compatible(fw_file)?;
 
@@ -1217,6 +1244,7 @@ impl PdController {
         println!("Controller is running {:?}", final_mode);
         self.print_fw_info();
 
-        Ok(())
+        drop(lock);
+        self.reattach_ports()
     }
 }
