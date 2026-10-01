@@ -11,7 +11,9 @@ use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::{CrosEcDriverType, HardwareDeviceType};
 use crate::commandline::{Cli, LogLevel};
 
-use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, RebootEcArg, TabletModeArg};
+use super::{
+    ConsoleArg, FpBrightnessArg, InputDeckModeArg, PdImageArg, RebootEcArg, TabletModeArg,
+};
 
 /// Get commandline arguments from UEFI environment
 pub fn get_args() -> Vec<String> {
@@ -100,6 +102,16 @@ pub fn parse(args: &[String]) -> Cli {
         port80read: false,
         panicinfo: false,
         hash: None,
+        pd_jump_boot: None,
+        pd_jump_backup: None,
+        pd_jump_main: None,
+        pd_validate: None,
+        pd_dump_fw: None,
+        flash_pd01: None,
+        flash_pd23: None,
+        pd_image: None,
+        validate_pd01: None,
+        validate_pd23: None,
         // This is the only driver that works on UEFI
         driver: Some(CrosEcDriverType::Portio),
         pd_addrs: None,
@@ -894,6 +906,56 @@ pub fn parse(args: &[String]) -> Cli {
                 }
             } else {
                 println!("Need to provide a value for --flash_gpu_descriptor. TYPE_MAGIC SERIAL");
+                None
+            }
+        } else if arg == "--flash-pd01" {
+            cli.flash_pd01 = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--flash-pd01 requires extra argument to denote input file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--flash-pd23" {
+            cli.flash_pd23 = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--flash-pd23 requires extra argument to denote input file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--pd-image" {
+            cli.pd_image = if args.len() > i + 1 {
+                match args[i + 1].as_str() {
+                    "main" => Some(PdImageArg::Main),
+                    "backup" => Some(PdImageArg::Backup),
+                    "both" => Some(PdImageArg::Both),
+                    other => {
+                        println!(
+                            "Invalid value for --pd-image: {}. Must be main, backup or both",
+                            other
+                        );
+                        None
+                    }
+                }
+            } else {
+                println!("--pd-image requires an argument: main, backup or both");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--validate-pd01" {
+            cli.validate_pd01 = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--validate-pd01 requires extra argument to denote input file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--validate-pd23" {
+            cli.validate_pd23 = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--validate-pd23 requires extra argument to denote input file");
                 None
             };
             found_an_option = true;

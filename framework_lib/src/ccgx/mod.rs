@@ -99,6 +99,16 @@ struct CyAcd2Metadata {
     _md_crc32: u32,
 }
 
+/// Whether a firmware image built for one silicon ID runs on a controller reporting another
+///
+/// Bits 4-7 of the silicon ID are a silicon revision. The CCGx SDK itself
+/// compares with this mask, e.g. CCG6DF reports 0x30A0 but runs firmware
+/// built for 0x3000.
+pub fn silicon_id_compatible(device: u16, firmware: u16) -> bool {
+    const SILICON_REVISION_MASK: u16 = 0xFF0F;
+    device & SILICON_REVISION_MASK == firmware & SILICON_REVISION_MASK
+}
+
 /// Silicon family of a CCGX controller
 ///
 /// These are the values stored in the silicon family field of a firmware binary,

@@ -17,6 +17,11 @@ complete -c framework_tool -l meinfo -d 'Show Intel ME information (from SMBIOS 
 complete -c framework_tool -l pd-reset -d 'Reset a specific PD controller (for debugging only)' -r
 complete -c framework_tool -l pd-disable -d 'Disable all ports on a specific PD controller (for debugging only)' -r
 complete -c framework_tool -l pd-enable -d 'Enable all ports on a specific PD controller (for debugging only)' -r
+complete -c framework_tool -l pd-jump-boot -d 'Jump PD controller to bootloader mode (for debugging only)' -r
+complete -c framework_tool -l pd-jump-backup -d 'Jump PD controller to backup firmware (for debugging only)' -r
+complete -c framework_tool -l pd-jump-main -d 'Jump PD controller to main firmware (for debugging only)' -r
+complete -c framework_tool -l pd-validate -d 'Validate PD controller firmware (0=Right, 1=Left)' -r
+complete -c framework_tool -l pd-dump-fw -d 'Dump PD controller firmware to file (format: <port>:<output_file>)' -r
 complete -c framework_tool -l dp-hdmi-update -d 'Update the DisplayPort or HDMI Expansion Card' -r -F
 complete -c framework_tool -l pd-bin -d 'Parse versions from PD firmware binary file' -r -F
 complete -c framework_tool -l ec-bin -d 'Parse versions from EC firmware binary file' -r -F
@@ -45,8 +50,6 @@ complete -c framework_tool -l fp-brightness -d 'Get or set fingerprint LED brigh
 complete -c framework_tool -l kblight -d 'Set keyboard backlight percentage or get, if no value provided' -r
 complete -c framework_tool -l remap-key -d 'Remap a key by changing the scancode' -r
 complete -c framework_tool -l rgbkbd -d 'Set the color of <key> to <RGB>. Multiple colors for adjacent keys can be set at once. <key> <RGB> [<RGB> ...] Example: 0 0xFF000 0x00FF00 0x0000FF' -r
-complete -c framework_tool -l ps2-enable -d 'Control PS2 touchpad emulation (DEBUG COMMAND, if touchpad not working, reboot system)' -r -f -a "true\t''
-false\t''"
 complete -c framework_tool -l tablet-mode -d 'Set tablet mode override' -r -f -a "auto\t''
 tablet\t''
 laptop\t''"
@@ -60,6 +63,8 @@ complete -c framework_tool -l haptic-intensity -d 'Set touchpad haptic feedback 
 complete -c framework_tool -l click-force -d 'Set touchpad click force / sensitivity' -r -f -a "low\t''
 medium\t''
 high\t''"
+complete -c framework_tool -l validate-pd01 -d 'Validate PD controller 01 firmware and compare with a file' -r -F
+complete -c framework_tool -l validate-pd23 -d 'Validate PD controller 23 firmware and compare with a file' -r -F
 complete -c framework_tool -l console -d 'Get EC console, choose whether recent or to follow the output' -r -f -a "recent\t''
 follow\t''"
 complete -c framework_tool -l reboot-ec -d 'Control EC RO/RW jump' -r -f -a "reboot\t''
@@ -78,11 +83,6 @@ complete -c framework_tool -l flash-gpu-descriptor-file -d 'File to write to the
 complete -c framework_tool -l dump-gpu-descriptor-file -d 'File to dump the gpu EEPROM to' -r -F
 complete -c framework_tool -l validate-gpu-descriptor-file -d 'File to validate the gpu EEPROM against' -r -F
 complete -c framework_tool -l host-command -d 'Send an EC host command. Args: <CMD_ID> <VERSION> [DATA...]' -r
-complete -c framework_tool -l generate-completions -d 'Generate shell completions and print to stdout' -r -f -a "bash\t''
-elvish\t''
-fish\t''
-powershell\t''
-zsh\t''"
 complete -c framework_tool -s v -l verbose -d 'Increase logging verbosity'
 complete -c framework_tool -s q -l quiet -d 'Decrease logging verbosity'
 complete -c framework_tool -l versions -d 'List current firmware versions'
@@ -119,5 +119,4 @@ complete -c framework_tool -l boardid -d 'Print all board IDs'
 complete -c framework_tool -s f -l force -d 'Force execution of an unsafe command - may render your hardware unbootable!'
 complete -c framework_tool -l dry-run -d 'Simulate execution of a command (e.g. --flash-ec)'
 complete -c framework_tool -l nvidia -d 'Show NVIDIA GPU information (Laptop 16 only)'
-complete -c framework_tool -l generate-manpage -d 'Generate man page and print to stdout'
 complete -c framework_tool -s h -l help -d 'Print help'

@@ -30,7 +30,7 @@ use crate::capsule;
 use crate::capsule_content::{
     find_bios_version, find_ec_in_bios_cap, find_pd_in_bios_cap, find_retimer_version,
 };
-use crate::ccgx::device::{FwMode, PdController, PdPort};
+use crate::ccgx::device::{FwMode, PdController, PdImageSelection, PdPort};
 #[cfg(feature = "hidapi")]
 use crate::ccgx::hid::{check_ccg_fw_version, find_devices, DP_CARD_PID, HDMI_CARD_PID};
 use crate::ccgx::{self, MainPdVersions, PdVersions, SiliconFamily::*};
@@ -107,6 +107,23 @@ pub enum RebootEcArg {
     JumpRw,
     CancelJump,
     DisableJump,
+}
+
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum PdImageArg {
+    Main,
+    Backup,
+    Both,
+}
+impl From<PdImageArg> for PdImageSelection {
+    fn from(w: PdImageArg) -> PdImageSelection {
+        match w {
+            PdImageArg::Main => PdImageSelection::Main,
+            PdImageArg::Backup => PdImageSelection::Backup,
+            PdImageArg::Both => PdImageSelection::Both,
+        }
+    }
 }
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
@@ -207,6 +224,11 @@ pub struct Cli {
     pub pd_reset: Option<u8>,
     pub pd_disable: Option<u8>,
     pub pd_enable: Option<u8>,
+    pub pd_jump_boot: Option<u8>,
+    pub pd_jump_backup: Option<u8>,
+    pub pd_jump_main: Option<u8>,
+    pub pd_validate: Option<u8>,
+    pub pd_dump_fw: Option<String>,
     pub dp_hdmi_info: bool,
     pub dp_hdmi_update: Option<String>,
     pub audio_card_info: bool,
@@ -259,6 +281,11 @@ pub struct Cli {
     pub hash: Option<String>,
     pub pd_addrs: Option<(u16, u16, u16)>,
     pub pd_ports: Option<(u8, u8, u8)>,
+    pub flash_pd01: Option<String>,
+    pub flash_pd23: Option<String>,
+    pub pd_image: Option<PdImageArg>,
+    pub validate_pd01: Option<String>,
+    pub validate_pd23: Option<String>,
     pub help: bool,
     pub info: bool,
     pub meinfo: Option<Option<String>>,
@@ -397,6 +424,82 @@ fn print_single_pd_details(pd: &PdController) {
     } else {
         println!("  Ports Enabled:  Unknown");
     }
+    // The following registers are not implemented by all firmware versions.
+    // Skip them if they can't be read or don't look right.
+    match pd.get_hpi_version() {
+        Ok(Some(v)) => {
+            let mut features = Vec::new();
+            if v.pd_commands {
+                features.push("PD Commands");
+            }
+            if v.ucsi {
+                features.push("UCSI");
+            }
+            if v.epr {
+                features.push("EPR");
+            }
+            if v.cyacd2 {
+                features.push("cyacd2");
+            }
+            println!(
+                "  HPI Version:    {}.{} ({:#010X}) {}",
+                v.major,
+                v.minor,
+                v.raw,
+                features.join(", ")
+            );
+        }
+        Ok(None) => debug!("HPI version register not valid"),
+        Err(err) => debug!("Failed to read HPI version: {:?}", err),
+    }
+    match pd.get_boot_mode_reason() {
+        Ok(Some(reason)) => {
+            let mut flags = Vec::new();
+            if reason.boot_mode_requested {
+                flags.push("Boot mode requested");
+            }
+            if reason.fw1_invalid {
+                flags.push("FW1 invalid");
+            }
+            if reason.fw2_invalid {
+                flags.push("FW2 invalid");
+            }
+            if flags.is_empty() {
+                flags.push("Both firmwares valid");
+            }
+            println!(
+                "  Boot Reason:    {:#04X} ({})",
+                reason.raw,
+                flags.join(", ")
+            );
+        }
+        Ok(None) => debug!("Boot mode reason register not valid"),
+        Err(err) => debug!("Failed to read boot mode reason: {:?}", err),
+    }
+    match pd.get_wdt_reset_count() {
+        Ok(count) => println!("  WDT Resets:     {}", count),
+        Err(err) => debug!("Failed to read watchdog reset count: {:?}", err),
+    }
+    match pd.get_cfg_table_version() {
+        Ok((major, minor)) => println!("  Config Table:   v{}.{}", major, minor),
+        Err(err) => debug!("Failed to read config table version: {:?}", err),
+    }
+    match (pd.get_bootloader_last_row(), pd.get_fw_locations()) {
+        // An invalid image is reported as located after the last flash row
+        (Ok(bl_last), Ok((fw1, fw2))) if bl_last < fw1 && fw1 <= fw2 && fw2 <= 1024 => {
+            println!(
+                "  Flash Layout:   Bootloader rows 0-{}, FW1 from row {}, FW2 from row {}",
+                bl_last, fw1, fw2
+            );
+        }
+        (Ok(bl_last), Ok((fw1, fw2))) => {
+            debug!(
+                "Flash layout registers not valid: {} {} {}",
+                bl_last, fw1, fw2
+            );
+        }
+        (bl, loc) => debug!("Failed to read flash layout: {:?} {:?}", bl, loc),
+    }
     pd.print_fw_info();
 }
 
@@ -409,12 +512,17 @@ fn print_pd_details(ec: &CrosEc) {
     let pd_23 = PdController::new(PdPort::Left23, ec.clone());
     let pd_back = PdController::new(PdPort::Back, ec.clone());
 
-    println!("Right / Ports 01");
-    print_single_pd_details(&pd_01);
-    println!("Left / Ports 23");
-    print_single_pd_details(&pd_23);
-    println!("Back");
-    print_single_pd_details(&pd_back);
+    for (name, pd) in [
+        ("Right / Ports 01", pd_01),
+        ("Left / Ports 23", pd_23),
+        ("Back", pd_back),
+    ] {
+        if !pd.present_on_platform() {
+            continue;
+        }
+        println!("{}", name);
+        print_single_pd_details(&pd);
+    }
 }
 
 #[cfg(feature = "hidapi")]
@@ -1152,6 +1260,25 @@ fn dump_ec_flash(ec: &CrosEc, dump_path: &str) {
     }
 }
 
+fn dump_pd_flash(dump_path: &str, data: &[u8]) {
+    #[cfg(not(feature = "uefi"))]
+    {
+        let ret = fs::File::create(dump_path).and_then(|mut file| file.write_all(data));
+        if let Err(err) = ret {
+            println!("Failed to write {}: {:?}", dump_path, err);
+            return;
+        }
+    }
+    #[cfg(feature = "uefi")]
+    {
+        if crate::fw_uefi::fs::shell_write_file(dump_path, data).is_err() {
+            println!("Failed to write {}", dump_path);
+            return;
+        }
+    }
+    println!("PD flash dumped to {}", dump_path);
+}
+
 fn dump_dgpu_eeprom(ec: &CrosEc, dump_path: &str) {
     // Read raw bytes from EEPROM
     let raw_bytes = match ec.read_ec_gpu_chunk(0x00, 256) {
@@ -1752,9 +1879,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(pd) = args.pd_reset {
         println!("Resetting PD {}...", pd);
         print_err(match pd {
-            0 => PdController::new(PdPort::Right01, ec.clone()).reset_device(),
-            1 => PdController::new(PdPort::Left23, ec.clone()).reset_device(),
-            2 => PdController::new(PdPort::Back, ec.clone()).reset_device(),
+            0 => PdController::new(PdPort::Right01, ec.clone()).reset(),
+            1 => PdController::new(PdPort::Left23, ec.clone()).reset(),
+            2 => PdController::new(PdPort::Back, ec.clone()).reset(),
             _ => {
                 error!("PD {} does not exist", pd);
                 Ok(())
@@ -1782,6 +1909,80 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 Ok(())
             }
         });
+    } else if let Some(pd) = args.pd_jump_boot {
+        println!("Jumping PD {} to bootloader...", pd);
+        print_err(match pd {
+            0 => PdController::new(PdPort::Right01, ec.clone()).jump_to_boot(),
+            1 => PdController::new(PdPort::Left23, ec.clone()).jump_to_boot(),
+            2 => PdController::new(PdPort::Back, ec.clone()).jump_to_boot(),
+            _ => {
+                error!("PD {} does not exist", pd);
+                Ok(())
+            }
+        });
+    } else if let Some(pd) = args.pd_jump_backup {
+        println!("Jumping PD {} to backup firmware...", pd);
+        print_err(match pd {
+            0 => PdController::new(PdPort::Right01, ec.clone()).jump_to_backup(),
+            1 => PdController::new(PdPort::Left23, ec.clone()).jump_to_backup(),
+            2 => PdController::new(PdPort::Back, ec.clone()).jump_to_backup(),
+            _ => {
+                error!("PD {} does not exist", pd);
+                Ok(())
+            }
+        });
+    } else if let Some(pd) = args.pd_jump_main {
+        println!("Jumping PD {} to main firmware...", pd);
+        print_err(match pd {
+            0 => PdController::new(PdPort::Right01, ec.clone()).jump_to_main(),
+            1 => PdController::new(PdPort::Left23, ec.clone()).jump_to_main(),
+            2 => PdController::new(PdPort::Back, ec.clone()).jump_to_main(),
+            _ => {
+                error!("PD {} does not exist", pd);
+                Ok(())
+            }
+        });
+    } else if let Some(pd) = args.pd_validate {
+        println!("Validating firmware on PD {}...", pd);
+        let controller = match pd {
+            0 => Some(PdController::new(PdPort::Right01, ec.clone())),
+            1 => Some(PdController::new(PdPort::Left23, ec.clone())),
+            2 => Some(PdController::new(PdPort::Back, ec.clone())),
+            _ => {
+                error!("PD {} does not exist", pd);
+                None
+            }
+        };
+        if let Some(ctrl) = controller {
+            if let Some((mode, _)) = print_err(ctrl.get_device_info()) {
+                println!("Current mode: {:?}", mode);
+            }
+            print_err(ctrl.validate_and_print());
+        }
+    } else if let Some(pd_dump_arg) = &args.pd_dump_fw {
+        // Parse format: <port>:<output_file>
+        let parts: Vec<&str> = pd_dump_arg.splitn(2, ':').collect();
+        if parts.len() != 2 {
+            error!("Invalid format. Use: <port>:<output_file> (e.g., 0:firmware.bin)");
+        } else {
+            let pd: u8 = parts[0].parse().unwrap_or(255);
+            let output_file = parts[1];
+            println!("Dumping firmware from PD {} to {}...", pd, output_file);
+            let controller = match pd {
+                0 => Some(PdController::new(PdPort::Right01, ec.clone())),
+                1 => Some(PdController::new(PdPort::Left23, ec.clone())),
+                2 => Some(PdController::new(PdPort::Back, ec.clone())),
+                _ => {
+                    error!("PD {} does not exist", pd);
+                    None
+                }
+            };
+            if let Some(ctrl) = controller {
+                if let Some(data) = print_err(ctrl.dump_firmware()) {
+                    dump_pd_flash(output_file, &data);
+                }
+            }
+        }
     } else if args.dp_hdmi_info {
         #[cfg(feature = "hidapi")]
         print_dp_hdmi_details(true);
@@ -2031,6 +2232,32 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 Err(err) => println!("  Validation error: {:?}", err),
             }
         }
+    } else if let Some(pd_bin_path) = &args.flash_pd01 {
+        if !pd_flash_allowed(args, "--flash-pd01", 0) {
+            return -1;
+        }
+        if let Err(err) = flash_pd(PdPort::Right01, pd_bin_path, args.pd_image, &ec) {
+            println!("Failed to flash PD 01: {:?}", err);
+            return -1;
+        }
+    } else if let Some(pd_bin_path) = &args.flash_pd23 {
+        if !pd_flash_allowed(args, "--flash-pd23", 1) {
+            return -1;
+        }
+        if let Err(err) = flash_pd(PdPort::Left23, pd_bin_path, args.pd_image, &ec) {
+            println!("Failed to flash PD 23: {:?}", err);
+            return -1;
+        }
+    } else if let Some(pd_bin_path) = &args.validate_pd01 {
+        if let Err(err) = validate_pd(PdPort::Right01, pd_bin_path, &ec) {
+            println!("Failed to validate PD 01: {:?}", err);
+            return -1;
+        }
+    } else if let Some(pd_bin_path) = &args.validate_pd23 {
+        if let Err(err) = validate_pd(PdPort::Left23, pd_bin_path, &ec) {
+            println!("Failed to validate PD 23: {:?}", err);
+            return -1;
+        }
     }
 
     0
@@ -2082,6 +2309,8 @@ Options:
       --flash-ro-ec <FLASH_EC>         Flash EC with new firmware from file
       --flash-rw-ec <FLASH_EC>         Flash EC with new firmware from file
       --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
+      --validate-pd01 <VALIDATE_PD01>  Validate PD controller 01 firmware and compare with a file
+      --validate-pd23 <VALIDATE_PD23>  Validate PD controller 23 firmware and compare with a file
       --ec-hib-delay [<SECONDS>]   Get or set EC hibernate delay (S5 to G3)
       --sysinfo              Show system info (reset flags, current image, locked state)
       --uptimeinfo           Show EC uptime information
@@ -2299,11 +2528,23 @@ fn selftest(ec: &CrosEc) -> Option<()> {
         print_err(pd_01.get_silicon_id())?;
         print_err(pd_01.get_device_info())?;
         print_err(pd_01.get_fw_versions())?;
+        if let Some(valid) = print_err(pd_01.validate_firmware(FwMode::MainFw)) {
+            println!("    MainFw   Valid: {}", valid);
+        }
+        if let Some(valid) = print_err(pd_01.validate_firmware(FwMode::BackupFw)) {
+            println!("    BackupFw Valid: {}", valid);
+        }
         println!(" - OK");
         print!("  Getting PD23 info through I2C tunnel");
         print_err(pd_23.get_silicon_id())?;
         print_err(pd_23.get_device_info())?;
         print_err(pd_23.get_fw_versions())?;
+        if let Some(valid) = print_err(pd_23.validate_firmware(FwMode::MainFw)) {
+            println!("    MainFw   Valid: {}", valid);
+        }
+        if let Some(valid) = print_err(pd_23.validate_firmware(FwMode::BackupFw)) {
+            println!("    BackupFw Valid: {}", valid);
+        }
         println!(" - OK");
     } else if matches!(
         family,
@@ -2825,5 +3066,113 @@ fn handle_fp_brightness(ec: &CrosEc, maybe_brightness: Option<u8>) -> EcResult<(
     }
     println!("  Brightness: {}%", brightness);
 
+    Ok(())
+}
+
+/// Read a PD firmware file and check that it fits the controller
+fn load_pd_firmware(
+    pd: &PdController,
+    pd_bin_path: &str,
+) -> EcResult<(ccgx::binary::PdFirmwareFile, Vec<u8>)> {
+    #[cfg(feature = "uefi")]
+    let data = crate::fw_uefi::fs::shell_read_file(pd_bin_path);
+    #[cfg(not(feature = "uefi"))]
+    let data = match fs::read(pd_bin_path) {
+        Ok(data) => Some(data),
+        Err(e) => {
+            println!("Error {:?}", e);
+            None
+        }
+    };
+    let fw_bin = data.ok_or_else(|| {
+        EcError::DeviceError("Failed to read data from firmware binary".to_string())
+    })?;
+
+    let (family, fw_file) = ccgx::binary::detect_family(&fw_bin)
+        .ok_or_else(|| EcError::DeviceError("Failed to parse PD firmware binary".to_string()))?;
+
+    let (fw_mode, flash_row_size) = pd.get_device_info()?;
+    let silicon_id = pd.get_silicon_id()?;
+    let versions = pd.get_fw_versions()?;
+
+    println!("Device");
+    println!("  Silicon ID:     {:#06X}", silicon_id);
+    println!("  Mode:           {:?}", fw_mode);
+    println!("  Flash Row Size: {} B", flash_row_size);
+    println!("  Backup FW:      {}", versions.backup_fw.app);
+    println!("  Main FW:        {}", versions.main_fw.app);
+    println!("File");
+    println!(
+        "  Silicon ID:     {:#06X} ({:?})",
+        fw_file.main_fw.silicon_family, family
+    );
+    println!(
+        "  Backup FW:      {} (rows {}-{})",
+        fw_file.backup_fw.app_version,
+        fw_file.backup_fw.start_row,
+        fw_file.backup_fw.start_row + fw_file.backup_fw.rows() - 1
+    );
+    println!(
+        "  Main FW:        {} (rows {}-{})",
+        fw_file.main_fw.app_version,
+        fw_file.main_fw.start_row,
+        fw_file.main_fw.start_row + fw_file.main_fw.rows() - 1
+    );
+
+    // The controller reports the value that the binary parser calls family
+    if !ccgx::silicon_id_compatible(silicon_id, fw_file.main_fw.silicon_family) {
+        return Err(EcError::DeviceError(
+            "Firmware binary is incompatible with this PD controller".to_string(),
+        ));
+    }
+
+    Ok((fw_file, fw_bin))
+}
+
+/// Flashing both PD images at once leaves no known-good image to fall back to.
+/// Only allow it with --force, otherwise suggest flashing just the backup image
+/// and jumping to it.
+fn pd_flash_allowed(args: &Cli, flash_flag: &str, pd_num: u8) -> bool {
+    if args.force || !matches!(args.pd_image, None | Some(PdImageArg::Both)) {
+        return true;
+    }
+    error!("Flashing both PD firmware images at once is unsafe");
+    println!("Flash only the backup image and jump to it to test it instead:");
+    println!("  framework_tool {} <file> --pd-image backup", flash_flag);
+    println!("  framework_tool --pd-jump-backup {}", pd_num);
+    false
+}
+
+fn flash_pd(
+    port: PdPort,
+    pd_bin_path: &str,
+    image: Option<PdImageArg>,
+    ec: &CrosEc,
+) -> EcResult<()> {
+    let pd = PdController::new(port, ec.clone());
+    let (charging_01, charging_23) = power::is_charging(ec)?;
+    // The ports get disabled during the update
+    if charging_01 && port == PdPort::Right01 || charging_23 && port == PdPort::Left23 {
+        println!("Warning: Charging through this controller, power will be interrupted");
+    }
+
+    let (fw_file, fw_bin) = load_pd_firmware(&pd, pd_bin_path)?;
+
+    let images = image.unwrap_or(PdImageArg::Both).into();
+    pd.flash_firmware(&fw_file, &fw_bin, images)
+}
+
+fn validate_pd(port: PdPort, pd_bin_path: &str, ec: &CrosEc) -> EcResult<()> {
+    let pd = PdController::new(port, ec.clone());
+
+    let (fw_file, fw_bin) = load_pd_firmware(&pd, pd_bin_path)?;
+
+    println!("Validating firmware on the controller");
+    let same = pd.compare_firmware(&fw_file, &fw_bin)?;
+    if !same {
+        return Err(EcError::DeviceError(
+            "Firmware on the controller does not match the file".to_string(),
+        ));
+    }
     Ok(())
 }

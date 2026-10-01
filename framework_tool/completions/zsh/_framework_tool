@@ -27,6 +27,11 @@ _framework_tool() {
 '--pd-reset=[Reset a specific PD controller (for debugging only)]:PD_RESET:_default' \
 '--pd-disable=[Disable all ports on a specific PD controller (for debugging only)]:PD_DISABLE:_default' \
 '--pd-enable=[Enable all ports on a specific PD controller (for debugging only)]:PD_ENABLE:_default' \
+'--pd-jump-boot=[Jump PD controller to bootloader mode (for debugging only)]:PD_JUMP_BOOT:_default' \
+'--pd-jump-backup=[Jump PD controller to backup firmware (for debugging only)]:PD_JUMP_BACKUP:_default' \
+'--pd-jump-main=[Jump PD controller to main firmware (for debugging only)]:PD_JUMP_MAIN:_default' \
+'--pd-validate=[Validate PD controller firmware (0=Right, 1=Left)]:PD_VALIDATE:_default' \
+'--pd-dump-fw=[Dump PD controller firmware to file (format\: <port>\:<output_file>)]:PD_DUMP_FW:_default' \
 '--dp-hdmi-update=[Update the DisplayPort or HDMI Expansion Card]:UPDATE_BIN:_files' \
 '--pd-bin=[Parse versions from PD firmware binary file]:PD_BIN:_files' \
 '--ec-bin=[Parse versions from EC firmware binary file]:EC_BIN:_files' \
@@ -48,11 +53,12 @@ _framework_tool() {
 '--kblight=[Set keyboard backlight percentage or get, if no value provided]::KBLIGHT:_default' \
 '*--remap-key=[Remap a key by changing the scancode]:REMAP_KEY:_default:REMAP_KEY:_default:REMAP_KEY:_default' \
 '*--rgbkbd=[Set the color of <key> to <RGB>. Multiple colors for adjacent keys can be set at once. <key> <RGB> \[<RGB> ...\] Example\: 0 0xFF000 0x00FF00 0x0000FF]:START:_default:START:_default' \
-'--ps2-enable=[Control PS2 touchpad emulation (DEBUG COMMAND, if touchpad not working, reboot system)]:PS2_ENABLE:(true false)' \
 '--tablet-mode=[Set tablet mode override]:TABLET_MODE:(auto tablet laptop)' \
 '--touchscreen-enable=[Enable/disable touchscreen]:TOUCHSCREEN_ENABLE:(true false)' \
 '--haptic-intensity=[Set touchpad haptic feedback intensity]:INTENSITY:(0 25 50 75 100)' \
 '--click-force=[Set touchpad click force / sensitivity]:CLICK_FORCE:(low medium high)' \
+'--validate-pd01=[Validate PD controller 01 firmware and compare with a file]:VALIDATE_PD01:_files' \
+'--validate-pd23=[Validate PD controller 23 firmware and compare with a file]:VALIDATE_PD23:_files' \
 '--console=[Get EC console, choose whether recent or to follow the output]:CONSOLE:(recent follow)' \
 '--reboot-ec=[Control EC RO/RW jump]:REBOOT_EC:(reboot jump-ro jump-rw cancel-jump disable-jump)' \
 '--ec-hib-delay=[Get or set EC hibernate delay (S5 to G3)]::EC_HIB_DELAY:_default' \
@@ -64,7 +70,6 @@ _framework_tool() {
 '--dump-gpu-descriptor-file=[File to dump the gpu EEPROM to]:DUMP_GPU_DESCRIPTOR_FILE:_files' \
 '--validate-gpu-descriptor-file=[File to validate the gpu EEPROM against]:VALIDATE_GPU_DESCRIPTOR_FILE:_files' \
 '*--host-command=[Send an EC host command. Args\: <CMD_ID> <VERSION> \[DATA...\]]:HOST_COMMAND:_default:HOST_COMMAND:_default' \
-'--generate-completions=[Generate shell completions and print to stdout]:SHELL:(bash elvish fish powershell zsh)' \
 '*-v[Increase logging verbosity]' \
 '*--verbose[Increase logging verbosity]' \
 '(-v --verbose)*-q[Decrease logging verbosity]' \
@@ -105,7 +110,6 @@ _framework_tool() {
 '--force[Force execution of an unsafe command - may render your hardware unbootable!]' \
 '--dry-run[Simulate execution of a command (e.g. --flash-ec)]' \
 '--nvidia[Show NVIDIA GPU information (Laptop 16 only)]' \
-'--generate-manpage[Generate man page and print to stdout]' \
 '-h[Print help]' \
 '--help[Print help]' \
 && ret=0

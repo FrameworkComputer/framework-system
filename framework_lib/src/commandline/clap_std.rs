@@ -16,7 +16,7 @@ use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::{
     Cli, ClickForceArg, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg,
-    LogLevel, RebootEcArg, TabletModeArg,
+    LogLevel, PdImageArg, RebootEcArg, TabletModeArg,
 };
 
 /// Swiss army knife for Framework laptops
@@ -128,6 +128,26 @@ struct ClapCli {
     /// Enable all ports on a specific PD controller (for debugging only)
     #[arg(long)]
     pd_enable: Option<u8>,
+
+    /// Jump PD controller to bootloader mode (for debugging only)
+    #[arg(long)]
+    pd_jump_boot: Option<u8>,
+
+    /// Jump PD controller to backup firmware (for debugging only)
+    #[arg(long)]
+    pd_jump_backup: Option<u8>,
+
+    /// Jump PD controller to main firmware (for debugging only)
+    #[arg(long)]
+    pd_jump_main: Option<u8>,
+
+    /// Validate PD controller firmware (0=Right, 1=Left)
+    #[arg(long)]
+    pd_validate: Option<u8>,
+
+    /// Dump PD controller firmware to file (format: <port>:<output_file>)
+    #[arg(long)]
+    pd_dump_fw: Option<String>,
 
     /// Show details about connected DP or HDMI Expansion Cards
     #[arg(long)]
@@ -279,6 +299,27 @@ struct ClapCli {
     #[clap(value_enum)]
     #[arg(long)]
     stylus_battery: bool,
+
+    /// Flash PD controller 01
+    #[arg(long, hide = true)]
+    flash_pd01: Option<std::path::PathBuf>,
+
+    /// Flash PD controller 23
+    #[arg(long, hide = true)]
+    flash_pd23: Option<std::path::PathBuf>,
+
+    /// Which PD firmware image to flash with --flash-pd01/--flash-pd23
+    #[clap(value_enum)]
+    #[arg(long, default_value = "both", hide = true)]
+    pd_image: Option<PdImageArg>,
+
+    /// Validate PD controller 01 firmware and compare with a file
+    #[arg(long)]
+    validate_pd01: Option<std::path::PathBuf>,
+
+    /// Validate PD controller 23 firmware and compare with a file
+    #[arg(long)]
+    validate_pd23: Option<std::path::PathBuf>,
 
     /// Get EC console, choose whether recent or to follow the output
     #[clap(value_enum)]
@@ -464,6 +505,20 @@ Flash EC RW firmware:
 .PP
 "#;
 
+/// Rebuild the command with only the visible arguments.
+/// clap_complete does not honor `hide = true`, so hidden args would otherwise
+/// show up in the generated shell completions.
+fn without_hidden_args(cmd: &clap::Command) -> clap::Command {
+    let visible: Vec<Arg> = cmd
+        .get_arguments()
+        .filter(|a| !a.is_hide_set())
+        .cloned()
+        .collect();
+    clap::Command::new("framework_tool")
+        .disable_version_flag(true)
+        .args(visible)
+}
+
 /// Generate a man page from the clap definition and print it to stdout
 fn generate_manpage(cmd: clap::Command) {
     let cmd = cmd.long_about(MANPAGE_DESCRIPTION);
@@ -497,7 +552,8 @@ pub fn parse(args: &[String]) -> Cli {
     if let Some(shell_arg) = args.iter().position(|a| a == "--generate-completions") {
         if let Some(shell_str) = args.get(shell_arg + 1) {
             if let Ok(shell) = shell_str.parse::<Shell>() {
-                generate(shell, &mut cli, "framework_tool", &mut io::stdout());
+                let mut visible = without_hidden_args(&cli);
+                generate(shell, &mut visible, "framework_tool", &mut io::stdout());
                 std::process::exit(0);
             }
         }
@@ -655,6 +711,11 @@ pub fn parse(args: &[String]) -> Cli {
         pd_reset: args.pd_reset,
         pd_disable: args.pd_disable,
         pd_enable: args.pd_enable,
+        pd_jump_boot: args.pd_jump_boot,
+        pd_jump_backup: args.pd_jump_backup,
+        pd_jump_main: args.pd_jump_main,
+        pd_validate: args.pd_validate,
+        pd_dump_fw: args.pd_dump_fw,
         dp_hdmi_info: args.dp_hdmi_info,
         dp_hdmi_update: args
             .dp_hdmi_update
@@ -720,6 +781,19 @@ pub fn parse(args: &[String]) -> Cli {
         port80read: args.port80read,
         panicinfo: args.panicinfo,
         hash: args.hash.map(|x| x.into_os_string().into_string().unwrap()),
+        flash_pd01: args
+            .flash_pd01
+            .map(|x| x.into_os_string().into_string().unwrap()),
+        flash_pd23: args
+            .flash_pd23
+            .map(|x| x.into_os_string().into_string().unwrap()),
+        pd_image: args.pd_image,
+        validate_pd01: args
+            .validate_pd01
+            .map(|x| x.into_os_string().into_string().unwrap()),
+        validate_pd23: args
+            .validate_pd23
+            .map(|x| x.into_os_string().into_string().unwrap()),
         driver: args.driver,
         pd_addrs,
         pd_ports,

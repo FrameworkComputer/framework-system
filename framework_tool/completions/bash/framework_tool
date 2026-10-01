@@ -23,7 +23,7 @@ _framework_tool() {
 
     case "${cmd}" in
         framework_tool)
-            opts="-v -q -t -f -h --flash-gpu-descriptor --verbose --quiet --versions --version --features --esrt --device --compare-version --power --smartbattery --smartbattery-auth --thermal --thermalget --thermalset --sensors --fansetduty --fansetrpm --autofanctrl --pdports --pdports-chromebook --info --meinfo --pd-info --pd-reset --pd-disable --pd-enable --dp-hdmi-info --dp-hdmi-update --audio-card-info --privacy --pd-bin --ec-bin --capsule --dump --h2o-capsule --dump-ec-flash --flash-full-ec --flash-ec --flash-ro-ec --flash-rw-ec --intrusion --inputdeck --inputdeck-mode --expansion-bay --charge-limit --charge-current-limit --charge-rate-limit --get-gpio --fp-led-level --fp-brightness --kblight --remap-key --rgbkbd --ps2-enable --tablet-mode --touchscreen-enable --haptic-intensity --click-force --stylus-battery --console --reboot-ec --ec-hib-delay --sysinfo --uptimeinfo --s0ix-counter --hello --protoinfo --switches --port80read --panicinfo --hash --driver --pd-addrs --pd-ports --test --test-retimer --boardid --force --dry-run --flash-gpu-descriptor-file --dump-gpu-descriptor-file --validate-gpu-descriptor-file --nvidia --host-command --generate-completions --generate-manpage --help"
+            opts="-v -q -t -f -h --flash-gpu-descriptor --verbose --quiet --versions --version --features --esrt --device --compare-version --power --smartbattery --smartbattery-auth --thermal --thermalget --thermalset --sensors --fansetduty --fansetrpm --autofanctrl --pdports --pdports-chromebook --info --meinfo --pd-info --pd-reset --pd-disable --pd-enable --pd-jump-boot --pd-jump-backup --pd-jump-main --pd-validate --pd-dump-fw --dp-hdmi-info --dp-hdmi-update --audio-card-info --privacy --pd-bin --ec-bin --capsule --dump --h2o-capsule --dump-ec-flash --flash-full-ec --flash-ec --flash-ro-ec --flash-rw-ec --intrusion --inputdeck --inputdeck-mode --expansion-bay --charge-limit --charge-current-limit --charge-rate-limit --get-gpio --fp-led-level --fp-brightness --kblight --remap-key --rgbkbd --tablet-mode --touchscreen-enable --haptic-intensity --click-force --stylus-battery --validate-pd01 --validate-pd23 --console --reboot-ec --ec-hib-delay --sysinfo --uptimeinfo --s0ix-counter --hello --protoinfo --switches --port80read --panicinfo --hash --driver --pd-addrs --pd-ports --test --test-retimer --boardid --force --dry-run --flash-gpu-descriptor-file --dump-gpu-descriptor-file --validate-gpu-descriptor-file --nvidia --host-command --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -74,6 +74,26 @@ _framework_tool() {
                     return 0
                     ;;
                 --pd-enable)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --pd-jump-boot)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --pd-jump-backup)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --pd-jump-main)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --pd-validate)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --pd-dump-fw)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -161,10 +181,6 @@ _framework_tool() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --ps2-enable)
-                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
-                    return 0
-                    ;;
                 --tablet-mode)
                     COMPREPLY=($(compgen -W "auto tablet laptop" -- "${cur}"))
                     return 0
@@ -179,6 +195,14 @@ _framework_tool() {
                     ;;
                 --click-force)
                     COMPREPLY=($(compgen -W "low medium high" -- "${cur}"))
+                    return 0
+                    ;;
+                --validate-pd01)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --validate-pd23)
+                    COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 --console)
@@ -223,10 +247,6 @@ _framework_tool() {
                     ;;
                 --host-command)
                     COMPREPLY=($(compgen -f "${cur}"))
-                    return 0
-                    ;;
-                --generate-completions)
-                    COMPREPLY=($(compgen -W "bash elvish fish powershell zsh" -- "${cur}"))
                     return 0
                     ;;
                 *)

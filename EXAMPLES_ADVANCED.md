@@ -76,27 +76,44 @@ Summary:
 
 ### Check PD state
 
-Example on Framework Laptop 13 AMD Ryzen AI 300
+Example on Framework Laptop 13 (CCG8 CFP). The right controller is currently
+running the backup firmware, which supports fewer HPI features than the main
+firmware.
 
 ```
-> sudo framework_tool.exe --pd-info
+> sudo framework_tool --pd-info
 Right / Ports 01
-  Silicon ID:     0x3580
-  Mode:           MainFw
+  Silicon ID:     0x3E81
+  Mode:           BackupFw
   Flash Row Size: 256 B
   Ports Enabled:  0, 1
-  Bootloader Version:   Base: 3.6.0.009,  App: 0.0.01
-  FW1 (Backup) Version: Base: 3.7.0.197,  App: 0.0.0B
-  FW2 (Main)   Version: Base: 3.7.0.197,  App: 0.0.0B
+  HPI Version:    2.4 (0x04006124) cyacd2
+  Boot Reason:    0x00 (Both firmwares valid)
+  WDT Resets:     0
+  Config Table:   v2.0
+  Flash Layout:   Bootloader rows 0-1, FW1 from row 2, FW2 from row 103
+  Bootloader Version:   Base: 3.6.0.044,  App: 0.0.01
+  FW1 (Backup) Version: Base: 3.8.50.00A,  App: 1.0.09
+  FW2 (Main)   Version: Base: 3.8.50.00A,  App: 1.0.0A
 Left / Ports 23
-  Silicon ID:     0x3580
+  Silicon ID:     0x3E81
   Mode:           MainFw
   Flash Row Size: 256 B
   Ports Enabled:  0, 1
-  Bootloader Version:   Base: 3.6.0.009,  App: 0.0.01
-  FW1 (Backup) Version: Base: 3.7.0.197,  App: 0.0.0B
-  FW2 (Main)   Version: Base: 3.7.0.197,  App: 0.0.0B
+  HPI Version:    2.4 (0x04237724) PD Commands, UCSI, EPR, cyacd2
+  Boot Reason:    0x00 (Both firmwares valid)
+  WDT Resets:     0
+  Config Table:   v2.0
+  Flash Layout:   Bootloader rows 0-1, FW1 from row 2, FW2 from row 103
+  Bootloader Version:   Base: 3.6.0.044,  App: 0.0.01
+  FW1 (Backup) Version: Base: 3.8.50.00A,  App: 1.0.0A
+  FW2 (Main)   Version: Base: 3.8.50.00A,  App: 1.0.0A
 ```
+
+The HPI Version, Boot Reason, WDT Resets, Config Table and Flash Layout lines
+are only shown if the PD firmware implements those registers. Boot Reason is
+only updated when the controller boots, it does not reflect firmware updates
+done since.
 
 ### Disable/enable/reset PD
 
@@ -279,6 +296,151 @@ This command has not been thoroughly tested on all Framework Computer systems
 # Boot into EC RW firmware (will crash your OS and reboot immediately)
 # EC will boot back into RO if the system turned off for 30s
 > framework_tool --reboot-ec jump-rw
+```
+
+## Flashing PD firmware
+
+**IMPORTANT** Flashing PD firmware yourself is not recommended. Please update
+your firmware using the official BIOS update methods (Windows .exe,
+LVFS/FWUPD, EFI updater)!
+
+The PD controllers hold two copies of the firmware, FW1 (backup) and FW2
+(main). Each firmware can only update the other one, so to update both the
+tool writes the inactive image, switches the controller to it, writes the other
+image and finally resets the controller. Normally the main firmware is running
+and gets booted after the reset.
+
+While the PD controller is being updated, the EC does not talk to it and the
+ports get disabled. Make sure the battery is present and charged.
+
+Tested on Framework Laptop 13 (CCG8 CFP).
+
+### Check the firmware on the controller against a file
+
+Runs the same checks as flashing without writing anything, asks the controller
+to validate both images and compares the inactive image with the file.
+
+```
+> sudo framework_tool --validate-pd01 framework_lib/test_bins/sakura-pd-1.0.0A.bin
+Device
+  Silicon ID:     0x3E81
+  Mode:           MainFw
+  Flash Row Size: 256 B
+  Backup FW:      1.0.0A
+  Main FW:        1.0.0A
+File
+  Silicon ID:     0x3E81 (Ccg8Cfp)
+  Backup FW:      1.0.0A (rows 2-101)
+  Main FW:        1.0.0A (rows 103-416)
+Validating firmware on the controller
+Firmware file layout matches the controller
+  Main FW (FW2) Valid:   true
+  Backup FW (FW1) Valid: true
+Comparing Backup FW (FW1) on the controller with the file
+  Row 1/100
+  Row 33/100
+  Row 65/100
+  Row 97/100
+  Row 100/100
+Backup FW (FW1) on the controller is identical to the file
+```
+
+If the file is not what is on the controller, the command fails:
+
+```
+> sudo framework_tool --validate-pd01 Compal_Sakura_8229_PD1_0x5253_v0.0.02.bin
+[...]
+Backup FW (FW1) on the controller differs from the file in 84 of 99 rows
+Failed to validate PD 01: DeviceError("Firmware on the controller does not match the file")
+Error: "Fail"
+```
+
+### Flash
+
+Flash only the backup image and jump to it to test the new firmware. The main
+image stays untouched, so a reset of the PD controller boots the known-good
+firmware again. With `--pd-image main` the main image is written instead.
+If the selected image is the one currently running, the controller is switched
+to the other one first.
+
+```
+# Update the backup firmware on PD 0 (right side)
+> sudo framework_tool --flash-pd01 pd-1.0.09.bin --pd-image backup
+Device
+  Silicon ID:     0x3E81
+  Mode:           MainFw
+  Flash Row Size: 256 B
+  Backup FW:      1.0.0A
+  Main FW:        1.0.0A
+File
+  Silicon ID:     0x3E81 (Ccg8Cfp)
+  Backup FW:      1.0.09 (rows 2-101)
+  Main FW:        1.0.09 (rows 103-416)
+
+Flashing BackupFw (1.0.09) from MainFw
+Writing rows 2 to 101 (100 rows)
+  Row 1/100
+  Row 33/100
+  Row 65/100
+  Row 97/100
+  Row 100/100
+Controller validated BackupFw: true
+
+Restarting controller
+Resetting PD controller Right01
+Controller is running MainFw
+  Bootloader Version:   Base: 3.6.0.044,  App: 0.0.01
+  FW1 (Backup) Version: Base: 3.8.50.00A,  App: 1.0.09
+  FW2 (Main)   Version: Base: 3.8.50.00A,  App: 1.0.0A
+
+# Boot the new backup firmware on PD 0 to test it
+> sudo framework_tool --pd-jump-backup 0
+Jumping PD 0 to backup firmware...
+Current mode: MainFw, jumping to BackupFw
+Disabling PD ports
+Jumping from MainFw to BackupFw
+Now running BackupFw
+
+# Once it works, update the main image too
+> sudo framework_tool --flash-pd01 pd-1.0.09.bin --pd-image main
+```
+
+### Switch between the firmwares
+
+For debugging it is possible to boot the other firmware copy. The switch lasts
+until the next reset of the PD controller, then the main firmware is booted
+again (if it is valid).
+
+```
+> sudo framework_tool --pd-jump-backup 0
+Jumping PD 0 to backup firmware...
+Current mode: MainFw, jumping to BackupFw
+Disabling PD ports
+Jumping from MainFw to BackupFw
+Now running BackupFw
+
+> sudo framework_tool --pd-jump-main 0
+Jumping PD 0 to main firmware...
+Current mode: BackupFw, jumping to MainFw
+Disabling PD ports
+Jumping from BackupFw to MainFw
+Now running MainFw
+
+# A reset also boots the main firmware again
+> sudo framework_tool --pd-reset 0
+Resetting PD 0...
+Disabling PD ports
+Resetting PD controller Right01
+Controller is running MainFw
+```
+
+### Dump the flash
+
+The controller only allows reading the inactive firmware image. The rows of
+the bootloader and the running firmware are filled with zeros.
+
+```
+> sudo framework_tool --pd-dump-fw 0:pd0-dump.bin
 ```
 
 ## Flashing Expansion Bay EEPROM (Framework Laptop 16)
