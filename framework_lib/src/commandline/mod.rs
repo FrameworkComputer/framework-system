@@ -2528,23 +2528,11 @@ fn selftest(ec: &CrosEc) -> Option<()> {
         print_err(pd_01.get_silicon_id())?;
         print_err(pd_01.get_device_info())?;
         print_err(pd_01.get_fw_versions())?;
-        if let Some(valid) = print_err(pd_01.validate_firmware(FwMode::MainFw)) {
-            println!("    MainFw   Valid: {}", valid);
-        }
-        if let Some(valid) = print_err(pd_01.validate_firmware(FwMode::BackupFw)) {
-            println!("    BackupFw Valid: {}", valid);
-        }
         println!(" - OK");
         print!("  Getting PD23 info through I2C tunnel");
         print_err(pd_23.get_silicon_id())?;
         print_err(pd_23.get_device_info())?;
         print_err(pd_23.get_fw_versions())?;
-        if let Some(valid) = print_err(pd_23.validate_firmware(FwMode::MainFw)) {
-            println!("    MainFw   Valid: {}", valid);
-        }
-        if let Some(valid) = print_err(pd_23.validate_firmware(FwMode::BackupFw)) {
-            println!("    BackupFw Valid: {}", valid);
-        }
         println!(" - OK");
     } else if matches!(
         family,
