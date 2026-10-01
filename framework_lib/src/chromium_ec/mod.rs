@@ -86,13 +86,20 @@ pub enum EcFlashType {
     Rw,
 }
 
+/// Flags for EC_CMD_FLASH_NOTIFIED
+///
+/// The EC only looks at the lower two bits to determine the action, BIT(4)
+/// marks that it's about a PD controller instead of the EC's own flash.
 #[derive(PartialEq)]
 pub enum MecFlashNotify {
     AccessSpi = 0x00,
     FirmwareStart = 0x01,
     FirmwareDone = 0x02,
     AccessSpiDone = 0x03,
-    FlashPd = 0x16,
+    /// Start of PD flashing. EC stops talking to the PD controllers.
+    FlashPd = 0x11,
+    /// End of PD flashing. EC re-initializes the PD controllers.
+    FlashPdDone = 0x12,
 }
 
 /// Port 80 history read from the EC
@@ -281,20 +288,17 @@ impl CrosEc {
     }
 
     /// Lock bus to PD controller in the beginning of flashing
-    /// TODO: Perhaps I could return a struct that will lock the bus again in its destructor
+    ///
+    /// While locked the EC does not talk to the PD controllers at all, so
+    /// make sure to always unlock again, even on failure.
     pub fn lock_pd_bus(&self, lock: bool) -> EcResult<()> {
-        let lock = if lock {
+        let flags = if lock {
             MecFlashNotify::FlashPd
         } else {
-            MecFlashNotify::FirmwareDone
+            MecFlashNotify::FlashPdDone
         } as u8;
-        match self.send_command(EcCommands::FlashNotified as u16, 0, &[lock]) {
-            Ok(vec) if !vec.is_empty() => Err(EcError::DeviceError(
-                "Didn't expect a response!".to_string(),
-            )),
-            Ok(_) => Ok(()),
-            Err(err) => Err(err),
-        }
+        let _data = EcRequestFlashNotify { flags }.send_command(self)?;
+        Ok(())
     }
 
     pub fn check_mem_magic(&self) -> EcResult<()> {
