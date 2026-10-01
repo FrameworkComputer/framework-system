@@ -508,15 +508,23 @@ Flash EC RW firmware:
 /// Rebuild the command with only the visible arguments.
 /// clap_complete does not honor `hide = true`, so hidden args would otherwise
 /// show up in the generated shell completions.
+///
+/// Relations like `requires` live on the args and survive the copy, the
+/// command level definition (about, groups) has to be carried over.
 fn without_hidden_args(cmd: &clap::Command) -> clap::Command {
     let visible: Vec<Arg> = cmd
         .get_arguments()
         .filter(|a| !a.is_hide_set())
         .cloned()
         .collect();
-    clap::Command::new("framework_tool")
+    let mut stripped = clap::Command::new("framework_tool")
         .disable_version_flag(true)
         .args(visible)
+        .groups(cmd.get_groups().cloned());
+    if let Some(about) = cmd.get_about() {
+        stripped = stripped.about(about.clone());
+    }
+    stripped
 }
 
 /// Generate a man page from the clap definition and print it to stdout
