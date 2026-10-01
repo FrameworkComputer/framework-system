@@ -6,16 +6,21 @@
 //! We build the flash binary and then embed it into the beginning of the BIOS flash.
 //! Currently the flash binary is 64K but we reserved 256K.
 //!
-//! - Row is 128 (0x80) bytes wide on CCG6 (ADL/RPL). On CCG5 (TGL) it's 0x100
-//! - Flash is 65536 (0x10000) bytes in size.
-//! - Flash has 512 (0x200) rows.
+//! - Row is 128 (0x80) bytes wide on CCG6 (ADL/RPL). On CCG5 (TGL) and CCG8 it's 0x100
+//! - Flash is 64K (CCG6), 128K (CCG5, CCG8 CFP) or 256K (CCG8D/S) bytes in size.
 //!
-//! | Row Start | Row End | Size (Rows) | Name                                       |
-//! |-----------|---------|-------------|--------------------------------------------|
-//! | 0x1FD     | 0x1FE   | 0x1         | FW1 Metadata at 0xC0 (192) inside this row |
-//! | 0x1FE     | 0x1FF   | 0x1         | FW2 Metadata at 0xC0 (192) inside this row |
+//! The metadata is always in the last two rows of the flash:
 //!
-//! FW Layout (not at the same location as the metadata! But metadata points there)
+//! | Row         | Name                                                       |
+//! |-------------|------------------------------------------------------------|
+//! | last row    | FW1 (Backup) Metadata in the last 0x40 (0x80 on CCG8) bytes |
+//! | last row -1 | FW2 (Main) Metadata in the last 0x40 (0x80 on CCG8) bytes   |
+//!
+//! FW1 comes right after the bootloader, FW2 after FW1. The metadata tells
+//! where exactly they are.
+//!
+//! FW Layout, relative to the start of the code (which is at the start of the
+//! image on CCG3/5/6 and 0x500 into the image on CCG8)
 //!
 //! | Offset | Size |                 |                                                     |
 //! |--------|------|-----------------|---------------------------------------------------- |
@@ -27,7 +32,6 @@
 //! | 0xEC   | 0x28 | Reserved        | Stretches into next row, so don't bother reading it |
 
 use alloc::format;
-use alloc::vec::Vec;
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 
@@ -61,28 +65,51 @@ pub const CCG8_PD_LEN: usize = 0x40_000;
 
 /// Information about all the firmware in a PD binary file
 ///
-/// Each file has two firmwares.
-/// TODO: Find out what the difference is, since they're different in size.
+/// Each file has two firmwares. FW1 (backup) is a reduced firmware that only
+/// makes sure the system can charge while FW2 (main) is being updated.
 #[derive(Debug, PartialEq)]
 pub struct PdFirmwareFile {
+    /// FW1
     pub backup_fw: PdFirmware,
+    /// FW2
     pub main_fw: PdFirmware,
 }
 
 /// Information about a single PD firmware
 #[derive(Debug, PartialEq)]
 pub struct PdFirmware {
-    /// TODO: Find out what this is
+    /// Identifies the chip, must match what the device reports
     pub silicon_id: u16,
     pub silicon_family: u16,
     pub base_version: BaseVersion,
     pub app_version: AppVersion,
-    /// At which row in the file this firmware is
+    /// At which row in the file (and flash) this firmware image starts
     pub start_row: u32,
-    /// How many bytes the firmware is in size
+    /// How many bytes the firmware image is in size
     pub size: usize,
     /// How many bytes are in a row
     pub row_size: usize,
+    /// Row in the file (and flash) that holds the metadata of this image
+    pub metadata_row: u32,
+}
+
+impl PdFirmware {
+    /// Number of flash rows the image occupies
+    pub fn rows(&self) -> u32 {
+        self.size.div_ceil(self.row_size) as u32
+    }
+}
+
+/// Size of a flash row for a particular chip
+pub fn flash_row_size(ccgx: SiliconFamily) -> usize {
+    match ccgx {
+        SiliconFamily::Ccg3 | SiliconFamily::Ccg6Adl | SiliconFamily::Ccg6 => SMALL_ROW,
+        SiliconFamily::Ccg5
+        | SiliconFamily::Ccg8D
+        | SiliconFamily::Ccg8S
+        | SiliconFamily::Ccg6Cfp
+        | SiliconFamily::Ccg8Cfp => LARGE_ROW,
+    }
 }
 
 // Hexdump
@@ -99,61 +126,58 @@ pub struct PdFirmware {
 // 000ffe0 0000 0000 0000 0000 0000 0000 0000 0000
 
 /// Read metadata to find FW binary location
-/// Returns row_start, fw_size
 fn read_metadata(
     file_buffer: &[u8],
     flash_row_size: usize,
-    metadata_offset: u32,
+    metadata_row: u32,
     ccgx: SiliconFamily,
-) -> Option<(u32, u32)> {
-    let buffer = read_256_bytes(file_buffer, metadata_offset, flash_row_size)?;
+) -> Option<ImageLocation> {
+    trace!("read_metadata @{}", metadata_row);
+    let row = read_row(file_buffer, metadata_row, flash_row_size)?;
     match ccgx {
-        SiliconFamily::Ccg3 => parse_metadata_ccg3(&buffer),
-        SiliconFamily::Ccg5 | SiliconFamily::Ccg6Adl | SiliconFamily::Ccg6 => {
-            parse_metadata_cyacd(&buffer)
-        }
+        SiliconFamily::Ccg3
+        | SiliconFamily::Ccg5
+        | SiliconFamily::Ccg6Adl
+        | SiliconFamily::Ccg6 => parse_metadata_cyacd(row),
         SiliconFamily::Ccg8D
         | SiliconFamily::Ccg8S
         | SiliconFamily::Ccg6Cfp
-        | SiliconFamily::Ccg8Cfp => parse_metadata_cyacd2(&buffer)
-            .map(|(fw_row_start, fw_size)| (fw_row_start / (flash_row_size as u32), fw_size)),
+        | SiliconFamily::Ccg8Cfp => parse_metadata_cyacd2(row, flash_row_size),
     }
 }
 
-/// Read 256 bytes starting from a particular row
-fn read_256_bytes(file_buffer: &[u8], row_no: u32, flash_row_size: usize) -> Option<Vec<u8>> {
-    let file_read_pointer = (row_no as usize) * flash_row_size;
-    let file_len = file_buffer.len();
-    // Try to read as much as we can
-    let read_len = if file_read_pointer + LARGE_ROW <= file_len {
-        LARGE_ROW
-    } else if file_read_pointer + SMALL_ROW <= file_len {
-        SMALL_ROW
-    } else {
-        // Overrunning the end of the file, this can happen if we read a
-        // CCG6 binary with CCG5 parameters, because the CCG5 flash_row_size
-        // is bigger.
-        return None;
-    };
-    Some(file_buffer[file_read_pointer..file_read_pointer + read_len].to_vec())
+/// Get a single row from the file
+fn read_row(file_buffer: &[u8], row_no: u32, flash_row_size: usize) -> Option<&[u8]> {
+    let start = (row_no as usize) * flash_row_size;
+    let row = file_buffer.get(start..start + flash_row_size);
+    if row.is_none() {
+        trace!(
+            "Row {} ({} bytes) is beyond the end of the file (len: {})",
+            row_no,
+            flash_row_size,
+            file_buffer.len()
+        );
+    }
+    row
 }
 
-/// Read version information about FW based on a particular metadata offset
+/// Read version information about FW based on a particular metadata row
 ///
 /// There can be multiple metadata and FW regions in the image,
 /// so it's required to specify which metadata region to read from.
 fn read_version(
     file_buffer: &[u8],
     flash_row_size: usize,
-    metadata_offset: u32,
+    metadata_row: u32,
     ccgx: SiliconFamily,
 ) -> Option<PdFirmware> {
-    let (fw_row_start, fw_size) =
-        read_metadata(file_buffer, flash_row_size, metadata_offset, ccgx)?;
-    let data = read_256_bytes(file_buffer, fw_row_start, flash_row_size)?;
-    trace!("First row of firmware: {:X?}", data);
-    let data = &data[FW_VERSION_OFFSET..];
+    let location = read_metadata(file_buffer, flash_row_size, metadata_row, ccgx)?;
+    trace!("Image location: {:X?}", location);
 
+    let version_offset = (location.start_row as usize) * flash_row_size
+        + location.code_offset as usize
+        + FW_VERSION_OFFSET;
+    let data = file_buffer.get(version_offset..)?;
     let (version_info, _) = VersionInfo::read_from_prefix(data).ok()?;
 
     let base_version = BaseVersion::from(version_info.base_version.get());
@@ -176,28 +200,79 @@ fn read_version(
         silicon_family: fw_silicon_family,
         base_version,
         app_version,
-        start_row: fw_row_start,
-        size: fw_size as usize,
+        start_row: location.start_row,
+        size: location.size as usize,
         row_size: flash_row_size,
+        metadata_row,
     })
 }
 
 /// Parse all PD information, given a binary file (buffer)
+///
+/// The binary is expected to be an image of the whole flash, so the metadata
+/// is in the last two rows of the file.
 pub fn read_versions(file_buffer: &[u8], ccgx: SiliconFamily) -> Option<PdFirmwareFile> {
-    let (flash_row_size, f1_metadata_row, fw2_metadata_row) = match ccgx {
-        SiliconFamily::Ccg3 => (SMALL_ROW, 0x03FF, 0x03FE),
-        SiliconFamily::Ccg5 => (LARGE_ROW, 0x1FE, 0x1FF),
-        SiliconFamily::Ccg6Adl => (SMALL_ROW, 0x1FE, 0x1FD),
-        SiliconFamily::Ccg6 => (SMALL_ROW, 0x1FE, 0x1FD),
-        SiliconFamily::Ccg8D => (LARGE_ROW, 0x3FE, 0x3FF),
-        SiliconFamily::Ccg8S => (LARGE_ROW, 0x3FE, 0x3FF),
-        SiliconFamily::Ccg6Cfp => (LARGE_ROW, 0x1FE, 0x1FF),
-        SiliconFamily::Ccg8Cfp => (LARGE_ROW, 0x1FE, 0x1FF),
-    };
-    let backup_fw = read_version(file_buffer, flash_row_size, f1_metadata_row, ccgx)?;
+    let flash_row_size = flash_row_size(ccgx);
+    if file_buffer.len() % flash_row_size != 0 {
+        trace!(
+            "File size {} is not a multiple of the row size {}",
+            file_buffer.len(),
+            flash_row_size
+        );
+        return None;
+    }
+    let total_rows = (file_buffer.len() / flash_row_size) as u32;
+    if total_rows < 2 {
+        return None;
+    }
+    // FW1 metadata is in the last row, FW2 metadata in the one before
+    let fw1_metadata_row = total_rows - 1;
+    let fw2_metadata_row = total_rows - 2;
+
+    let backup_fw = read_version(file_buffer, flash_row_size, fw1_metadata_row, ccgx)?;
     let main_fw = read_version(file_buffer, flash_row_size, fw2_metadata_row, ccgx)?;
 
+    if backup_fw.start_row + backup_fw.rows() > main_fw.start_row
+        || main_fw.start_row + main_fw.rows() > fw2_metadata_row
+    {
+        error!(
+            "Firmware images overlap. FW1: {}+{} rows, FW2: {}+{} rows",
+            backup_fw.start_row,
+            backup_fw.rows(),
+            main_fw.start_row,
+            main_fw.rows()
+        );
+        return None;
+    }
+
     Some(PdFirmwareFile { backup_fw, main_fw })
+}
+
+/// Find the silicon family whose parameters match this binary
+///
+/// Returns None if no or more than one family matches.
+pub fn detect_family(data: &[u8]) -> Option<(SiliconFamily, PdFirmwareFile)> {
+    let families = [
+        SiliconFamily::Ccg3,
+        SiliconFamily::Ccg5,
+        SiliconFamily::Ccg6Adl,
+        SiliconFamily::Ccg6,
+        SiliconFamily::Ccg8D,
+        SiliconFamily::Ccg8S,
+        SiliconFamily::Ccg6Cfp,
+        SiliconFamily::Ccg8Cfp,
+    ];
+    let mut found = None;
+    for family in families {
+        if let Some(versions) = read_versions(data, family) {
+            if found.is_some() {
+                error!("{:?} matched but so did an earlier family", family);
+                return None;
+            }
+            found = Some((family, versions));
+        }
+    }
+    found
 }
 
 /// Pretty print information about PD firmware
@@ -211,7 +286,7 @@ pub fn print_fw(fw: &PdFirmware) {
     println!("  Base Ver:                 {:>20}", fw.base_version);
     println!("  Row size:   {:>20} B", fw.row_size);
     println!("  Start Row:  {:>20}", fw.start_row);
-    println!("  Rows:       {:>20}", fw.size / fw.row_size);
+    println!("  Rows:       {:>20}", fw.rows());
     println!("  Size:       {:>20} B", fw.size);
     println!("  Size:       {:>20} KB", fw.size / 1024);
 }
@@ -222,32 +297,6 @@ mod tests {
     use crate::ccgx::Application;
     use std::fs;
     use std::path::PathBuf;
-
-    /// Find the silicon family whose parameters match this binary
-    fn detect_family(data: &[u8]) -> Option<(SiliconFamily, PdFirmwareFile)> {
-        let families = [
-            SiliconFamily::Ccg3,
-            SiliconFamily::Ccg5,
-            SiliconFamily::Ccg6Adl,
-            SiliconFamily::Ccg6,
-            SiliconFamily::Ccg8D,
-            SiliconFamily::Ccg8S,
-            SiliconFamily::Ccg6Cfp,
-            SiliconFamily::Ccg8Cfp,
-        ];
-        let mut found = None;
-        for family in families {
-            if let Some(versions) = read_versions(data, family) {
-                assert!(
-                    found.is_none(),
-                    "{:?} matched but so did an earlier family",
-                    family
-                );
-                found = Some((family, versions));
-            }
-        }
-        found
-    }
 
     #[test]
     fn can_parse_ccg3_binary() {
@@ -278,6 +327,7 @@ mod tests {
                     start_row: 48,
                     size: 58624,
                     row_size: 128,
+                    metadata_row: 1023,
                 },
                 main_fw: PdFirmware {
                     silicon_id: 0x11AD,
@@ -297,6 +347,7 @@ mod tests {
                     start_row: 512,
                     size: 58624,
                     row_size: 128,
+                    metadata_row: 1022,
                 },
             }
         });
@@ -328,9 +379,10 @@ mod tests {
                         minor: 8,
                         circuit: 0,
                     },
-                    start_row: 163,
-                    size: 88832,
+                    start_row: 20,
+                    size: 36352,
                     row_size: 256,
+                    metadata_row: 511,
                 },
                 main_fw: PdFirmware {
                     silicon_id: 0x11B1,
@@ -347,9 +399,10 @@ mod tests {
                         minor: 8,
                         circuit: 0,
                     },
-                    start_row: 20,
-                    size: 36352,
+                    start_row: 163,
+                    size: 88832,
                     row_size: 256,
+                    metadata_row: 510,
                 },
             }
         });
@@ -384,6 +437,7 @@ mod tests {
                     start_row: 22,
                     size: 12160,
                     row_size: 128,
+                    metadata_row: 511,
                 },
                 main_fw: PdFirmware {
                     silicon_id: 0x11C0,
@@ -403,6 +457,7 @@ mod tests {
                     start_row: 118,
                     size: 49408,
                     row_size: 128,
+                    metadata_row: 510,
                 },
             }
         });
@@ -437,6 +492,7 @@ mod tests {
                     start_row: 10,
                     size: 12288,
                     row_size: 128,
+                    metadata_row: 511,
                 },
                 main_fw: PdFirmware {
                     silicon_id: 0x11C0,
@@ -456,6 +512,7 @@ mod tests {
                     start_row: 112,
                     size: 47744,
                     row_size: 128,
+                    metadata_row: 510,
                 },
             }
         });
@@ -490,6 +547,7 @@ mod tests {
                     start_row: 10,
                     size: 9344,
                     row_size: 128,
+                    metadata_row: 511,
                 },
                 main_fw: PdFirmware {
                     silicon_id: 0x11C0,
@@ -509,6 +567,7 @@ mod tests {
                     start_row: 112,
                     size: 50816,
                     row_size: 128,
+                    metadata_row: 510,
                 },
             }
         });
@@ -540,9 +599,10 @@ mod tests {
                         minor: 0,
                         circuit: 3,
                     },
-                    start_row: 290,
-                    size: 111536,
+                    start_row: 24,
+                    size: 43592,
                     row_size: 0x100,
+                    metadata_row: 1023,
                 },
                 main_fw: PdFirmware {
                     silicon_id: 0x11C5,
@@ -559,9 +619,10 @@ mod tests {
                         minor: 0,
                         circuit: 3,
                     },
-                    start_row: 29,
-                    size: 42312,
+                    start_row: 285,
+                    size: 112816,
                     row_size: 0x100,
+                    metadata_row: 1022,
                 },
             }
         });
@@ -593,9 +654,10 @@ mod tests {
                         minor: 0,
                         circuit: 0x22,
                     },
-                    start_row: 290,
-                    size: 129912,
+                    start_row: 24,
+                    size: 44096,
                     row_size: 0x100,
+                    metadata_row: 1023,
                 },
                 main_fw: PdFirmware {
                     silicon_id: 0x11C5,
@@ -612,9 +674,10 @@ mod tests {
                         minor: 0,
                         circuit: 0x22,
                     },
-                    start_row: 29,
-                    size: 42816,
+                    start_row: 285,
+                    size: 131192,
                     row_size: 0x100,
+                    metadata_row: 1022,
                 },
             }
         });
@@ -646,9 +709,10 @@ mod tests {
                         minor: 0,
                         circuit: 0x22,
                     },
-                    start_row: 290,
-                    size: 126700,
+                    start_row: 24,
+                    size: 42868,
                     row_size: 0x100,
+                    metadata_row: 1023,
                 },
                 main_fw: PdFirmware {
                     silicon_id: 0x11C5,
@@ -665,9 +729,10 @@ mod tests {
                         minor: 0,
                         circuit: 0x22,
                     },
-                    start_row: 29,
-                    size: 41588,
+                    start_row: 285,
+                    size: 127980,
                     row_size: 0x100,
+                    metadata_row: 1022,
                 },
             }
         });
@@ -699,9 +764,10 @@ mod tests {
                         minor: 0,
                         circuit: 0x0A,
                     },
-                    start_row: 108,
-                    size: 79092,
+                    start_row: 2,
+                    size: 25400,
                     row_size: 0x100,
+                    metadata_row: 511,
                 },
                 main_fw: PdFirmware {
                     silicon_id: 0x11CE,
@@ -718,9 +784,10 @@ mod tests {
                         minor: 0,
                         circuit: 0x0A,
                     },
-                    start_row: 7,
-                    size: 24120,
+                    start_row: 103,
+                    size: 80372,
                     row_size: 0x100,
+                    metadata_row: 510,
                 },
             }
         });
@@ -752,9 +819,10 @@ mod tests {
                         minor: 0,
                         circuit: 0x0A,
                     },
-                    start_row: 116,
-                    size: 82160,
+                    start_row: 2,
+                    size: 26112,
                     row_size: 0x100,
+                    metadata_row: 511,
                 },
                 main_fw: PdFirmware {
                     silicon_id: 0x11CE,
@@ -771,9 +839,10 @@ mod tests {
                         minor: 0,
                         circuit: 0x0A,
                     },
-                    start_row: 7,
-                    size: 24832,
+                    start_row: 111,
+                    size: 83440,
                     row_size: 0x100,
+                    metadata_row: 510,
                 },
             }
         });

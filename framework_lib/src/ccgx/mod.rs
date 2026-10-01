@@ -23,9 +23,9 @@ pub mod device;
 #[cfg(feature = "hidapi")]
 pub mod hid;
 
-const METADATA_OFFSET: usize = 0xC0; // TODO: Is this 0x40 on ADL?
-const CCG8_METADATA_OFFSET: usize = 0x80;
-const CCG3_METADATA_OFFSET: usize = 0x40;
+/// The metadata table sits at the end of its flash row
+const CYACD_METADATA_TABLE_SIZE: usize = 0x40;
+const CYACD2_METADATA_TABLE_SIZE: usize = 0x80;
 const METADATA_MAGIC: u16 = u16::from_be_bytes(*b"CY"); // CY (Cypress)
 const CCG8_METADATA_MAGIC: u16 = u16::from_be_bytes(*b"IF"); // IF (Infineon)
 
@@ -73,12 +73,14 @@ struct CyAcd2Metadata {
     /// Offset 08: Boot wait time
     _boot_app_id: u16,
     /// Offset 0A: Last Flash row of Bootloader or previous firmware
-    /// Is (fw_start/FLASH_ROW_SIZE) - 1
-    _boot_last_row: u16,
+    /// The image starts in the row after this one.
+    boot_last_row: U16,
     /// Offset 0C: Verify Start Address
-    _config_fw_start: u32,
+    /// Start of the image (vector table), fw_start is 0x500 after this.
+    config_fw_start: U32,
     /// Offset 10: Verify Size
-    _config_fw_size: u32,
+    /// Size of the whole image (vector table, config table and code)
+    config_fw_size: U32,
     /// Offset 14: Boot sequence number field. Boot-loader will load the valid
     /// FW copy that has the higher sequence number associated with it
     /// Not relevant when checking the update binary file
@@ -272,49 +274,72 @@ pub fn get_pd_controller_versions(ec: &CrosEc) -> EcResult<PdVersions> {
     }
 }
 
-fn parse_metadata_ccg3(buffer: &[u8]) -> Option<(u32, u32)> {
-    let buffer = &buffer[CCG3_METADATA_OFFSET..];
-    let (metadata, _) = CyAcdMetadata::read_from_prefix(buffer).ok()?;
-    trace!("Metadata: {:X?}", metadata);
-    if metadata.metadata_valid.get() == METADATA_MAGIC {
-        Some((
-            1 + metadata.boot_last_row.get() as u32,
-            metadata.fw_size.get(),
-        ))
-    } else {
-        None
-    }
+/// Location of a firmware image inside the flash, as described by its metadata
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ImageLocation {
+    /// First flash row of the image. The row after the bootloader (FW1) or
+    /// after the previous image (FW2).
+    pub start_row: u32,
+    /// Size of the image in bytes, starting at start_row. This is the region
+    /// that has to be flashed and that the checksum covers.
+    pub size: u32,
+    /// Offset of the code (and version information) from the start of the image
+    pub code_offset: u32,
 }
 
-//fn parse_metadata(buffer: &[u8; 256]) -> Option<(u32, u32)> {
-fn parse_metadata_cyacd(buffer: &[u8]) -> Option<(u32, u32)> {
-    let buffer = &buffer[METADATA_OFFSET..];
+/// Parse legacy (.cyacd) metadata. The table is in the last 64 bytes of the row.
+fn parse_metadata_cyacd(row: &[u8]) -> Option<ImageLocation> {
+    let buffer = row.get(row.len().checked_sub(CYACD_METADATA_TABLE_SIZE)?..)?;
     let (metadata, _) = CyAcdMetadata::read_from_prefix(buffer).ok()?;
     trace!("Metadata: {:X?}", metadata);
-    if metadata.metadata_valid.get() == METADATA_MAGIC {
-        Some((
-            1 + metadata.boot_last_row.get() as u32,
-            metadata.fw_size.get(),
-        ))
-    } else {
-        None
+    if metadata.metadata_valid.get() != METADATA_MAGIC {
+        return None;
     }
+    Some(ImageLocation {
+        start_row: 1 + metadata.boot_last_row.get() as u32,
+        size: metadata.fw_size.get(),
+        code_offset: 0,
+    })
 }
 
-fn parse_metadata_cyacd2(buffer: &[u8]) -> Option<(u32, u32)> {
-    let buffer = &buffer[CCG8_METADATA_OFFSET..];
+/// Parse .cyacd2 metadata (CCG8, CFP). The table is in the last 128 bytes of the row.
+fn parse_metadata_cyacd2(row: &[u8], flash_row_size: usize) -> Option<ImageLocation> {
+    let buffer = row.get(row.len().checked_sub(CYACD2_METADATA_TABLE_SIZE)?..)?;
     let (metadata, _) = CyAcd2Metadata::read_from_prefix(buffer).ok()?;
     trace!("Metadata: {:X?}", metadata);
-    if metadata.metadata_valid.get() == CCG8_METADATA_MAGIC {
-        if metadata.metadata_version.get() == 1 {
-            Some((metadata.fw_start.get(), metadata.fw_size.get()))
-        } else {
-            println!("Unknown CCG8 metadata version");
-            None
-        }
-    } else {
-        None
+    if metadata.metadata_valid.get() != CCG8_METADATA_MAGIC {
+        return None;
     }
+    if metadata.metadata_version.get() != 1 {
+        error!(
+            "Unknown CCG8 metadata version: {}",
+            metadata.metadata_version.get()
+        );
+        return None;
+    }
+    let start_row = 1 + metadata.boot_last_row.get() as u32;
+    let start_addr = start_row * flash_row_size as u32;
+    if metadata.config_fw_start.get() != start_addr {
+        error!(
+            "Metadata inconsistent. Verify start {:#X} but image starts at {:#X}",
+            metadata.config_fw_start.get(),
+            start_addr
+        );
+        return None;
+    }
+    let fw_start = metadata.fw_start.get();
+    if fw_start < start_addr || fw_start >= start_addr + metadata.config_fw_size.get() {
+        error!(
+            "Metadata inconsistent. Code start {:#X} outside of image at {:#X}",
+            fw_start, start_addr
+        );
+        return None;
+    }
+    Some(ImageLocation {
+        start_row,
+        size: metadata.config_fw_size.get(),
+        code_offset: fw_start - start_addr,
+    })
 }
 
 #[cfg(test)]
