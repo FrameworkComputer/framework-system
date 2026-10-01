@@ -3056,13 +3056,8 @@ fn load_pd_firmware(
         fw_file.main_fw.start_row + fw_file.main_fw.rows() - 1
     );
 
-    // The controller reports the value that the binary parser calls family
-    if !ccgx::silicon_id_compatible(silicon_id, fw_file.main_fw.silicon_family) {
-        return Err(EcError::DeviceError(
-            "Firmware binary is incompatible with this PD controller".to_string(),
-        ));
-    }
-
+    // Whether the file fits the controller is checked by flash_firmware
+    // and compare_firmware, which also look at the flash layout
     Ok((fw_file, fw_bin))
 }
 
