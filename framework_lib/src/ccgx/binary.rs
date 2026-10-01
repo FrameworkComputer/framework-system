@@ -114,6 +114,20 @@ pub fn flash_row_size(ccgx: SiliconFamily) -> usize {
     }
 }
 
+/// Size of the whole flash for a particular chip
+pub fn flash_size(ccgx: SiliconFamily) -> usize {
+    match ccgx {
+        SiliconFamily::Ccg6Adl | SiliconFamily::Ccg6 | SiliconFamily::Ccg6Cfp => 0x10_000,
+        SiliconFamily::Ccg3 | SiliconFamily::Ccg5 | SiliconFamily::Ccg8Cfp => 0x20_000,
+        SiliconFamily::Ccg8D | SiliconFamily::Ccg8S => 0x40_000,
+    }
+}
+
+/// Number of flash rows for a particular chip
+pub fn flash_rows(ccgx: SiliconFamily) -> u32 {
+    (flash_size(ccgx) / flash_row_size(ccgx)) as u32
+}
+
 // Hexdump
 // 0x4359 is the metadata magic bytes (CY - Cypress)
 // 0x4649 is the metadata magic bytes (IF - Infineon)

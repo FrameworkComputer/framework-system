@@ -15,7 +15,7 @@ use crate::util::{assert_win_len, Config, Platform};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 
-use super::binary::{PdFirmware, PdFirmwareFile};
+use super::binary::{self, PdFirmware, PdFirmwareFile};
 use super::*;
 
 const HPI_FLASH_ENTER_SIGNATURE: char = 'P';
@@ -975,30 +975,42 @@ impl PdController {
     ///
     /// The controller only lets us read the inactive firmware image. The rows
     /// of the bootloader and the running firmware are filled with zeros.
+    ///
+    /// The dump is always the full flash in size, so the metadata is in the
+    /// last two rows like in the firmware files.
     pub fn dump_firmware(&self) -> EcResult<Vec<u8>> {
         // The largest CCGx flash has 1024 rows
         const MAX_ROWS: u32 = 1024;
 
         let _lock = PdBusLock::new(&self.ec)?;
         let (mode, flash_row_size) = self.get_device_info()?;
+        let silicon_id = self.get_silicon_id()?;
+        // The readable rows depend on which image runs, so the flash size
+        // has to come from the chip type instead
+        let total_rows = match SiliconFamily::from_u16(silicon_id) {
+            Some(family) => binary::flash_rows(family),
+            None => {
+                println!(
+                    "Unknown silicon ID {:#06X}, dumping {} rows",
+                    silicon_id, MAX_ROWS
+                );
+                MAX_ROWS
+            }
+        };
         println!(
-            "Controller runs {:?}, flash row size: {}",
-            mode, flash_row_size
+            "Controller runs {:?}, flash row size: {}, rows: {}",
+            mode, flash_row_size, total_rows
         );
         self.enter_flashing_mode()?;
 
         let mut firmware_data: Vec<u8> =
-            Vec::with_capacity(MAX_ROWS as usize * flash_row_size as usize);
-        let mut last_readable_row = 0;
-        for row in 0..MAX_ROWS {
+            Vec::with_capacity(total_rows as usize * flash_row_size as usize);
+        for row in 0..total_rows {
             if row % 64 == 0 {
-                println!("  Reading row {}/{}...", row, MAX_ROWS);
+                println!("  Reading row {}/{}...", row, total_rows);
             }
             match self.read_flash_row(row, flash_row_size) {
-                Ok(data) => {
-                    firmware_data.extend(data);
-                    last_readable_row = row;
-                }
+                Ok(data) => firmware_data.extend(data),
                 Err(err) => {
                     debug!("Row {} not readable: {:?}", row, err);
                     firmware_data.extend(vec![0u8; flash_row_size as usize]);
@@ -1007,10 +1019,6 @@ impl PdController {
         }
         self.leave_flashing_mode()?;
 
-        // Smaller chips have only 512 rows. Nothing above is readable then.
-        if last_readable_row < 512 {
-            firmware_data.truncate(512 * flash_row_size as usize);
-        }
         println!("Read {} bytes total", firmware_data.len());
         Ok(firmware_data)
     }
