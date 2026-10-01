@@ -639,7 +639,7 @@ impl PdController {
     pub fn reset(&self) -> EcResult<()> {
         let _lock = PdBusLock::new(&self.ec)?;
         println!("Disabling PD ports");
-        self.enable_ports(false)?;
+        self.set_ports_enabled(false)?;
         self.reset_device()?;
         let mode = self.wait_for_device(3000)?;
         println!("Controller is running {:?}", mode);
@@ -680,6 +680,15 @@ impl PdController {
     /// Disabling waits until the controller confirms. That can take up to a
     /// second if it currently provides power.
     pub fn enable_ports(&self, enable: bool) -> EcResult<()> {
+        let _lock = PdBusLock::new(&self.ec)?;
+        self.set_ports_enabled(enable)
+    }
+
+    /// Same as enable_ports, for callers that already hold the PD bus lock
+    ///
+    /// The command handshake clears and polls the device interrupt, which
+    /// must not happen while the EC still talks to the controller.
+    fn set_ports_enabled(&self, enable: bool) -> EcResult<()> {
         let mask = if enable {
             (1u8 << self.get_port_count()?) - 1
         } else {
@@ -763,7 +772,7 @@ impl PdController {
 
         // Ports must be disabled before the firmware lets go of control
         println!("Disabling PD ports");
-        self.enable_ports(false)?;
+        self.set_ports_enabled(false)?;
 
         let target_sig = if target_mode == FwMode::BootLoader {
             HPI_JUMP_TO_BOOT_SIGNATURE
@@ -1195,7 +1204,7 @@ impl PdController {
 
         // Boot normally again, the bootloader prefers the main firmware
         println!("\nRestarting controller");
-        self.enable_ports(false)?;
+        self.set_ports_enabled(false)?;
         self.reset_device()?;
         let final_mode = self.wait_for_device(3000)?;
         println!("Controller is running {:?}", final_mode);
