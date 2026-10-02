@@ -1725,6 +1725,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 }
             }
         }
+        #[cfg(feature = "uefi")]
+        let _ = smartbattery_arg;
     } else if args.smartbattery_auth {
         #[cfg(not(feature = "uefi"))]
         {
