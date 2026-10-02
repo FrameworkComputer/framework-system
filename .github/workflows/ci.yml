@@ -148,6 +148,19 @@ jobs:
     - name: Check if Windows tool can start
       run: target/release/framework_tool.exe --help
 
+    # The runner has the VC++ redistributable installed, a clean Windows doesn't
+    - name: Check Windows tool doesn't need VC++ redistributable
+      shell: pwsh
+      run: |
+        $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+        $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" | Select-Object -First 1
+        $deps = & $dumpbin /dependents target/release/framework_tool.exe
+        $deps
+        if ($deps -match '(?i)(msvcp|vcruntime)\d+') {
+          Write-Error "framework_tool.exe depends on the VC++ redistributable"
+          exit 1
+        }
+
     # Upload release build so that vcruntime is statically linked
     - name: Upload Windows App
       uses: actions/upload-artifact@v6
