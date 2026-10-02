@@ -121,7 +121,7 @@ pub fn parse(args: &[String]) -> Cli {
         host_command: None,
     };
 
-    if args.len() == 0 {
+    if args.is_empty() {
         cli.help = true;
     }
 
@@ -421,9 +421,9 @@ pub fn parse(args: &[String]) -> Cli {
         } else if arg == "--rgbkbd" {
             cli.rgbkbd = if args.len() > i + 2 {
                 let mut colors = Vec::<u64>::new();
-                for color_i in i + 1..args.len() {
+                for color in &args[i + 1..] {
                     // TODO: Fail parsing instead of unwrap()
-                    colors.push(args[color_i].parse::<u64>().unwrap());
+                    colors.push(color.parse::<u64>().unwrap());
                 }
                 colors
             } else {
@@ -758,8 +758,8 @@ pub fn parse(args: &[String]) -> Cli {
                 let left = args[i + 1].parse::<u16>();
                 let right = args[i + 2].parse::<u16>();
                 let back = args[i + 3].parse::<u16>();
-                if left.is_ok() && right.is_ok() && back.is_ok() {
-                    Some((left.unwrap(), right.unwrap(), back.unwrap()))
+                if let (Ok(left), Ok(right), Ok(back)) = (left, right, back) {
+                    Some((left, right, back))
                 } else {
                     println!(
                         "Invalid values for --pd-addrs: '{} {} {}'. Must be u16 integers.",
@@ -779,8 +779,8 @@ pub fn parse(args: &[String]) -> Cli {
                 let left = args[i + 1].parse::<u8>();
                 let right = args[i + 2].parse::<u8>();
                 let back = args[i + 3].parse::<u8>();
-                if left.is_ok() && right.is_ok() && back.is_ok() {
-                    Some((left.unwrap(), right.unwrap(), back.unwrap()))
+                if let (Ok(left), Ok(right), Ok(back)) = (left, right, back) {
+                    Some((left, right, back))
                 } else {
                     println!(
                         "Invalid values for --pd-ports: '{} {} {}'. Must be u16 integers.",
