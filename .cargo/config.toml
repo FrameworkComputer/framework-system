@@ -1,0 +1,6 @@
+# Compile C/C++ dependencies (e.g. smartmontools) with /MT instead of /MD.
+# Otherwise they link the C++ STL dynamically and the binary needs
+# MSVCP140.dll, which isn't present on a clean Windows install.
+# See framework_tool/build.rs for how vcruntime is linked statically.
+[target.'cfg(all(windows, target_env = "msvc"))']
+rustflags = ["-C", "target-feature=+crt-static"]
