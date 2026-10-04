@@ -213,9 +213,12 @@ fn hex_encode(data: &[u8]) -> String {
 }
 
 fn hex_decode(s: &str) -> Vec<u8> {
-    (0..s.len())
-        .step_by(2)
-        .filter_map(|i| u8::from_str_radix(&s[i..i + 2], 16).ok())
+    s.as_bytes()
+        .chunks_exact(2)
+        .filter_map(|pair| {
+            let pair = core::str::from_utf8(pair).ok()?;
+            u8::from_str_radix(pair, 16).ok()
+        })
         .collect()
 }
 
@@ -792,72 +795,65 @@ impl SmartBattery {
         Ok(())
     }
 
-    fn read_i16(&self, ec: &CrosEc, addr: u16) -> EcResult<u16> {
-        let i2c_response = i2c_read(ec, self.i2c_port, self.i2c_addr >> 1, addr, 0x02)?;
+    /// Raw I2C read without SMBus block length prefix handling.
+    /// Guarantees the returned buffer holds exactly `len` bytes.
+    fn read_raw(&self, ec: &CrosEc, addr: u16, len: u16) -> EcResult<Vec<u8>> {
+        let i2c_response = i2c_read(ec, self.i2c_port, self.i2c_addr >> 1, addr, len)?;
         i2c_response.is_successful()?;
-        Ok(u16::from_le_bytes([
-            i2c_response.data[0],
-            i2c_response.data[1],
-        ]))
+        if i2c_response.data.len() < len as usize {
+            return Err(EcError::DeviceError(format!(
+                "Expected {} bytes but EC returned {} from register 0x{:02X}",
+                len,
+                i2c_response.data.len(),
+                addr
+            )));
+        }
+        Ok(i2c_response.data[..len as usize].to_vec())
+    }
+
+    fn read_i16(&self, ec: &CrosEc, addr: u16) -> EcResult<u16> {
+        let data = self.read_raw(ec, addr, 2)?;
+        Ok(u16::from_le_bytes([data[0], data[1]]))
     }
 
     /// Read a 32-bit value from a ManufacturerAccess block command (SMBus block format with length prefix)
     fn read_i32(&self, ec: &CrosEc, addr: u16) -> EcResult<u32> {
-        // ManufacturerAccess block commands return data in SMBus block format:
-        // Byte 0: Length, Bytes 1-4: Data
-        let i2c_response = i2c_read(ec, self.i2c_port, self.i2c_addr >> 1, addr, 0x05)?;
-        i2c_response.is_successful()?;
-        let len = i2c_response.data[0];
-        if len != 4 {
-            return Err(EcError::DeviceError(format!(
-                "Expected 4 bytes but got {} from register 0x{:02X}",
-                len, addr
-            )));
-        }
-        Ok(u32::from_le_bytes([
-            i2c_response.data[1],
-            i2c_response.data[2],
-            i2c_response.data[3],
-            i2c_response.data[4],
-        ]))
+        let data = self.read_bytes(ec, addr, 4)?;
+        Ok(u32::from_le_bytes([data[0], data[1], data[2], data[3]]))
     }
 
     fn read_string(&self, ec: &CrosEc, addr: u16) -> EcResult<String> {
         // SMBus strings are length-prefixed
-        let i2c_response = i2c_read(ec, self.i2c_port, self.i2c_addr >> 1, addr, 0x20)?;
-        i2c_response.is_successful()?;
-        // First byte is the returned string length
-        let str_bytes = &i2c_response.data[1..=(i2c_response.data[0] as usize)];
-        Ok(String::from_utf8_lossy(str_bytes).to_string())
+        let str_bytes = self.read_block(ec, addr, 0x1F)?;
+        Ok(String::from_utf8_lossy(&str_bytes).to_string())
     }
 
     /// Read a block of bytes with expected length
     fn read_bytes(&self, ec: &CrosEc, addr: u16, len: u16) -> EcResult<Vec<u8>> {
-        let i2c_response = i2c_read(ec, self.i2c_port, self.i2c_addr >> 1, addr, len + 1)?;
-        i2c_response.is_successful()?;
-        let actual_len = i2c_response.data[0];
-        if actual_len != len as u8 {
+        let data = self.read_block(ec, addr, len)?;
+        if data.len() != len as usize {
             return Err(EcError::DeviceError(format!(
                 "Expected {} bytes but got {} from register 0x{:02X}",
-                len, actual_len, addr
+                len,
+                data.len(),
+                addr
             )));
         }
-        Ok(i2c_response.data[1..].to_vec())
+        Ok(data)
     }
 
-    /// Read a block of bytes, returning whatever length the device provides
+    /// Read an SMBus block, returning whatever length the device provides (up to `max_len`).
+    /// The first byte on the wire is the length, which must not exceed the bytes we read.
     fn read_block(&self, ec: &CrosEc, addr: u16, max_len: u16) -> EcResult<Vec<u8>> {
-        let i2c_response = i2c_read(ec, self.i2c_port, self.i2c_addr >> 1, addr, max_len + 1)?;
-        i2c_response.is_successful()?;
-        let actual_len = i2c_response.data[0] as usize;
-        Ok(i2c_response.data[1..=actual_len].to_vec())
-    }
-
-    /// Raw I2C read without SMBus block length prefix handling
-    fn read_raw(&self, ec: &CrosEc, addr: u16, len: u16) -> EcResult<Vec<u8>> {
-        let i2c_response = i2c_read(ec, self.i2c_port, self.i2c_addr >> 1, addr, len)?;
-        i2c_response.is_successful()?;
-        Ok(i2c_response.data.to_vec())
+        let data = self.read_raw(ec, addr, max_len + 1)?;
+        let actual_len = data[0] as usize;
+        if actual_len > max_len as usize {
+            return Err(EcError::DeviceError(format!(
+                "Block length {} exceeds maximum {} from register 0x{:02X}",
+                actual_len, max_len, addr
+            )));
+        }
+        Ok(data[1..=actual_len].to_vec())
     }
 
     fn smbus_write_block(&self, ec: &CrosEc, reg: u8, data: &[u8]) -> EcResult<()> {
@@ -1914,6 +1910,10 @@ mod tests {
         let encoded = hex_encode(&original);
         let decoded = hex_decode(&encoded);
         assert_eq!(original, decoded);
+        // Odd length and non-hex input must not panic
+        assert_eq!(hex_decode("ABC"), vec![0xAB]);
+        assert_eq!(hex_decode("ZZ"), Vec::<u8>::new());
+        assert_eq!(hex_decode("é"), Vec::<u8>::new());
     }
 
     #[test]
