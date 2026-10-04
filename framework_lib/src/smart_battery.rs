@@ -1366,16 +1366,18 @@ pub fn display_battery_data(data: &BatteryData) {
                 "  Max Avg Dsg Current:    {:.2}A",
                 i16::from_le_bytes([lt1[22], lt1[23]]).unsigned_abs() as f32 / 1000.0
             );
+            // Signed, in cW (10mW units)
             println!(
-                "  Max Avg Dsg Power:      {:.1}W",
-                u16::from_le_bytes([lt1[24], lt1[25]]) as f32 / 1000.0
+                "  Max Avg Dsg Power:      {:.2}W",
+                i16::from_le_bytes([lt1[24], lt1[25]]).unsigned_abs() as f32 / 100.0
             );
-            println!("  Max Temp Cell:          {}C", lt1[26]);
-            println!("  Min Temp Cell:          {}C", lt1[27]);
-            println!("  Max Delta Cell Temp:    {}C", lt1[28]);
-            println!("  Max Temp Int Sensor:    {}C", lt1[29]);
-            println!("  Min Temp Int Sensor:    {}C", lt1[30]);
-            println!("  Max Temp FET:           {}C", lt1[31]);
+            // Temperatures are signed 8-bit degrees Celsius
+            println!("  Max Temp Cell:          {}C", lt1[26] as i8);
+            println!("  Min Temp Cell:          {}C", lt1[27] as i8);
+            println!("  Max Delta Cell Temp:    {}C", lt1[28] as i8);
+            println!("  Max Temp Int Sensor:    {}C", lt1[29] as i8);
+            println!("  Min Temp Int Sensor:    {}C", lt1[30] as i8);
+            println!("  Max Temp FET:           {}C", lt1[31] as i8);
         }
 
         if let Some(cb_hours) = lifetime2_cb_hours(&data.lifetime2) {
@@ -1638,9 +1640,9 @@ pub fn analyze_health(data: &BatteryData) {
             ));
         }
 
-        // Check temperature extremes
-        let max_temp = lt1[26];
-        let min_temp = lt1[27];
+        // Check temperature extremes (signed 8-bit degrees Celsius)
+        let max_temp = lt1[26] as i8;
+        let min_temp = lt1[27] as i8;
         if max_temp > 55 {
             warnings.push(format!("High temperature recorded: {}C max", max_temp));
         }
@@ -1850,8 +1852,8 @@ mod tests {
             }
 
             // Check temperatures are reasonable
-            let max_temp = data.lifetime1[26];
-            let min_temp = data.lifetime1[27];
+            let max_temp = data.lifetime1[26] as i8;
+            let min_temp = data.lifetime1[27] as i8;
             assert!(max_temp < 100, "Max temp {} too high", max_temp);
             assert!(
                 min_temp < max_temp || min_temp == 0,
@@ -1859,6 +1861,11 @@ mod tests {
                 min_temp,
                 max_temp
             );
+
+            // Max Avg Dsg Power is signed cW; the dump's -7899 means 78.99W
+            let power_cw = i16::from_le_bytes([data.lifetime1[24], data.lifetime1[25]]);
+            assert_eq!(power_cw, -7899);
+            assert_eq!(power_cw.unsigned_abs() / 100, 78);
         }
 
         // Check lifetime2 has expected length (8 bytes on R2, 20 bytes on R3)
