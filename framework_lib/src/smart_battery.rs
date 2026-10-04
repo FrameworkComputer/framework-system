@@ -219,6 +219,20 @@ fn hex_decode(s: &str) -> Vec<u8> {
         .collect()
 }
 
+fn finish_unsealed<T>(result: EcResult<T>, seal_result: EcResult<()>) -> EcResult<T> {
+    match (result, seal_result) {
+        (result, Ok(())) => result,
+        (Ok(_), Err(seal_error)) => Err(EcError::DeviceError(format!(
+            "Failed to re-seal battery: {:?}",
+            seal_error
+        ))),
+        (Err(error), Err(seal_error)) => Err(EcError::DeviceError(format!(
+            "Battery operation failed: {:?}. Also failed to re-seal battery: {:?}",
+            error, seal_error
+        ))),
+    }
+}
+
 #[repr(u16)]
 enum SmartBatReg {
     Mode = 0x03,
@@ -915,7 +929,7 @@ impl SmartBattery {
 
     /// Interactive authentication - prompts for unseal key and authentication key
     pub fn interactive_authenticate(&self, ec: &CrosEc) -> EcResult<()> {
-        // First, try to unseal the battery
+        // Collect both keys before changing the gauge's seal state.
         println!("Some batteries require unsealing before authentication.");
         print!("Unseal key in hex (e.g. 04143672), or enter to skip: ");
         io::stdout()
@@ -925,14 +939,14 @@ impl SmartBattery {
         let unseal_input = read_password()
             .map_err(|e| EcError::DeviceError(format!("Failed to read key: {}", e)))?;
         let unseal_input = unseal_input.trim();
-        if !unseal_input.is_empty() {
-            let key: u32 = u32::from_str_radix(unseal_input, 16)
-                .map_err(|e| EcError::DeviceError(format!("Invalid unseal key: {}", e)))?;
-            println!("Unsealing battery...");
-            self.unseal(ec, (key >> 16) as u16, key as u16)?;
-            // Wait a bit after unsealing
-            thread::sleep(Duration::from_millis(100));
-        }
+        let unseal_key = if unseal_input.is_empty() {
+            None
+        } else {
+            Some(
+                u32::from_str_radix(unseal_input, 16)
+                    .map_err(|e| EcError::DeviceError(format!("Invalid unseal key: {}", e)))?,
+            )
+        };
 
         // Now prompt for authentication key
         print!("Auth key in hex (32 chars, e.g. 00112233...EEFF): ");
@@ -962,13 +976,16 @@ impl SmartBattery {
             })?;
         }
 
-        let result = self.authenticate_battery(ec, &auth_key)?;
-
-        // Re-seal the battery if we unsealed it
-        if !unseal_input.is_empty() {
+        let result = if let Some(key) = unseal_key {
+            println!("Unsealing battery...");
+            self.unseal(ec, (key >> 16) as u16, key as u16)?;
+            thread::sleep(Duration::from_millis(100));
+            let result = self.authenticate_battery(ec, &auth_key);
             println!("Re-sealing battery...");
-            self.seal(ec)?;
-        }
+            finish_unsealed(result, self.seal(ec))?
+        } else {
+            self.authenticate_battery(ec, &auth_key)?
+        };
 
         match result {
             true => println!("Authentication successful - battery is genuine."),
@@ -1072,22 +1089,28 @@ impl SmartBattery {
         if let Some(key) = unseal_key {
             self.unseal(ec, (key >> 16) as u16, key as u16)?;
 
-            data.state_of_health = self.read_bytes(ec, ManufReg::Soh as u16, 4)?;
-            data.operation_status = self.read_i32(ec, ManufReg::OperationStatus as u16)?;
-            data.safety_alert = self.read_i32(ec, ManufReg::SafetyAlert as u16)?;
-            data.safety_status = self.read_i32(ec, ManufReg::SafetyStatus as u16)?;
-            data.pf_alert = self.read_i32(ec, ManufReg::PFAlert as u16)?;
-            data.pf_status = self.read_i32(ec, ManufReg::PFStatus as u16)?;
-            data.lifetime1 = self.read_bytes(ec, ManufReg::LifeTimeDataBlock1 as u16, 32)?;
-            data.lifetime2 = self.read_block(ec, ManufReg::LifeTimeDataBlock2 as u16, 20)?;
-            data.lifetime3 = self.read_block(ec, ManufReg::LifeTimeDataBlock3 as u16, 16)?;
-            data.lifetime4 = self.read_block(ec, ManufReg::LifeTimeDataBlock4 as u16, 32)?;
-            data.lifetime5 = self.read_block(ec, ManufReg::LifeTimeDataBlock5 as u16, 32)?;
-
-            self.seal(ec)?;
+            // Always re-seal, even if one of the reads fails
+            let result = self.read_unsealed(ec, &mut data);
+            finish_unsealed(result, self.seal(ec))?;
         }
 
         Ok(data)
+    }
+
+    /// Read the registers that require the gauge to be unsealed
+    fn read_unsealed(&self, ec: &CrosEc, data: &mut BatteryData) -> EcResult<()> {
+        data.state_of_health = self.read_bytes(ec, ManufReg::Soh as u16, 4)?;
+        data.operation_status = self.read_i32(ec, ManufReg::OperationStatus as u16)?;
+        data.safety_alert = self.read_i32(ec, ManufReg::SafetyAlert as u16)?;
+        data.safety_status = self.read_i32(ec, ManufReg::SafetyStatus as u16)?;
+        data.pf_alert = self.read_i32(ec, ManufReg::PFAlert as u16)?;
+        data.pf_status = self.read_i32(ec, ManufReg::PFStatus as u16)?;
+        data.lifetime1 = self.read_bytes(ec, ManufReg::LifeTimeDataBlock1 as u16, 32)?;
+        data.lifetime2 = self.read_block(ec, ManufReg::LifeTimeDataBlock2 as u16, 20)?;
+        data.lifetime3 = self.read_block(ec, ManufReg::LifeTimeDataBlock3 as u16, 16)?;
+        data.lifetime4 = self.read_block(ec, ManufReg::LifeTimeDataBlock4 as u16, 32)?;
+        data.lifetime5 = self.read_block(ec, ManufReg::LifeTimeDataBlock5 as u16, 32)?;
+        Ok(())
     }
 
     /// Dump battery data to a file
