@@ -1068,7 +1068,7 @@ impl SmartBattery {
             .read_bytes(ec, ManufReg::LifeTimeDataBlock1 as u16, 32)
             .unwrap_or_default();
         data.lifetime2 = self
-            .read_bytes(ec, ManufReg::LifeTimeDataBlock2 as u16, 20)
+            .read_block(ec, ManufReg::LifeTimeDataBlock2 as u16, 20)
             .unwrap_or_default();
         data.lifetime3 = self
             .read_block(ec, ManufReg::LifeTimeDataBlock3 as u16, 16)
@@ -1091,7 +1091,7 @@ impl SmartBattery {
             data.pf_alert = self.read_i32(ec, ManufReg::PFAlert as u16)?;
             data.pf_status = self.read_i32(ec, ManufReg::PFStatus as u16)?;
             data.lifetime1 = self.read_bytes(ec, ManufReg::LifeTimeDataBlock1 as u16, 32)?;
-            data.lifetime2 = self.read_bytes(ec, ManufReg::LifeTimeDataBlock2 as u16, 20)?;
+            data.lifetime2 = self.read_block(ec, ManufReg::LifeTimeDataBlock2 as u16, 20)?;
             data.lifetime3 = self.read_block(ec, ManufReg::LifeTimeDataBlock3 as u16, 16)?;
             data.lifetime4 = self.read_block(ec, ManufReg::LifeTimeDataBlock4 as u16, 32)?;
             data.lifetime5 = self.read_block(ec, ManufReg::LifeTimeDataBlock5 as u16, 32)?;
@@ -1128,6 +1128,25 @@ impl SmartBattery {
 
         println!("Battery data saved to {}", path.display());
         Ok(())
+    }
+}
+
+/// Decode cell balancing times from LifeTime Data Block 2, in hours.
+/// R2 returns 8 bytes (4×u8 counters, 4×u8 CB times in hours).
+/// R3 returns 20 bytes (4×u8 counters, 4×u32 CB times in seconds).
+fn lifetime2_cb_hours(lt2: &[u8]) -> Option<[f64; 4]> {
+    match lt2.len() {
+        8 => Some([lt2[4] as f64, lt2[5] as f64, lt2[6] as f64, lt2[7] as f64]),
+        20 => {
+            let secs = |i: usize| u32::from_le_bytes([lt2[i], lt2[i + 1], lt2[i + 2], lt2[i + 3]]);
+            Some([
+                secs(4) as f64 / 3600.0,
+                secs(8) as f64 / 3600.0,
+                secs(12) as f64 / 3600.0,
+                secs(16) as f64 / 3600.0,
+            ])
+        }
+        _ => None,
     }
 }
 
@@ -1359,37 +1378,33 @@ pub fn display_battery_data(data: &BatteryData) {
             println!("  Max Temp FET:           {}C", lt1[31]);
         }
 
-        if data.lifetime2.len() >= 20 {
+        if let Some(cb_hours) = lifetime2_cb_hours(&data.lifetime2) {
             let lt2 = &data.lifetime2;
             println!("LifeTime2:");
             println!("  No. of Shutdowns:       {}", lt2[0]);
             println!("  No. of Partial Resets:  {}", lt2[1]);
             println!("  No. of Full Resets:     {}", lt2[2]);
             println!("  No. of WDT Resets:      {}", lt2[3]);
-            let cb1 = u32::from_le_bytes([lt2[4], lt2[5], lt2[6], lt2[7]]);
-            let cb2 = u32::from_le_bytes([lt2[8], lt2[9], lt2[10], lt2[11]]);
-            let cb3 = u32::from_le_bytes([lt2[12], lt2[13], lt2[14], lt2[15]]);
-            let cb4 = u32::from_le_bytes([lt2[16], lt2[17], lt2[18], lt2[19]]);
-            println!(
-                "  CB Time Cell 1:         {}s ({:.1}h)",
-                cb1,
-                cb1 as f64 / 3600.0
-            );
-            println!(
-                "  CB Time Cell 2:         {}s ({:.1}h)",
-                cb2,
-                cb2 as f64 / 3600.0
-            );
-            println!(
-                "  CB Time Cell 3:         {}s ({:.1}h)",
-                cb3,
-                cb3 as f64 / 3600.0
-            );
-            println!(
-                "  CB Time Cell 4:         {}s ({:.1}h)",
-                cb4,
-                cb4 as f64 / 3600.0
-            );
+            for (i, hours) in cb_hours.iter().enumerate() {
+                if lt2.len() == 20 {
+                    // R3: u32 seconds
+                    let secs = u32::from_le_bytes([
+                        lt2[4 + i * 4],
+                        lt2[5 + i * 4],
+                        lt2[6 + i * 4],
+                        lt2[7 + i * 4],
+                    ]);
+                    println!(
+                        "  CB Time Cell {}:         {}s ({:.1}h)",
+                        i + 1,
+                        secs,
+                        hours
+                    );
+                } else {
+                    // R2: u8 hours
+                    println!("  CB Time Cell {}:         {}h", i + 1, hours);
+                }
+            }
         }
 
         if !data.lifetime3.is_empty() {
@@ -1744,17 +1759,7 @@ pub fn analyze_health(data: &BatteryData) {
         );
     }
     println!("  Current cell balance: {}mV spread", cell_delta);
-    if data.lifetime2.len() >= 20 {
-        let lt2 = &data.lifetime2;
-        let cb_times: Vec<f64> = [
-            u32::from_le_bytes([lt2[4], lt2[5], lt2[6], lt2[7]]),
-            u32::from_le_bytes([lt2[8], lt2[9], lt2[10], lt2[11]]),
-            u32::from_le_bytes([lt2[12], lt2[13], lt2[14], lt2[15]]),
-            u32::from_le_bytes([lt2[16], lt2[17], lt2[18], lt2[19]]),
-        ]
-        .iter()
-        .map(|&t| t as f64 / 3600.0)
-        .collect();
+    if let Some(cb_times) = lifetime2_cb_hours(&data.lifetime2) {
         println!(
             "  Cell balancing time: {:.1}h / {:.1}h / {:.1}h / {:.1}h",
             cb_times[0], cb_times[1], cb_times[2], cb_times[3]
@@ -1856,10 +1861,32 @@ mod tests {
             );
         }
 
-        // Check lifetime2 has expected length
+        // Check lifetime2 has expected length (8 bytes on R2, 20 bytes on R3)
         if !data.lifetime2.is_empty() {
-            assert_eq!(data.lifetime2.len(), 20, "LifeTime2 should be 20 bytes");
+            assert!(
+                data.lifetime2.len() == 8 || data.lifetime2.len() == 20,
+                "LifeTime2 should be 8 or 20 bytes, got {}",
+                data.lifetime2.len()
+            );
+            assert!(lifetime2_cb_hours(&data.lifetime2).is_some());
         }
+    }
+
+    #[test]
+    fn test_lifetime2_cb_hours() {
+        // R3: 4 counters + 4×u32 seconds
+        let r3 = hex_decode("0500050096950100CF670200AF740200B7940200");
+        let hours = lifetime2_cb_hours(&r3).unwrap();
+        assert!((hours[0] - 103830.0 / 3600.0).abs() < 1e-9);
+        assert!((hours[3] - 169143.0 / 3600.0).abs() < 1e-9);
+
+        // R2: 4 counters + 4×u8 hours
+        let r2 = hex_decode("0102030405060708");
+        assert_eq!(lifetime2_cb_hours(&r2).unwrap(), [5.0, 6.0, 7.0, 8.0]);
+
+        // Unknown layout
+        assert!(lifetime2_cb_hours(&[0u8; 12]).is_none());
+        assert!(lifetime2_cb_hours(&[]).is_none());
     }
 
     #[test]
