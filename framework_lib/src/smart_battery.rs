@@ -974,13 +974,17 @@ impl SmartBattery {
             })?;
         }
 
-        let result = self.authenticate_battery(ec, &auth_key)?;
+        let result = self.authenticate_battery(ec, &auth_key);
 
-        // Re-seal the battery if we unsealed it
-        if !unseal_input.is_empty() {
+        // Re-seal the battery if we unsealed it, even if authentication failed
+        let seal_result = if !unseal_input.is_empty() {
             println!("Re-sealing battery...");
-            self.seal(ec)?;
-        }
+            self.seal(ec)
+        } else {
+            Ok(())
+        };
+        let result = result?;
+        seal_result?;
 
         match result {
             true => println!("Authentication successful - battery is genuine."),
@@ -1084,22 +1088,30 @@ impl SmartBattery {
         if let Some(key) = unseal_key {
             self.unseal(ec, (key >> 16) as u16, key as u16)?;
 
-            data.state_of_health = self.read_bytes(ec, ManufReg::Soh as u16, 4)?;
-            data.operation_status = self.read_i32(ec, ManufReg::OperationStatus as u16)?;
-            data.safety_alert = self.read_i32(ec, ManufReg::SafetyAlert as u16)?;
-            data.safety_status = self.read_i32(ec, ManufReg::SafetyStatus as u16)?;
-            data.pf_alert = self.read_i32(ec, ManufReg::PFAlert as u16)?;
-            data.pf_status = self.read_i32(ec, ManufReg::PFStatus as u16)?;
-            data.lifetime1 = self.read_bytes(ec, ManufReg::LifeTimeDataBlock1 as u16, 32)?;
-            data.lifetime2 = self.read_block(ec, ManufReg::LifeTimeDataBlock2 as u16, 20)?;
-            data.lifetime3 = self.read_block(ec, ManufReg::LifeTimeDataBlock3 as u16, 16)?;
-            data.lifetime4 = self.read_block(ec, ManufReg::LifeTimeDataBlock4 as u16, 32)?;
-            data.lifetime5 = self.read_block(ec, ManufReg::LifeTimeDataBlock5 as u16, 32)?;
-
-            self.seal(ec)?;
+            // Always re-seal, even if one of the reads fails
+            let result = self.read_unsealed(ec, &mut data);
+            let seal_result = self.seal(ec);
+            result?;
+            seal_result?;
         }
 
         Ok(data)
+    }
+
+    /// Read the registers that require the gauge to be unsealed
+    fn read_unsealed(&self, ec: &CrosEc, data: &mut BatteryData) -> EcResult<()> {
+        data.state_of_health = self.read_bytes(ec, ManufReg::Soh as u16, 4)?;
+        data.operation_status = self.read_i32(ec, ManufReg::OperationStatus as u16)?;
+        data.safety_alert = self.read_i32(ec, ManufReg::SafetyAlert as u16)?;
+        data.safety_status = self.read_i32(ec, ManufReg::SafetyStatus as u16)?;
+        data.pf_alert = self.read_i32(ec, ManufReg::PFAlert as u16)?;
+        data.pf_status = self.read_i32(ec, ManufReg::PFStatus as u16)?;
+        data.lifetime1 = self.read_bytes(ec, ManufReg::LifeTimeDataBlock1 as u16, 32)?;
+        data.lifetime2 = self.read_block(ec, ManufReg::LifeTimeDataBlock2 as u16, 20)?;
+        data.lifetime3 = self.read_block(ec, ManufReg::LifeTimeDataBlock3 as u16, 16)?;
+        data.lifetime4 = self.read_block(ec, ManufReg::LifeTimeDataBlock4 as u16, 32)?;
+        data.lifetime5 = self.read_block(ec, ManufReg::LifeTimeDataBlock5 as u16, 32)?;
+        Ok(())
     }
 
     /// Dump battery data to a file
