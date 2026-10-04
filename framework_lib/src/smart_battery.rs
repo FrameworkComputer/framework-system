@@ -378,9 +378,23 @@ fn decode_operation_status(value: u32, is_r3: bool) -> Vec<&'static str> {
     flags
 }
 
-/// Decode SafetyAlert/SafetyStatus register bits (BQ40z50)
+/// Decode SafetyAlert register bits (BQ40z50)
 /// Based on TI bq40z50-R2 (SLUUA43A) and bq40z50-R3 (SLUUBU5A) datasheets
+///
+/// SafetyAlert and SafetyStatus share most bits, but the non-latched
+/// overload and short-circuit bits (AOLD, ASCC, ASCD) exist only in
+/// SafetyStatus, while the timeout suspend bits (PTOS, CTOS) exist only
+/// in SafetyAlert.
+fn decode_safety_alert(value: u32) -> Vec<&'static str> {
+    decode_safety_bits(value, false)
+}
+
+/// Decode SafetyStatus register bits (BQ40z50)
 fn decode_safety_status(value: u32) -> Vec<&'static str> {
+    decode_safety_bits(value, true)
+}
+
+fn decode_safety_bits(value: u32, is_status: bool) -> Vec<&'static str> {
     let mut flags = Vec::new();
     if value & (1 << 0) != 0 {
         flags.push("CUV (Cell Under-Voltage)");
@@ -400,19 +414,19 @@ fn decode_safety_status(value: u32) -> Vec<&'static str> {
     if value & (1 << 5) != 0 {
         flags.push("OCD2 (Over-Current Discharge Tier2)");
     }
-    if value & (1 << 6) != 0 {
+    if value & (1 << 6) != 0 && is_status {
         flags.push("AOLD (Overload in Discharge)");
     }
     if value & (1 << 7) != 0 {
         flags.push("AOLDL (Overload in Discharge Latch)");
     }
-    if value & (1 << 8) != 0 {
+    if value & (1 << 8) != 0 && is_status {
         flags.push("ASCC (Short-Circuit Charge)");
     }
     if value & (1 << 9) != 0 {
         flags.push("ASCCL (Short-Circuit Charge Latch)");
     }
-    if value & (1 << 10) != 0 {
+    if value & (1 << 10) != 0 && is_status {
         flags.push("ASCD (Short-Circuit Discharge)");
     }
     if value & (1 << 11) != 0 {
@@ -433,13 +447,13 @@ fn decode_safety_status(value: u32) -> Vec<&'static str> {
     if value & (1 << 18) != 0 {
         flags.push("PTO (Precharge Timeout)");
     }
-    if value & (1 << 19) != 0 {
+    if value & (1 << 19) != 0 && !is_status {
         flags.push("PTOS (Precharge Timeout Suspend)");
     }
     if value & (1 << 20) != 0 {
         flags.push("CTO (Charge Timeout)");
     }
-    if value & (1 << 21) != 0 {
+    if value & (1 << 21) != 0 && !is_status {
         flags.push("CTOS (Charge Timeout Suspend)");
     }
     if value & (1 << 22) != 0 {
@@ -1308,7 +1322,7 @@ pub fn display_battery_data(data: &BatteryData) {
         print_status_flags(
             "Safety Alert",
             data.safety_alert,
-            decode_safety_status(data.safety_alert),
+            decode_safety_alert(data.safety_alert),
         );
         print_status_flags(
             "Safety Status",
@@ -1905,6 +1919,17 @@ mod tests {
         // Unknown layout
         assert!(lifetime2_cb_hours(&[0u8; 12]).is_none());
         assert!(lifetime2_cb_hours(&[]).is_none());
+    }
+
+    #[test]
+    fn test_safety_decoders_differ() {
+        // Bit 6 is AOLD only in SafetyStatus, bit 19 is PTOS only in SafetyAlert
+        assert!(decode_safety_status(1 << 6).contains(&"AOLD (Overload in Discharge)"));
+        assert!(decode_safety_alert(1 << 6).is_empty());
+        assert!(decode_safety_alert(1 << 19).contains(&"PTOS (Precharge Timeout Suspend)"));
+        assert!(decode_safety_status(1 << 19).is_empty());
+        // Shared bit decodes the same in both
+        assert_eq!(decode_safety_alert(1 << 0), decode_safety_status(1 << 0));
     }
 
     #[test]
