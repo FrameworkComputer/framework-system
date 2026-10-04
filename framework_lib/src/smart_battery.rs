@@ -582,9 +582,11 @@ fn decode_battery_status(value: u16) -> Vec<&'static str> {
     match value & 0x0F {
         0 => {}
         1 => flags.push("EC=Busy"),
+        2 => flags.push("EC=ReservedCommand"),
         3 => flags.push("EC=Unsupported"),
         4 => flags.push("EC=AccessDenied"),
         5 => flags.push("EC=Overflow"),
+        6 => flags.push("EC=BadSize"),
         7 => flags.push("EC=Unknown"),
         _ => flags.push("EC=Reserved"),
     }
@@ -1183,6 +1185,7 @@ pub fn display_battery_data(data: &BatteryData) {
         // MAC 0x0002 response: [subcmd_echo(2), device_num(2), fw_ver(2), build(2), ...]
         let fw = &data.firmware_version;
         let device_num = u16::from_le_bytes([fw[2], fw[3]]);
+        // Version is hex coded, e.g. 0x0110 is 1.10
         let fw_major = fw[5];
         let fw_minor = fw[4];
         let build = if fw.len() >= 8 {
@@ -1191,7 +1194,7 @@ pub fn display_battery_data(data: &BatteryData) {
             String::new()
         };
         println!(
-            "FW Version:    Device=0x{:04X} FW={:02}.{:02}{}",
+            "FW Version:    Device=0x{:04X} FW={:02X}.{:02X}{}",
             device_num, fw_major, fw_minor, build
         );
     } else if !data.firmware_version.is_empty() {
@@ -1697,7 +1700,7 @@ pub fn analyze_health(data: &BatteryData) {
         let lt5 = &data.lifetime5;
         let valid_terminations = u16::from_le_bytes([lt5[16], lt5[17]]);
         let ra_updates = u16::from_le_bytes([lt5[24], lt5[25]]);
-        let ra_fails = u16::from_le_bytes([lt5[28], lt5[29]]);
+        let ra_disables = u16::from_le_bytes([lt5[28], lt5[29]]);
 
         // Check charge termination ratio
         if data.cycle_count > 10 && valid_terminations < (data.cycle_count * 8 / 10) {
@@ -1707,13 +1710,13 @@ pub fn analyze_health(data: &BatteryData) {
             ));
         }
 
-        // Check resistance update failures
+        // Check how often resistance (Ra) table updates were disabled relative to updates
         if ra_updates > 0 {
-            let fail_rate = (ra_fails as f32 / ra_updates as f32) * 100.0;
-            if fail_rate > 20.0 {
+            let disable_rate = (ra_disables as f32 / ra_updates as f32) * 100.0;
+            if disable_rate > 20.0 {
                 warnings.push(format!(
-                    "High resistance update fail rate: {:.1}%",
-                    fail_rate
+                    "Resistance updates disabled often: {} disables over {} updates ({:.1}%)",
+                    ra_disables, ra_updates, disable_rate
                 ));
             }
         }
