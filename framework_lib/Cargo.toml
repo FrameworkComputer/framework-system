@@ -50,7 +50,6 @@ plain = "0.2.3"
 
 [target.'cfg(windows)'.dependencies]
 rand = { version = "0.10", default-features = false, features = ["std", "std_rng", "thread_rng"] }
-wmi = "~0.18.4"
 env_logger = "0.11"
 clap = { version = "4.5", features = ["derive", "cargo"] }
 clap-num = { version = "1.2.0" }
