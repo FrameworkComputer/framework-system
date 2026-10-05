@@ -206,8 +206,9 @@ Based on `rust-toolchain.toml` it will install the right toolchain and version f
 
 MSRV (Minimum Supported Rust Version):
 
-- 1.74 for Linux/Windows
-- 1.74 for UEFI
+- 1.89 for Linux
+- 1.95 for Windows
+- 1.91 for UEFI
 
 System dependencies
 
