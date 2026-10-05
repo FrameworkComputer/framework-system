@@ -55,7 +55,7 @@ pub fn shell_get_execution_break_flag() -> bool {
     let raw_event = shell.execution_break;
     // SAFETY: The execution_break event is created by the shell and remains valid
     if let Some(event) = unsafe { uefi::Event::from_ptr(raw_event) } {
-        boot::check_event(event).unwrap_or(false)
+        boot::check_event(&event).unwrap_or(false)
     } else {
         false
     }
