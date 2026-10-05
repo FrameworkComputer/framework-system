@@ -1,6 +1,8 @@
 TARGET?=x86_64-unknown-uefi
 BUILD=build/$(TARGET)
 FEATURES?=''
+CARGO_TARGET_DIR?=../target
+CARGO_OUT=$(CARGO_TARGET_DIR)/$(TARGET)/release/uefitool.efi
 
 SRC_DIR=.
 
@@ -78,14 +80,17 @@ $(BUILD)/UEFI-Shell-fwk.iso: $(BUILD)/boot.efi $(BUILD)/shellx64.efi
 		-o "$(BUILD)/UEFI-Shell-fwk.iso" \
 		$(BUILD)/$@.tmp
 
-$(BUILD)/boot.efi: ../Cargo.lock $(SRC_DIR)/Cargo.toml $(SRC_DIR)/src/*
-	  mkdir -p $(BUILD)
-		cargo rustc \
+# Always run cargo, it knows when framework_lib or any other dependency changed.
+# Only replace boot.efi when the binary changed, so the images aren't rebuilt needlessly.
+$(BUILD)/boot.efi: FORCE
+	mkdir -p $(BUILD)
+	cargo build \
 		--target $(TARGET) \
 		--features $(FEATURES) \
-		--release \
-		-- \
-		--emit link=framework_uefi/$@
+		--release
+	cmp -s $(CARGO_OUT) $@ || cp $(CARGO_OUT) $@
+
+FORCE:
 
 # Test targets
 $(BUILD)/ovmf_vars.fd: $(BUILD)/OVMF_VARS.fd
