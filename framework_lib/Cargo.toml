@@ -9,7 +9,7 @@ license = "BSD-3-Clause"
 license-file = "../LICENSE.md"
 edition = "2021"
 # Minimum Supported Rust Version
-rust-version = "1.81"
+rust-version = "1.89"
 build = "build.rs"
 
 [features]

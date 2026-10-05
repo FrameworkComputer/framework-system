@@ -134,7 +134,7 @@ pub fn transfer_read(address: u16, size: u16) -> Vec<u8> {
 
     // Unaligned start address
     // Read up two three bytes one-by-one
-    if offset % 4 > 0 {
+    if !offset.is_multiple_of(4) {
         if log_enabled!(Level::Trace) {
             trace!("  Reading single byte from start at {:#X}", offset);
         }
