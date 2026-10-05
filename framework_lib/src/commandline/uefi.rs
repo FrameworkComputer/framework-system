@@ -121,11 +121,13 @@ pub fn parse(args: &[String]) -> Cli {
         host_command: None,
     };
 
-    if args.is_empty() {
-        cli.help = true;
-    }
-
     let mut found_an_option = false;
+
+    // args[0] is the name of the executable
+    if args.len() <= 1 {
+        cli.help = true;
+        found_an_option = true;
+    }
 
     for (i, arg) in args.iter().enumerate() {
         if arg == "-q" {
@@ -930,7 +932,7 @@ pub fn parse(args: &[String]) -> Cli {
         println!("To customize the platform you need to provide all of --pd-addrs, and --pd-ports");
     }
 
-    if args.len() == 1 && cli.paginate {
+    if args.len() == 2 && cli.paginate {
         cli.help = true;
         found_an_option = true;
     }

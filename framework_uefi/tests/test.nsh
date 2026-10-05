@@ -29,6 +29,15 @@ else
 endif
 
 echo ""
+echo "=== TEST: no arguments shows help ==="
+%fwk%
+if %lasterror% == 0x1 then
+    echo "TEST_PASSED: no_args"
+else
+    echo "TEST_FAILED: no_args (expected 0x1, got %lasterror%)"
+endif
+
+echo ""
 echo "=== TEST: --hash on tool itself ==="
 %fwk% --hash fs0:\efi\boot\fwk.efi
 if %lasterror% == 0 then
