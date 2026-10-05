@@ -13,7 +13,7 @@ jobs:
 #    env:
 #      CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Install dependencies
       run: |
@@ -30,7 +30,7 @@ jobs:
       run: cargo deb -p framework_tool
 
     - name: Upload .deb package
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: framework-tool-deb
         path: target/debian/*.deb
@@ -41,7 +41,7 @@ jobs:
 #    env:
 #      CARGO_NET_GIT_FETCH_WITH_CLI: true
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Install dependencies
       run: |
@@ -64,7 +64,7 @@ jobs:
       run: cargo generate-rpm -p framework_tool
 
     - name: Upload .rpm package
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: framework-tool-rpm
         path: target/generate-rpm/*.rpm
@@ -73,7 +73,7 @@ jobs:
     name: Build Snap
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
 
@@ -82,7 +82,7 @@ jobs:
       id: build
 
     - name: Upload snap artifact
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: framework-tool-snap
         path: ${{ steps.build.outputs.snap }}
