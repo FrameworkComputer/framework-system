@@ -27,6 +27,8 @@ _framework_tool() {
 '--pd-reset=[Reset a specific PD controller (for debugging only)]:PD_RESET:_default' \
 '--pd-disable=[Disable all ports on a specific PD controller (for debugging only)]:PD_DISABLE:_default' \
 '--pd-enable=[Enable all ports on a specific PD controller (for debugging only)]:PD_ENABLE:_default' \
+'--pd-debug=[Get or set PD debug logging, read the output via --console]:PD_DEBUG:(status off verbose ucsi all)' \
+'--kbd-debug=[Get or set keyboard controller debug logging, read the output via --console]:KBD_DEBUG:(status off on)' \
 '--dp-hdmi-update=[Update the DisplayPort or HDMI Expansion Card]:UPDATE_BIN:_files' \
 '--pd-bin=[Parse versions from PD firmware binary file]:PD_BIN:_files' \
 '--ec-bin=[Parse versions from EC firmware binary file]:EC_BIN:_files' \
