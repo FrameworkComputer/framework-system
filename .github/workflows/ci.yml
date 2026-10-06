@@ -13,7 +13,7 @@ jobs:
       id: test
       uses: vmactions/freebsd-vm@v1
       with:
-        release: "15.0"
+        release: "15.1"
         arch: x86_64
         usesh: true
         mem: 8192
