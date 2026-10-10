@@ -63,6 +63,7 @@ impl EcI2cPassthruResponse {
 /// Indicate that it's a read, not a write
 const I2C_READ_FLAG: u16 = 1 << 15;
 
+/// Read from a device with a one byte register address (two bytes if addr > 0xFF)
 pub fn i2c_read(
     ec: &CrosEc,
     i2c_port: u8,
@@ -70,11 +71,37 @@ pub fn i2c_read(
     addr: u16,
     len: u16,
 ) -> EcResult<EcI2cPassthruResponse> {
+    let addr_bytes = if addr <= 0xFF {
+        vec![addr as u8]
+    } else {
+        u16::to_le_bytes(addr).to_vec()
+    };
+    i2c_read_impl(ec, i2c_port, i2c_addr, &addr_bytes, len)
+}
+
+/// Read from a device that always uses two byte register addresses (LSB first)
+pub fn i2c_read_addr16(
+    ec: &CrosEc,
+    i2c_port: u8,
+    i2c_addr: u16,
+    addr: u16,
+    len: u16,
+) -> EcResult<EcI2cPassthruResponse> {
+    i2c_read_impl(ec, i2c_port, i2c_addr, &u16::to_le_bytes(addr), len)
+}
+
+fn i2c_read_impl(
+    ec: &CrosEc,
+    i2c_port: u8,
+    i2c_addr: u16,
+    addr_bytes: &[u8],
+    len: u16,
+) -> EcResult<EcI2cPassthruResponse> {
     trace!(
-        "i2c_read(i2c_port: 0x{:X}, i2c_addr: 0x{:X}, addr: 0x{:X}, len: 0x{:X})",
+        "i2c_read(i2c_port: 0x{:X}, i2c_addr: 0x{:X}, addr: {:X?}, len: 0x{:X})",
         i2c_port,
         i2c_addr,
-        addr,
+        addr_bytes,
         len
     );
     if usize::from(len) > MAX_I2C_CHUNK {
@@ -83,11 +110,6 @@ pub fn i2c_read(
             len
         )));
     }
-    let addr_bytes = if addr < 0xFF {
-        vec![addr as u8]
-    } else {
-        u16::to_le_bytes(addr).to_vec()
-    };
     let messages = vec![
         EcParamsI2cPassthruMsg {
             addr_and_flags: i2c_addr,
@@ -112,7 +134,7 @@ pub fn i2c_read(
     let mut buffer: Vec<u8> = vec![0; params_len + msgs_len + addr_bytes.len()];
     buffer[0..params_len].copy_from_slice(params_buffer);
     buffer[params_len..params_len + msgs_len].copy_from_slice(msgs_buffer);
-    buffer[params_len + msgs_len..].copy_from_slice(&addr_bytes);
+    buffer[params_len + msgs_len..].copy_from_slice(addr_bytes);
 
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
     let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
