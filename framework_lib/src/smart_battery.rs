@@ -213,8 +213,9 @@ fn hex_encode(data: &[u8]) -> String {
 }
 
 fn hex_decode(s: &str) -> Vec<u8> {
-    s.as_bytes()
-        .chunks_exact(2)
+    let (pairs, _) = s.as_bytes().as_chunks::<2>();
+    pairs
+        .iter()
         .filter_map(|pair| {
             let pair = core::str::from_utf8(pair).ok()?;
             u8::from_str_radix(pair, 16).ok()
