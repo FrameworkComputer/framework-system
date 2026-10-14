@@ -1159,12 +1159,28 @@ fn flash_ec(ec: &CrosEc, ec_bin_path: &str, flash_type: EcFlashType, dry_run: bo
 }
 
 fn dump_ec_flash(ec: &CrosEc, dump_path: &str) {
-    let flash_bin = ec.get_entire_ec_flash().unwrap();
+    // Create the file before the slow flash read, so a bad path is reported
+    // right away instead of after dumping all of it
+    #[cfg(not(feature = "uefi"))]
+    let mut file = match fs::File::create(dump_path) {
+        Ok(file) => file,
+        Err(err) => {
+            error!("Failed to create {}: {}", dump_path, err);
+            return;
+        }
+    };
+
+    let flash_bin = match ec.get_entire_ec_flash() {
+        Ok(flash_bin) => flash_bin,
+        Err(err) => {
+            error!("Failed to read EC flash: {:?}", err);
+            return;
+        }
+    };
 
     #[cfg(not(feature = "uefi"))]
-    {
-        let mut file = fs::File::create(dump_path).unwrap();
-        file.write_all(&flash_bin).unwrap();
+    if let Err(err) = file.write_all(&flash_bin) {
+        error!("Failed to write {}: {}", dump_path, err);
     }
     #[cfg(feature = "uefi")]
     {
