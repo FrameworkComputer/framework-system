@@ -363,7 +363,7 @@ Show saved EC panic info
 Hash a file of arbitrary data
 .TP
 \fB\-\-driver\fR \fI<DRIVER>\fR
-Select which driver is used. By default portio is used
+Select which driver is used to talk to the EC. Defaults to the first available one
 .br
 
 .br
@@ -373,8 +373,6 @@ Select which driver is used. By default portio is used
 portio
 .IP \(bu 2
 cros\-ec
-.IP \(bu 2
-windows
 .RE
 .TP
 \fB\-\-pd\-addrs\fR \fI<PD_ADDRS>...\fR

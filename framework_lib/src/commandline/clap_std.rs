@@ -329,7 +329,7 @@ struct ClapCli {
     #[arg(long)]
     hash: Option<std::path::PathBuf>,
 
-    /// Select which driver is used. By default portio is used
+    /// Select which driver is used to talk to the EC. Defaults to the first available one
     #[clap(value_enum)]
     #[arg(long)]
     driver: Option<CrosEcDriverType>,

@@ -57,7 +57,7 @@ _framework_tool() {
 '--reboot-ec=[Control EC RO/RW jump]:REBOOT_EC:(reboot jump-ro jump-rw cancel-jump disable-jump)' \
 '--ec-hib-delay=[Get or set EC hibernate delay (S5 to G3)]::EC_HIB_DELAY:_default' \
 '--hash=[Hash a file of arbitrary data]:HASH:_files' \
-'--driver=[Select which driver is used. By default portio is used]:DRIVER:(portio cros-ec windows)' \
+'--driver=[Select which driver is used to talk to the EC. Defaults to the first available one]:DRIVER:(portio cros-ec)' \
 '*--pd-addrs=[Specify I2C addresses of the PD chips (Advanced)]:PD_ADDRS:_default:PD_ADDRS:_default:PD_ADDRS:_default' \
 '*--pd-ports=[Specify I2C ports of the PD chips (Advanced)]:PD_PORTS:_default:PD_PORTS:_default:PD_PORTS:_default' \
 '--flash-gpu-descriptor-file=[File to write to the gpu EEPROM]:FLASH_GPU_DESCRIPTOR_FILE:_files' \

@@ -198,7 +198,7 @@ _framework_tool() {
                     return 0
                     ;;
                 --driver)
-                    COMPREPLY=($(compgen -W "portio cros-ec windows" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "portio cros-ec" -- "${cur}"))
                     return 0
                     ;;
                 --pd-addrs)

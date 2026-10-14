@@ -69,9 +69,8 @@ cancel-jump\t''
 disable-jump\t''"
 complete -c framework_tool -l ec-hib-delay -d 'Get or set EC hibernate delay (S5 to G3)' -r
 complete -c framework_tool -l hash -d 'Hash a file of arbitrary data' -r -F
-complete -c framework_tool -l driver -d 'Select which driver is used. By default portio is used' -r -f -a "portio\t''
-cros-ec\t''
-windows\t''"
+complete -c framework_tool -l driver -d 'Select which driver is used to talk to the EC. Defaults to the first available one' -r -f -a "portio\t''
+cros-ec\t''"
 complete -c framework_tool -l pd-addrs -d 'Specify I2C addresses of the PD chips (Advanced)' -r
 complete -c framework_tool -l pd-ports -d 'Specify I2C ports of the PD chips (Advanced)' -r
 complete -c framework_tool -l flash-gpu-descriptor-file -d 'File to write to the gpu EEPROM' -r -F
