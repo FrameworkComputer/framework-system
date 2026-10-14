@@ -244,6 +244,12 @@ impl PdController {
                     err
                 )));
             }
+            // Don't loop forever if the EC doesn't return any data
+            if i2c_response.data.is_empty() {
+                return Err(EcError::DeviceError(
+                    "I2C read returned no data".to_string(),
+                ));
+            }
             data.extend(i2c_response.data);
         }
 
