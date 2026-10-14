@@ -145,6 +145,14 @@ jobs:
         cargo build -p framework_tool
         cargo build -p framework_tool --release --features nvidia,smartmontools
 
+    # The lints and test jobs only run on Linux, so they never see the
+    # cfg(windows) code. Lint and test it here instead.
+    - name: Run cargo clippy (Windows)
+      run: cargo clippy -p framework_lib -p framework_tool --all-targets -- -D warnings
+
+    - name: Run cargo test (Windows)
+      run: cargo test -p framework_lib
+
     - name: Check if Windows tool can start
       run: target/release/framework_tool.exe --help
 
