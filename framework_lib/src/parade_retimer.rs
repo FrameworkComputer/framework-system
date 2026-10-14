@@ -1,10 +1,11 @@
+use alloc::string::ToString;
 use alloc::vec::Vec;
 use num_traits::FromPrimitive;
 
 use crate::chromium_ec::command::EcRequestRaw;
 use crate::chromium_ec::commands::{EcRequestGetGpuPcie, GpuVendor};
 use crate::chromium_ec::i2c_passthrough::*;
-use crate::chromium_ec::{CrosEc, EcResult};
+use crate::chromium_ec::{CrosEc, EcError, EcResult};
 use crate::os_specific;
 
 pub fn get_version(ec: &CrosEc) -> EcResult<Option<Vec<u8>>> {
@@ -35,13 +36,16 @@ pub fn get_version(ec: &CrosEc) -> EcResult<Option<Vec<u8>>> {
         i2c_response.i2c_status,
         i2c_response.data.len()
     );
-    if i2c_response.i2c_status == 0x01 {
-        // NAK
+    // We know the retimer is there, because the EC reported a compatible dGPU.
+    // So if it doesn't answer, report that instead of pretending it doesn't exist.
+    if let Err(err) = i2c_response.is_successful() {
         warn!("Unable to communicate with dGPU Retimer. Try to force it on by plugging a cable into the dGPU");
+        return Err(err);
     }
     let Some(&safe_mode) = i2c_response.data.first() else {
-        info!("Failed to read retimer safe mode status (empty response)");
-        return Ok(None);
+        return Err(EcError::DeviceError(
+            "Retimer did not return the safe mode status".to_string(),
+        ));
     };
     info!("Retimer safe mode status: {}", safe_mode);
     if safe_mode == 0 {
@@ -61,6 +65,7 @@ pub fn get_version(ec: &CrosEc) -> EcResult<Option<Vec<u8>>> {
 
     // Read version
     let i2c_response = i2c_read(ec, i2c_port, (i2c_addr + 18) >> 1, 0x01, 0x04)?;
+    i2c_response.is_successful()?;
 
     Ok(Some(i2c_response.data))
 }
