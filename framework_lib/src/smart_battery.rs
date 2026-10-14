@@ -1060,36 +1060,6 @@ impl SmartBattery {
         data.design_voltage = self.read_i16(ec, SmartBatReg::DesignVoltage as u16)?;
         data.device_chemistry = self.read_string(ec, SmartBatReg::DeviceChemistry as u16)?;
 
-        // ManufacturerAccess block reads (typically readable in SEALED mode)
-        data.state_of_health = self
-            .read_bytes(ec, ManufReg::Soh as u16, 4)
-            .unwrap_or_default();
-        data.operation_status = self
-            .read_i32(ec, ManufReg::OperationStatus as u16)
-            .unwrap_or(0);
-        data.safety_alert = self.read_i32(ec, ManufReg::SafetyAlert as u16).unwrap_or(0);
-        data.safety_status = self
-            .read_i32(ec, ManufReg::SafetyStatus as u16)
-            .unwrap_or(0);
-        data.pf_alert = self.read_i32(ec, ManufReg::PFAlert as u16).unwrap_or(0);
-        data.pf_status = self.read_i32(ec, ManufReg::PFStatus as u16).unwrap_or(0);
-        data.lifetime1 = self
-            .read_bytes(ec, ManufReg::LifeTimeDataBlock1 as u16, 32)
-            .unwrap_or_default();
-        data.lifetime2 = self
-            .read_block(ec, ManufReg::LifeTimeDataBlock2 as u16, 20)
-            .unwrap_or_default();
-        data.lifetime3 = self
-            .read_block(ec, ManufReg::LifeTimeDataBlock3 as u16, 16)
-            .unwrap_or_default();
-        data.lifetime4 = self
-            .read_block(ec, ManufReg::LifeTimeDataBlock4 as u16, 32)
-            .unwrap_or_default();
-        data.lifetime5 = self
-            .read_block(ec, ManufReg::LifeTimeDataBlock5 as u16, 32)
-            .unwrap_or_default();
-
-        // Unseal for registers that need it (re-read with full access)
         if let Some(key) = unseal_key {
             self.unseal(ec, (key >> 16) as u16, key as u16)?;
 
@@ -1098,6 +1068,36 @@ impl SmartBattery {
             let seal_result = self.seal(ec);
             result?;
             seal_result?;
+        } else {
+            // The TRM (SLUUCH2) lists these as not accessible in SEALED mode and the gauge
+            // NAKs them. Try anyway, in case a pack's firmware allows it, but ignore errors.
+            data.state_of_health = self
+                .read_bytes(ec, ManufReg::Soh as u16, 4)
+                .unwrap_or_default();
+            data.operation_status = self
+                .read_i32(ec, ManufReg::OperationStatus as u16)
+                .unwrap_or(0);
+            data.safety_alert = self.read_i32(ec, ManufReg::SafetyAlert as u16).unwrap_or(0);
+            data.safety_status = self
+                .read_i32(ec, ManufReg::SafetyStatus as u16)
+                .unwrap_or(0);
+            data.pf_alert = self.read_i32(ec, ManufReg::PFAlert as u16).unwrap_or(0);
+            data.pf_status = self.read_i32(ec, ManufReg::PFStatus as u16).unwrap_or(0);
+            data.lifetime1 = self
+                .read_bytes(ec, ManufReg::LifeTimeDataBlock1 as u16, 32)
+                .unwrap_or_default();
+            data.lifetime2 = self
+                .read_block(ec, ManufReg::LifeTimeDataBlock2 as u16, 20)
+                .unwrap_or_default();
+            data.lifetime3 = self
+                .read_block(ec, ManufReg::LifeTimeDataBlock3 as u16, 16)
+                .unwrap_or_default();
+            data.lifetime4 = self
+                .read_block(ec, ManufReg::LifeTimeDataBlock4 as u16, 32)
+                .unwrap_or_default();
+            data.lifetime5 = self
+                .read_block(ec, ManufReg::LifeTimeDataBlock5 as u16, 32)
+                .unwrap_or_default();
         }
 
         Ok(data)
