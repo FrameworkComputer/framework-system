@@ -97,7 +97,8 @@ pub fn read_memory(offset: u16, length: u16) -> EcResult<Vec<u8>> {
     let const_ptr = &mut rm as *const _ as *const ::core::ffi::c_void;
     let mut_ptr = &mut rm as *mut _ as *mut ::core::ffi::c_void;
     let ptr_size = std::mem::size_of::<CrosEcReadMem>() as u32;
-    let retb: u32 = 0;
+    // DeviceIoControl requires a non-NULL lpBytesReturned when lpOverlapped is NULL
+    let mut returned: u32 = 0;
     unsafe {
         let device = DEVICE.lock().unwrap();
         let device = if let Some(device) = *device {
@@ -112,7 +113,7 @@ pub fn read_memory(offset: u16, length: u16) -> EcResult<Vec<u8>> {
             ptr_size,
             Some(mut_ptr),
             ptr_size,
-            Some(retb as *mut u32),
+            Some(&mut returned),
             None,
         )
         .unwrap();
