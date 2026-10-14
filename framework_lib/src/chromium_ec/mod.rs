@@ -2140,11 +2140,19 @@ impl CrosEc {
     }
 }
 
+/// Drivers that can be built for the current platform
+///
+/// Only gated by OS, not by architecture, so that there's always at least one
+/// variant. Whether the driver is actually usable on this machine is decided by
+/// `available_drivers`.
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
 #[derive(Clone, Debug, Copy, PartialEq)]
 pub enum CrosEcDriverType {
+    #[cfg(not(windows))]
     Portio,
+    #[cfg(target_os = "linux")]
     CrosEc,
+    #[cfg(windows)]
     Windows,
 }
 
@@ -2173,6 +2181,9 @@ impl CrosEcDriver for CrosEc {
         }
 
         // TODO: Change this function to return EcResult instead and print the error only in UI code
+        // The catch-all arm is unreachable unless a variant is built without its driver,
+        // which only happens for Portio on non-x86_64
+        #[allow(unreachable_patterns)]
         print_err(match self.driver {
             #[cfg(all(not(windows), target_arch = "x86_64"))]
             Some(CrosEcDriverType::Portio) => portio::read_memory(offset, length),
@@ -2204,6 +2215,7 @@ impl CrosEcDriver for CrosEc {
             )));
         }
 
+        #[allow(unreachable_patterns)]
         match self.driver {
             #[cfg(all(not(windows), target_arch = "x86_64"))]
             Some(CrosEcDriverType::Portio) => portio::send_command(command, command_version, data),
