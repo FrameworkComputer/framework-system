@@ -789,26 +789,12 @@ impl SmartBattery {
     }
 
     fn unseal(&self, ec: &CrosEc, key1: u16, key2: u16) -> EcResult<()> {
-        i2c_write_block(
-            ec,
-            self.i2c_port,
-            self.i2c_addr >> 1,
-            0x00,
-            &key2.to_le_bytes(),
-        )?;
-        i2c_write_block(
-            ec,
-            self.i2c_port,
-            self.i2c_addr >> 1,
-            0x00,
-            &key1.to_le_bytes(),
-        )?;
-        Ok(())
+        self.smbus_write_block(ec, 0x00, &key2.to_le_bytes())?;
+        self.smbus_write_block(ec, 0x00, &key1.to_le_bytes())
     }
 
     fn seal(&self, ec: &CrosEc) -> EcResult<()> {
-        i2c_write_block(ec, self.i2c_port, self.i2c_addr >> 1, 0x00, &[0x30, 0x00])?;
-        Ok(())
+        self.smbus_write_block(ec, 0x00, &[0x30, 0x00])
     }
 
     /// Raw I2C read without SMBus block length prefix handling.
@@ -873,15 +859,22 @@ impl SmartBattery {
     }
 
     fn smbus_write_block(&self, ec: &CrosEc, reg: u8, data: &[u8]) -> EcResult<()> {
-        i2c_write_block(ec, self.i2c_port, self.i2c_addr >> 1, reg, data)?;
-        Ok(())
+        i2c_write_block(ec, self.i2c_port, self.i2c_addr >> 1, reg, data)?.is_successful()
     }
 
     /// Read a ManufacturerAccess block command by writing the sub-command
-    /// to register 0x00 and reading the response from 0x44
+    /// to register 0x00 and reading the response from 0x44.
+    /// The response starts with the sub-command it belongs to.
     fn mac_read(&self, ec: &CrosEc, subcmd: u16, max_len: u16) -> EcResult<Vec<u8>> {
         self.smbus_write_block(ec, 0x00, &subcmd.to_le_bytes())?;
-        self.read_block(ec, 0x44, max_len)
+        let data = self.read_block(ec, 0x44, max_len)?;
+        if data.get(..2) != Some(&subcmd.to_le_bytes()[..]) {
+            return Err(EcError::DeviceError(format!(
+                "MAC 0x{:04X} response is for a different command: {:02X?}",
+                subcmd, data
+            )));
+        }
+        Ok(data)
     }
 
     /// Authenticate the battery using SHA-1 HMAC challenge-response
