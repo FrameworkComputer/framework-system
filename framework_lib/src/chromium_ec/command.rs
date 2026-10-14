@@ -201,12 +201,7 @@ pub trait EcRequestRaw<R> {
         Self: Sized,
     {
         let response = self.send_command_vec_extra(ec, extra_data)?;
-        // TODO: The Windows driver seems to return 20 more bytes than expected
-        #[cfg(windows)]
-        let expected = response.len() != std::mem::size_of::<R>() + 20;
-        #[cfg(not(windows))]
-        let expected = response.len() != std::mem::size_of::<R>();
-        if expected {
+        if response.len() != std::mem::size_of::<R>() {
             return Err(EcError::DeviceError(format!(
                 "Returned data size ({}) is not the expted size: {}",
                 response.len(),
