@@ -169,10 +169,15 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
         Some(status) => return Err(EcError::Response(status)),
     }
 
-    // TODO: Figure out why that's sometimes bigger
-    let end = std::cmp::min(returned, CROSEC_CMD_MAX_REQUEST as u32);
+    // The driver reports how many bytes of CROSEC_COMMAND it filled in, which includes its
+    // 20 byte header. But cmd.buffer already starts after that header, so subtract it to get
+    // the length of the EC response itself.
+    // Otherwise we'd return 20 bytes of leftover request data after the response.
+    let crosec_header_len = buf_size - CROSEC_CMD_MAX_REQUEST;
+    let data_len = (returned as usize).saturating_sub(crosec_header_len);
+    let end = std::cmp::min(data_len, CROSEC_CMD_MAX_REQUEST);
 
-    let out_buffer = &cmd.buffer[..(end as usize)];
+    let out_buffer = &cmd.buffer[..end];
     Ok(out_buffer.to_vec())
 }
 

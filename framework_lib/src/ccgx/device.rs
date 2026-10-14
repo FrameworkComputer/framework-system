@@ -10,7 +10,7 @@ use core::prelude::rust_2021::derive;
 use crate::ccgx::{AppVersion, BaseVersion, ControllerVersion};
 use crate::chromium_ec::i2c_passthrough::*;
 use crate::chromium_ec::{CrosEc, EcError, EcResult};
-use crate::util::{assert_win_len, Config, Platform};
+use crate::util::{Config, Platform};
 
 use super::*;
 
@@ -281,7 +281,7 @@ impl PdController {
 
     pub fn get_silicon_id(&self) -> EcResult<u16> {
         let data = self.ccgx_read(ControlRegisters::SiliconId, 2)?;
-        assert_win_len(data.len(), 2);
+        assert_eq!(data.len(), 2);
         Ok(u16::from_le_bytes([data[0], data[1]]))
     }
 
@@ -342,7 +342,7 @@ impl PdController {
             }
         };
 
-        assert_win_len(data.len(), 8);
+        assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::from(&data[4..]);
         println!(
@@ -352,7 +352,7 @@ impl PdController {
 
         let data = self.ccgx_read(ControlRegisters::Firmware1Version, 8);
         let data = data.unwrap();
-        assert_win_len(data.len(), 8);
+        assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::from(&data[4..]);
         println!(
@@ -362,7 +362,7 @@ impl PdController {
 
         let data = self.ccgx_read(ControlRegisters::Firmware2Version, 8);
         let data = data.unwrap();
-        assert_win_len(data.len(), 8);
+        assert_eq!(data.len(), 8);
         let base_ver = BaseVersion::from(&data[..4]);
         let app_ver = AppVersion::from(&data[4..]);
         println!(
@@ -387,7 +387,7 @@ impl PdController {
 
     pub fn get_port_status(&self) -> EcResult<u8> {
         let data = self.ccgx_read(ControlRegisters::PdPortsEnable, 1)?;
-        assert_win_len(data.len(), 1);
+        assert_eq!(data.len(), 1);
         Ok(data[0])
     }
 }
