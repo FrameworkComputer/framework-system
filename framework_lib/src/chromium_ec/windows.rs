@@ -115,7 +115,7 @@ pub fn read_memory(offset: u16, length: u16) -> EcResult<Vec<u8>> {
             Some(&mut returned),
             None,
         )
-        .unwrap();
+        .map_err(|err| EcError::DeviceError(format!("IOCTL_CROSEC_RDMEM failed with {:?}", err)))?;
     }
     let output = &rm.buffer[..(length as usize)];
     Ok(output.to_vec())
@@ -160,7 +160,7 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
             Some(&mut returned),
             None,
         )
-        .unwrap();
+        .map_err(|err| EcError::DeviceError(format!("IOCTL_CROSEC_XCMD failed with {:?}", err)))?;
     }
 
     match FromPrimitive::from_u32(cmd.result) {
