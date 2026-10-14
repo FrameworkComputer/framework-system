@@ -451,7 +451,7 @@ impl CrosEc {
         let limits = &[ChargeLimitControlModes::Set as u8, max, min];
         let data = self.send_command(EcCommands::ChargeLimitControl as u16, 0, limits)?;
 
-        util::assert_win_len(data.len(), 0);
+        assert_eq!(data.len(), 0);
 
         Ok(())
     }
@@ -515,7 +515,7 @@ impl CrosEc {
         let limits = &[percentage, 0x00];
         let data = self.send_command(EcCommands::FpLedLevelControl as u16, 1, limits)?;
 
-        util::assert_win_len(data.len(), 0);
+        assert_eq!(data.len(), 0);
 
         Ok(())
     }
@@ -526,7 +526,7 @@ impl CrosEc {
         let limits = &[level as u8, 0x00];
         let data = self.send_command(EcCommands::FpLedLevelControl as u16, 0, limits)?;
 
-        util::assert_win_len(data.len(), 0);
+        assert_eq!(data.len(), 0);
 
         Ok(())
     }

@@ -253,7 +253,7 @@ pub fn i2c_write_block(
 
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
     let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
-    util::assert_win_len(data.len(), size_of::<_EcI2cPassthruResponse>()); // No extra data other than the header
+    assert_eq!(data.len(), size_of::<_EcI2cPassthruResponse>()); // No extra data other than the header
 
     // Only assert message count if the transfer was successful
     // On error (NAK/timeout), the EC may return 0 messages processed
@@ -305,7 +305,7 @@ pub fn i2c_write(
 
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
     let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
-    util::assert_win_len(data.len(), size_of::<_EcI2cPassthruResponse>()); // No extra data other than the header
+    assert_eq!(data.len(), size_of::<_EcI2cPassthruResponse>()); // No extra data other than the header
 
     // Only assert message count if the transfer was successful
     // On error (NAK/timeout), the EC may return 0 messages processed
