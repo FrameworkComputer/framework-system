@@ -138,17 +138,26 @@ fn i2c_read_impl(
 
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
     let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
+    // The EC only returns as many bytes as it managed to read.
+    // On NAK or timeout that's less than requested, possibly nothing at all.
     let res_data = &data[size_of::<_EcI2cPassthruResponse>()..];
     // TODO: Seems to be either one, non-deterministically
     debug_assert!(res.messages as usize == messages.len() || res.messages == 0);
+    let i2c_status = res.i2c_status;
+    trace!(
+        "  i2c_read response (status: 0x{:02X}, len: {}, data: {:#04X?})",
+        i2c_status,
+        res_data.len(),
+        res_data
+    );
     Ok(EcI2cPassthruResponse {
-        i2c_status: res.i2c_status,
+        i2c_status,
         data: res_data.to_vec(),
     })
 }
 
 /// I2C read with 16-bit addressing (for larger EEPROMs like 24C32+)
-/// Always sends a 2-byte address, even for addr=0
+/// Always sends a 2-byte address (MSB first), even for addr=0
 pub fn i2c_read_16bit_addr(
     ec: &CrosEc,
     i2c_port: u8,
@@ -156,62 +165,7 @@ pub fn i2c_read_16bit_addr(
     addr: u16,
     len: u16,
 ) -> EcResult<EcI2cPassthruResponse> {
-    trace!(
-        "i2c_read_16bit_addr(i2c_port: 0x{:X}, i2c_addr: 0x{:X}, addr: 0x{:X}, len: 0x{:X})",
-        i2c_port,
-        i2c_addr,
-        addr,
-        len
-    );
-    if usize::from(len) > MAX_I2C_CHUNK {
-        return EcResult::Err(EcError::DeviceError(format!(
-            "i2c_read too long. Must be <128, is: {}",
-            len
-        )));
-    }
-    // Always use 16-bit addressing (big-endian for EEPROM)
-    let addr_bytes = u16::to_be_bytes(addr).to_vec();
-    let messages = vec![
-        EcParamsI2cPassthruMsg {
-            addr_and_flags: i2c_addr,
-            transfer_len: addr_bytes.len() as u16,
-        },
-        EcParamsI2cPassthruMsg {
-            addr_and_flags: i2c_addr + I2C_READ_FLAG,
-            transfer_len: len, // How much to read
-        },
-    ];
-    let msgs_len = size_of::<EcParamsI2cPassthruMsg>() * messages.len();
-    let msgs_buffer: &[u8] = unsafe { util::any_vec_as_u8_slice(&messages) };
-
-    let params = EcParamsI2cPassthru {
-        port: i2c_port,
-        messages: messages.len() as u8,
-        msg: [], // Messages are copied right after this struct
-    };
-    let params_len = size_of::<EcParamsI2cPassthru>();
-    let params_buffer: &[u8] = unsafe { util::any_as_u8_slice(&params) };
-
-    let mut buffer: Vec<u8> = vec![0; params_len + msgs_len + addr_bytes.len()];
-    buffer[0..params_len].copy_from_slice(params_buffer);
-    buffer[params_len..params_len + msgs_len].copy_from_slice(msgs_buffer);
-    buffer[params_len + msgs_len..].copy_from_slice(&addr_bytes);
-
-    let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
-    let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
-    let header_len: usize = size_of::<_EcI2cPassthruResponse>();
-    /* Note on windows, you can get extra bytes back, so truncate this to the requested size */
-    let res_data = &data[header_len..(len as usize + header_len)];
-    debug_assert!(res.messages as usize == messages.len() || res.messages == 0);
-    trace!(
-        "  i2c_read_16bit_addr response (len: {}, data: {:#04X?})",
-        res_data.len(),
-        res_data.to_vec()
-    );
-    Ok(EcI2cPassthruResponse {
-        i2c_status: res.i2c_status,
-        data: res_data.to_vec(),
-    })
+    i2c_read_impl(ec, i2c_port, i2c_addr, &u16::to_be_bytes(addr), len)
 }
 
 /* Write address and bytes in a single I2C transfer */
