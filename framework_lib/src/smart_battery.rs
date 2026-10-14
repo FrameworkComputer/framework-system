@@ -1190,13 +1190,15 @@ pub fn display_battery_data(data: &BatteryData) {
     }
     if data.firmware_version.len() >= 6 {
         // MAC 0x0002 response: [subcmd_echo(2), device_num(2), fw_ver(2), build(2), ...]
+        // Unlike other MAC responses, these fields are big endian (DDddVVvvBBbb in the TRM).
+        // For example 45 00 03 09 00 49 is device 0x4500, FW 03.09, build 0x0049
         let fw = &data.firmware_version;
-        let device_num = u16::from_le_bytes([fw[2], fw[3]]);
+        let device_num = u16::from_be_bytes([fw[2], fw[3]]);
         // Version is hex coded, e.g. 0x0110 is 1.10
-        let fw_major = fw[5];
-        let fw_minor = fw[4];
+        let fw_major = fw[4];
+        let fw_minor = fw[5];
         let build = if fw.len() >= 8 {
-            format!(" Build=0x{:04X}", u16::from_le_bytes([fw[6], fw[7]]))
+            format!(" Build=0x{:04X}", u16::from_be_bytes([fw[6], fw[7]]))
         } else {
             String::new()
         };
