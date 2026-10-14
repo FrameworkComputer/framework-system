@@ -106,8 +106,8 @@ fn i2c_read_impl(
     );
     if usize::from(len) > MAX_I2C_CHUNK {
         return EcResult::Err(EcError::DeviceError(format!(
-            "i2c_read too long. Must be <128, is: {}",
-            len
+            "i2c_read too long. Must be <={}, is: {}",
+            MAX_I2C_CHUNK, len
         )));
     }
     let messages = vec![
