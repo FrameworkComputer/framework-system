@@ -517,16 +517,35 @@ fn active_mode(mode: &FwMode, reference: FwMode) -> &'static str {
     }
 }
 
+/// Whether this system can have a touchscreen and stylus
+///
+/// So far only the Framework Laptop 12 has them.
+#[cfg(feature = "hidapi")]
+fn has_touchscreen() -> bool {
+    smbios::get_platform().and_then(Platform::which_family) == Some(PlatformFamily::Framework12)
+}
+
+/// How often to ask the stylus for its battery level before giving up
+///
+/// The stylus only answers while it's awake, so a few tries are needed. But it
+/// has to be bounded, otherwise this never returns when no stylus is around.
+#[cfg(feature = "hidapi")]
+const STYLUS_BATTERY_TRIES: u32 = 50;
+
 #[cfg(feature = "hidapi")]
 fn print_stylus_battery_level() {
-    loop {
+    if !has_touchscreen() {
+        error!("This system has no stylus");
+        return;
+    }
+    for _ in 0..STYLUS_BATTERY_TRIES {
         if let Some(level) = touchscreen::get_battery_level() {
             println!("Stylus Battery Strength: {}%", level);
             return;
-        } else {
-            debug!("Stylus Battery Strength: Unknown");
         }
+        debug!("Stylus Battery Strength: Unknown");
     }
+    println!("Stylus Battery Strength: Unknown");
 }
 
 fn print_versions(ec: &CrosEc) {
@@ -832,13 +851,9 @@ fn print_versions(ec: &CrosEc) {
     let _ignore_err = print_touchpad_fw_ver();
 
     #[cfg(feature = "hidapi")]
-    {
+    if has_touchscreen() {
         let _ignore_err = touchscreen::print_himax_fw_ver();
-        if smbios::get_platform().and_then(Platform::which_family)
-            == Some(PlatformFamily::Framework12)
-        {
-            let _ignore_err = touchscreen::print_fw_ver();
-        }
+        let _ignore_err = touchscreen::print_fw_ver();
     }
     #[cfg(feature = "hidapi")]
     print_dp_hdmi_details(false);
@@ -1575,7 +1590,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         ec.set_tablet_mode(mode);
     } else if let Some(_enable) = &args.touchscreen_enable {
         #[cfg(feature = "hidapi")]
-        if touchscreen::enable_touch(*_enable).is_none() {
+        if !has_touchscreen() {
+            error!("This system has no touchscreen");
+        } else if touchscreen::enable_touch(*_enable).is_none() {
             error!("Failed to enable/disable touch");
         }
     } else if let Some(_intensity) = &args.haptic_intensity {
