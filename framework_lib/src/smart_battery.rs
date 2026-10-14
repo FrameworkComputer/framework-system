@@ -816,7 +816,7 @@ impl SmartBattery {
     fn read_raw(&self, ec: &CrosEc, addr: u16, len: u16) -> EcResult<Vec<u8>> {
         let i2c_response = i2c_read(ec, self.i2c_port, self.i2c_addr >> 1, addr, len)?;
         i2c_response.is_successful()?;
-        if i2c_response.data.len() < len as usize {
+        if i2c_response.data.len() != len as usize {
             return Err(EcError::DeviceError(format!(
                 "Expected {} bytes but EC returned {} from register 0x{:02X}",
                 len,
@@ -824,7 +824,7 @@ impl SmartBattery {
                 addr
             )));
         }
-        Ok(i2c_response.data[..len as usize].to_vec())
+        Ok(i2c_response.data)
     }
 
     fn read_i16(&self, ec: &CrosEc, addr: u16) -> EcResult<u16> {
