@@ -141,8 +141,9 @@ fn i2c_read_impl(
     // The EC only returns as many bytes as it managed to read.
     // On NAK or timeout that's less than requested, possibly nothing at all.
     let res_data = &data[size_of::<_EcI2cPassthruResponse>()..];
-    // TODO: Seems to be either one, non-deterministically
-    debug_assert!(res.messages as usize == messages.len() || res.messages == 0);
+    // The EC stops at the first message that fails, so it can have processed
+    // any number of messages up to the requested count
+    debug_assert!(res.messages as usize <= messages.len());
     let i2c_status = res.i2c_status;
     trace!(
         "  i2c_read response (status: 0x{:02X}, len: {}, data: {:#04X?})",
