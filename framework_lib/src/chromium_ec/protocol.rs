@@ -106,3 +106,10 @@ pub struct EcHostResponse {
     pub reserved: u16,
 }
 pub const HEADER_LEN: usize = std::mem::size_of::<EcHostResponse>();
+
+/// Biggest request payload that fits into a protocol v3 packet
+///
+/// Every driver has a fixed size request buffer, so anything longer than this
+/// can't be sent no matter which transport is used.
+pub const MAX_REQUEST_DATA_LEN: usize =
+    EC_LPC_HOST_PACKET_SIZE as usize - std::mem::size_of::<EcHostRequest>();
