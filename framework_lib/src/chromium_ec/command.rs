@@ -203,7 +203,7 @@ pub trait EcRequestRaw<R> {
         let response = self.send_command_vec_extra(ec, extra_data)?;
         if response.len() != std::mem::size_of::<R>() {
             return Err(EcError::DeviceError(format!(
-                "Returned data size ({}) is not the expted size: {}",
+                "Returned data size ({}) is not the expected size: {}",
                 response.len(),
                 std::mem::size_of::<R>()
             )));
