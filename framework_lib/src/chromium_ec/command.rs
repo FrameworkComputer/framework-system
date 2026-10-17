@@ -127,6 +127,8 @@ pub enum EcCommands {
     GetPdPortState = 0x3E23,
     /// Read board ID of specific ADC channel
     ReadBoardId = 0x3E26,
+    /// Control PD debug logging, the output goes to the EC console
+    DebugControl = 0x3E2D,
 }
 
 pub trait EcRequest<R> {

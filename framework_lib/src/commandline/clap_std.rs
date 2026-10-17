@@ -16,7 +16,7 @@ use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::{
     Cli, ClickForceArg, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg,
-    LogLevel, RebootEcArg, TabletModeArg,
+    KbdDebugArg, LogLevel, PdDebugArg, RebootEcArg, TabletModeArg,
 };
 
 /// Swiss army knife for Framework laptops
@@ -128,6 +128,16 @@ struct ClapCli {
     /// Enable all ports on a specific PD controller (for debugging only)
     #[arg(long)]
     pd_enable: Option<u8>,
+
+    /// Get or set PD debug logging, read the output via --console
+    #[clap(value_enum)]
+    #[arg(long)]
+    pd_debug: Option<PdDebugArg>,
+
+    /// Get or set keyboard controller debug logging, read the output via --console
+    #[clap(value_enum)]
+    #[arg(long)]
+    kbd_debug: Option<KbdDebugArg>,
 
     /// Show details about connected DP or HDMI Expansion Cards
     #[arg(long)]
@@ -655,6 +665,8 @@ pub fn parse(args: &[String]) -> Cli {
         pd_reset: args.pd_reset,
         pd_disable: args.pd_disable,
         pd_enable: args.pd_enable,
+        pd_debug: args.pd_debug,
+        kbd_debug: args.kbd_debug,
         dp_hdmi_info: args.dp_hdmi_info,
         dp_hdmi_update: args
             .dp_hdmi_update

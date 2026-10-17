@@ -863,6 +863,14 @@ impl CrosEc {
         }
     }
 
+    /// Get or set verbose debug logging flags (see EC_DEBUG_* constants)
+    /// set_mask selects which flags to change, 0 reads without changing.
+    /// Returns the current flags. The log output goes to the EC console.
+    pub fn debug_control(&self, set_mask: u8, flags: u8) -> EcResult<u8> {
+        let res = EcRequestDebugControl { set_mask, flags }.send_command(self)?;
+        Ok(res.flags)
+    }
+
     /// Set tablet mode
     pub fn set_tablet_mode(&self, mode: TabletModeOverride) {
         let mode = mode as u8;
