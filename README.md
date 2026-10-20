@@ -190,6 +190,7 @@ All of these need EC communication support in order to work.
 - [x] Framework Laptop 16 (AMD Ryzen 7080)
 - [x] Framework Laptop 16 (AMD Ryzen AI 300)
 - [x] Framework Desktop (AMD Ryzen AI Max 300)
+- [x] Framework Desktop (AMD Ryzen AI Max 400)
 - [x] Port I/O communication on Linux
 - [x] Port I/O communication in UEFI
 - [x] Port I/O communication on FreeBSD

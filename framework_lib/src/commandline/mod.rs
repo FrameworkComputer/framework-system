@@ -2715,6 +2715,9 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
         esrt::DESKTOP_AMD_AI300_BIOS_GUID => {
             println!("  Type:         Framework Desktop (AMD Ryzen AI Max 300) Insyde BIOS");
         }
+        esrt::DESKTOP_AMD_AI400_BIOS_GUID => {
+            println!("  Type:         Framework Desktop (AMD Ryzen AI Max 400) Insyde BIOS");
+        }
         esrt::TGL_RETIMER01_GUID => {
             println!("  Type:    Framework TGL Retimer01 (Right)");
         }
