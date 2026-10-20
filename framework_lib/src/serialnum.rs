@@ -61,7 +61,7 @@ impl FromStr for FrameworkSerial {
     // TODO: !!! PROPER ERROR HANDLING !!!
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let pattern =
-            r"FRA([A-Z]{3})([A-Z]{2})([0-9A-F])([0-9A-F])([0-9A-Z])([0-9]{2})([0-7])([0-9A-Z]{4})";
+            r"FRA([A-Z]{3})([A-Z]{2})([0-9A-F])([0-9A-F])([0-9])([0-9]{2})([0-7])([0-9A-Z]{4})";
         let re = regex::Regex::new(pattern).unwrap();
 
         let caps = re.captures(s).ok_or("Invalid Serial".to_string())?;
@@ -101,5 +101,15 @@ impl FromStr for FrameworkSerial {
             day,
             part: caps.get(2).unwrap().as_str().to_string(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn non_numeric_year() {
+        assert!(FrameworkSerial::from_str("FRANBDCP71X4040001").is_err());
     }
 }
