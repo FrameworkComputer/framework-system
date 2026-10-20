@@ -364,6 +364,11 @@ enum SmbiosSerialNumber {
 pub fn dump_oem_strings(strings: StructureStrings) {
     for (i, s) in strings.enumerate() {
         let idx = i + 1;
+        // Unprogrammed entries are all zeros or "*" padded with spaces
+        let trimmed = s.trim();
+        if trimmed.is_empty() || trimmed == "*" || trimmed.chars().all(|c| c == '0') {
+            continue;
+        }
         let sn = if get_family() == Some(PlatformFamily::FrameworkDesktop) {
             match idx {
                 1 => Some(SmbiosSerialNumber::Mainboard),
