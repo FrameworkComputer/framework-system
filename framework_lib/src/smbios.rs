@@ -336,8 +336,10 @@ enum SmbiosSerialNumber {
     Fingerprint,
     AudioDaughtercard,
     ACover,
-    BCover,
+    Bezel,
     CCover,
+    MidPlate,
+    DCover,
     AntennaMain,
     AntennaAux,
     TouchpadFpc,
@@ -398,9 +400,13 @@ pub fn dump_oem_strings(strings: StructureStrings) {
                 7 => Some(SmbiosSerialNumber::Keyboard),
                 8 => Some(SmbiosSerialNumber::Fingerprint),
                 9 => Some(SmbiosSerialNumber::AudioDaughtercard),
-                11 => Some(SmbiosSerialNumber::ACover),
-                12 => Some(SmbiosSerialNumber::BCover),
-                13 => Some(SmbiosSerialNumber::CCover),
+                10 => Some(SmbiosSerialNumber::ACover),
+                11 => Some(SmbiosSerialNumber::Bezel),
+                12 if get_family() == Some(PlatformFamily::Framework16) => {
+                    Some(SmbiosSerialNumber::MidPlate)
+                }
+                12 => Some(SmbiosSerialNumber::CCover),
+                13 => Some(SmbiosSerialNumber::DCover),
                 14 => Some(SmbiosSerialNumber::AntennaMain),
                 15 => Some(SmbiosSerialNumber::AntennaAux),
                 16 => Some(SmbiosSerialNumber::TouchpadFpc),
