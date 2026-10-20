@@ -397,7 +397,7 @@ pub fn dump_oem_strings(strings: StructureStrings) {
                 6 => Some(SmbiosSerialNumber::Touchpad),
                 7 => Some(SmbiosSerialNumber::Keyboard),
                 8 => Some(SmbiosSerialNumber::Fingerprint),
-                10 => Some(SmbiosSerialNumber::AudioDaughtercard),
+                9 => Some(SmbiosSerialNumber::AudioDaughtercard),
                 11 => Some(SmbiosSerialNumber::ACover),
                 12 => Some(SmbiosSerialNumber::BCover),
                 13 => Some(SmbiosSerialNumber::CCover),
