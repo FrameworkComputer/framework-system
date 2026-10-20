@@ -100,7 +100,7 @@ impl FromStr for FrameworkSerial {
             year,
             week,
             day,
-            part: caps.get(2).unwrap().as_str().to_string(),
+            part: caps.get(8).unwrap().as_str().to_string(),
         })
     }
 }
@@ -130,5 +130,11 @@ mod tests {
     fn numeric_oem() {
         let serial = FrameworkSerial::from_str("FRANBD00A140550001").unwrap();
         assert_eq!(serial.oem, "00");
+    }
+
+    #[test]
+    fn part() {
+        let serial = FrameworkSerial::from_str("FRANBDCPA14055AB12").unwrap();
+        assert_eq!(serial.part, "AB12");
     }
 }
