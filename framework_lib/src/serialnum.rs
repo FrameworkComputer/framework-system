@@ -61,7 +61,7 @@ impl FromStr for FrameworkSerial {
     // TODO: !!! PROPER ERROR HANDLING !!!
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let pattern =
-            r"FRA([A-Z]{3})([A-Z]{2})([0-9A-F])([0-9A-F])([0-9])([0-9]{2})([0-7])([0-9A-Z]{4})";
+            r"FRA([A-Z]{3})([0-9A-Z]{2})([0-9A-F])([0-9A-Z])([0-9])([0-9]{2})([0-7])([0-9A-Z]{4})";
         let re = regex::Regex::new(pattern).unwrap();
 
         let caps = re.captures(s).ok_or("Invalid Serial".to_string())?;
@@ -118,5 +118,17 @@ mod tests {
     fn hex_cfg0() {
         let serial = FrameworkSerial::from_str("FRANBDCPA140550001").unwrap();
         assert_eq!(serial.cfg0, Cfg0::MassProduction);
+    }
+
+    #[test]
+    fn letter_cfg1() {
+        let serial = FrameworkSerial::from_str("FRANBDCP7H40550001").unwrap();
+        assert_eq!(serial.cfg1, 'H');
+    }
+
+    #[test]
+    fn numeric_oem() {
+        let serial = FrameworkSerial::from_str("FRANBD00A140550001").unwrap();
+        assert_eq!(serial.oem, "00");
     }
 }
