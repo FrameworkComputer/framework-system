@@ -45,6 +45,7 @@ pub fn parse(args: &[String]) -> Cli {
         thermal: false,
         thermalget: false,
         thermalset: None,
+        msr: None,
         sensors: false,
         fansetduty: None,
         fansetrpm: None,
@@ -179,6 +180,21 @@ pub fn parse(args: &[String]) -> Cli {
                 println!(
                     "--thermalset requires 2 to 6 numbers. <SENSOR> <WARN> [<HIGH> [<HALT> [<FAN_OFF> [<FAN_MAX>]]]]"
                 );
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--msr" {
+            cli.msr = if args.len() > i + 1 {
+                if let Some(addr) = parse_hex_or_dec_u32(&args[i + 1]) {
+                    // The CPU number is optional
+                    let cpu = args.get(i + 2).and_then(|arg| parse_hex_or_dec_u32(arg));
+                    Some((addr, cpu))
+                } else {
+                    println!("Invalid MSR address: {}", args[i + 1]);
+                    None
+                }
+            } else {
+                println!("--msr requires an address. <ADDRESS> [<CPU>]");
                 None
             };
             found_an_option = true;
@@ -952,6 +968,14 @@ fn parse_hex_or_dec_u16(s: &str) -> Option<u16> {
         u16::from_str_radix(hex, 16).ok()
     } else {
         s.parse::<u16>().ok()
+    }
+}
+
+fn parse_hex_or_dec_u32(s: &str) -> Option<u32> {
+    if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
+        u32::from_str_radix(hex, 16).ok()
+    } else {
+        s.parse::<u32>().ok()
     }
 }
 

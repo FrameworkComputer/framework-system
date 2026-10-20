@@ -78,6 +78,12 @@ struct ClapCli {
     #[arg(long)]
     thermalset: Vec<i32>,
 
+    /// Read a model specific register (Intel only). Optionally of one CPU:
+    /// <ADDRESS> [<CPU>]
+    #[clap(num_args = 1..=2)]
+    #[arg(long, value_parser=maybe_hex::<u32>, value_names(["ADDRESS", "CPU"]))]
+    msr: Vec<u32>,
+
     /// Print sensor information (ALS, G-Sensor)
     #[arg(long)]
     sensors: bool,
@@ -644,6 +650,11 @@ pub fn parse(args: &[String]) -> Cli {
             None
         } else {
             Some(args.thermalset.clone())
+        },
+        msr: match args.msr.len() {
+            1 => Some((args.msr[0], None)),
+            2 => Some((args.msr[0], Some(args.msr[1]))),
+            _ => None,
         },
         sensors: args.sensors,
         fansetduty,

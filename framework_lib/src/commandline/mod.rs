@@ -54,6 +54,7 @@ use crate::esrt::{self, ResourceType};
 use crate::fw_uefi::enable_page_break;
 #[cfg(feature = "rusb")]
 use crate::inputmodule::check_inputmodule_version;
+use crate::msr;
 #[cfg(all(target_os = "linux", not(feature = "smartmontools")))]
 use crate::nvme;
 use crate::os_specific;
@@ -196,6 +197,8 @@ pub struct Cli {
     pub thermal: bool,
     pub thermalget: bool,
     pub thermalset: Option<Vec<i32>>,
+    /// MSR address and optionally which CPU to read it on
+    pub msr: Option<(u32, Option<u32>)>,
     pub sensors: bool,
     pub fansetduty: Option<(Option<u32>, u32)>,
     pub fansetrpm: Option<(Option<u32>, u32)>,
@@ -297,6 +300,7 @@ pub fn parse(args: &[String]) -> Cli {
             thermal: cli.thermal,
             thermalget: cli.thermalget,
             thermalset: cli.thermalset,
+            msr: cli.msr,
             sensors: cli.sensors,
             // fansetduty
             // fansetrpm
@@ -1753,6 +1757,15 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
         // Show the resulting configuration
         let _ = power::print_thermal_thresholds(&ec);
+    } else if let Some((addr, cpu)) = args.msr {
+        let cpu = cpu.unwrap_or(0);
+        match msr::read_msr(cpu, addr) {
+            Some(value) => println!("CPU {} MSR {:#X}: {:#018X}", cpu, addr, value),
+            None => {
+                println!("Failed to read CPU {} MSR {:#X}", cpu, addr);
+                return 1;
+            }
+        }
     } else if args.sensors {
         power::print_sensors(&ec);
     } else if let Some((fan, percent)) = args.fansetduty {
@@ -2084,6 +2097,8 @@ Options:
       --thermalset <SENSOR> <WARN> [<HIGH> [<HALT> [<FAN_OFF> [<FAN_MAX>]]]]
                              Set thermal thresholds of a sensor in degrees Celsius
                              (-1 keeps the current threshold, 0 disables it)
+      --msr <ADDRESS> [<CPU>]
+                             Read a model specific register (Intel only)
       --sensors              Print sensor information (ALS, G-Sensor)
       --fansetduty           Set fan duty cycle (0-100%)
       --fansetrpm            Set fan RPM (limited by EC fan table max RPM)
