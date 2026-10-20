@@ -78,8 +78,13 @@ impl PdPort {
                 PdPort::Left23,
             ) => 0x40,
             (Platform::Framework16Amd7080 | Platform::Framework16AmdAi300, PdPort::Back) => 0x42,
-            (Platform::FrameworkDesktopAmdAiMax300, PdPort::Back) => 0x08,
-            (Platform::FrameworkDesktopAmdAiMax300, _) => unsupported?,
+            (
+                Platform::FrameworkDesktopAmdAiMax300 | Platform::FrameworkDesktopAmdAiMax400,
+                PdPort::Back,
+            ) => 0x08,
+            (Platform::FrameworkDesktopAmdAiMax300 | Platform::FrameworkDesktopAmdAiMax400, _) => {
+                unsupported?
+            }
             // Framework Intel Platforms (CCG5 and CCG6)
             (
                 Platform::Framework12IntelGen13
@@ -146,8 +151,13 @@ impl PdPort {
                 PdPort::Left23,
             ) => 2,
             (Platform::Framework16Amd7080 | Platform::Framework16AmdAi300, PdPort::Back) => 5,
-            (Platform::FrameworkDesktopAmdAiMax300, PdPort::Back) => 1,
-            (Platform::FrameworkDesktopAmdAiMax300, _) => unsupported?,
+            (
+                Platform::FrameworkDesktopAmdAiMax300 | Platform::FrameworkDesktopAmdAiMax400,
+                PdPort::Back,
+            ) => 1,
+            (Platform::FrameworkDesktopAmdAiMax300 | Platform::FrameworkDesktopAmdAiMax400, _) => {
+                unsupported?
+            }
             (Platform::UnknownSystem, _) => {
                 Err(EcError::DeviceError("Unsupported platform".to_string()))?
             }

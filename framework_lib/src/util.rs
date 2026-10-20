@@ -42,6 +42,8 @@ pub enum Platform {
     Framework16AmdAi300,
     /// Framework Desktop - AMD Ryzen AI Max 300
     FrameworkDesktopAmdAiMax300,
+    /// Framework Desktop - AMD Ryzen AI Max 400
+    FrameworkDesktopAmdAiMax400,
     /// Generic Framework device
     /// pd_addrs, pd_ports
     GenericFramework((u16, u16, u16), (u8, u8, u8)),
@@ -76,7 +78,8 @@ impl Platform {
             | Platform::Framework13AmdAi300
             | Platform::Framework16Amd7080
             | Platform::Framework16AmdAi300
-            | Platform::FrameworkDesktopAmdAiMax300 => Some(CpuVendor::Amd),
+            | Platform::FrameworkDesktopAmdAiMax300
+            | Platform::FrameworkDesktopAmdAiMax400 => Some(CpuVendor::Amd),
             Platform::GenericFramework(..) => None,
             Platform::UnknownSystem => None,
         }
@@ -95,7 +98,9 @@ impl Platform {
             | Platform::Framework13AmdAi300 => Some(PlatformFamily::Framework13),
             Platform::Framework16Amd7080 => Some(PlatformFamily::Framework16),
             Platform::Framework16AmdAi300 => Some(PlatformFamily::Framework16),
-            Platform::FrameworkDesktopAmdAiMax300 => Some(PlatformFamily::FrameworkDesktop),
+            Platform::FrameworkDesktopAmdAiMax300 | Platform::FrameworkDesktopAmdAiMax400 => {
+                Some(PlatformFamily::FrameworkDesktop)
+            }
             Platform::GenericFramework(..) => None,
             Platform::UnknownSystem => None,
         }
