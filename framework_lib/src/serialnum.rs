@@ -66,14 +66,15 @@ impl FromStr for FrameworkSerial {
 
         let caps = re.captures(s).ok_or("Invalid Serial".to_string())?;
 
-        let cfg0 = caps.get(3).unwrap().as_str().chars().next();
-        let cfg0 = cfg0.and_then(|x| str::parse::<u8>(&x.to_string()).ok());
-        let cfg0 = cfg0.and_then(<Cfg0 as FromPrimitive>::from_u8);
+        let cfg0_str = caps.get(3).unwrap().as_str();
+        let cfg0 = u8::from_str_radix(cfg0_str, 16)
+            .ok()
+            .and_then(<Cfg0 as FromPrimitive>::from_u8);
         let cfg0 = if let Some(cfg0) = cfg0 {
             cfg0
         } else {
-            error!("Invalid CFG0 '{:?}'", cfg0);
-            return Err(format!("Invalid CFG0 '{:?}'", cfg0));
+            error!("Invalid CFG0 '{}'", cfg0_str);
+            return Err(format!("Invalid CFG0 '{}'", cfg0_str));
         };
         let cfg1 = caps.get(4).unwrap().as_str().chars().next().unwrap();
         let year = str::parse::<u16>(caps.get(5).unwrap().as_str()).unwrap();
@@ -111,5 +112,11 @@ mod tests {
     #[test]
     fn non_numeric_year() {
         assert!(FrameworkSerial::from_str("FRANBDCP71X4040001").is_err());
+    }
+
+    #[test]
+    fn hex_cfg0() {
+        let serial = FrameworkSerial::from_str("FRANBDCPA140550001").unwrap();
+        assert_eq!(serial.cfg0, Cfg0::MassProduction);
     }
 }
