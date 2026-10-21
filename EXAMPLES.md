@@ -467,7 +467,7 @@ To configure that feeling, it exposes two configuration knobs:
 
 # Set haptic feedback intensity back to default
 # Only 0/off, 25, 50, 75, 100 are accepted
-> framework_tool --haptic-intensity 75
+> framework_tool --haptic-intensity 50
 ```
 
 ```
