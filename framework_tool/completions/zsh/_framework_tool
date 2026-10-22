@@ -80,7 +80,8 @@ _framework_tool() {
 '--sensors[Print sensor information (ALS, G-Sensor)]' \
 '--pdports[Show USB-C PD port state]' \
 '--pdports-chromebook[Show PD port info (generic Chromium EC)]' \
-'--info[Show info from SMBIOS (Only on UEFI)]' \
+'--info[Show info from SMBIOS]' \
+'--serialnums[Show info about system serial numbers]' \
 '--pd-info[Show details about the PD controllers]' \
 '--dp-hdmi-info[Show details about connected DP or HDMI Expansion Cards]' \
 '--audio-card-info[Show details about connected Audio Expansion Cards (Needs root privileges)]' \
