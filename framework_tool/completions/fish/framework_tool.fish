@@ -17,6 +17,14 @@ complete -c framework_tool -l meinfo -d 'Show Intel ME information (from SMBIOS 
 complete -c framework_tool -l pd-reset -d 'Reset a specific PD controller (for debugging only)' -r
 complete -c framework_tool -l pd-disable -d 'Disable all ports on a specific PD controller (for debugging only)' -r
 complete -c framework_tool -l pd-enable -d 'Enable all ports on a specific PD controller (for debugging only)' -r
+complete -c framework_tool -l pd-debug -d 'Get or set PD debug logging, read the output via --console' -r -f -a "status\t''
+off\t''
+verbose\t''
+ucsi\t''
+all\t''"
+complete -c framework_tool -l kbd-debug -d 'Get or set keyboard controller debug logging, read the output via --console' -r -f -a "status\t''
+off\t''
+on\t''"
 complete -c framework_tool -l dp-hdmi-update -d 'Update the DisplayPort or HDMI Expansion Card' -r -F
 complete -c framework_tool -l pd-bin -d 'Parse versions from PD firmware binary file' -r -F
 complete -c framework_tool -l ec-bin -d 'Parse versions from EC firmware binary file' -r -F
