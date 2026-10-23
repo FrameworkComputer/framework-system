@@ -450,6 +450,11 @@ pub fn get_accel_data(ec: &CrosEc) -> (AccelData, AccelData, LidAngle) {
 }
 
 pub fn print_sensors(ec: &CrosEc) {
+    if let Err(err) = ec.check_mem_magic() {
+        println!("Failed to read sensors: {:?}", err);
+        return;
+    }
+
     let mut has_als = false;
     let mut accel_locations = vec![];
 
@@ -509,16 +514,14 @@ pub fn print_sensors(ec: &CrosEc) {
         } else {
             println!("{} Deg", lid_angle);
         }
-        println!(
-            "  {:<12} {}",
-            format!("{:?} Sensor:", accel_locations[0]),
-            AccelData::from(accel_1)
-        );
-        println!(
-            "  {:<12} {}",
-            format!("{:?} Sensor:", accel_locations[1]),
-            AccelData::from(accel_2)
-        );
+        // The location comes from motionsense, which not every EC supports.
+        // Fall back to the index, the memmap only has two accelerometers.
+        let accel_name = |i: usize| match accel_locations.get(i) {
+            Some(location) => format!("{:?} Sensor:", location),
+            None => format!("Sensor {}:", i),
+        };
+        println!("  {:<12} {}", accel_name(0), AccelData::from(accel_1));
+        println!("  {:<12} {}", accel_name(1), AccelData::from(accel_2));
     }
 }
 
@@ -706,6 +709,11 @@ pub fn get_fan_num(ec: &CrosEc) -> EcResult<usize> {
 
 // TODO: Use Result
 pub fn power_info(ec: &CrosEc) -> Option<PowerInfo> {
+    if let Err(err) = ec.check_mem_magic() {
+        error!("Failed to read power info: {:?}", err);
+        return None;
+    }
+
     let battery_flag = ec.read_memory(EC_MEMMAP_BATT_FLAG, 1)?[0];
     debug!("AC/Battery flag: {:#X}", battery_flag);
     let battery_lfcc = read_u32(ec, EC_MEMMAP_BATT_LFCC);
@@ -740,7 +748,7 @@ pub fn power_info(ec: &CrosEc) -> Option<PowerInfo> {
                 last_full_charge_capacity: battery_lfcc,
                 cycle_count,
 
-                charge_percentage: (100 * battery_cap) / battery_lfcc,
+                charge_percentage: charge_percentage(battery_cap, battery_lfcc),
 
                 manufacturer,
                 model_number,
@@ -755,6 +763,18 @@ pub fn power_info(ec: &CrosEc) -> Option<PowerInfo> {
             None
         },
     })
+}
+
+/// Remaining capacity as percentage of the last full charge capacity
+///
+/// Never panics, even for garbage values: a zero full charge capacity gives
+/// 0% and a remaining capacity above the full one is capped at 100%.
+fn charge_percentage(remaining: u32, last_full: u32) -> u32 {
+    if last_full == 0 {
+        return 0;
+    }
+    let percentage = (100 * u64::from(remaining)) / u64::from(last_full);
+    u32::try_from(percentage.min(100)).unwrap_or(100)
 }
 
 // When no battery is present and we're running on AC
@@ -1295,6 +1315,19 @@ pub fn standalone_mode(ec: &CrosEc) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn charge_percentage_never_panics() {
+        assert_eq!(charge_percentage(2500, 5000), 50);
+        assert_eq!(charge_percentage(5000, 5000), 100);
+        // Slightly above full, as batteries sometimes report
+        assert_eq!(charge_percentage(5100, 5000), 100);
+        // Division by zero
+        assert_eq!(charge_percentage(5000, 0), 0);
+        // Garbage memmap, all 0xFF, used to overflow the multiplication
+        assert_eq!(charge_percentage(u32::MAX, u32::MAX), 100);
+        assert_eq!(charge_percentage(u32::MAX, 1), 100);
+    }
 
     #[test]
     fn decode_fan_speed() {
