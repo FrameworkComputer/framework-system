@@ -16,7 +16,7 @@ use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::{
     Cli, ClickForceArg, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg,
-    LogLevel, RebootEcArg, TabletModeArg,
+    LogLevel, OnOffArg, RebootEcArg, TabletModeArg,
 };
 
 /// Swiss army knife for Framework laptops
@@ -204,6 +204,10 @@ struct ClapCli {
     /// Erase the STM32 keyboard controller, leaving keyboard and touchpad dead until flashed (needs --force)
     #[arg(long)]
     stm32_kbd_erase: bool,
+
+    /// Turn Fn Lock on or off on the STM32 keyboard controller
+    #[arg(long)]
+    stm32_kbd_fn_lock: Option<OnOffArg>,
 
     /// Show status of intrusion switch
     #[arg(long)]
@@ -716,6 +720,7 @@ pub fn parse(args: &[String]) -> Cli {
         stm32_kbd_identify: args.stm32_kbd_identify,
         stm32_kbd_reset: args.stm32_kbd_reset,
         stm32_kbd_erase: args.stm32_kbd_erase,
+        stm32_kbd_fn_lock: args.stm32_kbd_fn_lock,
         intrusion: args.intrusion,
         inputdeck: args.inputdeck,
         inputdeck_mode: args.inputdeck_mode,

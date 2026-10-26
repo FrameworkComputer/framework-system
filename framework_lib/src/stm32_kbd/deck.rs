@@ -331,3 +331,37 @@ pub fn set_flags(ec: &CrosEc, mask: u32, value: u32) -> Stm32KbdResult<u32> {
         )),
     }
 }
+
+/// Turn Fn Lock on or off. Returns false if it was in that state already.
+///
+/// Needs firmware with a flag block where Fn Lock is present and writable.
+/// On older firmware [`super::flash`] turns it off as well, because the mass
+/// erase wipes the settings.
+pub fn set_fn_lock(ec: &CrosEc, on: bool) -> Stm32KbdResult<bool> {
+    let refused = |why: &str| Stm32KbdError::new(ErrorKind::Refused, why.to_string());
+    let Some(flags) = get_flags(ec)? else {
+        return Err(refused("this firmware has no flag block"));
+    };
+    if flags.present & FLAG_FN_LOCK == 0 {
+        return Err(refused("this firmware does not implement Fn Lock"));
+    }
+    if flags.writable & FLAG_FN_LOCK == 0 {
+        return Err(refused("Fn Lock is read-only on this firmware"));
+    }
+    if (flags.flags & FLAG_FN_LOCK != 0) == on {
+        return Ok(false);
+    }
+
+    let value = if on { FLAG_FN_LOCK } else { 0 };
+    let result = set_flags(ec, FLAG_FN_LOCK, value)?;
+    if result & FLAG_FN_LOCK != value {
+        return Err(Stm32KbdError::new(
+            ErrorKind::Verify,
+            format!(
+                "Fn Lock is still {} after setting it",
+                if on { "off" } else { "on" }
+            ),
+        ));
+    }
+    Ok(true)
+}

@@ -151,6 +151,13 @@ impl From<ClickForceArg> for crate::touchpad::ClickForce {
 
 #[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub enum OnOffArg {
+    On,
+    Off,
+}
+
+#[cfg_attr(not(feature = "uefi"), derive(clap::ValueEnum))]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum InputDeckModeArg {
     Auto,
     Off,
@@ -226,6 +233,7 @@ pub struct Cli {
     pub stm32_kbd_identify: bool,
     pub stm32_kbd_reset: bool,
     pub stm32_kbd_erase: bool,
+    pub stm32_kbd_fn_lock: Option<OnOffArg>,
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
     pub test_retimer: bool,
@@ -332,6 +340,7 @@ pub fn parse(args: &[String]) -> Cli {
             // stm32_kbd_identify
             // stm32_kbd_reset
             // stm32_kbd_erase
+            // stm32_kbd_fn_lock
             driver: cli.driver,
             test: cli.test,
             test_retimer: cli.test_retimer,
@@ -1204,6 +1213,26 @@ fn stm32_kbd_cmd(ec: &CrosEc, args: &Cli) -> i32 {
             }
             Err(err) => {
                 error!("Failed to erase STM32 keyboard controller: {}", err);
+                1
+            }
+        }
+    } else if let Some(fn_lock) = args.stm32_kbd_fn_lock {
+        let on = fn_lock == OnOffArg::On;
+        let state = if on { "on" } else { "off" };
+        match stm32_kbd::set_fn_lock(ec, on) {
+            Ok(true) => {
+                println!("Fn Lock turned {}", state);
+                0
+            }
+            Ok(false) => {
+                println!("Fn Lock is already {}", state);
+                0
+            }
+            Err(err) => {
+                error!("Failed to turn Fn Lock {}: {}", state, err);
+                if !on && err.kind == stm32_kbd::ErrorKind::Refused {
+                    println!("Reflashing the firmware also turns it off");
+                }
                 1
             }
         }
@@ -2240,6 +2269,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         || args.stm32_kbd_identify
         || args.stm32_kbd_reset
         || args.stm32_kbd_erase
+        || args.stm32_kbd_fn_lock.is_some()
     {
         return stm32_kbd_cmd(&ec, args);
     } else if let Some(hash_file) = &args.hash {
@@ -2384,6 +2414,7 @@ Options:
       --stm32-kbd-identify   Read the STM32 keyboard controller's chip ID from its bootloader
       --stm32-kbd-reset      Restart the STM32 keyboard controller
       --stm32-kbd-erase      Erase the STM32 keyboard controller (needs --force)
+      --stm32-kbd-fn-lock <on|off>  Turn Fn Lock on or off on the STM32 keyboard controller
       --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
       --ec-hib-delay [<SECONDS>]   Get or set EC hibernate delay (S5 to G3)
       --sysinfo              Show system info (reset flags, current image, locked state)

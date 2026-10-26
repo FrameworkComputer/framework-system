@@ -29,6 +29,8 @@ complete -c framework_tool -l flash-ec -d 'Flash EC (RO+RW) with new firmware fr
 complete -c framework_tool -l flash-ro-ec -d 'Flash EC with new RO firmware from file - may render your hardware unbootable!' -r -F
 complete -c framework_tool -l flash-rw-ec -d 'Flash EC with new RW firmware from file' -r -F
 complete -c framework_tool -l flash-stm32-kbd -d 'Flash the STM32 keyboard controller with firmware from an Intel HEX file' -r -F
+complete -c framework_tool -l stm32-kbd-fn-lock -d 'Turn Fn Lock on or off on the STM32 keyboard controller' -r -f -a "on\t''
+off\t''"
 complete -c framework_tool -l inputdeck-mode -d 'Set input deck power mode [possible values: auto, off, on, reset] (Laptop 12, 13, 16)' -r -f -a "auto\t''
 off\t''
 on\t''

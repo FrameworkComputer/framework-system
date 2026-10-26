@@ -11,7 +11,7 @@ use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::{CrosEcDriverType, HardwareDeviceType};
 use crate::commandline::{Cli, LogLevel};
 
-use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, RebootEcArg, TabletModeArg};
+use super::{ConsoleArg, FpBrightnessArg, InputDeckModeArg, OnOffArg, RebootEcArg, TabletModeArg};
 
 /// Get commandline arguments from UEFI environment
 pub fn get_args() -> Vec<String> {
@@ -71,6 +71,7 @@ pub fn parse(args: &[String]) -> Cli {
         stm32_kbd_identify: false,
         stm32_kbd_reset: false,
         stm32_kbd_erase: false,
+        stm32_kbd_fn_lock: None,
         capsule: None,
         dump: None,
         h2o_capsule: None,
@@ -771,6 +772,18 @@ pub fn parse(args: &[String]) -> Cli {
             found_an_option = true;
         } else if arg == "--stm32-kbd-erase" {
             cli.stm32_kbd_erase = true;
+            found_an_option = true;
+        } else if arg == "--stm32-kbd-fn-lock" {
+            cli.stm32_kbd_fn_lock = match args.get(i + 1).map(|x| x.as_str()) {
+                Some("on") => Some(OnOffArg::On),
+                Some("off") => Some(OnOffArg::Off),
+                _ => {
+                    println!(
+                        "Need to provide a value for --stm32-kbd-fn-lock. Must be `on` or `off`"
+                    );
+                    None
+                }
+            };
             found_an_option = true;
         } else if arg == "--hash" {
             cli.hash = if args.len() > i + 1 {
