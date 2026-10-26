@@ -16,7 +16,7 @@ use crate::chromium_ec::commands::SetGpuSerialMagic;
 use crate::chromium_ec::CrosEcDriverType;
 use crate::commandline::{
     Cli, ClickForceArg, ConsoleArg, FpBrightnessArg, HardwareDeviceType, InputDeckModeArg,
-    LogLevel, RebootEcArg, TabletModeArg,
+    LogLevel, OnOffArg, RebootEcArg, TabletModeArg,
 };
 
 /// Swiss army knife for Framework laptops
@@ -184,6 +184,38 @@ struct ClapCli {
     /// Flash EC with new RW firmware from file
     #[arg(long)]
     flash_rw_ec: Option<std::path::PathBuf>,
+
+    /// Show firmware version and state of the STM32 keyboard controller (Laptop 12 2nd gen input deck)
+    #[arg(long)]
+    stm32_kbd_info: bool,
+
+    /// Flash the STM32 keyboard controller with firmware from an Intel HEX file
+    #[arg(long, value_name = "HEX_FILE")]
+    flash_stm32_kbd: Option<std::path::PathBuf>,
+
+    /// Read the STM32 keyboard controller's chip ID from its bootloader (keyboard drops out briefly)
+    #[arg(long)]
+    stm32_kbd_identify: bool,
+
+    /// Restart the STM32 keyboard controller (keyboard drops out briefly)
+    #[arg(long)]
+    stm32_kbd_reset: bool,
+
+    /// Erase the STM32 keyboard controller, leaving keyboard and touchpad dead until flashed (needs --force)
+    #[arg(long)]
+    stm32_kbd_erase: bool,
+
+    /// Turn Fn Lock on or off on the STM32 keyboard controller
+    #[arg(long)]
+    stm32_kbd_fn_lock: Option<OnOffArg>,
+
+    /// Don't read the firmware back after flashing (use with --flash-stm32-kbd)
+    #[arg(long, requires("flash_stm32_kbd"))]
+    stm32_kbd_no_verify: bool,
+
+    /// Ask automatic updaters to leave the keyboard alone (use with --flash-stm32-kbd)
+    #[arg(long, requires("flash_stm32_kbd"))]
+    stm32_kbd_update_protect: bool,
 
     /// Show status of intrusion switch
     #[arg(long)]
@@ -689,6 +721,16 @@ pub fn parse(args: &[String]) -> Cli {
         flash_rw_ec: args
             .flash_rw_ec
             .map(|x| x.into_os_string().into_string().unwrap()),
+        stm32_kbd_info: args.stm32_kbd_info,
+        flash_stm32_kbd: args
+            .flash_stm32_kbd
+            .map(|x| x.into_os_string().into_string().unwrap()),
+        stm32_kbd_identify: args.stm32_kbd_identify,
+        stm32_kbd_reset: args.stm32_kbd_reset,
+        stm32_kbd_erase: args.stm32_kbd_erase,
+        stm32_kbd_fn_lock: args.stm32_kbd_fn_lock,
+        stm32_kbd_no_verify: args.stm32_kbd_no_verify,
+        stm32_kbd_update_protect: args.stm32_kbd_update_protect,
         intrusion: args.intrusion,
         inputdeck: args.inputdeck,
         inputdeck_mode: args.inputdeck_mode,

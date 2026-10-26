@@ -64,6 +64,7 @@ pub mod power;
 #[cfg(not(feature = "uefi"))]
 pub mod smart_battery;
 pub mod smbios;
+pub mod stm32_kbd;
 mod util;
 
 pub mod built_info {
