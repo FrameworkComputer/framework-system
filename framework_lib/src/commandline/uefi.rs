@@ -72,6 +72,8 @@ pub fn parse(args: &[String]) -> Cli {
         stm32_kbd_reset: false,
         stm32_kbd_erase: false,
         stm32_kbd_fn_lock: None,
+        stm32_kbd_no_verify: false,
+        stm32_kbd_update_protect: false,
         capsule: None,
         dump: None,
         h2o_capsule: None,
@@ -773,6 +775,10 @@ pub fn parse(args: &[String]) -> Cli {
         } else if arg == "--stm32-kbd-erase" {
             cli.stm32_kbd_erase = true;
             found_an_option = true;
+        } else if arg == "--stm32-kbd-no-verify" {
+            cli.stm32_kbd_no_verify = true;
+        } else if arg == "--stm32-kbd-update-protect" {
+            cli.stm32_kbd_update_protect = true;
         } else if arg == "--stm32-kbd-fn-lock" {
             cli.stm32_kbd_fn_lock = match args.get(i + 1).map(|x| x.as_str()) {
                 Some("on") => Some(OnOffArg::On),

@@ -91,6 +91,8 @@ _framework_tool() {
 '--stm32-kbd-identify[Read the STM32 keyboard controller'\''s chip ID from its bootloader (keyboard drops out briefly)]' \
 '--stm32-kbd-reset[Restart the STM32 keyboard controller (keyboard drops out briefly)]' \
 '--stm32-kbd-erase[Erase the STM32 keyboard controller, leaving keyboard and touchpad dead until flashed (needs --force)]' \
+'--stm32-kbd-no-verify[Don'\''t read the firmware back after flashing (use with --flash-stm32-kbd)]' \
+'--stm32-kbd-update-protect[Ask automatic updaters to leave the keyboard alone (use with --flash-stm32-kbd)]' \
 '--intrusion[Show status of intrusion switch]' \
 '--inputdeck[Show status of the input modules]' \
 '--expansion-bay[Show status of the expansion bay (Laptop 16 only)]' \

@@ -234,6 +234,8 @@ pub struct Cli {
     pub stm32_kbd_reset: bool,
     pub stm32_kbd_erase: bool,
     pub stm32_kbd_fn_lock: Option<OnOffArg>,
+    pub stm32_kbd_no_verify: bool,
+    pub stm32_kbd_update_protect: bool,
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
     pub test_retimer: bool,
@@ -341,6 +343,8 @@ pub fn parse(args: &[String]) -> Cli {
             // stm32_kbd_reset
             // stm32_kbd_erase
             // stm32_kbd_fn_lock
+            // stm32_kbd_no_verify
+            // stm32_kbd_update_protect
             driver: cli.driver,
             test: cli.test,
             test_retimer: cli.test_retimer,
@@ -1176,7 +1180,11 @@ fn stm32_kbd_cmd(ec: &CrosEc, args: &Cli) -> i32 {
     if args.stm32_kbd_info {
         stm32_kbd_info(ec)
     } else if let Some(path) = &args.flash_stm32_kbd {
-        stm32_kbd_flash(ec, path, args.dry_run)
+        let opts = stm32_kbd::FlashOptions {
+            verify: !args.stm32_kbd_no_verify,
+            set_no_update: args.stm32_kbd_update_protect,
+        };
+        stm32_kbd_flash(ec, path, &opts, args.dry_run)
     } else if args.stm32_kbd_identify {
         println!("Entering the bootloader - keyboard and touchpad drop out for about a second");
         stm32_kbd_wait_for_key_release();
@@ -1336,7 +1344,7 @@ fn stm32_kbd_info(ec: &CrosEc) -> i32 {
     0
 }
 
-fn stm32_kbd_flash(ec: &CrosEc, path: &str, dry_run: bool) -> i32 {
+fn stm32_kbd_flash(ec: &CrosEc, path: &str, opts: &stm32_kbd::FlashOptions, dry_run: bool) -> i32 {
     #[cfg(feature = "uefi")]
     let text =
         crate::fw_uefi::fs::shell_read_file(path).and_then(|data| String::from_utf8(data).ok());
@@ -1370,12 +1378,7 @@ fn stm32_kbd_flash(ec: &CrosEc, path: &str, dry_run: bool) -> i32 {
 
     println!("Keyboard and touchpad don't work until flashing is done");
     stm32_kbd_wait_for_key_release();
-    let report = match stm32_kbd::flash(
-        ec,
-        &img,
-        &stm32_kbd::FlashOptions::default(),
-        &mut stm32_kbd_progress,
-    ) {
+    let report = match stm32_kbd::flash(ec, &img, opts, &mut stm32_kbd_progress) {
         Ok(report) => report,
         Err(err) => {
             error!("Failed to flash STM32 keyboard controller: {}", err);
@@ -1406,6 +1409,9 @@ fn stm32_kbd_flash(ec: &CrosEc, path: &str, dry_run: bool) -> i32 {
                 "Flash complete, now running {}",
                 stm32_kbd::format_version(fw.version)
             );
+            if opts.set_no_update {
+                println!("Update protection set, automatic updaters should skip this keyboard");
+            }
             0
         }
         Err(err) => {
@@ -2411,6 +2417,8 @@ Options:
       --flash-rw-ec <FLASH_EC>         Flash EC with new firmware from file
       --stm32-kbd-info       Show firmware version and state of the STM32 keyboard controller
       --flash-stm32-kbd <HEX_FILE>     Flash the STM32 keyboard controller from an Intel HEX file
+      --stm32-kbd-no-verify  Don't read the firmware back after flashing
+      --stm32-kbd-update-protect  Ask automatic updaters to leave the keyboard alone
       --stm32-kbd-identify   Read the STM32 keyboard controller's chip ID from its bootloader
       --stm32-kbd-reset      Restart the STM32 keyboard controller
       --stm32-kbd-erase      Erase the STM32 keyboard controller (needs --force)

@@ -209,6 +209,14 @@ struct ClapCli {
     #[arg(long)]
     stm32_kbd_fn_lock: Option<OnOffArg>,
 
+    /// Don't read the firmware back after flashing (use with --flash-stm32-kbd)
+    #[arg(long, requires("flash_stm32_kbd"))]
+    stm32_kbd_no_verify: bool,
+
+    /// Ask automatic updaters to leave the keyboard alone (use with --flash-stm32-kbd)
+    #[arg(long, requires("flash_stm32_kbd"))]
+    stm32_kbd_update_protect: bool,
+
     /// Show status of intrusion switch
     #[arg(long)]
     intrusion: bool,
@@ -721,6 +729,8 @@ pub fn parse(args: &[String]) -> Cli {
         stm32_kbd_reset: args.stm32_kbd_reset,
         stm32_kbd_erase: args.stm32_kbd_erase,
         stm32_kbd_fn_lock: args.stm32_kbd_fn_lock,
+        stm32_kbd_no_verify: args.stm32_kbd_no_verify,
+        stm32_kbd_update_protect: args.stm32_kbd_update_protect,
         intrusion: args.intrusion,
         inputdeck: args.inputdeck,
         inputdeck_mode: args.inputdeck_mode,

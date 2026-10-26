@@ -108,6 +108,8 @@ complete -c framework_tool -l stm32-kbd-info -d 'Show firmware version and state
 complete -c framework_tool -l stm32-kbd-identify -d 'Read the STM32 keyboard controller\'s chip ID from its bootloader (keyboard drops out briefly)'
 complete -c framework_tool -l stm32-kbd-reset -d 'Restart the STM32 keyboard controller (keyboard drops out briefly)'
 complete -c framework_tool -l stm32-kbd-erase -d 'Erase the STM32 keyboard controller, leaving keyboard and touchpad dead until flashed (needs --force)'
+complete -c framework_tool -l stm32-kbd-no-verify -d 'Don\'t read the firmware back after flashing (use with --flash-stm32-kbd)'
+complete -c framework_tool -l stm32-kbd-update-protect -d 'Ask automatic updaters to leave the keyboard alone (use with --flash-stm32-kbd)'
 complete -c framework_tool -l intrusion -d 'Show status of intrusion switch'
 complete -c framework_tool -l inputdeck -d 'Show status of the input modules'
 complete -c framework_tool -l expansion-bay -d 'Show status of the expansion bay (Laptop 16 only)'
