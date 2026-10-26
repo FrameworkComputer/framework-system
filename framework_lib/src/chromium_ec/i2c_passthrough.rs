@@ -273,3 +273,99 @@ pub fn i2c_write(
         data: vec![], // Writing doesn't return any data
     })
 }
+
+/// One I2C transaction to a device without register addresses: an optional
+/// write followed by an optional read. Both go in a single host command, so
+/// the EC issues a repeated start and holds the bus across them.
+///
+/// Not limited to MAX_I2C_CHUNK, only by what fits into a host command.
+///
+/// The I2C status is returned rather than turned into an error, because some
+/// devices NAK while busy and callers need to poll on that.
+pub fn i2c_transfer(
+    ec: &CrosEc,
+    i2c_port: u8,
+    i2c_addr: u16,
+    write: &[u8],
+    read_len: u16,
+) -> EcResult<EcI2cPassthruResponse> {
+    trace!(
+        "i2c_transfer(i2c_port: 0x{:X}, i2c_addr: 0x{:X}, write: {:#04X?}, read_len: {})",
+        i2c_port,
+        i2c_addr,
+        write,
+        read_len
+    );
+    let mut messages = vec![];
+    if !write.is_empty() {
+        messages.push(EcParamsI2cPassthruMsg {
+            addr_and_flags: i2c_addr,
+            transfer_len: write.len() as u16,
+        });
+    }
+    if read_len > 0 {
+        messages.push(EcParamsI2cPassthruMsg {
+            addr_and_flags: i2c_addr + I2C_READ_FLAG,
+            transfer_len: read_len,
+        });
+    }
+    if messages.is_empty() {
+        return Err(EcError::DeviceError("Empty I2C transfer".to_string()));
+    }
+    let msgs_len = size_of::<EcParamsI2cPassthruMsg>() * messages.len();
+    let msgs_buffer: &[u8] = unsafe { util::any_vec_as_u8_slice(&messages) };
+
+    let params = EcParamsI2cPassthru {
+        port: i2c_port,
+        messages: messages.len() as u8,
+        msg: [], // Messages are copied right after this struct
+    };
+    let params_len = size_of::<EcParamsI2cPassthru>();
+    let params_buffer: &[u8] = unsafe { util::any_as_u8_slice(&params) };
+
+    let mut buffer: Vec<u8> = vec![0; params_len + msgs_len + write.len()];
+    buffer[0..params_len].copy_from_slice(params_buffer);
+    buffer[params_len..params_len + msgs_len].copy_from_slice(msgs_buffer);
+    buffer[params_len + msgs_len..].copy_from_slice(write);
+
+    let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
+    let header_len = size_of::<_EcI2cPassthruResponse>();
+    if data.len() < header_len {
+        return Err(EcError::DeviceError(format!(
+            "I2C passthrough response too short: {} bytes",
+            data.len()
+        )));
+    }
+    let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
+    let res_data = &data[header_len..];
+    let i2c_status = res.i2c_status;
+    trace!(
+        "  i2c_transfer response (status: 0x{:02X}, messages: {}, data: {:#04X?})",
+        i2c_status,
+        res.messages,
+        res_data
+    );
+
+    // On NAK or timeout the EC stops early, so only check a successful transfer
+    if i2c_status == 0 {
+        if res.messages as usize != messages.len() {
+            return Err(EcError::DeviceError(format!(
+                "EC ran {} of {} I2C messages",
+                res.messages,
+                messages.len()
+            )));
+        }
+        if res_data.len() != read_len as usize {
+            return Err(EcError::DeviceError(format!(
+                "Short I2C read: wanted {} bytes, got {}",
+                read_len,
+                res_data.len()
+            )));
+        }
+    }
+
+    Ok(EcI2cPassthruResponse {
+        i2c_status,
+        data: res_data.to_vec(),
+    })
+}

@@ -1999,3 +1999,32 @@ impl EcRequest<EcResponseGetApThrottleStatus> for EcRequestGetApThrottleStatus {
         EcCommands::GetApThrottleStatus
     }
 }
+
+/// Sub-commands of `EcCommands::KbdFlashStm32`.
+///
+/// The EC only drives BOOT0 and the power rail and keeps its own I2C-HID
+/// driver off the bus. The bootloader protocol itself runs on the host over
+/// I2C passthrough, see [`crate::stm32_kbd`].
+/// 1-3 were erase/write/read on the EC and have been removed.
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KbdFlashStm32Subcmd {
+    /// Reset the STM32 into its ROM bootloader
+    Enter = 0,
+    /// Reset the STM32 into its application
+    Exit = 4,
+}
+
+#[repr(C, packed)]
+pub struct EcRequestKbdFlashStm32 {
+    /// See KbdFlashStm32Subcmd
+    pub subcmd: u8,
+}
+
+/// No response on current EC firmware. EC firmware that still had the
+/// flashing code returns 5 bytes for Enter, use send_command_vec and ignore them.
+impl EcRequest<()> for EcRequestKbdFlashStm32 {
+    fn command_id() -> EcCommands {
+        EcCommands::KbdFlashStm32
+    }
+}
