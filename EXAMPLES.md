@@ -841,6 +841,95 @@ The scancodes are the same.
 
 It's not controlled by the EC, use https://keyboard.frame.work.
 
+## Keyboard controller (Laptop 12 2nd Gen input deck)
+
+The 2nd Gen input deck of the Laptop 12 has an STM32 microcontroller for
+keyboard and touchpad, connected to the EC. All of these need root.
+
+### Check firmware version and state
+
+```
+> sudo framework_tool --stm32-kbd-info
+STM32 Keyboard Controller
+  Firmware:       1.2.0
+  Commit:         5d02bc4a139c3be3
+  Chip ID:        0x0489 (STM32U073/U083)
+  Flash / RAM:    64 KB / 40 KB
+  Unique ID:      52002E000350335250323520
+  Do-not-update:  no
+  Fn Lock:        off
+  Fn/Ctrl swap:   off
+  Caps Lock:      off
+```
+
+Older firmware shows less, for example no chip ID and no Fn Lock state.
+If the controller has no firmware at all, it says so:
+
+```
+> sudo framework_tool --stm32-kbd-info
+STM32 Keyboard Controller
+  No firmware, the controller is in its ROM bootloader
+  Flash it with --flash-stm32-kbd
+```
+
+### Fn Lock
+
+Only works if `--stm32-kbd-info` shows the Fn Lock state (e.g. on 1.2.0, not
+on 1.0.0). Otherwise reflashing turns it off.
+
+```
+> sudo framework_tool --stm32-kbd-fn-lock on
+Fn Lock turned on
+> sudo framework_tool --stm32-kbd-fn-lock off
+Fn Lock turned off
+```
+
+### Update firmware
+
+Takes an Intel HEX file. Keyboard and touchpad don't work while flashing,
+it reads everything back to verify and checks the version afterwards.
+Flashing also resets the settings stored on the keyboard, like Fn Lock.
+
+```
+# Check the file without flashing
+> framework_tool --flash-stm32-kbd dahlia_tp_module_v12_20260914.hex --dry-run
+Image: 44212 bytes at 0x08000000-0x0800ACB3
+Image version: 1.2.0
+Dry run, not flashing
+
+> sudo framework_tool --flash-stm32-kbd dahlia_tp_module_v12_20260914.hex
+Image: 44212 bytes at 0x08000000-0x0800ACB3
+Image version: 1.2.0
+Keyboard and touchpad don't work until flashing is done
+Entering bootloader...
+Erasing...
+Writing: 100%
+Verifying: 100%
+Exiting bootloader...
+  Controller:     0x0489 (STM32U073/U083), bootloader v1.2
+Flash complete, now running 1.2.0
+```
+
+If flashing gets interrupted, just run it again. The bootloader is in ROM,
+so it works even when the controller has no firmware.
+
+### Other commands
+
+The keyboard and touchpad drop out for about a second during these.
+
+```
+# Read the chip ID from the bootloader (for firmware that doesn't report it)
+> sudo framework_tool --stm32-kbd-identify
+Entering the bootloader - keyboard and touchpad drop out for about a second
+  Controller:     0x0489 (STM32U073/U083), bootloader v1.2
+
+# Restart the controller
+> sudo framework_tool --stm32-kbd-reset
+
+# Erase the firmware. Keyboard and touchpad stop working until flashed again!
+> sudo framework_tool --stm32-kbd-erase --force
+```
+
 ## Advanced commands
 
 Mostly for debugging firmware.
