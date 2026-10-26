@@ -64,6 +64,7 @@ use crate::smart_battery::SmartBattery;
 use crate::smbios;
 use crate::smbios::ConfigDigit0;
 use crate::smbios::{get_smbios, is_framework};
+use crate::stm32_kbd;
 #[cfg(feature = "hidapi")]
 use crate::touchpad::print_touchpad_fw_ver;
 #[cfg(feature = "hidapi")]
@@ -220,6 +221,11 @@ pub struct Cli {
     pub flash_ec: Option<String>,
     pub flash_ro_ec: Option<String>,
     pub flash_rw_ec: Option<String>,
+    pub stm32_kbd_info: bool,
+    pub flash_stm32_kbd: Option<String>,
+    pub stm32_kbd_identify: bool,
+    pub stm32_kbd_reset: bool,
+    pub stm32_kbd_erase: bool,
     pub driver: Option<CrosEcDriverType>,
     pub test: bool,
     pub test_retimer: bool,
@@ -321,6 +327,11 @@ pub fn parse(args: &[String]) -> Cli {
             // flash_ec
             // flash_ro_ec
             // flash_rw_ec
+            // stm32_kbd_info
+            // flash_stm32_kbd
+            // stm32_kbd_identify
+            // stm32_kbd_reset
+            // stm32_kbd_erase
             driver: cli.driver,
             test: cli.test,
             test_retimer: cli.test_retimer,
@@ -1120,6 +1131,261 @@ fn print_nvidia_info() {
             "  Connected:         {}",
             if connected { "Yes" } else { "No" }
         );
+    }
+}
+
+fn stm32_kbd_progress(stage: stm32_kbd::Stage, done: usize, total: usize) -> bool {
+    let Some(pct) = (done * 100).checked_div(total) else {
+        println!("{}...", stage);
+        return true;
+    };
+    print!("\r{}: {:>3}%", stage, pct);
+    if done == total {
+        println!();
+    }
+    #[cfg(not(feature = "uefi"))]
+    let _ = std::io::stdout().flush();
+    true
+}
+
+/// Give the user time to release Enter before the deck drops out. If it
+/// resets while the key is held, the release is lost and the OS keeps
+/// auto-repeating it until the keyboard comes back.
+fn stm32_kbd_wait_for_key_release() {
+    os_specific::sleep(500_000);
+}
+
+fn stm32_kbd_cmd(ec: &CrosEc, args: &Cli) -> i32 {
+    // Port 5 may have something else on it on other platforms.
+    // A dry run only parses the file, so it works anywhere.
+    let dry_run_only = args.dry_run && args.flash_stm32_kbd.is_some();
+    if !dry_run_only && smbios::get_family() != Some(PlatformFamily::Framework12) {
+        error!("The STM32 keyboard controller only exists on Framework Laptop 12");
+        return 1;
+    }
+
+    if args.stm32_kbd_info {
+        stm32_kbd_info(ec)
+    } else if let Some(path) = &args.flash_stm32_kbd {
+        stm32_kbd_flash(ec, path, args.dry_run)
+    } else if args.stm32_kbd_identify {
+        println!("Entering the bootloader - keyboard and touchpad drop out for about a second");
+        stm32_kbd_wait_for_key_release();
+        match stm32_kbd::identify(ec) {
+            Ok(info) => {
+                print_stm32_kbd_bl_info(&info);
+                0
+            }
+            Err(err) => {
+                error!("Failed to identify STM32 keyboard controller: {}", err);
+                1
+            }
+        }
+    } else if args.stm32_kbd_reset {
+        stm32_kbd_wait_for_key_release();
+        match stm32_kbd::reset(ec) {
+            Ok(()) => 0,
+            Err(err) => {
+                error!("Failed to reset STM32 keyboard controller: {}", err);
+                1
+            }
+        }
+    } else if args.stm32_kbd_erase {
+        if !args.force {
+            error!("Erasing leaves keyboard and touchpad dead until flashed again. Add --force if that's what you want");
+            return 1;
+        }
+        stm32_kbd_wait_for_key_release();
+        match stm32_kbd::erase(ec, &mut stm32_kbd_progress) {
+            Ok(info) => {
+                print_stm32_kbd_bl_info(&info);
+                println!("Erased. Flash it again with --flash-stm32-kbd");
+                0
+            }
+            Err(err) => {
+                error!("Failed to erase STM32 keyboard controller: {}", err);
+                1
+            }
+        }
+    } else {
+        0
+    }
+}
+
+fn print_stm32_kbd_bl_info(info: &stm32_kbd::BootloaderInfo) {
+    println!(
+        "  Controller:     0x{:04X} ({}), bootloader v{}.{}",
+        info.pid,
+        info.part_name().unwrap_or("unrecognised"),
+        info.bl_version >> 4,
+        info.bl_version & 0xF
+    );
+}
+
+fn stm32_kbd_info(ec: &CrosEc) -> i32 {
+    println!("STM32 Keyboard Controller");
+    let desc = match stm32_kbd::probe(ec) {
+        Err(err) => {
+            error!("Failed to probe STM32 keyboard controller: {}", err);
+            return 1;
+        }
+        Ok(stm32_kbd::DeckState::Absent) => {
+            println!("  Not detected");
+            return 1;
+        }
+        Ok(stm32_kbd::DeckState::Bootloader) => {
+            println!("  No firmware, the controller is in its ROM bootloader");
+            println!("  Flash it with --flash-stm32-kbd");
+            return 1;
+        }
+        Ok(stm32_kbd::DeckState::Legacy(desc)) => {
+            println!(
+                "  Firmware:       {}",
+                stm32_kbd::format_version(desc.version_id)
+            );
+            println!("  Firmware predates the vendor command protocol, nothing else is readable");
+            return 0;
+        }
+        Ok(stm32_kbd::DeckState::Ready(desc)) => desc,
+    };
+
+    match stm32_kbd::fw_version(ec) {
+        Ok(fw) => {
+            println!(
+                "  Firmware:       {}",
+                stm32_kbd::format_version(fw.version)
+            );
+            print!("  Commit:         ");
+            for b in fw.hash {
+                print!("{:02x}", b);
+            }
+            println!("{}", if fw.dirty { " (dirty)" } else { "" });
+        }
+        Err(err) => println!("  Firmware:       Unknown ({})", err),
+    }
+    match stm32_kbd::hw_info(ec) {
+        Ok(hw) => {
+            if hw.chip_id == 0 {
+                println!("  Chip ID:        Not reported by firmware (see --stm32-kbd-identify)");
+            } else {
+                println!(
+                    "  Chip ID:        0x{:04X} ({})",
+                    hw.chip_id,
+                    stm32_kbd::part_name(hw.chip_id).unwrap_or("unrecognised")
+                );
+            }
+            println!("  Flash / RAM:    {} KB / {} KB", hw.flash_kb, hw.ram_kb);
+            print!("  Unique ID:      ");
+            for b in hw.uid {
+                print!("{:02X}", b);
+            }
+            println!();
+        }
+        Err(err) => println!("  Hardware info:  Unknown ({})", err),
+    }
+    println!(
+        "  Do-not-update:  {}",
+        if desc.no_update() { "yes" } else { "no" }
+    );
+    match stm32_kbd::get_flags(ec) {
+        Ok(None) => println!("  Fn Lock:        Not reported by this firmware"),
+        Ok(Some(f)) if f.present & stm32_kbd::FLAG_FN_LOCK == 0 => {
+            println!("  Fn Lock:        Not supported by this firmware")
+        }
+        Ok(Some(f)) => {
+            let onoff = |bit| if f.flags & bit != 0 { "on" } else { "off" };
+            println!("  Fn Lock:        {}", onoff(stm32_kbd::FLAG_FN_LOCK));
+            if f.present & stm32_kbd::FLAG_FN_CTRL_SWAP != 0 {
+                println!("  Fn/Ctrl swap:   {}", onoff(stm32_kbd::FLAG_FN_CTRL_SWAP));
+            }
+            if f.present & stm32_kbd::FLAG_CAPS_LOCK != 0 {
+                println!("  Caps Lock:      {}", onoff(stm32_kbd::FLAG_CAPS_LOCK));
+            }
+        }
+        Err(err) => println!("  Fn Lock:        Unknown ({})", err),
+    }
+    0
+}
+
+fn stm32_kbd_flash(ec: &CrosEc, path: &str, dry_run: bool) -> i32 {
+    #[cfg(feature = "uefi")]
+    let text =
+        crate::fw_uefi::fs::shell_read_file(path).and_then(|data| String::from_utf8(data).ok());
+    #[cfg(not(feature = "uefi"))]
+    let text = fs::read_to_string(path).ok();
+    let Some(text) = text else {
+        error!("Failed to read {}", path);
+        return 1;
+    };
+    let img = match stm32_kbd::HexImage::parse(&text) {
+        Ok(img) => img,
+        Err(err) => {
+            error!("Invalid firmware file: {}", err);
+            return 1;
+        }
+    };
+    println!(
+        "Image: {} bytes at 0x{:08X}-0x{:08X}",
+        img.bytes.len(),
+        img.base,
+        img.end()
+    );
+    let target = img.find_version();
+    if let Some(version) = target {
+        println!("Image version: {}", stm32_kbd::format_version(version));
+    }
+    if dry_run {
+        println!("Dry run, not flashing");
+        return 0;
+    }
+
+    println!("Keyboard and touchpad don't work until flashing is done");
+    stm32_kbd_wait_for_key_release();
+    let report = match stm32_kbd::flash(
+        ec,
+        &img,
+        &stm32_kbd::FlashOptions::default(),
+        &mut stm32_kbd_progress,
+    ) {
+        Ok(report) => report,
+        Err(err) => {
+            error!("Failed to flash STM32 keyboard controller: {}", err);
+            return 1;
+        }
+    };
+    print_stm32_kbd_bl_info(&report.bootloader);
+    if report.restarts > 0 || report.healed > 0 {
+        println!(
+            "Recovered from errors: {} bootloader restarts, {} pages rewritten",
+            report.restarts, report.healed
+        );
+    }
+
+    // Verify proves the bytes on the chip are the ones we sent, not that
+    // they were the right ones. Check the version the deck now reports.
+    match stm32_kbd::fw_version_after_reset(ec) {
+        Ok(fw) if target.is_some_and(|v| v != fw.version) => {
+            error!(
+                "Expected firmware {}, deck reports {} after flashing",
+                stm32_kbd::format_version(target.unwrap()),
+                stm32_kbd::format_version(fw.version)
+            );
+            1
+        }
+        Ok(fw) => {
+            println!(
+                "Flash complete, now running {}",
+                stm32_kbd::format_version(fw.version)
+            );
+            0
+        }
+        Err(err) => {
+            error!(
+                "Flashed, but the keyboard didn't answer afterwards: {}. Check with --stm32-kbd-info",
+                err
+            );
+            1
+        }
     }
 }
 
@@ -1969,6 +2235,13 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(ec_bin_path) = &args.flash_rw_ec {
         flash_ec(&ec, ec_bin_path, EcFlashType::Rw, args.dry_run);
+    } else if args.stm32_kbd_info
+        || args.flash_stm32_kbd.is_some()
+        || args.stm32_kbd_identify
+        || args.stm32_kbd_reset
+        || args.stm32_kbd_erase
+    {
+        return stm32_kbd_cmd(&ec, args);
     } else if let Some(hash_file) = &args.hash {
         println!("Hashing file: {}", hash_file);
         #[cfg(feature = "uefi")]
@@ -2106,6 +2379,11 @@ Options:
       --flash-ec <FLASH_EC>            Flash EC with new firmware from file
       --flash-ro-ec <FLASH_EC>         Flash EC with new firmware from file
       --flash-rw-ec <FLASH_EC>         Flash EC with new firmware from file
+      --stm32-kbd-info       Show firmware version and state of the STM32 keyboard controller
+      --flash-stm32-kbd <HEX_FILE>     Flash the STM32 keyboard controller from an Intel HEX file
+      --stm32-kbd-identify   Read the STM32 keyboard controller's chip ID from its bootloader
+      --stm32-kbd-reset      Restart the STM32 keyboard controller
+      --stm32-kbd-erase      Erase the STM32 keyboard controller (needs --force)
       --reboot-ec            Control EC RO/RW jump [possible values: reboot, jump-ro, jump-rw, cancel-jump, disable-jump]
       --ec-hib-delay [<SECONDS>]   Get or set EC hibernate delay (S5 to G3)
       --sysinfo              Show system info (reset flags, current image, locked state)

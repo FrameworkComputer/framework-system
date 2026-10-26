@@ -66,6 +66,11 @@ pub fn parse(args: &[String]) -> Cli {
         flash_ec: None,
         flash_ro_ec: None,
         flash_rw_ec: None,
+        stm32_kbd_info: false,
+        flash_stm32_kbd: None,
+        stm32_kbd_identify: false,
+        stm32_kbd_reset: false,
+        stm32_kbd_erase: false,
         capsule: None,
         dump: None,
         h2o_capsule: None,
@@ -746,6 +751,26 @@ pub fn parse(args: &[String]) -> Cli {
                 println!("--flash-rw-ec requires extra argument to denote input file");
                 None
             };
+            found_an_option = true;
+        } else if arg == "--stm32-kbd-info" {
+            cli.stm32_kbd_info = true;
+            found_an_option = true;
+        } else if arg == "--flash-stm32-kbd" {
+            cli.flash_stm32_kbd = if args.len() > i + 1 {
+                Some(args[i + 1].clone())
+            } else {
+                println!("--flash-stm32-kbd requires extra argument to denote input file");
+                None
+            };
+            found_an_option = true;
+        } else if arg == "--stm32-kbd-identify" {
+            cli.stm32_kbd_identify = true;
+            found_an_option = true;
+        } else if arg == "--stm32-kbd-reset" {
+            cli.stm32_kbd_reset = true;
+            found_an_option = true;
+        } else if arg == "--stm32-kbd-erase" {
+            cli.stm32_kbd_erase = true;
             found_an_option = true;
         } else if arg == "--hash" {
             cli.hash = if args.len() > i + 1 {

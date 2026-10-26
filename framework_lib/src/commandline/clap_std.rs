@@ -185,6 +185,26 @@ struct ClapCli {
     #[arg(long)]
     flash_rw_ec: Option<std::path::PathBuf>,
 
+    /// Show firmware version and state of the STM32 keyboard controller (Laptop 12 2nd gen input deck)
+    #[arg(long)]
+    stm32_kbd_info: bool,
+
+    /// Flash the STM32 keyboard controller with firmware from an Intel HEX file
+    #[arg(long, value_name = "HEX_FILE")]
+    flash_stm32_kbd: Option<std::path::PathBuf>,
+
+    /// Read the STM32 keyboard controller's chip ID from its bootloader (keyboard drops out briefly)
+    #[arg(long)]
+    stm32_kbd_identify: bool,
+
+    /// Restart the STM32 keyboard controller (keyboard drops out briefly)
+    #[arg(long)]
+    stm32_kbd_reset: bool,
+
+    /// Erase the STM32 keyboard controller, leaving keyboard and touchpad dead until flashed (needs --force)
+    #[arg(long)]
+    stm32_kbd_erase: bool,
+
     /// Show status of intrusion switch
     #[arg(long)]
     intrusion: bool,
@@ -689,6 +709,13 @@ pub fn parse(args: &[String]) -> Cli {
         flash_rw_ec: args
             .flash_rw_ec
             .map(|x| x.into_os_string().into_string().unwrap()),
+        stm32_kbd_info: args.stm32_kbd_info,
+        flash_stm32_kbd: args
+            .flash_stm32_kbd
+            .map(|x| x.into_os_string().into_string().unwrap()),
+        stm32_kbd_identify: args.stm32_kbd_identify,
+        stm32_kbd_reset: args.stm32_kbd_reset,
+        stm32_kbd_erase: args.stm32_kbd_erase,
         intrusion: args.intrusion,
         inputdeck: args.inputdeck,
         inputdeck_mode: args.inputdeck_mode,

@@ -28,6 +28,7 @@ complete -c framework_tool -l flash-full-ec -d 'Flash full EC flash with new fir
 complete -c framework_tool -l flash-ec -d 'Flash EC (RO+RW) with new firmware from file - may render your hardware unbootable!' -r -F
 complete -c framework_tool -l flash-ro-ec -d 'Flash EC with new RO firmware from file - may render your hardware unbootable!' -r -F
 complete -c framework_tool -l flash-rw-ec -d 'Flash EC with new RW firmware from file' -r -F
+complete -c framework_tool -l flash-stm32-kbd -d 'Flash the STM32 keyboard controller with firmware from an Intel HEX file' -r -F
 complete -c framework_tool -l inputdeck-mode -d 'Set input deck power mode [possible values: auto, off, on, reset] (Laptop 12, 13, 16)' -r -f -a "auto\t''
 off\t''
 on\t''
@@ -101,6 +102,10 @@ complete -c framework_tool -l pd-info -d 'Show details about the PD controllers'
 complete -c framework_tool -l dp-hdmi-info -d 'Show details about connected DP or HDMI Expansion Cards'
 complete -c framework_tool -l audio-card-info -d 'Show details about connected Audio Expansion Cards (Needs root privileges)'
 complete -c framework_tool -l privacy -d 'Show privacy switch statuses (camera and microphone)'
+complete -c framework_tool -l stm32-kbd-info -d 'Show firmware version and state of the STM32 keyboard controller (Laptop 12 2nd gen input deck)'
+complete -c framework_tool -l stm32-kbd-identify -d 'Read the STM32 keyboard controller\'s chip ID from its bootloader (keyboard drops out briefly)'
+complete -c framework_tool -l stm32-kbd-reset -d 'Restart the STM32 keyboard controller (keyboard drops out briefly)'
+complete -c framework_tool -l stm32-kbd-erase -d 'Erase the STM32 keyboard controller, leaving keyboard and touchpad dead until flashed (needs --force)'
 complete -c framework_tool -l intrusion -d 'Show status of intrusion switch'
 complete -c framework_tool -l inputdeck -d 'Show status of the input modules'
 complete -c framework_tool -l expansion-bay -d 'Show status of the expansion bay (Laptop 16 only)'

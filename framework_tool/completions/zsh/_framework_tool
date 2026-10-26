@@ -38,6 +38,7 @@ _framework_tool() {
 '--flash-ec=[Flash EC (RO+RW) with new firmware from file - may render your hardware unbootable!]:FLASH_EC:_files' \
 '--flash-ro-ec=[Flash EC with new RO firmware from file - may render your hardware unbootable!]:FLASH_RO_EC:_files' \
 '--flash-rw-ec=[Flash EC with new RW firmware from file]:FLASH_RW_EC:_files' \
+'--flash-stm32-kbd=[Flash the STM32 keyboard controller with firmware from an Intel HEX file]:HEX_FILE:_files' \
 '--inputdeck-mode=[Set input deck power mode \[possible values\: auto, off, on, reset\] (Laptop 12, 13, 16)]:INPUTDECK_MODE:(auto off on reset)' \
 '--charge-limit=[Get or set max charge limit]::CHARGE_LIMIT:_default' \
 '*--charge-current-limit=[Set max charge current limit]:CHARGE_CURRENT_LIMIT:_default' \
@@ -85,6 +86,10 @@ _framework_tool() {
 '--dp-hdmi-info[Show details about connected DP or HDMI Expansion Cards]' \
 '--audio-card-info[Show details about connected Audio Expansion Cards (Needs root privileges)]' \
 '--privacy[Show privacy switch statuses (camera and microphone)]' \
+'--stm32-kbd-info[Show firmware version and state of the STM32 keyboard controller (Laptop 12 2nd gen input deck)]' \
+'--stm32-kbd-identify[Read the STM32 keyboard controller'\''s chip ID from its bootloader (keyboard drops out briefly)]' \
+'--stm32-kbd-reset[Restart the STM32 keyboard controller (keyboard drops out briefly)]' \
+'--stm32-kbd-erase[Erase the STM32 keyboard controller, leaving keyboard and touchpad dead until flashed (needs --force)]' \
 '--intrusion[Show status of intrusion switch]' \
 '--inputdeck[Show status of the input modules]' \
 '--expansion-bay[Show status of the expansion bay (Laptop 16 only)]' \
