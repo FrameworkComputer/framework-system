@@ -913,6 +913,30 @@ Flash complete, now running 1.2.0
 If flashing gets interrupted, just run it again. The bootloader is in ROM,
 so it works even when the controller has no firmware.
 
+Update protection asks automatic updaters to leave the keyboard alone, for
+example when it runs custom firmware. It's only a hint, `--flash-stm32-kbd`
+ignores it. Flashing again without the option removes it.
+
+```
+# Flash and set update protection. Skip reading the firmware back to verify.
+> sudo framework_tool --flash-stm32-kbd dahlia_tp_module_v12_20260914.hex --stm32-kbd-update-protect --stm32-kbd-no-verify
+Image: 44212 bytes at 0x08000000-0x0800ACB3
+Image version: 1.2.0
+Keyboard and touchpad don't work until flashing is done
+Entering bootloader...
+Erasing...
+Writing: 100%
+Exiting bootloader...
+  Controller:     0x0489 (STM32U073/U083), bootloader v1.2
+Flash complete, now running 1.2.0
+Update protection set, automatic updaters should skip this keyboard
+
+> sudo framework_tool --stm32-kbd-info
+[...]
+  Do-not-update:  yes
+[...]
+```
+
 ### Other commands
 
 The keyboard and touchpad drop out for about a second during these.
