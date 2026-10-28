@@ -65,10 +65,13 @@ $(BUILD)/shellx64.efi:
 	curl -L https://github.com/pbatard/UEFI-Shell/releases/download/24H2/shellx64.efi -o $@
 
 # Download OVMF firmware for QEMU
+# Pinned to a known good nightly build, the 2026-10-27 build doesn't boot
+OVMF_REV?=e83f8c726e5bbcd81f29c34e48f2d842eb15d162
+OVMF_URL=https://raw.githubusercontent.com/retrage/edk2-nightly/$(OVMF_REV)/bin
 $(BUILD)/OVMF_CODE.fd $(BUILD)/OVMF_VARS.fd:
 	mkdir -p $(BUILD)
-	curl -L https://retrage.github.io/edk2-nightly/bin/RELEASEX64_OVMF_CODE.fd -o $(BUILD)/OVMF_CODE.fd
-	curl -L https://retrage.github.io/edk2-nightly/bin/RELEASEX64_OVMF_VARS.fd -o $(BUILD)/OVMF_VARS.fd
+	curl -fL $(OVMF_URL)/RELEASEX64_OVMF_CODE.fd -o $(BUILD)/OVMF_CODE.fd
+	curl -fL $(OVMF_URL)/RELEASEX64_OVMF_VARS.fd -o $(BUILD)/OVMF_VARS.fd
 
 $(BUILD)/UEFI-Shell-fwk.iso: $(BUILD)/boot.efi $(BUILD)/shellx64.efi
 	mkdir -p $(BUILD)/$@.tmp/efi/boot
