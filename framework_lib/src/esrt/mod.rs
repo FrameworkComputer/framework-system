@@ -532,6 +532,12 @@ pub fn get_esrt() -> Option<Esrt> {
     Some(esrt_table)
 }
 
+/// macOS doesn't expose the ESRT
+#[cfg(target_os = "macos")]
+pub fn get_esrt() -> Option<Esrt> {
+    None
+}
+
 #[cfg(target_os = "freebsd")]
 #[repr(C)]
 pub struct EfiGetTableIoc {

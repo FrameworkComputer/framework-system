@@ -316,6 +316,13 @@ pub fn get_smbios() -> Option<SmbiosStore> {
     SmbiosStore::from_table_data(table_data, major, minor)
 }
 
+/// Not a Framework system, there's no point in reading SMBIOS on macOS
+#[cfg(target_os = "macos")]
+pub fn get_smbios() -> Option<SmbiosStore> {
+    trace!("get_smbios() macos entry");
+    None
+}
+
 #[cfg(target_os = "freebsd")]
 fn kenv_get(name: &str) -> nix::Result<String> {
     use libc::{c_int, KENV_GET, KENV_MVALLEN};
