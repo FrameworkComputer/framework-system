@@ -233,7 +233,8 @@ pub trait CrosEcDriver {
 
 #[derive(Clone)]
 pub struct CrosEc {
-    driver: CrosEcDriverType,
+    /// None if no driver is available on this platform
+    driver: Option<CrosEcDriverType>,
 }
 
 impl Default for CrosEc {
@@ -245,7 +246,7 @@ impl Default for CrosEc {
 /// Find out which drivers are available
 ///
 /// Depending on the availability we choose the first one as default
-#[allow(clippy::vec_init_then_push)]
+#[allow(clippy::vec_init_then_push, unused_mut)]
 fn available_drivers() -> Vec<CrosEcDriverType> {
     let mut drivers = vec![];
 
@@ -265,10 +266,9 @@ fn available_drivers() -> Vec<CrosEcDriverType> {
 
 impl CrosEc {
     pub fn new() -> CrosEc {
-        debug!("Chromium EC Driver: {:?}", available_drivers()[0]);
-        CrosEc {
-            driver: available_drivers()[0],
-        }
+        let driver = available_drivers().first().copied();
+        debug!("Chromium EC Driver: {:?}", driver);
+        CrosEc { driver }
     }
 
     pub fn with(driver: CrosEcDriverType) -> Option<CrosEc> {
@@ -277,7 +277,9 @@ impl CrosEc {
         }
         debug!("Chromium EC Driver: {:?}", driver);
 
-        Some(CrosEc { driver })
+        Some(CrosEc {
+            driver: Some(driver),
+        })
     }
 
     /// Lock bus to PD controller in the beginning of flashing
@@ -2173,11 +2175,11 @@ impl CrosEcDriver for CrosEc {
         // TODO: Change this function to return EcResult instead and print the error only in UI code
         print_err(match self.driver {
             #[cfg(all(not(windows), target_arch = "x86_64"))]
-            CrosEcDriverType::Portio => portio::read_memory(offset, length),
+            Some(CrosEcDriverType::Portio) => portio::read_memory(offset, length),
             #[cfg(windows)]
-            CrosEcDriverType::Windows => windows::read_memory(offset, length),
+            Some(CrosEcDriverType::Windows) => windows::read_memory(offset, length),
             #[cfg(target_os = "linux")]
-            CrosEcDriverType::CrosEc => cros_ec::read_memory(offset, length),
+            Some(CrosEcDriverType::CrosEc) => cros_ec::read_memory(offset, length),
             _ => Err(EcError::DeviceError("No EC driver available".to_string())),
         })
     }
@@ -2195,11 +2197,13 @@ impl CrosEcDriver for CrosEc {
 
         match self.driver {
             #[cfg(all(not(windows), target_arch = "x86_64"))]
-            CrosEcDriverType::Portio => portio::send_command(command, command_version, data),
+            Some(CrosEcDriverType::Portio) => portio::send_command(command, command_version, data),
             #[cfg(windows)]
-            CrosEcDriverType::Windows => windows::send_command(command, command_version, data),
+            Some(CrosEcDriverType::Windows) => {
+                windows::send_command(command, command_version, data)
+            }
             #[cfg(target_os = "linux")]
-            CrosEcDriverType::CrosEc => cros_ec::send_command(command, command_version, data),
+            Some(CrosEcDriverType::CrosEc) => cros_ec::send_command(command, command_version, data),
             _ => Err(EcError::DeviceError("No EC driver available".to_string())),
         }
     }
