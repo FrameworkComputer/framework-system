@@ -351,9 +351,10 @@ fn kenv_get(name: &str) -> nix::Result<String> {
     }
 }
 
-#[derive(Debug)]
+/// Part whose serial number is in an OEM string (SMBIOS Type 11)
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum SmbiosSerialNumber {
-    Mainboard = 1,
+    Mainboard,
     Laptop,
     Camera,
     Display,
@@ -381,13 +382,94 @@ enum SmbiosSerialNumber {
     Ssd,
     AudioFfc,
 
+    System,
     Heatsink,
     Fan,
     Chassis,
+    Antenna,
     LeftPanel,
     RightPanel,
     FrontPanel,
     PowerSupply,
+    AudioCable,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum SlotUsage {
+    Used,
+    /// Only programmed on pre-built systems
+    PrebuiltOnly,
+    /// Slot is reserved, but not programmed
+    Unused,
+}
+
+/// Which part's serial is in the OEM string at 1-based index `idx`
+///
+/// Layouts are defined in the BIOS ERS, section "OEM Strings (Type 11)"
+fn oem_string_slot(
+    family: Option<PlatformFamily>,
+    idx: usize,
+) -> Option<(SmbiosSerialNumber, SlotUsage)> {
+    use SlotUsage::*;
+    use SmbiosSerialNumber as Sn;
+
+    // Laptop 12, Laptop 13 and Laptop 16
+    const LAPTOP: &[(SmbiosSerialNumber, SlotUsage)] = &[
+        (Sn::Mainboard, Used),
+        (Sn::Laptop, Used),
+        (Sn::Camera, Used),
+        (Sn::Display, Used),
+        (Sn::Battery, Used),
+        (Sn::Touchpad, Used),
+        (Sn::Keyboard, Used),
+        (Sn::Fingerprint, PrebuiltOnly),
+        (Sn::AudioDaughtercard, Used),
+        (Sn::ACover, Used),
+        (Sn::Bezel, Used),
+        (Sn::CCover, PrebuiltOnly),
+        (Sn::DCover, Used),
+        (Sn::AntennaMain, Used),
+        (Sn::AntennaAux, Used),
+        (Sn::TouchpadFpc, Used),
+        (Sn::FingerprintFfc, Used),
+        (Sn::EdpCable, Used),
+        (Sn::LcdCable, Used),
+        (Sn::ThermalAssembly, Used),
+        (Sn::WifiModule, Unused),
+        (Sn::Speaker, Used),
+        (Sn::RamSlot1, Unused),
+        (Sn::RamSlot2, Unused),
+        (Sn::Ssd, Unused),
+        (Sn::AudioFfc, Used),
+    ];
+    const DESKTOP: &[(SmbiosSerialNumber, SlotUsage)] = &[
+        (Sn::Mainboard, Used),
+        (Sn::System, Used),
+        (Sn::Heatsink, Used),
+        (Sn::Fan, Used),
+        (Sn::Chassis, Used),
+        (Sn::Antenna, Used),
+        (Sn::WifiModule, Used),
+        (Sn::LeftPanel, PrebuiltOnly),
+        (Sn::RightPanel, Used),
+        (Sn::FrontPanel, Used),
+        (Sn::PowerSupply, Used),
+        (Sn::RamSlot1, Unused),
+        (Sn::RamSlot2, Unused),
+        (Sn::Ssd, Used),
+        (Sn::AudioCable, Used),
+    ];
+
+    let i = idx.checked_sub(1)?;
+    let slot = match family {
+        Some(PlatformFamily::FrameworkDesktop) => *DESKTOP.get(i)?,
+        _ => *LAPTOP.get(i)?,
+    };
+    // Laptop 16 has a mid plate where the others have the C cover
+    if family == Some(PlatformFamily::Framework16) && slot.0 == Sn::CCover {
+        return Some((Sn::MidPlate, Used));
+    }
+    Some(slot)
 }
 
 pub fn dump_oem_strings(strings: StructureStrings) {
@@ -404,72 +486,17 @@ pub fn dump_oem_strings(strings: StructureStrings) {
         if trimmed.is_empty() || trimmed == "*" || trimmed.chars().all(|c| c == '0') {
             continue;
         }
-        let sn = if family == Some(PlatformFamily::FrameworkDesktop) {
-            match idx {
-                1 => Some(SmbiosSerialNumber::Mainboard),
-                2 => Some(SmbiosSerialNumber::Heatsink),
-                3 => Some(SmbiosSerialNumber::Fan),
-                4 => Some(SmbiosSerialNumber::Chassis),
-                5 => Some(SmbiosSerialNumber::AntennaMain),
-                6 => Some(SmbiosSerialNumber::WifiModule),
-                7 => Some(SmbiosSerialNumber::LeftPanel),
-                8 => Some(SmbiosSerialNumber::RightPanel),
-                9 => Some(SmbiosSerialNumber::FrontPanel),
-                10 => Some(SmbiosSerialNumber::PowerSupply),
-                11 => Some(SmbiosSerialNumber::RamSlot1),
-                12 => Some(SmbiosSerialNumber::RamSlot2),
-                13 => Some(SmbiosSerialNumber::Ssd),
-                14 => Some(SmbiosSerialNumber::AudioFfc),
-                _ => None,
-            }
-        } else {
-            match idx {
-                1 => Some(SmbiosSerialNumber::Mainboard),
-                2 => Some(SmbiosSerialNumber::Laptop),
-                3 => Some(SmbiosSerialNumber::Camera),
-                4 => Some(SmbiosSerialNumber::Display),
-                5 => Some(SmbiosSerialNumber::Battery),
-                6 => Some(SmbiosSerialNumber::Touchpad),
-                7 => Some(SmbiosSerialNumber::Keyboard),
-                8 => Some(SmbiosSerialNumber::Fingerprint),
-                9 => Some(SmbiosSerialNumber::AudioDaughtercard),
-                10 => Some(SmbiosSerialNumber::ACover),
-                11 => Some(SmbiosSerialNumber::Bezel),
-                12 if family == Some(PlatformFamily::Framework16) => {
-                    Some(SmbiosSerialNumber::MidPlate)
-                }
-                12 => Some(SmbiosSerialNumber::CCover),
-                13 => Some(SmbiosSerialNumber::DCover),
-                14 => Some(SmbiosSerialNumber::AntennaMain),
-                15 => Some(SmbiosSerialNumber::AntennaAux),
-                16 => Some(SmbiosSerialNumber::TouchpadFpc),
-                17 => Some(SmbiosSerialNumber::FingerprintFfc),
-                18 => Some(SmbiosSerialNumber::EdpCable),
-                19 => Some(SmbiosSerialNumber::LcdCable),
-                20 => Some(SmbiosSerialNumber::ThermalAssembly),
-                21 => Some(SmbiosSerialNumber::WifiModule),
-                22 => Some(SmbiosSerialNumber::Speaker),
-                23 => Some(SmbiosSerialNumber::RamSlot1),
-                24 => Some(SmbiosSerialNumber::RamSlot2),
-                25 => Some(SmbiosSerialNumber::Ssd),
-                26 => Some(SmbiosSerialNumber::AudioFfc),
-                _ => None,
-            }
-        };
-        let Some(sn) = sn else {
+        let Some((sn, usage)) = oem_string_slot(family, idx) else {
             println!("{} Unknown/Reserved", s);
             continue;
         };
-        let note = match sn {
-            SmbiosSerialNumber::RamSlot1
-            | SmbiosSerialNumber::RamSlot2
-            | SmbiosSerialNumber::Ssd
-            | SmbiosSerialNumber::WifiModule => {
+        let note = match usage {
+            SlotUsage::Unused => {
                 println!("{} {:<20} (Unused)", s, format!("{:?}", sn));
                 continue;
             }
-            SmbiosSerialNumber::Fingerprint | SmbiosSerialNumber::CCover => " (Only Pre-Built)",
-            _ => "",
+            SlotUsage::PrebuiltOnly => " (Only Pre-Built)",
+            SlotUsage::Used => "",
         };
         println!("{}", s);
         println!("  {:<20}{}", format!("{:?}", sn), note);
@@ -498,5 +525,38 @@ mod tests {
         assert_eq!(parse_release_year(""), None);
         assert_eq!(parse_release_year("03/17/202"), None);
         assert_eq!(parse_release_year("unknown"), None);
+    }
+
+    #[test]
+    fn oem_string_slots() {
+        use SlotUsage::*;
+        use SmbiosSerialNumber as Sn;
+        let laptop = Some(PlatformFamily::Framework13);
+        let fw16 = Some(PlatformFamily::Framework16);
+        let desktop = Some(PlatformFamily::FrameworkDesktop);
+
+        assert_eq!(oem_string_slot(laptop, 0), None);
+        assert_eq!(oem_string_slot(laptop, 1), Some((Sn::Mainboard, Used)));
+        assert_eq!(
+            oem_string_slot(laptop, 12),
+            Some((Sn::CCover, PrebuiltOnly))
+        );
+        assert_eq!(oem_string_slot(laptop, 21), Some((Sn::WifiModule, Unused)));
+        assert_eq!(oem_string_slot(laptop, 26), Some((Sn::AudioFfc, Used)));
+        assert_eq!(oem_string_slot(laptop, 27), None);
+        assert_eq!(oem_string_slot(fw16, 12), Some((Sn::MidPlate, Used)));
+        assert_eq!(oem_string_slot(None, 2), Some((Sn::Laptop, Used)));
+
+        assert_eq!(oem_string_slot(desktop, 1), Some((Sn::Mainboard, Used)));
+        assert_eq!(oem_string_slot(desktop, 2), Some((Sn::System, Used)));
+        assert_eq!(oem_string_slot(desktop, 7), Some((Sn::WifiModule, Used)));
+        assert_eq!(
+            oem_string_slot(desktop, 8),
+            Some((Sn::LeftPanel, PrebuiltOnly))
+        );
+        assert_eq!(oem_string_slot(desktop, 12), Some((Sn::RamSlot1, Unused)));
+        assert_eq!(oem_string_slot(desktop, 14), Some((Sn::Ssd, Used)));
+        assert_eq!(oem_string_slot(desktop, 15), Some((Sn::AudioCable, Used)));
+        assert_eq!(oem_string_slot(desktop, 16), None);
     }
 }
