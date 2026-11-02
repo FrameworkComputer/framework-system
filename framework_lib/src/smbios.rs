@@ -152,6 +152,25 @@ pub fn get_baseboard_version() -> Option<Cfg0> {
     })
 }
 
+/// Year of a BIOS release date in SMBIOS format: mm/dd/yyyy or mm/dd/yy
+fn parse_release_year(date: &str) -> Option<u16> {
+    let year = date.trim().rsplit('/').next()?;
+    let year = year.parse::<u16>().ok()?;
+    match year {
+        0..=99 => Some(2000 + year),
+        1000..=9999 => Some(year),
+        _ => None,
+    }
+}
+
+/// Year in which the running BIOS was released
+pub fn get_bios_release_year() -> Option<u16> {
+    get_smbios()?.structures().find_map(|result| match result {
+        Ok(Structure::Bios(bios)) => parse_release_year(bios.bios_release_date),
+        _ => None,
+    })
+}
+
 pub fn get_family() -> Option<PlatformFamily> {
     get_platform().and_then(Platform::which_family)
 }
@@ -373,6 +392,11 @@ enum SmbiosSerialNumber {
 
 pub fn dump_oem_strings(strings: StructureStrings) {
     let family = get_family();
+    // Some factories wrote invalid years, don't decode those.
+    // Parts are often made a few months after the BIOS running on the system
+    // was released, because it's flashed onto the mainboard before final
+    // assembly. So allow up to one year after the BIOS release.
+    let max_year = get_bios_release_year().map(|year| year + 1);
     for (i, s) in strings.enumerate() {
         let idx = i + 1;
         // Unprogrammed entries are all zeros or "*" padded with spaces
@@ -449,8 +473,30 @@ pub fn dump_oem_strings(strings: StructureStrings) {
         };
         println!("{}", s);
         println!("  {:<20}{}", format!("{:?}", sn), note);
-        if let Ok(serial) = FrameworkSerial::from_str(s) {
-            println!("  {}", serial);
+        match FrameworkSerial::from_str(s) {
+            Ok(serial) if matches!(max_year, Some(max) if serial.year > max) => {
+                debug!(
+                    "  Year {} is more than a year after the BIOS release",
+                    serial.year
+                );
+            }
+            Ok(serial) => println!("  {}", serial),
+            Err(err) => debug!("  {}", err),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn release_year() {
+        assert_eq!(parse_release_year("03/17/2025"), Some(2025));
+        assert_eq!(parse_release_year("03/17/25"), Some(2025));
+        assert_eq!(parse_release_year(" 03/17/2025 "), Some(2025));
+        assert_eq!(parse_release_year(""), None);
+        assert_eq!(parse_release_year("03/17/202"), None);
+        assert_eq!(parse_release_year("unknown"), None);
     }
 }
