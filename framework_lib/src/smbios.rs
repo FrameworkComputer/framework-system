@@ -1,11 +1,12 @@
 //! Retrieve SMBIOS tables and extract information from them
 
+use core::str::FromStr;
 use std::prelude::v1::*;
 
+use crate::serialnum::{Cfg0, FrameworkSerial};
 use crate::util::Config;
 pub use crate::util::{Platform, PlatformFamily};
-use dmidecode::{EntryPoint, Structure};
-use num_derive::FromPrimitive;
+use dmidecode::{EntryPoint, Structure, StructureStrings};
 use num_traits::FromPrimitive;
 #[cfg(feature = "uefi")]
 use spin::Mutex;
@@ -76,25 +77,6 @@ fn synthetic_entry_point_v3(major: u8, minor: u8, table_len: u32) -> [u8; 24] {
     ep
 }
 
-#[repr(u8)]
-#[derive(Debug, PartialEq, FromPrimitive, Clone, Copy)]
-pub enum ConfigDigit0 {
-    Poc1 = 0x01,
-    Proto1 = 0x02,
-    Proto2 = 0x03,
-    Evt1 = 0x04,
-    Evt2 = 0x05,
-    Dvt1 = 0x07,
-    Dvt2 = 0x08,
-    Pvt = 0x09,
-    MassProduction = 0x0A,
-    MassProductionB = 0x0B,
-    MassProductionC = 0x0C,
-    MassProductionD = 0x0D,
-    MassProductionE = 0x0E,
-    MassProductionF = 0x0F,
-}
-
 /// Check whether the manufacturer in the SMBIOS says Framework
 pub fn is_framework() -> bool {
     if matches!(
@@ -145,7 +127,7 @@ pub fn get_product_name() -> Option<String> {
     })
 }
 
-pub fn get_baseboard_version() -> Option<ConfigDigit0> {
+pub fn get_baseboard_version() -> Option<Cfg0> {
     let Some(smbios) = get_smbios() else {
         error!("Failed to find SMBIOS");
         return None;
@@ -160,13 +142,32 @@ pub fn get_baseboard_version() -> Option<ConfigDigit0> {
         }
         // Assumes it's ASCII, which is guaranteed by SMBIOS
         let config_digit0 = u8::from_str_radix(&version[0..1], 16);
-        match config_digit0.map(<ConfigDigit0 as FromPrimitive>::from_u8) {
+        match config_digit0.map(<Cfg0 as FromPrimitive>::from_u8) {
             Ok(version_config) => version_config,
             Err(_) => {
                 debug!("  Invalid BaseBoard Version: {}'", version);
                 None
             }
         }
+    })
+}
+
+/// Year of a BIOS release date in SMBIOS format: mm/dd/yyyy or mm/dd/yy
+fn parse_release_year(date: &str) -> Option<u16> {
+    let year = date.trim().rsplit('/').next()?;
+    let year = year.parse::<u16>().ok()?;
+    match year {
+        0..=99 => Some(2000 + year),
+        1000..=9999 => Some(year),
+        _ => None,
+    }
+}
+
+/// Year in which the running BIOS was released
+pub fn get_bios_release_year() -> Option<u16> {
+    get_smbios()?.structures().find_map(|result| match result {
+        Ok(Structure::Bios(bios)) => parse_release_year(bios.bios_release_date),
+        _ => None,
     })
 }
 
@@ -347,5 +348,245 @@ fn kenv_get(name: &str) -> nix::Result<String> {
         let value = cvalue.to_string_lossy().into_owned();
 
         Ok(value)
+    }
+}
+
+/// Part whose serial number is in an OEM string (SMBIOS Type 11)
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum SmbiosSerialNumber {
+    Mainboard,
+    Laptop,
+    Camera,
+    Display,
+    Battery,
+    Touchpad,
+    Keyboard,
+    Fingerprint,
+    AudioDaughtercard,
+    ACover,
+    Bezel,
+    CCover,
+    MidPlate,
+    DCover,
+    AntennaMain,
+    AntennaAux,
+    TouchpadFpc,
+    FingerprintFfc,
+    EdpCable,
+    LcdCable,
+    ThermalAssembly,
+    WifiModule,
+    Speaker,
+    RamSlot1,
+    RamSlot2,
+    Ssd,
+    AudioFfc,
+
+    // Laptop 16 only
+    LeftFan,
+    RightFan,
+    InputModuleHub,
+    LidSensor,
+    GpuModule,
+    InputModuleHubFpc,
+    ExpansionBayInterposer,
+    GpuThermal,
+
+    System,
+    Heatsink,
+    Fan,
+    Chassis,
+    Antenna,
+    LeftPanel,
+    RightPanel,
+    FrontPanel,
+    PowerSupply,
+    AudioCable,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum SlotUsage {
+    Used,
+    /// Only programmed on pre-built systems
+    PrebuiltOnly,
+    /// Slot is reserved, but not programmed
+    Unused,
+}
+
+/// Which part's serial is in the OEM string at 1-based index `idx`
+///
+/// Layouts are defined in the BIOS ERS, section "OEM Strings (Type 11)"
+fn oem_string_slot(
+    family: Option<PlatformFamily>,
+    idx: usize,
+) -> Option<(SmbiosSerialNumber, SlotUsage)> {
+    use SlotUsage::*;
+    use SmbiosSerialNumber as Sn;
+
+    // Laptop 12, Laptop 13 and Laptop 16
+    const LAPTOP: &[(SmbiosSerialNumber, SlotUsage)] = &[
+        (Sn::Mainboard, Used),
+        (Sn::Laptop, Used),
+        (Sn::Camera, Used),
+        (Sn::Display, Used),
+        (Sn::Battery, Used),
+        (Sn::Touchpad, Used),
+        (Sn::Keyboard, Used),
+        (Sn::Fingerprint, PrebuiltOnly),
+        (Sn::AudioDaughtercard, Used),
+        (Sn::ACover, Used),
+        (Sn::Bezel, Used),
+        (Sn::CCover, PrebuiltOnly),
+        (Sn::DCover, Used),
+        (Sn::AntennaMain, Used),
+        (Sn::AntennaAux, Used),
+        (Sn::TouchpadFpc, Used),
+        (Sn::FingerprintFfc, Used),
+        (Sn::EdpCable, Used),
+        (Sn::LcdCable, Used),
+        (Sn::ThermalAssembly, Used),
+        (Sn::WifiModule, Unused),
+        (Sn::Speaker, Used),
+        (Sn::RamSlot1, Unused),
+        (Sn::RamSlot2, Unused),
+        (Sn::Ssd, Unused),
+        (Sn::AudioFfc, Used),
+    ];
+    // Laptop 16 continues after the common laptop slots.
+    // Not in the BIOS ERS, but in the serialization tracker and on real systems.
+    const LAPTOP16_EXTRA: &[(SmbiosSerialNumber, SlotUsage)] = &[
+        (Sn::LeftFan, Used),
+        (Sn::RightFan, Used),
+        (Sn::InputModuleHub, Used),
+        (Sn::LidSensor, Used),
+        (Sn::GpuModule, Used),
+        (Sn::InputModuleHubFpc, Used),
+        (Sn::ExpansionBayInterposer, Used),
+        (Sn::GpuThermal, Used),
+    ];
+    const DESKTOP: &[(SmbiosSerialNumber, SlotUsage)] = &[
+        (Sn::Mainboard, Used),
+        (Sn::System, Used),
+        (Sn::Heatsink, Used),
+        (Sn::Fan, Used),
+        (Sn::Chassis, Used),
+        (Sn::Antenna, Used),
+        (Sn::WifiModule, Used),
+        (Sn::LeftPanel, PrebuiltOnly),
+        (Sn::RightPanel, Used),
+        (Sn::FrontPanel, Used),
+        (Sn::PowerSupply, Used),
+        (Sn::RamSlot1, Unused),
+        (Sn::RamSlot2, Unused),
+        (Sn::Ssd, Used),
+        (Sn::AudioCable, Used),
+    ];
+
+    let i = idx.checked_sub(1)?;
+    let slot = match family {
+        Some(PlatformFamily::FrameworkDesktop) => *DESKTOP.get(i)?,
+        Some(PlatformFamily::Framework16) if i >= LAPTOP.len() => {
+            *LAPTOP16_EXTRA.get(i - LAPTOP.len())?
+        }
+        _ => *LAPTOP.get(i)?,
+    };
+    // Laptop 16 has a mid plate where the others have the C cover
+    if family == Some(PlatformFamily::Framework16) && slot.0 == Sn::CCover {
+        return Some((Sn::MidPlate, Used));
+    }
+    Some(slot)
+}
+
+pub fn dump_oem_strings(strings: StructureStrings) {
+    let family = get_family();
+    // Some factories wrote invalid years, don't decode those.
+    // Parts are often made a few months after the BIOS running on the system
+    // was released, because it's flashed onto the mainboard before final
+    // assembly. So allow up to one year after the BIOS release.
+    let max_year = get_bios_release_year().map(|year| year + 1);
+    for (i, s) in strings.enumerate() {
+        let idx = i + 1;
+        // Unprogrammed entries are all zeros or "*" padded with spaces
+        let trimmed = s.trim();
+        if trimmed.is_empty() || trimmed == "*" || trimmed.chars().all(|c| c == '0') {
+            continue;
+        }
+        let Some((sn, usage)) = oem_string_slot(family, idx) else {
+            println!("{} Unknown/Reserved", s);
+            continue;
+        };
+        let note = match usage {
+            SlotUsage::Unused => {
+                println!("{} {:<20} (Unused)", s, format!("{:?}", sn));
+                continue;
+            }
+            SlotUsage::PrebuiltOnly => " (Only Pre-Built)",
+            SlotUsage::Used => "",
+        };
+        println!("{}", s);
+        println!("  {:<20}{}", format!("{:?}", sn), note);
+        match FrameworkSerial::from_str(s) {
+            Ok(serial) if matches!(max_year, Some(max) if serial.year > max) => {
+                debug!(
+                    "  Year {} is more than a year after the BIOS release",
+                    serial.year
+                );
+            }
+            Ok(serial) => println!("  {}", serial),
+            Err(err) => debug!("  {}", err),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn release_year() {
+        assert_eq!(parse_release_year("03/17/2025"), Some(2025));
+        assert_eq!(parse_release_year("03/17/25"), Some(2025));
+        assert_eq!(parse_release_year(" 03/17/2025 "), Some(2025));
+        assert_eq!(parse_release_year(""), None);
+        assert_eq!(parse_release_year("03/17/202"), None);
+        assert_eq!(parse_release_year("unknown"), None);
+    }
+
+    #[test]
+    fn oem_string_slots() {
+        use SlotUsage::*;
+        use SmbiosSerialNumber as Sn;
+        let laptop = Some(PlatformFamily::Framework13);
+        let fw16 = Some(PlatformFamily::Framework16);
+        let desktop = Some(PlatformFamily::FrameworkDesktop);
+
+        assert_eq!(oem_string_slot(laptop, 0), None);
+        assert_eq!(oem_string_slot(laptop, 1), Some((Sn::Mainboard, Used)));
+        assert_eq!(
+            oem_string_slot(laptop, 12),
+            Some((Sn::CCover, PrebuiltOnly))
+        );
+        assert_eq!(oem_string_slot(laptop, 21), Some((Sn::WifiModule, Unused)));
+        assert_eq!(oem_string_slot(laptop, 26), Some((Sn::AudioFfc, Used)));
+        assert_eq!(oem_string_slot(laptop, 27), None);
+        assert_eq!(oem_string_slot(fw16, 12), Some((Sn::MidPlate, Used)));
+        assert_eq!(oem_string_slot(fw16, 26), Some((Sn::AudioFfc, Used)));
+        assert_eq!(oem_string_slot(fw16, 27), Some((Sn::LeftFan, Used)));
+        assert_eq!(oem_string_slot(fw16, 31), Some((Sn::GpuModule, Used)));
+        assert_eq!(oem_string_slot(fw16, 34), Some((Sn::GpuThermal, Used)));
+        assert_eq!(oem_string_slot(fw16, 35), None);
+        assert_eq!(oem_string_slot(None, 2), Some((Sn::Laptop, Used)));
+
+        assert_eq!(oem_string_slot(desktop, 1), Some((Sn::Mainboard, Used)));
+        assert_eq!(oem_string_slot(desktop, 2), Some((Sn::System, Used)));
+        assert_eq!(oem_string_slot(desktop, 7), Some((Sn::WifiModule, Used)));
+        assert_eq!(
+            oem_string_slot(desktop, 8),
+            Some((Sn::LeftPanel, PrebuiltOnly))
+        );
+        assert_eq!(oem_string_slot(desktop, 12), Some((Sn::RamSlot1, Unused)));
+        assert_eq!(oem_string_slot(desktop, 14), Some((Sn::Ssd, Used)));
+        assert_eq!(oem_string_slot(desktop, 15), Some((Sn::AudioCable, Used)));
+        assert_eq!(oem_string_slot(desktop, 16), None);
     }
 }
