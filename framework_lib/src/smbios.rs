@@ -372,6 +372,7 @@ enum SmbiosSerialNumber {
 }
 
 pub fn dump_oem_strings(strings: StructureStrings) {
+    let family = get_family();
     for (i, s) in strings.enumerate() {
         let idx = i + 1;
         // Unprogrammed entries are all zeros or "*" padded with spaces
@@ -379,7 +380,7 @@ pub fn dump_oem_strings(strings: StructureStrings) {
         if trimmed.is_empty() || trimmed == "*" || trimmed.chars().all(|c| c == '0') {
             continue;
         }
-        let sn = if get_family() == Some(PlatformFamily::FrameworkDesktop) {
+        let sn = if family == Some(PlatformFamily::FrameworkDesktop) {
             match idx {
                 1 => Some(SmbiosSerialNumber::Mainboard),
                 2 => Some(SmbiosSerialNumber::Heatsink),
@@ -410,7 +411,7 @@ pub fn dump_oem_strings(strings: StructureStrings) {
                 9 => Some(SmbiosSerialNumber::AudioDaughtercard),
                 10 => Some(SmbiosSerialNumber::ACover),
                 11 => Some(SmbiosSerialNumber::Bezel),
-                12 if get_family() == Some(PlatformFamily::Framework16) => {
+                12 if family == Some(PlatformFamily::Framework16) => {
                     Some(SmbiosSerialNumber::MidPlate)
                 }
                 12 => Some(SmbiosSerialNumber::CCover),
@@ -431,46 +432,25 @@ pub fn dump_oem_strings(strings: StructureStrings) {
                 _ => None,
             }
         };
-        match sn {
-            Some(SmbiosSerialNumber::RamSlot1)
-            | Some(SmbiosSerialNumber::RamSlot2)
-            | Some(SmbiosSerialNumber::Ssd)
-            | Some(SmbiosSerialNumber::WifiModule) => {
-                println!("{} {:<20} (Unused)", s, format!("{:?}", sn.unwrap()))
+        let Some(sn) = sn else {
+            println!("{} Unknown/Reserved", s);
+            continue;
+        };
+        let note = match sn {
+            SmbiosSerialNumber::RamSlot1
+            | SmbiosSerialNumber::RamSlot2
+            | SmbiosSerialNumber::Ssd
+            | SmbiosSerialNumber::WifiModule => {
+                println!("{} {:<20} (Unused)", s, format!("{:?}", sn));
+                continue;
             }
-            Some(SmbiosSerialNumber::Fingerprint) | Some(SmbiosSerialNumber::CCover) => {
-                println!("{}", s);
-                println!("  {:<20} (Only Pre-Built)", format!("{:?}", sn.unwrap()));
-                if let Ok(serial) = FrameworkSerial::from_str(s) {
-                    println!(
-                        "  {} (Config {}) by {}, {:>4} Phase ({:?}, Week {}, {})",
-                        serial.product,
-                        serial.cfg1,
-                        serial.oem,
-                        format!("{:?}", serial.cfg0),
-                        serial.day,
-                        serial.week,
-                        serial.year,
-                    );
-                }
-            }
-            Some(sn) => {
-                println!("{}", s);
-                println!("  {:?}", sn);
-                if let Ok(serial) = FrameworkSerial::from_str(s) {
-                    println!(
-                        "  {} (Config {}) by {}, {:>4} Phase ({:?}, Week {}, {})",
-                        serial.product,
-                        serial.cfg1,
-                        serial.oem,
-                        format!("{:?}", serial.cfg0),
-                        serial.day,
-                        serial.week,
-                        serial.year,
-                    );
-                }
-            }
-            _ => println!("{} Unknown/Reserved", s),
+            SmbiosSerialNumber::Fingerprint | SmbiosSerialNumber::CCover => " (Only Pre-Built)",
+            _ => "",
+        };
+        println!("{}", s);
+        println!("  {:<20}{}", format!("{:?}", sn), note);
+        if let Ok(serial) = FrameworkSerial::from_str(s) {
+            println!("  {}", serial);
         }
     }
 }
