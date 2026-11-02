@@ -382,6 +382,16 @@ enum SmbiosSerialNumber {
     Ssd,
     AudioFfc,
 
+    // Laptop 16 only
+    LeftFan,
+    RightFan,
+    InputModuleHub,
+    LidSensor,
+    GpuModule,
+    InputModuleHubFpc,
+    ExpansionBayInterposer,
+    GpuThermal,
+
     System,
     Heatsink,
     Fan,
@@ -442,6 +452,18 @@ fn oem_string_slot(
         (Sn::Ssd, Unused),
         (Sn::AudioFfc, Used),
     ];
+    // Laptop 16 continues after the common laptop slots.
+    // Not in the BIOS ERS, but in the serialization tracker and on real systems.
+    const LAPTOP16_EXTRA: &[(SmbiosSerialNumber, SlotUsage)] = &[
+        (Sn::LeftFan, Used),
+        (Sn::RightFan, Used),
+        (Sn::InputModuleHub, Used),
+        (Sn::LidSensor, Used),
+        (Sn::GpuModule, Used),
+        (Sn::InputModuleHubFpc, Used),
+        (Sn::ExpansionBayInterposer, Used),
+        (Sn::GpuThermal, Used),
+    ];
     const DESKTOP: &[(SmbiosSerialNumber, SlotUsage)] = &[
         (Sn::Mainboard, Used),
         (Sn::System, Used),
@@ -463,6 +485,9 @@ fn oem_string_slot(
     let i = idx.checked_sub(1)?;
     let slot = match family {
         Some(PlatformFamily::FrameworkDesktop) => *DESKTOP.get(i)?,
+        Some(PlatformFamily::Framework16) if i >= LAPTOP.len() => {
+            *LAPTOP16_EXTRA.get(i - LAPTOP.len())?
+        }
         _ => *LAPTOP.get(i)?,
     };
     // Laptop 16 has a mid plate where the others have the C cover
@@ -545,6 +570,11 @@ mod tests {
         assert_eq!(oem_string_slot(laptop, 26), Some((Sn::AudioFfc, Used)));
         assert_eq!(oem_string_slot(laptop, 27), None);
         assert_eq!(oem_string_slot(fw16, 12), Some((Sn::MidPlate, Used)));
+        assert_eq!(oem_string_slot(fw16, 26), Some((Sn::AudioFfc, Used)));
+        assert_eq!(oem_string_slot(fw16, 27), Some((Sn::LeftFan, Used)));
+        assert_eq!(oem_string_slot(fw16, 31), Some((Sn::GpuModule, Used)));
+        assert_eq!(oem_string_slot(fw16, 34), Some((Sn::GpuThermal, Used)));
+        assert_eq!(oem_string_slot(fw16, 35), None);
         assert_eq!(oem_string_slot(None, 2), Some((Sn::Laptop, Used)));
 
         assert_eq!(oem_string_slot(desktop, 1), Some((Sn::Mainboard, Used)));
