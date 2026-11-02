@@ -1,18 +1,22 @@
 //! Decode Framework part serial numbers
 //!
-//! Format "A" (18 ASCII characters). Except for week and day all fields use
-//! the Crockford base32 alphabet: 0-9 and A-Z without I, L, O, U.
+//! Format "A" (18 ASCII characters). Except for week and day the spec says all
+//! fields use the Crockford base32 alphabet: 0-9 and A-Z without I, L, O, U.
+//! But factories do use L and O in the unit number, so only the year, which
+//! is decoded as base32, is strictly checked.
+//! Weeks are meant to be ISO 8601 weeks, but week 53 shows up in years that
+//! only have 52 ISO weeks, so any week from 1 to 53 is accepted.
 //!
 //! ```text
 //! FR A NBD CP A 1 4 05 5 0001
-//! |  | |   |  | | | |  | +- part:    4 base32 characters, unit number
+//! |  | |   |  | | | |  | +- part:    4 letters/digits, unit number
 //! |  | |   |  | | | |  +--- day:     ISO 8601 weekday, 1 (Monday) - 7 (Sunday)
 //! |  | |   |  | | | +------ week:    ISO 8601 week, 01 - 53
 //! |  | |   |  | | +-------- year:    2020 + base32 value (2020 - 2051)
 //! |  | |   |  | +---------- cfg1:    product specific config
 //! |  | |   |  +------------ cfg0:    usually development phase, see [`Cfg0`]
-//! |  | |   +--------------- oem:     2 base32 characters
-//! |  | +------------------- product: 3 base32 characters
+//! |  | |   +--------------- oem:     2 letters/digits
+//! |  | +------------------- product: 3 letters/digits
 //! |  +--------------------- format:  always A
 //! +------------------------ brand:   always FR
 //! ```
@@ -90,6 +94,10 @@ fn is_base32(c: char) -> bool {
     base32_value(c).is_some()
 }
 
+fn is_upper_alnum(c: char) -> bool {
+    c.is_ascii_uppercase() || c.is_ascii_digit()
+}
+
 /// Take `len` characters from the front of `s` and check each against `valid`
 fn field<'a>(
     s: &mut &'a str,
@@ -128,16 +136,6 @@ fn iso_weekday(year: i32, month: u32, day: u32) -> u32 {
         7
     } else {
         dow as u32
-    }
-}
-
-/// Number of ISO weeks in a year (52 or 53)
-fn iso_weeks_in_year(year: i32) -> u8 {
-    let jan1 = iso_weekday(year, 1, 1);
-    if jan1 == 4 || (jan1 == 3 && is_leap_year(year)) {
-        53
-    } else {
-        52
     }
 }
 
@@ -219,14 +217,14 @@ impl FromStr for FrameworkSerial {
                 Err(format!("Invalid brand/format '{}'", prefix))
             }
         })?;
-        let product = field(&mut rest, 3, "product", is_base32)?;
-        let oem = field(&mut rest, 2, "OEM", is_base32)?;
-        let cfg0 = field(&mut rest, 1, "CFG0", is_base32)?;
-        let cfg1 = field(&mut rest, 1, "CFG1", is_base32)?;
+        let product = field(&mut rest, 3, "product", is_upper_alnum)?;
+        let oem = field(&mut rest, 2, "OEM", is_upper_alnum)?;
+        let cfg0 = field(&mut rest, 1, "CFG0", is_upper_alnum)?;
+        let cfg1 = field(&mut rest, 1, "CFG1", is_upper_alnum)?;
         let year = field(&mut rest, 1, "year", is_base32)?;
         let week = field(&mut rest, 2, "week", |c| c.is_ascii_digit())?;
         let day = field(&mut rest, 1, "day", |c| c.is_ascii_digit())?;
-        let part = field(&mut rest, 4, "part", is_base32)?;
+        let part = field(&mut rest, 4, "part", is_upper_alnum)?;
 
         // Single character fields are exactly one ASCII character
         let char_of = |s: &str| s.as_bytes()[0] as char;
@@ -234,8 +232,8 @@ impl FromStr for FrameworkSerial {
         let year = BASE_YEAR + base32_value(char_of(year)).unwrap_or(0) as u16;
         // Validated as ASCII digits above, parsing cannot fail
         let week = week.parse::<u8>().map_err(|e| e.to_string())?;
-        if week == 0 || week > iso_weeks_in_year(year as i32) {
-            return Err(format!("Invalid week {} in {}", week, year));
+        if !(1..=53).contains(&week) {
+            return Err(format!("Invalid week {}", week));
         }
         let day = day
             .parse::<u8>()
@@ -298,6 +296,21 @@ mod tests {
         );
     }
 
+    /// Seen in factory serials, although not in the base32 alphabet
+    #[test]
+    fn non_base32_letters() {
+        let serial = FrameworkSerial::from_str("FRANBDCPA140550OL1").unwrap();
+        assert_eq!(serial.part, "0OL1");
+    }
+
+    /// Seen in factory serials, although 2021 has only 52 ISO weeks
+    #[test]
+    fn week_53_in_52_week_year() {
+        let serial = FrameworkSerial::from_str("FRANBDCPA11531AB12").unwrap();
+        assert_eq!(serial.week, 53);
+        assert_eq!(serial.date(), (2022, 1, 3));
+    }
+
     #[test]
     fn digit_product() {
         let serial = FrameworkSerial::from_str("FRAN2DCPA140550001").unwrap();
@@ -353,13 +366,11 @@ mod tests {
             "FRANBDCPA14055AB123", // too long
             "FRBNBDCPA14055AB12",  // wrong format
             "FRAnbdCPA14055AB12",  // lowercase product
-            "FRAINDCPA14055AB12",  // I is not base32
-            "FRANBDCOA14055AB12",  // O is not base32
-            "FRANBDCPL14055AB12",  // L is not base32
             "FRANBDCPA1U055AB12",  // U is not base32
-            "FRANBDCPA14055AB1I",  // I is not base32
+            "FRANBDCPA1I055AB12",  // I is not base32
+            "FRANBDCPA14055AB1-",  // not a letter/digit
             "FRANBDCPA14005AB12",  // week 0
-            "FRANBDCPA14535AB12",  // 2024 has only 52 weeks
+            "FRANBDCPA14545AB12",  // week 54
             "FRANBDCPA14050AB12",  // day 0
             "FRANBDCPA14058AB12",  // day 8
             "FRANBDCPA1405öAB1",   // non-ASCII
