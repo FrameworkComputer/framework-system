@@ -9,7 +9,7 @@
 //!
 //! ```text
 //! FR A NBD CP A 1 4 05 5 0001
-//! |  | |   |  | | | |  | +- part:    4 letters/digits, unit number
+//! |  | |   |  | | | |  | +- unit:    4 letters/digits, unit number
 //! |  | |   |  | | | |  +--- day:     ISO 8601 weekday, 1 (Monday) - 7 (Sunday)
 //! |  | |   |  | | | +------ week:    ISO 8601 week, 01 - 53
 //! |  | |   |  | | +-------- year:    2020 + base32 value (2020 - 2051)
@@ -46,8 +46,9 @@ pub struct FrameworkSerial {
     /// ISO 8601 week of the year (1-53)
     pub week: u8,
     pub day: WeekDay,
-    /// Four letter/digit string
-    pub part: String,
+    /// Unit number, four letter/digit string. Called "Serial" in the spec.
+    /// Typically restarts at 0001 every day, 0000 means not individually serialized.
+    pub unit: String,
 }
 
 #[repr(u8)]
@@ -224,7 +225,7 @@ impl FromStr for FrameworkSerial {
         let year = field(&mut rest, 1, "year", is_base32)?;
         let week = field(&mut rest, 2, "week", |c| c.is_ascii_digit())?;
         let day = field(&mut rest, 1, "day", |c| c.is_ascii_digit())?;
-        let part = field(&mut rest, 4, "part", is_upper_alnum)?;
+        let unit = field(&mut rest, 4, "unit", is_upper_alnum)?;
 
         // Single character fields are exactly one ASCII character
         let char_of = |s: &str| s.as_bytes()[0] as char;
@@ -249,7 +250,7 @@ impl FromStr for FrameworkSerial {
             year,
             week,
             day,
-            part: part.to_string(),
+            unit: unit.to_string(),
         })
     }
 }
@@ -300,7 +301,7 @@ mod tests {
     #[test]
     fn non_base32_letters() {
         let serial = FrameworkSerial::from_str("FRANBDCPA140550OL1").unwrap();
-        assert_eq!(serial.part, "0OL1");
+        assert_eq!(serial.unit, "0OL1");
     }
 
     /// Seen in factory serials, although 2021 has only 52 ISO weeks
@@ -323,7 +324,7 @@ mod tests {
         let serial = FrameworkSerial::from_str("FRANBZCP0002320001").unwrap();
         assert_eq!(serial.product, "NBZ");
         assert_eq!(serial.oem, "CP");
-        assert_eq!(serial.part, "0001");
+        assert_eq!(serial.unit, "0001");
         // The spec's verify example says "02 June 2020"
         assert_eq!(serial.date(), (2020, 6, 2));
         assert_eq!(
@@ -348,9 +349,9 @@ mod tests {
     }
 
     #[test]
-    fn part() {
+    fn unit() {
         let serial = FrameworkSerial::from_str("FRANBDCPA14055AB12").unwrap();
-        assert_eq!(serial.part, "AB12");
+        assert_eq!(serial.unit, "AB12");
     }
 
     #[test]
