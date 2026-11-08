@@ -276,14 +276,15 @@ fn add_menu(menu: MenuBuilder<Events>, _icon: &'static [u8], nm: Events) -> Menu
         _ => ("???", false),
     };
     #[cfg(features = "lotus")]
-    let menu = menu.submenu(
-        "Launch Inputmodule Apps",
-        MenuBuilder::new()
-            .item("Keyboard (VIA)", Events::LaunchVia)
-            .item("Keyboard (QMK GUI)", Events::LaunchQmkGui)
-            .item("LED Matrix", Events::LaunchLedmatrixControl),
-    )
-    .separator();
+    let menu = menu
+        .submenu(
+            "Launch Inputmodule Apps",
+            MenuBuilder::new()
+                .item("Keyboard (VIA)", Events::LaunchVia)
+                .item("Keyboard (QMK GUI)", Events::LaunchQmkGui)
+                .item("LED Matrix", Events::LaunchLedmatrixControl),
+        )
+        .separator();
 
     // TODO
     // .item("Sync keyboard brightness", Events::SyncKeyboards)
@@ -294,25 +295,25 @@ fn add_menu(menu: MenuBuilder<Events>, _icon: &'static [u8], nm: Events) -> Menu
     );
 
     menu
-    //.separator()
-    .checkable(nm_str, nm_checked, Events::NumLockToggle)
-    //.with(MenuItem::Item {
-    //    name: "Item Disabled".into(),
-    //    disabled: true, // Disabled entry example
-    //    id: Events::DisabledItem1,
-    //    icon: Result::ok(Icon::from_buffer(icon, None, None)),
-    //})
-    .separator()
-    .submenu(
-        "Framework Websites",
-        MenuBuilder::new()
-            .item("Marketplace", Events::LaunchMarketplace)
-            .item("Community", Events::LaunchCommunity)
-            .item("Knowledge Base", Events::LaunchKb)
-            .item("Guides", Events::LaunchGuides),
-    )
-    .separator()
-    .item("E&xit", Events::Exit)
+        //.separator()
+        .checkable(nm_str, nm_checked, Events::NumLockToggle)
+        //.with(MenuItem::Item {
+        //    name: "Item Disabled".into(),
+        //    disabled: true, // Disabled entry example
+        //    id: Events::DisabledItem1,
+        //    icon: Result::ok(Icon::from_buffer(icon, None, None)),
+        //})
+        .separator()
+        .submenu(
+            "Framework Websites",
+            MenuBuilder::new()
+                .item("Marketplace", Events::LaunchMarketplace)
+                .item("Community", Events::LaunchCommunity)
+                .item("Knowledge Base", Events::LaunchKb)
+                .item("Guides", Events::LaunchGuides),
+        )
+        .separator()
+        .item("E&xit", Events::Exit)
 }
 
 /// Check if numlock is enabled
