@@ -7,7 +7,8 @@ edition = "2021"
 [features]
 lotus = []
 
-[dependencies]
+# The tray application is Windows-only for now
+[target.'cfg(windows)'.dependencies]
 trayicon = "0.2.0"
 winapi = { version = "0.3.9", features = ["winuser", "windef", "minwindef", "shellapi", "libloaderapi", "commctrl", "basetsd"] }
 #crossbeam-channel = "0.5"
@@ -16,7 +17,7 @@ qmk_hid = { git = 'https://github.com/FrameworkComputer/qmk_hid' }
 winrt-notification = "0.5.1"
 windows = "0.3"
 
-[build-dependencies]
+[target.'cfg(windows)'.build-dependencies]
 windows = "0.3"
 windres = "0.2"
 

@@ -1,7 +1,3 @@
-// In debug builds don't disable terminal
-// Otherwise we can't see println and can't exit with CTRL+C
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
 use core::mem::MaybeUninit;
 use std::collections::HashMap;
 use std::process::Command;
@@ -27,6 +23,8 @@ const FWK_COMMUNITY: &str = "https://community.frame.work";
 const FWK_KB: &str = "https://knowledgebase.frame.work/";
 const FWK_GUIDES: &str = "https://guides.frame.work/c/Root";
 
+// Some menu entries are only added with the lotus feature or still TODO
+#[allow(dead_code)]
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 enum Events {
     RightClickTrayIcon,
@@ -80,13 +78,13 @@ fn launch_website(url: &str) {
     use std::ptr::null_mut;
     use winapi::um::shellapi::*;
     use winapi::um::winuser::*;
-    let wurl = to_wstring(url).as_ptr();
-    let action = to_wstring("open").as_ptr();
+    let wurl = to_wstring(url);
+    let action = to_wstring("open");
     let ret = unsafe {
         ShellExecuteW(
             null_mut(),
-            action,
-            wurl,
+            action.as_ptr(),
+            wurl.as_ptr(),
             null_mut(),
             null_mut(),
             SW_SHOWNORMAL,
@@ -106,6 +104,8 @@ fn launch_tool(t: Tool) {
         Tool::QmkGui => r"C:\Program Files\Framework Computer\qmk_gui.exe",
         Tool::LedmatrixControl => r"C:\Program Files\Framework Computer\ledmatrix_control.exe",
     };
+    // Tool keeps running independently, don't wait for it
+    #[allow(clippy::zombie_processes)]
     Command::new(path).spawn().unwrap();
 }
 
@@ -225,10 +225,10 @@ fn sync_keyboard_screen() {
                 return;
             } else if dev_infos.len() == 1 {
                 //println!("Found one device");
-                dev_infos.get(0).unwrap()
+                dev_infos.first().unwrap()
             } else {
                 println!("More than 1 device found. Select a specific device with --vid and --pid");
-                dev_infos.get(0).unwrap()
+                dev_infos.first().unwrap()
             };
             //println!("Open");
             let device = dev_info.open_device(&api).unwrap();
@@ -275,7 +275,7 @@ fn add_menu(menu: MenuBuilder<Events>, _icon: &'static [u8], nm: Events) -> Menu
         Events::NumLockOn => ("Numlock On (Number Keys)", true),
         _ => ("???", false),
     };
-    #[cfg(features = "lotus")]
+    #[cfg(feature = "lotus")]
     let menu = menu
         .submenu(
             "Launch Inputmodule Apps",
@@ -288,7 +288,7 @@ fn add_menu(menu: MenuBuilder<Events>, _icon: &'static [u8], nm: Events) -> Menu
 
     // TODO
     // .item("Sync keyboard brightness", Events::SyncKeyboards)
-    #[cfg(features = "lotus")]
+    #[cfg(feature = "lotus")]
     let menu = menu.item(
         "Sync keyboard brightness with screen",
         Events::SyncKeyboardScreen,
@@ -332,13 +332,13 @@ fn numlock_toggle() {
     }
 }
 
-#[cfg(windows)]
+#[allow(unused_imports)]
 mod win_bindings {
     ::windows::include_bindings!();
     pub use self::windows::win32::shell::SetCurrentProcessExplicitAppUserModelID;
 }
 
-fn main() {
+pub fn main() {
     unsafe {
         win_bindings::SetCurrentProcessExplicitAppUserModelID(
             to_wstring("work.frame.tray").as_ptr(),
@@ -427,7 +427,7 @@ fn main() {
 
             Events::DoubleClickTrayIcon => {
                 println!("Double click");
-                #[cfg(features = "lotus")]
+                #[cfg(feature = "lotus")]
                 {
                     let devs = brightness::blocking::brightness_devices();
                     for dev in devs {
@@ -441,7 +441,7 @@ fn main() {
             }
             Events::LeftClickTrayIcon => {
                 println!("Single click");
-                #[cfg(features = "lotus")]
+                #[cfg(feature = "lotus")]
                 {
                     let devs = brightness::blocking::brightness_devices();
                     for dev in devs {
