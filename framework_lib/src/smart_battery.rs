@@ -708,29 +708,17 @@ fn read_password() -> io::Result<String> {
     };
 
     unsafe {
-        let handle = GetStdHandle(STD_INPUT_HANDLE).map_err(|e| {
-            io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to get stdin handle: {}", e),
-            )
-        })?;
+        let handle = GetStdHandle(STD_INPUT_HANDLE)
+            .map_err(|e| io::Error::other(format!("Failed to get stdin handle: {}", e)))?;
 
         let mut mode = CONSOLE_MODE::default();
-        GetConsoleMode(handle, &mut mode).map_err(|e| {
-            io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to get console mode: {}", e),
-            )
-        })?;
+        GetConsoleMode(handle, &mut mode)
+            .map_err(|e| io::Error::other(format!("Failed to get console mode: {}", e)))?;
 
         // Disable echo
         let noecho = CONSOLE_MODE(mode.0 & !ENABLE_ECHO_INPUT.0);
-        SetConsoleMode(handle, noecho).map_err(|e| {
-            io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to set console mode: {}", e),
-            )
-        })?;
+        SetConsoleMode(handle, noecho)
+            .map_err(|e| io::Error::other(format!("Failed to set console mode: {}", e)))?;
 
         // Read the line
         let mut input = String::new();
