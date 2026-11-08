@@ -130,11 +130,15 @@ pub fn print_touchpad_fw_ver() -> Result<(), HidError> {
                     vid, pid, usage_page
                 );
                 if vid != PIX_VID
-                    || (pid != 0x0274 && pid != 0x0239 && pid != 0x0360 && pid != 0x0343)
+                    || (pid != 0x0274
+                        && pid != 0x0239
+                        && pid != 0x0360
+                        && pid != 0x0343
+                        && pid != 0x1343)
                 {
                     debug!(
-                        "  Skipping VID:PID. Expected {:04X}:{:04X}/{:04X}/{:04X}",
-                        PIX_VID, 0x0274, 0x0239, 0x0343
+                        "  Skipping VID:PID. Expected {:04X}:{:04X}/{:04X}/{:04X}/{:04X}/{:04X}",
+                        PIX_VID, 0x0274, 0x0239, 0x0360, 0x0343, 0x1343
                     );
                     continue;
                 }
@@ -153,6 +157,7 @@ pub fn print_touchpad_fw_ver() -> Result<(), HidError> {
                     0x0239 => format!("{:04X}", read_239_ver(&device)?),
                     0x0274 => format!("{:04X}", read_274_ver(&device)?),
                     0x0343 => format!("{:04X}", read_274_ver(&device)?),
+                    0x1343 => format!("{:04X}", read_274_ver(&device)?),
                     0x0360 => format!("{:04X}", read_360_ver(&device)?),
                     _ => "Unsupported".to_string(),
                 };
