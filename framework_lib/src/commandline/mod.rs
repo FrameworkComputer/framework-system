@@ -59,10 +59,10 @@ use crate::nvme;
 use crate::os_specific;
 use crate::parade_retimer;
 use crate::power;
+use crate::serialnum::Cfg0;
 #[cfg(not(feature = "uefi"))]
 use crate::smart_battery::SmartBattery;
 use crate::smbios;
-use crate::smbios::ConfigDigit0;
 use crate::smbios::{get_smbios, is_framework};
 #[cfg(feature = "hidapi")]
 use crate::touchpad::print_touchpad_fw_ver;
@@ -266,6 +266,7 @@ pub struct Cli {
     pub flash_gpu_descriptor_file: Option<String>,
     pub dump_gpu_descriptor_file: Option<String>,
     pub validate_gpu_descriptor_file: Option<String>,
+    pub serialnums: bool,
     pub nvidia: bool,
     // UEFI only
     pub allupdate: bool,
@@ -1772,6 +1773,8 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(dump_path) = &args.meinfo {
         let verbose = args.verbosity.0 >= log::LevelFilter::Warn;
         me_info(verbose, dump_path.as_deref());
+    } else if args.serialnums {
+        serialnum_info();
     } else if args.pd_info {
         print_pd_details(&ec);
     } else if let Some(pd) = args.pd_reset {
@@ -2090,8 +2093,9 @@ Options:
       --autofanctrl [<FANID>]Turn on automatic fan speed control (optionally provide fan index)
       --pdports              Show USB-C PD port state
       --pdports-chromebook   Show PD port info (generic Chromium EC)
-      --info                 Show info from SMBIOS (Only on UEFI)
+      --info                 Show info from SMBIOS
       --meinfo [<DUMPFILE>]   Show Intel ME information (from SMBIOS type 0xDB)
+      --serialnums           Show info about system serial numbers
       --pd-info              Show details about the PD controllers
       --pd-reset <PD_NUM>    Reset a specific PD controller (for debugging only)
       --pd-disable <PD_NUM>  Disable all ports on a specific PD controller (for debugging only)
@@ -2440,8 +2444,7 @@ fn smbios_info() {
                     // Assumes it's ASCII, which is guaranteed by SMBIOS
                     let config_digit0 = &version[0..1];
                     let config_digit0 = u8::from_str_radix(config_digit0, 16);
-                    if let Ok(version_config) =
-                        config_digit0.map(<ConfigDigit0 as FromPrimitive>::from_u8)
+                    if let Ok(version_config) = config_digit0.map(<Cfg0 as FromPrimitive>::from_u8)
                     {
                         println!("  Version:      {:?} ({})", version_config, version);
                     } else {
@@ -2482,8 +2485,7 @@ fn smbios_info() {
                     // Assumes it's ASCII, which is guaranteed by SMBIOS
                     let config_digit0 = &version[0..1];
                     let config_digit0 = u8::from_str_radix(config_digit0, 16);
-                    if let Ok(version_config) =
-                        config_digit0.map(<ConfigDigit0 as FromPrimitive>::from_u8)
+                    if let Ok(version_config) = config_digit0.map(<Cfg0 as FromPrimitive>::from_u8)
                     {
                         println!("  Version:      {:?} ({})", version_config, version);
                     } else {
@@ -2629,6 +2631,19 @@ fn me_info(verbose: bool, dump_path: Option<&str>) {
         }
     } else {
         error!("No Intel ME FWSTS table found in SMBIOS (type 0xDB)");
+    }
+}
+
+fn serialnum_info() {
+    let smbios = get_smbios();
+    if smbios.is_none() {
+        error!("Failed to find SMBIOS");
+        return;
+    }
+    for result in smbios.unwrap().structures() {
+        if let Ok(Structure::OemStrings(data)) = result {
+            smbios::dump_oem_strings(data.strings);
+        }
     }
 }
 
