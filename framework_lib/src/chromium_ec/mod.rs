@@ -2195,6 +2195,15 @@ impl CrosEcDriver for CrosEc {
             return Err(EcError::DeviceError("Not a Framework Laptop".to_string()));
         }
 
+        // The drivers would otherwise panic or silently truncate the request
+        if data.len() > protocol::EC_MAX_REQUEST_SIZE {
+            return Err(EcError::DeviceError(format!(
+                "EC request too big: {} bytes, max {}",
+                data.len(),
+                protocol::EC_MAX_REQUEST_SIZE
+            )));
+        }
+
         match self.driver {
             #[cfg(all(not(windows), target_arch = "x86_64"))]
             Some(CrosEcDriverType::Portio) => portio::send_command(command, command_version, data),

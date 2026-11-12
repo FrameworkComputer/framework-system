@@ -85,6 +85,10 @@ pub struct EcHostRequest {
     pub data_len: u16,
 }
 
+/// Max number of request parameter bytes that fit into one host command.
+pub const EC_MAX_REQUEST_SIZE: usize =
+    EC_LPC_HOST_PACKET_SIZE as usize - std::mem::size_of::<EcHostRequest>();
+
 pub const EC_HOST_RESPONSE_VERSION: u8 = 3;
 
 /// Response header of version 3
