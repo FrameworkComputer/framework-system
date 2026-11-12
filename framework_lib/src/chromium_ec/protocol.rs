@@ -110,3 +110,5 @@ pub struct EcHostResponse {
     pub reserved: u16,
 }
 pub const HEADER_LEN: usize = std::mem::size_of::<EcHostResponse>();
+/// Max number of response data bytes that fit into one host command.
+pub const EC_MAX_RESPONSE_SIZE: usize = EC_LPC_HOST_PACKET_SIZE as usize - HEADER_LEN;
