@@ -334,7 +334,7 @@ pub fn percent_to_duty(percent: u8) -> u16 {
 
 pub fn duty_to_percent(duty: u16) -> u8 {
     let percent = duty as u32 * 100;
-    (percent / PWM_MAX_DUTY as u32) as u8
+    ((percent + PWM_MAX_DUTY as u32 / 2) / PWM_MAX_DUTY as u32) as u8
 }
 
 #[repr(C, packed)]
