@@ -127,6 +127,8 @@ pub enum EcCommands {
     GetPdPortState = 0x3E23,
     /// Read board ID of specific ADC channel
     ReadBoardId = 0x3E26,
+    /// Move the STM32 keyboard controller into its ROM bootloader and back
+    KbdFlashStm32 = 0x3E2C,
 }
 
 pub trait EcRequest<R> {
