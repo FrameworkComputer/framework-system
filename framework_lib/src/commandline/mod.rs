@@ -765,8 +765,12 @@ fn print_versions(ec: &CrosEc) {
             // This means there's a bug, we should've found one but didn't
             println!("  Unknown");
         }
-    } else {
-        // If we don't know the GUID, print all the device firmwares in ESRT
+    } else if smbios::get_platform()
+        .and_then(Platform::which_cpu_vendor)
+        .is_none()
+    {
+        // Only speculate about retimers on unidentified platforms. Known platforms
+        // without Intel retimers must not list unrelated ESRT device firmware here.
         println!("Intel Retimers (Potential)");
         if let Some(esrt) = esrt::get_esrt() {
             for entry in esrt.entries.iter() {
