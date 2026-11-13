@@ -17,7 +17,7 @@ default = ["hidapi", "rusb"]
 readonly = [ ]
 rusb = ["dep:rusb"]
 hidapi = ["dep:hidapi"]
-uefi = [ "lazy_static/spin_no_std" ]
+uefi = [ "lazy_static/spin_no_std", "dep:spin" ]
 nvidia = ["dep:nvml-wrapper"]
 # Needs libsmartmon (GPL-2.0-or-later), see README
 smartmontools = ["dep:smartmon"]
@@ -35,13 +35,17 @@ num = { version = "0.4", default-features = false }
 num-derive = { version = "0.5", default-features = false }
 num-traits = { version = "0.2", default-features = false }
 log = { version = "0.4", default-features = true }
-spin = { version = "0.12" }
+spin = { version = "0.12", optional = true }
 no-std-compat = { version = "0.4.1", features = [ "alloc" ] }
 hidapi = { version = "2.6.3", features = [ "windows-native" ], optional = true }
 rusb = { version = "0.9.4", optional = true }
 guid-create = { version = "0.5.0", default-features = false }
 zerocopy = { version = "0.8", default-features = false, features = ["derive"] }
 smartmon = { version = "0.1", optional = true }
+
+# The port-I/O driver uses spin even without the uefi feature.
+[target.'cfg(all(not(windows), target_arch = "x86_64"))'.dependencies]
+spin = { version = "0.12" }
 
 [target.'cfg(target_os = "uefi")'.dependencies]
 uefi = { version = "0.41", features = ["alloc", "global_allocator", "panic_handler", "logger"] }
