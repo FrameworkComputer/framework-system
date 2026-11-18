@@ -25,7 +25,7 @@ const PAGE_ATTEMPTS: u32 = 5;
 /// Rewrites of a page that read back wrong
 const HEAL_ATTEMPTS: u32 = 2;
 /// Bootloader restarts in one run
-const RUN_RESTARTS: u32 = 300;
+const RUN_RESTARTS: u32 = 100;
 /// Tries at one chunk's write or read
 const CHUNK_ATTEMPTS: u32 = 8;
 
@@ -47,6 +47,10 @@ pub enum Stage {
     Writing,
     Verifying,
     ExitingBootloader,
+    /// A step failed and the bootloader is being restarted to retry it.
+    /// Reported on every restart, with the restart count as done and 0 as
+    /// total, so a caller can cancel a run that keeps retrying.
+    Restarting,
 }
 
 impl core::fmt::Display for Stage {
@@ -57,6 +61,7 @@ impl core::fmt::Display for Stage {
             Stage::Writing => "Writing",
             Stage::Verifying => "Verifying",
             Stage::ExitingBootloader => "Exiting bootloader",
+            Stage::Restarting => "Restarting bootloader",
         };
         write!(f, "{}", s)
     }
@@ -179,12 +184,15 @@ impl<'a> Session<'a> {
     /// Start the bootloader over, from whatever state it was left in. ENTER
     /// power-cycles the part into ROM, so this is certain where nothing else
     /// is. The handshake is not repeated, what it reported cannot have changed.
-    fn restart(&mut self) -> Stm32KbdResult<()> {
+    fn restart(&mut self, progress: Progress) -> Stm32KbdResult<()> {
         let mut last_err = None;
         loop {
             self.restarts += 1;
             if self.restarts > RUN_RESTARTS {
                 break;
+            }
+            if !progress(Stage::Restarting, self.restarts as usize, 0) {
+                return Err(cancelled());
             }
             if let Err(e) = kbd_flash_stm32(self.ec, KbdFlashStm32Subcmd::Enter) {
                 last_err = Some(e);
@@ -308,7 +316,12 @@ fn chunk_state(s: &Session, addr: u32, data: &[u8]) -> Stm32KbdResult<ChunkState
 /// the flash is the only witness, so read it: there already, done; still
 /// erased, write it again; anything else, the page has to be redone.
 /// Returns whether the page needs to be redone.
-fn write_chunk(s: &mut Session, addr: u32, data: &[u8]) -> Stm32KbdResult<bool> {
+fn write_chunk(
+    s: &mut Session,
+    addr: u32,
+    data: &[u8],
+    progress: Progress,
+) -> Stm32KbdResult<bool> {
     if s.bl.write(addr, data).is_ok() {
         return Ok(false);
     }
@@ -322,7 +335,7 @@ fn write_chunk(s: &mut Session, addr: u32, data: &[u8]) -> Stm32KbdResult<bool> 
             }
             Ok(ChunkState::Other) => return Ok(true),
             // Could not even read: start the bootloader over
-            Err(_) => s.restart()?,
+            Err(_) => s.restart(progress)?,
         }
     }
     Ok(true)
@@ -338,7 +351,7 @@ fn write_ranges(
 ) -> Stm32KbdResult<bool> {
     for r in ranges {
         for (i, chunk) in r.bytes.chunks(WRITE_CHUNK).enumerate() {
-            if write_chunk(s, r.addr + (i * WRITE_CHUNK) as u32, chunk)? {
+            if write_chunk(s, r.addr + (i * WRITE_CHUNK) as u32, chunk, progress)? {
                 return Ok(true);
             }
             *done += chunk.len();
@@ -371,7 +384,7 @@ fn write_page(
         *done = start;
         if !fresh || attempt > 0 {
             if attempt > 0 {
-                s.restart()?;
+                s.restart(progress)?;
             }
             if let Err(e) = s.bl.erase_page(page as u16) {
                 last_err = Some(e);
@@ -396,7 +409,12 @@ fn write_page(
 
 /// Read a page's ranges back and compare. Returns the first address that
 /// does not match. A read is safe to repeat, so a failed one just goes again.
-fn check_page(s: &mut Session, plan: &Plan, page: u32) -> Stm32KbdResult<Option<u32>> {
+fn check_page(
+    s: &mut Session,
+    plan: &Plan,
+    page: u32,
+    progress: Progress,
+) -> Stm32KbdResult<Option<u32>> {
     for r in plan.page_ranges(page) {
         for (i, chunk) in r.bytes.chunks(READ_CHUNK).enumerate() {
             let a = r.addr + (i * READ_CHUNK) as u32;
@@ -409,7 +427,7 @@ fn check_page(s: &mut Session, plan: &Plan, page: u32) -> Stm32KbdResult<Option<
                         if attempt >= CHUNK_ATTEMPTS {
                             return Err(e);
                         }
-                        s.restart()?;
+                        s.restart(progress)?;
                     }
                 }
             };
@@ -430,7 +448,7 @@ fn flash_session(
     let plan = Plan::new(img, opts.set_no_update);
 
     progress(Stage::Erasing, 0, 0);
-    mass_erase(s)?;
+    mass_erase(s, progress)?;
 
     let mut done = 0;
     for page in plan.first_page..=plan.last_page {
@@ -450,9 +468,9 @@ fn flash_session(
             continue;
         }
         let mut heal = 0;
-        while let Some(at) = check_page(s, &plan, page)? {
+        while let Some(at) = check_page(s, &plan, page, progress)? {
             // One wrong read proves nothing, only a second one agreeing does
-            if check_page(s, &plan, page)?.is_none() {
+            if check_page(s, &plan, page, progress)?.is_none() {
                 break;
             }
             if heal >= HEAL_ATTEMPTS {
@@ -465,8 +483,12 @@ fn flash_session(
             }
             heal += 1;
             s.healed += 1;
-            s.restart()?;
-            write_page(s, &plan, page, false, &mut 0, &mut |_, _, _| true)?;
+            s.restart(progress)?;
+            // Pass on restarts only, the rewrite's byte counts would set the
+            // progress back
+            write_page(s, &plan, page, false, &mut 0, &mut |stage, done, total| {
+                stage != Stage::Restarting || progress(stage, done, total)
+            })?;
         }
         if opts.verify {
             checked += ranges.iter().map(|r| r.bytes.len()).sum::<usize>();
@@ -482,7 +504,7 @@ fn flash_session(
     Ok(())
 }
 
-fn mass_erase(s: &mut Session) -> Stm32KbdResult<()> {
+fn mass_erase(s: &mut Session, progress: Progress) -> Stm32KbdResult<()> {
     let mut attempt = 0;
     loop {
         match s.bl.mass_erase() {
@@ -492,7 +514,7 @@ fn mass_erase(s: &mut Session) -> Stm32KbdResult<()> {
                 if attempt >= PAGE_ATTEMPTS {
                     return Err(e);
                 }
-                s.restart()?;
+                s.restart(progress)?;
             }
         }
     }
@@ -550,7 +572,7 @@ pub fn flash(
 pub fn erase(ec: &CrosEc, progress: Progress) -> Stm32KbdResult<BootloaderInfo> {
     with_session(ec, progress, |s, progress| {
         progress(Stage::Erasing, 0, 0);
-        mass_erase(s)?;
+        mass_erase(s, progress)?;
         Ok(s.info())
     })
 }
