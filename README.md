@@ -83,7 +83,7 @@ To add it to your project add it to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-framework_lib = "0.6.6"
+framework_lib = "0.6.7"
 ```
 
 ## Features
