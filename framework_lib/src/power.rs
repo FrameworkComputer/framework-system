@@ -87,7 +87,7 @@ const EC_FAN_SPEED_NOT_PRESENT: u16 = 0xFFFF;
 /// Reading of a single temperature sensor
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TempSensor {
-    Ok(u8),
+    Ok(i16),
     NotPresent,
     Error,
     NotPowered,
@@ -100,7 +100,7 @@ impl From<u8> for TempSensor {
             0xFE => TempSensor::Error,
             0xFD => TempSensor::NotPowered,
             0xFC => TempSensor::NotCalibrated,
-            _ => TempSensor::Ok(t - 73),
+            _ => TempSensor::Ok(t as i16 - 73),
         }
     }
 }
@@ -1349,6 +1349,8 @@ mod tests {
         // Raw sensor values are offset by 73 K
         assert_eq!(TempSensor::from(73), TempSensor::Ok(0));
         assert_eq!(TempSensor::from(100), TempSensor::Ok(27));
+        // Below 0 C must not underflow
+        assert_eq!(TempSensor::from(0), TempSensor::Ok(-73));
     }
 
     #[test]
