@@ -896,8 +896,6 @@ impl CrosEc {
     /// The Framework EC Flash Storage (flash flags) is not updated during EC
     /// firmware update. It is erased by EC_CMD_FACTORY_MODE.
     pub fn reflash(&self, data: &[u8], ft: EcFlashType, dry_run: bool) -> EcResult<()> {
-        let mut res = Ok(());
-
         let cur_ver = self.version_info()?;
         let platform = if let Some(ver) = ec_binary::parse_ec_version_str(&cur_ver) {
             ver.platform
@@ -978,7 +976,44 @@ impl CrosEc {
 
         println!("Unlocking flash");
         self.flash_notify(MecFlashNotify::AccessSpi)?;
-        self.flash_notify(MecFlashNotify::FirmwareStart)?;
+        let erase_block_size = info.erase_block_size;
+        let res = self
+            .flash_notify(MecFlashNotify::FirmwareStart)
+            .and_then(|_| {
+                self.reflash_regions(
+                    data,
+                    ft,
+                    dry_run,
+                    erase_block_size,
+                    flash_ro_size,
+                    flash_rw_size,
+                )
+            });
+
+        // Always lock again, even if flashing failed.
+        // FirmwareStart disables the power button and lid switch until FirmwareDone.
+        println!("Locking flash");
+        let lock_res = self.flash_notify(MecFlashNotify::AccessSpiDone);
+        let done_res = self.flash_notify(MecFlashNotify::FirmwareDone);
+        res?;
+        lock_res?;
+        done_res?;
+
+        println!("Flashing EC done. You can reboot the EC now");
+        Ok(())
+    }
+
+    /// Erase, write and verify the regions selected by `ft`. Flash must be unlocked already
+    fn reflash_regions(
+        &self,
+        data: &[u8],
+        ft: EcFlashType,
+        dry_run: bool,
+        erase_block_size: u32,
+        flash_ro_size: u32,
+        flash_rw_size: u32,
+    ) -> EcResult<()> {
+        let mut res = Ok(());
 
         // TODO: Check if erase was successful
         // 1. First erase 0x10000 bytes
@@ -992,7 +1027,7 @@ impl CrosEc {
                 "Erasing full flash{}",
                 if dry_run { " (DRY RUN)" } else { "" }
             );
-            self.erase_ec_flash(FLASH_BASE, FLASH_SIZE, dry_run, info.erase_block_size)?;
+            self.erase_ec_flash(FLASH_BASE, FLASH_SIZE, dry_run, erase_block_size)?;
             println!("  Done");
 
             println!(
@@ -1023,7 +1058,7 @@ impl CrosEc {
                 FLASH_BASE + FLASH_RW_BASE,
                 flash_rw_size,
                 dry_run,
-                info.erase_block_size,
+                erase_block_size,
             )?;
             println!("  Done");
 
@@ -1052,7 +1087,7 @@ impl CrosEc {
                 FLASH_BASE + FLASH_RO_BASE,
                 flash_ro_size,
                 dry_run,
-                info.erase_block_size,
+                erase_block_size,
             )?;
             println!("  Done");
 
@@ -1068,14 +1103,6 @@ impl CrosEc {
                 error!("RO verify fail!");
                 res = Err(EcError::DeviceError("RO verify fail!".to_string()));
             }
-        }
-
-        println!("Locking flash");
-        self.flash_notify(MecFlashNotify::AccessSpiDone)?;
-        self.flash_notify(MecFlashNotify::FirmwareDone)?;
-
-        if res.is_ok() {
-            println!("Flashing EC done. You can reboot the EC now");
         }
 
         res
