@@ -40,6 +40,8 @@ reproduced with the real tool (`framework_tool --ec-bin`/`--pd-bin`).
 
 - `ec_binary`: EC firmware binaries
 - `ccgx_binary`: CCGX PD firmware binaries, tried with every silicon family
+- `capsule`: UEFI capsules, including the Windows UX capsule header (`--capsule`)
+- `h2o_capsule`: Finding BIOS version, EC and PD firmware in Insyde BIOS capsules (`--h2o-capsule`)
 
 The interesting data is at offsets far beyond libFuzzer's default max input
 length, so seed the corpus with real binaries and raise `-max_len`:
@@ -52,4 +54,8 @@ cp ../framework_lib/test_bins/*pd*.bin ../framework_lib/test_bins/dahlia-*.bin c
 
 cargo +nightly fuzz run ec_binary -- -close_fd_mask=1 -max_len=524288
 cargo +nightly fuzz run ccgx_binary -- -close_fd_mask=1 -max_len=262144
+
+mkdir -p corpus/capsule && cp ../framework_lib/test_bins/winux.bin corpus/capsule/
+cargo +nightly fuzz run capsule -- -close_fd_mask=1 -max_len=1048576
+cargo +nightly fuzz run h2o_capsule -- -close_fd_mask=1 -max_len=1048576
 ```
