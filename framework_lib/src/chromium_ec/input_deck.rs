@@ -49,6 +49,9 @@ pub enum InputModuleType {
     Touchpad,
     Reserved15,
     Disconnected,
+    /// Value the EC reported that we don't know.
+    /// The EC reports 0xFF if it failed to read the board ID.
+    Unknown(u8),
 }
 impl From<u8> for InputModuleType {
     fn from(item: u8) -> Self {
@@ -69,7 +72,7 @@ impl From<u8> for InputModuleType {
             13 => Self::Touchpad,
             14 => Self::Reserved15,
             15 => Self::Disconnected,
-            _ => panic!("Invalid module type"),
+            x => Self::Unknown(x),
         }
     }
 }
@@ -95,6 +98,7 @@ impl InputModuleType {
             Self::Touchpad => 0,
             Self::Reserved15 => 0,
             Self::Disconnected => 0,
+            Self::Unknown(_) => 0,
         }
     }
 }
@@ -115,6 +119,8 @@ pub enum InputDeckState {
     ForceOn,
     /// Manual override: Input deck will follow power sequence, no present check
     NoDetection,
+    /// Value the EC reported that we don't know
+    Unknown(u8),
 }
 impl From<u8> for InputDeckState {
     fn from(item: u8) -> Self {
@@ -126,7 +132,7 @@ impl From<u8> for InputDeckState {
             4 => InputDeckState::ForceOff,
             5 => InputDeckState::ForceOn,
             6 => InputDeckState::NoDetection,
-            _ => panic!("Invalid value"),
+            x => InputDeckState::Unknown(x),
         }
     }
 }
@@ -181,7 +187,7 @@ impl From<EcResponseDeckState> for InputDeckStatus {
         let tp_id = InputModuleType::from(item.board_id[InputDeckMux::Touchpad as usize]);
         let tp_present = !matches!(
             tp_id,
-            InputModuleType::Short | InputModuleType::Disconnected
+            InputModuleType::Short | InputModuleType::Disconnected | InputModuleType::Unknown(_)
         );
 
         InputDeckStatus {
