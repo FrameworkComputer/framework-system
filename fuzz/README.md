@@ -61,3 +61,23 @@ cargo +nightly fuzz run capsule -- -close_fd_mask=1 -max_len=1048576
 python3 seed_h2o_capsule.py
 cargo +nightly fuzz run h2o_capsule -- -close_fd_mask=1 -max_len=1048576
 ```
+
+## EC flashing
+
+`ec_reflash` runs `CrosEc::reflash` (`--flash-ec` and friends) against a model of
+the EC flash, installed with `fuzz_driver::set_command_handler`. The fuzzer input
+doesn't contain the firmware file, it selects the flash type, platforms, placement of
+the version structs, file length, what EC_CMD_FLASH_INFO reports and which commands
+fail. The target builds a matching file from that.
+
+Besides crashes, it checks that flashing stays inside the reported flash size and
+the selected regions, writes the file contents only to erased flash, doesn't touch
+flash with an invalid file or in dry-run mode, always locks the flash again after
+FirmwareStart, and leaves the file contents in flash when it reports success.
+See the comment at the top of `fuzz_targets/ec_reflash.rs`.
+
+No seed corpus is needed, inputs are small:
+
+```sh
+cargo +nightly fuzz run ec_reflash -- -close_fd_mask=1 -timeout=10
+```
