@@ -1,6 +1,7 @@
 # Fuzzing
 
-Fuzz the parsing of EC responses (memory map and host commands) without hardware.
+Fuzz the parsing of EC responses (memory map and host commands) without hardware,
+and the parsing of firmware binaries.
 With `--cfg fuzzing` (set by cargo-fuzz), `CrosEc` uses a mock driver
 (`framework_lib/src/chromium_ec/fuzz_driver.rs`) that returns fuzzer-provided data.
 
@@ -31,3 +32,24 @@ cargo +nightly fuzz run ec_memmap artifacts/ec_memmap/crash-...
 ```
 
 `-close_fd_mask=1` silences stdout, the library prints a lot.
+
+## Firmware binary parsing
+
+These targets take the firmware file itself as input, so crash artifacts can be
+reproduced with the real tool (`framework_tool --ec-bin`/`--pd-bin`).
+
+- `ec_binary`: EC firmware binaries
+- `ccgx_binary`: CCGX PD firmware binaries, tried with every silicon family
+
+The interesting data is at offsets far beyond libFuzzer's default max input
+length, so seed the corpus with real binaries and raise `-max_len`:
+
+```sh
+cd fuzz
+mkdir -p corpus/ec_binary corpus/ccgx_binary
+cp ../framework_lib/test_bins/*-ec-*.bin corpus/ec_binary/
+cp ../framework_lib/test_bins/*pd*.bin ../framework_lib/test_bins/dahlia-*.bin corpus/ccgx_binary/
+
+cargo +nightly fuzz run ec_binary -- -close_fd_mask=1 -max_len=524288
+cargo +nightly fuzz run ccgx_binary -- -close_fd_mask=1 -max_len=262144
+```
