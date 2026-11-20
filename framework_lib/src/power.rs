@@ -740,7 +740,10 @@ pub fn power_info(ec: &CrosEc) -> Option<PowerInfo> {
                 last_full_charge_capacity: battery_lfcc,
                 cycle_count,
 
-                charge_percentage: (100 * battery_cap) / battery_lfcc,
+                charge_percentage: battery_cap
+                    .saturating_mul(100)
+                    .checked_div(battery_lfcc)
+                    .unwrap_or(0),
 
                 manufacturer,
                 model_number,
@@ -815,7 +818,11 @@ fn print_battery_information(power_info: &PowerInfo) {
         println!("  Battery Capacity: {} mAh", battery.remaining_capacity);
         let wah = battery.remaining_capacity * battery.present_voltage / 1000;
         println!("                    {}.{:2} Wh", wah / 1000, wah % 1000);
-        println!("  Charge level:     {:?}%", battery.charge_percentage);
+        if battery.last_full_charge_capacity == 0 {
+            println!("  Charge level:     Unknown (LFCC is 0)");
+        } else {
+            println!("  Charge level:     {:?}%", battery.charge_percentage);
+        }
 
         if log_enabled!(Level::Info) {
             println!("  Manufacturer:     {}", battery.manufacturer);
