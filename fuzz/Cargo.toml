@@ -50,3 +50,17 @@ path = "fuzz_targets/ccgx_binary.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "capsule"
+path = "fuzz_targets/capsule.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "h2o_capsule"
+path = "fuzz_targets/h2o_capsule.rs"
+test = false
+doc = false
+bench = false
