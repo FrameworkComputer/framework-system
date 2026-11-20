@@ -651,7 +651,7 @@ impl CrosEc {
         }
         .send_command(self)?;
 
-        Ok(InputDeckStatus::from(status))
+        InputDeckStatus::try_from(status)
     }
 
     pub fn print_fw12_inputdeck_status(&self) -> EcResult<()> {
@@ -779,7 +779,7 @@ impl CrosEc {
     pub fn set_input_deck_mode(&self, mode: DeckStateMode) -> EcResult<InputDeckStatus> {
         let status = EcRequestDeckState { mode }.send_command(self)?;
 
-        Ok(InputDeckStatus::from(status))
+        InputDeckStatus::try_from(status)
     }
 
     /// Change the keyboard baclight brightness

@@ -1765,13 +1765,15 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if let Some(mode) = &args.inputdeck_mode {
         if *mode == InputDeckModeArg::Reset {
             println!("Resetting input deck (off => auto)");
-            ec.set_input_deck_mode(DeckStateMode::ForceOff).unwrap();
+            // Even if decoding the response fails, the EC has applied the
+            // mode, so keep going and turn it back to auto
+            print_err(ec.set_input_deck_mode(DeckStateMode::ForceOff));
             // Make sure it has time to fully turn off
             os_specific::sleep(100);
-            ec.set_input_deck_mode(DeckStateMode::Required).unwrap();
+            print_err(ec.set_input_deck_mode(DeckStateMode::Required));
         } else {
             println!("Set mode to: {:?}", mode);
-            ec.set_input_deck_mode((*mode).into()).unwrap();
+            print_err(ec.set_input_deck_mode((*mode).into()));
         }
     } else if args.expansion_bay {
         if let Err(err) = ec.check_bay_status() {
