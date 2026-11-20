@@ -541,11 +541,12 @@ fn active_mode(mode: &FwMode, reference: FwMode) -> &'static str {
     }
 }
 
-/// Whether this system can have a touchscreen and stylus
+/// Whether this system can have the ILI touchscreen and stylus
 ///
-/// So far only the Framework Laptop 12 has them.
+/// So far only the Framework Laptop 12 has them. Other systems may have a
+/// Himax touchscreen, which is handled separately.
 #[cfg(feature = "hidapi")]
-fn has_touchscreen() -> bool {
+fn has_ili_touchscreen() -> bool {
     smbios::get_platform().and_then(Platform::which_family) == Some(PlatformFamily::Framework12)
 }
 
@@ -558,7 +559,7 @@ const STYLUS_BATTERY_TRIES: u32 = 50;
 
 #[cfg(feature = "hidapi")]
 fn print_stylus_battery_level() {
-    if !has_touchscreen() {
+    if !has_ili_touchscreen() {
         error!("This system has no stylus");
         return;
     }
@@ -879,9 +880,12 @@ fn print_versions(ec: &CrosEc) {
     let _ignore_err = print_touchpad_fw_ver();
 
     #[cfg(feature = "hidapi")]
-    if has_touchscreen() {
-        let _ignore_err = touchscreen::print_himax_fw_ver();
+    if has_ili_touchscreen() {
+        // Also prints the Himax touchscreen version
         let _ignore_err = touchscreen::print_fw_ver();
+    } else {
+        // Laptop 13 can have a Himax touchscreen
+        let _ignore_err = touchscreen::print_himax_fw_ver();
     }
     #[cfg(feature = "hidapi")]
     print_dp_hdmi_details(false);
@@ -1895,7 +1899,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         ec.set_tablet_mode(mode);
     } else if let Some(_enable) = &args.touchscreen_enable {
         #[cfg(feature = "hidapi")]
-        if !has_touchscreen() {
+        if !has_ili_touchscreen() {
             error!("This system has no touchscreen");
         } else if touchscreen::enable_touch(*_enable).is_none() {
             error!("Failed to enable/disable touch");
