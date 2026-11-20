@@ -40,7 +40,14 @@ pub fn get_os_version() -> String {
 /// Sleep a number of microseconds
 pub fn sleep(micros: u64) {
     let duration = Duration::from_micros(micros);
+    // Don't slow down the fuzzer, there's no hardware to wait for
+    #[cfg(fuzzing)]
+    {
+        let _ = duration;
+        return;
+    }
     #[cfg(not(feature = "uefi"))]
+    #[allow(unreachable_code)]
     {
         thread::sleep(duration);
     }

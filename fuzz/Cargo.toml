@@ -1,0 +1,38 @@
+[package]
+name = "framework_lib-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.framework_lib]
+path = "../framework_lib"
+# No hidapi/rusb, nothing to fuzz there and avoids needing the system libraries
+default-features = false
+
+# Keep out of the main workspace, so normal builds don't need nightly/libfuzzer
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+overflow-checks = true
+
+[[bin]]
+name = "ec_memmap"
+path = "fuzz_targets/ec_memmap.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ec_host_cmd"
+path = "fuzz_targets/ec_host_cmd.rs"
+test = false
+doc = false
+bench = false

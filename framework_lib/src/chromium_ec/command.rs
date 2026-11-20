@@ -202,6 +202,8 @@ pub trait EcRequestRaw<R> {
     where
         Self: Sized,
     {
+        #[cfg(fuzzing)]
+        super::fuzz_driver::set_expected_size(Some(std::mem::size_of::<R>()));
         let response = self.send_command_vec_extra(ec, extra_data)?;
         if response.len() != std::mem::size_of::<R>() {
             return Err(EcError::DeviceError(format!(

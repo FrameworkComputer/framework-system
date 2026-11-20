@@ -94,3 +94,7 @@ features = [
     "Win32_UI_Shell_PropertiesSystem"
 ]
 
+
+[lints.rust]
+# Set by cargo-fuzz, see fuzz/
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(fuzzing)'] }
