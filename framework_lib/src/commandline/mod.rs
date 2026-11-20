@@ -1498,6 +1498,12 @@ fn dump_ec_flash(ec: &CrosEc, dump_path: &str) {
         Ok(flash_bin) => flash_bin,
         Err(err) => {
             error!("Failed to read EC flash: {:?}", err);
+            // Don't leave an empty file behind that looks like a dump
+            #[cfg(not(feature = "uefi"))]
+            {
+                drop(file);
+                let _ = fs::remove_file(dump_path);
+            }
             return;
         }
     };
