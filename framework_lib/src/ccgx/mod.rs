@@ -273,7 +273,7 @@ pub fn get_pd_controller_versions(ec: &CrosEc) -> EcResult<PdVersions> {
 }
 
 fn parse_metadata_ccg3(buffer: &[u8]) -> Option<(u32, u32)> {
-    let buffer = &buffer[CCG3_METADATA_OFFSET..];
+    let buffer = buffer.get(CCG3_METADATA_OFFSET..)?;
     let (metadata, _) = CyAcdMetadata::read_from_prefix(buffer).ok()?;
     trace!("Metadata: {:X?}", metadata);
     if metadata.metadata_valid.get() == METADATA_MAGIC {
@@ -288,7 +288,7 @@ fn parse_metadata_ccg3(buffer: &[u8]) -> Option<(u32, u32)> {
 
 //fn parse_metadata(buffer: &[u8; 256]) -> Option<(u32, u32)> {
 fn parse_metadata_cyacd(buffer: &[u8]) -> Option<(u32, u32)> {
-    let buffer = &buffer[METADATA_OFFSET..];
+    let buffer = buffer.get(METADATA_OFFSET..)?;
     let (metadata, _) = CyAcdMetadata::read_from_prefix(buffer).ok()?;
     trace!("Metadata: {:X?}", metadata);
     if metadata.metadata_valid.get() == METADATA_MAGIC {
@@ -302,7 +302,7 @@ fn parse_metadata_cyacd(buffer: &[u8]) -> Option<(u32, u32)> {
 }
 
 fn parse_metadata_cyacd2(buffer: &[u8]) -> Option<(u32, u32)> {
-    let buffer = &buffer[CCG8_METADATA_OFFSET..];
+    let buffer = buffer.get(CCG8_METADATA_OFFSET..)?;
     let (metadata, _) = CyAcd2Metadata::read_from_prefix(buffer).ok()?;
     trace!("Metadata: {:X?}", metadata);
     if metadata.metadata_valid.get() == CCG8_METADATA_MAGIC {

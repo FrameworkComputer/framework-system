@@ -152,7 +152,8 @@ fn read_version(
         read_metadata(file_buffer, flash_row_size, metadata_offset, ccgx)?;
     let data = read_256_bytes(file_buffer, fw_row_start, flash_row_size)?;
     trace!("First row of firmware: {:X?}", data);
-    let data = &data[FW_VERSION_OFFSET..];
+    // Row might be too short, if the firmware starts in the last row of the file
+    let data = data.get(FW_VERSION_OFFSET..)?;
 
     let (version_info, _) = VersionInfo::read_from_prefix(data).ok()?;
 
@@ -777,5 +778,31 @@ mod tests {
                 },
             }
         });
+    }
+
+    #[test]
+    // Metadata row is the last 0x80 bytes of the file, too short for the metadata
+    fn truncated_metadata_row() {
+        let mut pd_bin_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        pd_bin_path.push("test_bins/adl-pd-0.1.33.bin");
+        let data = fs::read(pd_bin_path).unwrap();
+
+        // FW1 metadata is in row 0x1FE at 0xFF00
+        let data = &data[..0xFF80];
+        assert_eq!(read_versions(data, SiliconFamily::Ccg6Adl), None);
+        assert_eq!(read_versions(data, SiliconFamily::Ccg6), None);
+    }
+
+    #[test]
+    // Metadata points to a firmware in the last row, too short for the version
+    fn truncated_firmware_row() {
+        let mut data = vec![0; 0x10000];
+        // CCG6 FW1 metadata at row 0x1FE, offset 0xC0
+        let metadata = 0x1FE * SMALL_ROW + 0xC0;
+        // Firmware starts in the row after boot_last_row, the last row of the file
+        data[metadata + 0x05..metadata + 0x07].copy_from_slice(&0x1FEu16.to_le_bytes());
+        data[metadata + 0x16..metadata + 0x18].copy_from_slice(&0x4359u16.to_le_bytes());
+
+        assert_eq!(read_versions(&data, SiliconFamily::Ccg6), None);
     }
 }
