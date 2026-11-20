@@ -36,3 +36,17 @@ path = "fuzz_targets/ec_host_cmd.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "ec_binary"
+path = "fuzz_targets/ec_binary.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ccgx_binary"
+path = "fuzz_targets/ccgx_binary.rs"
+test = false
+doc = false
+bench = false
