@@ -1129,11 +1129,11 @@ impl CrosEc {
 
         let chunk_size = 0x80;
 
-        let chunks = data.len() / chunk_size;
+        let chunks = data.len().div_ceil(chunk_size);
         println!(
             "  Will write flash from 0x{:X} to 0x{:X} in {}*{}B chunks",
             addr,
-            data.len(),
+            addr as usize + data.len(),
             chunks,
             chunk_size
         );
@@ -1247,7 +1247,7 @@ impl CrosEc {
         let (chunk_size, chunks) = if size <= 0x80 {
             (size, 1)
         } else {
-            (0x80, size / 0x80)
+            (0x80, size.div_ceil(0x80))
         };
         for chunk_no in 0..chunks {
             #[cfg(feature = "uefi")]
@@ -1266,10 +1266,7 @@ impl CrosEc {
                     println!();
                     print!(
                         "Reading chunk {:>4}/{:>4} ({:>6}/{:>6}): X",
-                        chunk_no,
-                        chunks,
-                        offset,
-                        cur_chunk_size * chunks
+                        chunk_no, chunks, offset, size
                     );
                 } else {
                     print!("X");
