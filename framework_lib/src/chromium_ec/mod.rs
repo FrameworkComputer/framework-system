@@ -945,6 +945,20 @@ impl CrosEc {
             }
         }
 
+        // Make sure the file covers all regions we're going to write, before touching the flash
+        let required_len = match ft {
+            EcFlashType::Full => FLASH_SIZE,
+            EcFlashType::Both | EcFlashType::Rw => FLASH_RW_BASE + flash_rw_size,
+            EcFlashType::Ro => FLASH_RO_BASE + flash_ro_size,
+        } as usize;
+        if data.len() < required_len {
+            return Err(EcError::DeviceError(format!(
+                "Firmware file too small. Expected at least {} bytes, got {}",
+                required_len,
+                data.len()
+            )));
+        }
+
         // Determine recommended flash parameters
         let info = EcRequestFlashInfo {}.send_command(self)?;
 
@@ -972,13 +986,6 @@ impl CrosEc {
         // 3. Write each row (128B) individually
 
         if ft == EcFlashType::Full {
-            if data.len() < FLASH_SIZE as usize {
-                return Err(EcError::DeviceError(format!(
-                    "Firmware file too small for full flash. Expected {} bytes, got {}",
-                    FLASH_SIZE,
-                    data.len()
-                )));
-            }
             let data = &data[..FLASH_SIZE as usize];
 
             println!(
