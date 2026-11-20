@@ -1183,15 +1183,11 @@ impl CrosEc {
                 "EC reported an erase block size of 0".to_string(),
             ));
         }
+        let end = offset + size;
         let mut cur_offset = offset;
 
-        while cur_offset < offset + size {
-            let rem_size = offset + size - cur_offset;
-            let cur_size = if rem_size < chunk_size {
-                rem_size
-            } else {
-                chunk_size
-            };
+        while cur_offset < end {
+            let cur_size = std::cmp::min(end - cur_offset, chunk_size);
             debug!(
                 "EcRequestFlashErase (0x{:05X}, 0x{:05X})",
                 cur_offset, cur_size
@@ -1203,7 +1199,8 @@ impl CrosEc {
                 }
                 .send_command(self)?;
             }
-            cur_offset += chunk_size;
+            // Not chunk_size, that can overflow if it's huge
+            cur_offset += cur_size;
         }
         Ok(())
     }
