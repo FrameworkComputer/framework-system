@@ -1184,6 +1184,12 @@ impl CrosEc {
     ) -> EcResult<()> {
         // Erasing a big section takes too long sometimes and the linux kernel driver times out, so
         // split it up into chunks.
+        if chunk_size == 0 {
+            // Would never make progress
+            return Err(EcError::DeviceError(
+                "EC reported an erase block size of 0".to_string(),
+            ));
+        }
         let mut cur_offset = offset;
 
         while cur_offset < offset + size {
