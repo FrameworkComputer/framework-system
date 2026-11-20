@@ -186,6 +186,10 @@ pub struct AccelData {
 }
 impl From<Vec<u8>> for AccelData {
     fn from(t: Vec<u8>) -> Self {
+        let Some(t) = t.get(..6) else {
+            error!("Accelerometer data too short: {} bytes", t.len());
+            return Self { x: 0, y: 0, z: 0 };
+        };
         Self {
             x: i16::from_le_bytes([t[0], t[1]]),
             y: i16::from_le_bytes([t[2], t[3]]),
@@ -225,13 +229,17 @@ impl fmt::Display for LidAngle {
     }
 }
 
-fn read_string(ec: &CrosEc, address: u16) -> String {
-    let bytes = ec.read_memory(address, EC_MEMMAP_TEXT_MAX).unwrap();
-    String::from_utf8_lossy(bytes.as_slice()).replace(['\0'], "")
+fn read_string(ec: &CrosEc, address: u16) -> Option<String> {
+    let bytes = ec.read_memory(address, EC_MEMMAP_TEXT_MAX)?;
+    Some(String::from_utf8_lossy(bytes.as_slice()).replace(['\0'], ""))
 }
 
-fn read_u32(ec: &CrosEc, address: u16) -> u32 {
-    let bytes = ec.read_memory(address, 4).unwrap();
+fn read_u8(ec: &CrosEc, address: u16) -> Option<u8> {
+    ec.read_memory(address, 1)?.first().copied()
+}
+
+fn read_u32(ec: &CrosEc, address: u16) -> Option<u32> {
+    let bytes = ec.read_memory(address, 4)?;
     if bytes.len() != 4 {
         debug_assert!(
             bytes.len() == 4,
@@ -239,9 +247,9 @@ fn read_u32(ec: &CrosEc, address: u16) -> u32 {
             bytes.len()
         );
         error!("Unexpected length returned: {:?} instead of 4", bytes.len());
-        return 0;
+        return None;
     }
-    u32::from_ne_bytes(bytes[0..4].try_into().unwrap())
+    Some(u32::from_ne_bytes(bytes[0..4].try_into().unwrap()))
 }
 
 pub fn print_memmap_version_info(ec: &CrosEc) {
@@ -433,13 +441,20 @@ pub fn get_accel_data(ec: &CrosEc) -> (AccelData, AccelData, LidAngle) {
     // bit 4 = busy
     // bit 7 = present
     // #define EC_MEMMAP_ACC_STATUS_SAMPLE_ID_MASK 0x0f
-    let _acc_status = ec.read_memory(EC_MEMMAP_ACC_STATUS, 0x01).unwrap()[0];
     // While busy, keep reading
 
-    let lid_angle = ec.read_memory(EC_MEMMAP_ACC_DATA, 0x02).unwrap();
-    let lid_angle = u16::from_le_bytes([lid_angle[0], lid_angle[1]]);
-    let accel_1 = ec.read_memory(EC_MEMMAP_ACC_DATA + 2, 0x06).unwrap();
-    let accel_2 = ec.read_memory(EC_MEMMAP_ACC_DATA + 8, 0x06).unwrap();
+    // 0x92-0x93: Lid angle, 0x94-0x99: 1st accel, 0x9a-0x9f: 2nd accel
+    let Some(data) = ec
+        .read_memory(EC_MEMMAP_ACC_DATA, 14)
+        .filter(|d| d.len() == 14)
+    else {
+        error!("Failed to read accelerometer data");
+        let zero = AccelData { x: 0, y: 0, z: 0 };
+        return (zero.clone(), zero, LidAngle::Unreliable);
+    };
+    let lid_angle = u16::from_le_bytes([data[0], data[1]]);
+    let accel_1 = data[2..8].to_vec();
+    let accel_2 = data[8..14].to_vec();
 
     // TODO: Make sure we got a new sample
     // println!("  Status Bit: {} 0x{:X}", acc_status, acc_status);
@@ -494,13 +509,13 @@ pub fn print_sensors(ec: &CrosEc) {
     // bit 4 = busy
     // bit 7 = present
     // #define EC_MEMMAP_ACC_STATUS_SAMPLE_ID_MASK 0x0f
-    let acc_status = ec.read_memory(EC_MEMMAP_ACC_STATUS, 0x01).unwrap()[0];
+    let Some(acc_status) = read_u8(ec, EC_MEMMAP_ACC_STATUS) else {
+        println!("Accelerometers: Failed to read");
+        return;
+    };
     // While busy, keep reading
 
-    let lid_angle = ec.read_memory(EC_MEMMAP_ACC_DATA, 0x02).unwrap();
-    let lid_angle = u16::from_le_bytes([lid_angle[0], lid_angle[1]]);
-    let accel_1 = ec.read_memory(EC_MEMMAP_ACC_DATA + 2, 0x06).unwrap();
-    let accel_2 = ec.read_memory(EC_MEMMAP_ACC_DATA + 8, 0x06).unwrap();
+    let (accel_1, accel_2, lid_angle) = get_accel_data(ec);
 
     let present = (acc_status & 0x80) > 0;
     if present {
@@ -509,21 +524,19 @@ pub fn print_sensors(ec: &CrosEc) {
         debug!("  Present:    {}", present);
         debug!("  Busy:       {}", (acc_status & 0x8) > 0);
         print!("  Lid Angle:   ");
-        if lid_angle == LID_ANGLE_UNRELIABLE {
-            println!("Unreliable");
-        } else {
-            println!("{} Deg", lid_angle);
+        match lid_angle {
+            LidAngle::Angle(deg) => println!("{} Deg", deg),
+            LidAngle::Unreliable => println!("Unreliable"),
         }
-        println!(
-            "  {:<12} {}",
-            format!("{:?} Sensor:", accel_locations[0]),
-            AccelData::from(accel_1)
-        );
-        println!(
-            "  {:<12} {}",
-            format!("{:?} Sensor:", accel_locations[1]),
-            AccelData::from(accel_2)
-        );
+        // The EC might not report the location of every sensor
+        let location = |i: usize| {
+            accel_locations
+                .get(i)
+                .map(|l| format!("{:?} Sensor:", l))
+                .unwrap_or_else(|| format!("Sensor {}:", i + 1))
+        };
+        println!("  {:<12} {}", location(0), accel_1);
+        println!("  {:<12} {}", location(1), accel_2);
     }
 }
 
@@ -696,7 +709,10 @@ pub fn print_thermal(ec: &CrosEc) {
 }
 
 pub fn get_fan_num(ec: &CrosEc) -> EcResult<usize> {
-    let fans = ec.read_memory(EC_MEMMAP_FAN, 0x08).unwrap();
+    let fans = ec
+        .read_memory(EC_MEMMAP_FAN, 2 * EC_FAN_SPEED_ENTRIES as u16)
+        .filter(|f| f.len() == 2 * EC_FAN_SPEED_ENTRIES)
+        .ok_or_else(|| EcError::DeviceError("Failed to read fan speeds".to_string()))?;
 
     let mut count = 0;
     for i in 0..EC_FAN_SPEED_ENTRIES {
@@ -711,24 +727,24 @@ pub fn get_fan_num(ec: &CrosEc) -> EcResult<usize> {
 
 // TODO: Use Result
 pub fn power_info(ec: &CrosEc) -> Option<PowerInfo> {
-    let battery_flag = ec.read_memory(EC_MEMMAP_BATT_FLAG, 1)?[0];
+    let battery_flag = read_u8(ec, EC_MEMMAP_BATT_FLAG)?;
     debug!("AC/Battery flag: {:#X}", battery_flag);
-    let battery_lfcc = read_u32(ec, EC_MEMMAP_BATT_LFCC);
-    let battery_cap = read_u32(ec, EC_MEMMAP_BATT_CAP);
+    let battery_lfcc = read_u32(ec, EC_MEMMAP_BATT_LFCC)?;
+    let battery_cap = read_u32(ec, EC_MEMMAP_BATT_CAP)?;
 
-    let present_voltage = read_u32(ec, EC_MEMMAP_BATT_VOLT);
-    let present_rate = read_u32(ec, EC_MEMMAP_BATT_RATE);
-    let _remaining_capacity = read_u32(ec, EC_MEMMAP_BATT_CAP); // TODO: Why didn't I use this?
-    let battery_count = ec.read_memory(EC_MEMMAP_BATT_COUNT, 1).unwrap()[0]; // 8 bit
-    let current_battery_index = ec.read_memory(EC_MEMMAP_BATT_INDEX, 1).unwrap()[0]; // 8 bit
-    let design_capacity = read_u32(ec, EC_MEMMAP_BATT_DCAP);
-    let design_voltage = read_u32(ec, EC_MEMMAP_BATT_DVLT);
-    let cycle_count = read_u32(ec, EC_MEMMAP_BATT_CCNT);
+    let present_voltage = read_u32(ec, EC_MEMMAP_BATT_VOLT)?;
+    let present_rate = read_u32(ec, EC_MEMMAP_BATT_RATE)?;
+    let _remaining_capacity = read_u32(ec, EC_MEMMAP_BATT_CAP)?; // TODO: Why didn't I use this?
+    let battery_count = read_u8(ec, EC_MEMMAP_BATT_COUNT)?;
+    let current_battery_index = read_u8(ec, EC_MEMMAP_BATT_INDEX)?;
+    let design_capacity = read_u32(ec, EC_MEMMAP_BATT_DCAP)?;
+    let design_voltage = read_u32(ec, EC_MEMMAP_BATT_DVLT)?;
+    let cycle_count = read_u32(ec, EC_MEMMAP_BATT_CCNT)?;
 
-    let manufacturer = read_string(ec, EC_MEMMAP_BATT_MFGR);
-    let model_number = read_string(ec, EC_MEMMAP_BATT_MODEL);
-    let serial_number = read_string(ec, EC_MEMMAP_BATT_SERIAL);
-    let battery_type = read_string(ec, EC_MEMMAP_BATT_TYPE);
+    let manufacturer = read_string(ec, EC_MEMMAP_BATT_MFGR)?;
+    let model_number = read_string(ec, EC_MEMMAP_BATT_MODEL)?;
+    let serial_number = read_string(ec, EC_MEMMAP_BATT_SERIAL)?;
+    let battery_type = read_string(ec, EC_MEMMAP_BATT_TYPE)?;
 
     Some(PowerInfo {
         ac_present: 0 != (battery_flag & EC_BATT_FLAG_AC_PRESENT),
