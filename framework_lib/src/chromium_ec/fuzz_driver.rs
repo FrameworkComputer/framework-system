@@ -6,6 +6,8 @@
 //!   like they would on real hardware.
 //! - Host command responses are taken sequentially from a tape. Once the tape runs
 //!   out, every command fails, so retry/polling loops terminate.
+//! - Optionally a fuzz target can install a command handler, to model stateful
+//!   behavior (like flash contents) that a tape can't express.
 
 use std::cell::{Cell, RefCell};
 
@@ -22,8 +24,13 @@ struct State {
     pos: usize,
 }
 
+/// Handles a host command `(command, command_version, request)` instead of the tape.
+/// Returning `None` falls through to the tape.
+pub type CommandHandler = Box<dyn FnMut(u16, u8, &[u8]) -> Option<EcResult<Vec<u8>>>>;
+
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
+    static HANDLER: RefCell<Option<CommandHandler>> = const { RefCell::new(None) };
     /// Size of the struct that the caller (`send_command_extra`) expects as response.
     /// The driver can't otherwise know it and would almost always fail that size check.
     static EXPECTED_SIZE: Cell<Option<usize>> = const { Cell::new(None) };
@@ -39,6 +46,12 @@ pub fn set_input(memmap: &[u8], tape: &[u8]) {
         s.pos = 0;
     });
     EXPECTED_SIZE.with(|e| e.set(None));
+    HANDLER.with(|h| *h.borrow_mut() = None);
+}
+
+/// Install a command handler, see [`CommandHandler`]. Cleared by [`set_input`].
+pub fn set_command_handler(handler: CommandHandler) {
+    HANDLER.with(|h| *h.borrow_mut() = Some(handler));
 }
 
 pub(crate) fn set_expected_size(size: Option<usize>) {
@@ -57,8 +70,16 @@ pub(crate) fn read_memory(offset: u16, length: u16) -> EcResult<Vec<u8>> {
     })
 }
 
-pub(crate) fn send_command(_command: u16, _command_version: u8, _data: &[u8]) -> EcResult<Vec<u8>> {
+pub(crate) fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<Vec<u8>> {
     let expected = EXPECTED_SIZE.with(|e| e.take());
+    let handled = HANDLER.with(|h| {
+        h.borrow_mut()
+            .as_mut()
+            .and_then(|handler| handler(command, command_version, data))
+    });
+    if let Some(res) = handled {
+        return res;
+    }
     STATE.with(|s| {
         let mut s = s.borrow_mut();
         let Some(&ctrl) = s.tape.get(s.pos) else {
