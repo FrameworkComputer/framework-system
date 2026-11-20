@@ -19,6 +19,12 @@ use std::io::{Read, Seek, SeekFrom};
 /// Current platform. Won't ever change during the program's runtime
 static CACHED_PLATFORM: Mutex<Option<Option<Platform>>> = Mutex::new(None);
 
+/// Force the detected platform, so fuzz targets don't depend on the host's SMBIOS
+#[cfg(fuzzing)]
+pub fn fuzz_set_platform(platform: Option<Platform>) {
+    *CACHED_PLATFORM.lock().unwrap() = Some(platform);
+}
+
 // TODO: Should cache SMBIOS and values gotten from it
 // SMBIOS is fixed after boot. Oh, so maybe not cache when we're running in UEFI
 

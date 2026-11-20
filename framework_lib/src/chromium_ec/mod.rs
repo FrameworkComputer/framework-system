@@ -25,6 +25,8 @@ pub mod command;
 pub mod commands;
 #[cfg(target_os = "linux")]
 mod cros_ec;
+#[cfg(fuzzing)]
+pub mod fuzz_driver;
 pub mod i2c_passthrough;
 pub mod input_deck;
 pub mod panic;
@@ -2221,7 +2223,11 @@ impl CrosEcDriver for CrosEc {
             return None;
         }
 
+        #[cfg(fuzzing)]
+        return print_err(fuzz_driver::read_memory(offset, length));
+
         // TODO: Change this function to return EcResult instead and print the error only in UI code
+        #[allow(unreachable_code)]
         print_err(match self.driver {
             #[cfg(all(not(windows), target_arch = "x86_64"))]
             Some(CrosEcDriverType::Portio) => portio::read_memory(offset, length),
@@ -2253,6 +2259,10 @@ impl CrosEcDriver for CrosEc {
             )));
         }
 
+        #[cfg(fuzzing)]
+        return fuzz_driver::send_command(command, command_version, data);
+
+        #[allow(unreachable_code)]
         match self.driver {
             #[cfg(all(not(windows), target_arch = "x86_64"))]
             Some(CrosEcDriverType::Portio) => portio::send_command(command, command_version, data),
