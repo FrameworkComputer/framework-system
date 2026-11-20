@@ -883,7 +883,11 @@ pub fn check_update_ready(power_info: &PowerInfo) -> bool {
         Some(battery) if power_info.ac_present && battery.charge_percentage > 20 => true,
         Some(battery) => {
             println!("Please plug in AC. If the battery is connected, charge it to at least 20% before proceeding.");
-            println!("Current charge is: {}%", battery.charge_percentage);
+            if battery.last_full_charge_capacity == 0 {
+                println!("Current charge is: Unknown (LFCC is 0)");
+            } else {
+                println!("Current charge is: {}%", battery.charge_percentage);
+            }
             false
         }
     }
