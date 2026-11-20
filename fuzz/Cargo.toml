@@ -71,3 +71,10 @@ path = "fuzz_targets/ec_reflash.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "stm32_hex"
+path = "fuzz_targets/stm32_hex.rs"
+test = false
+doc = false
+bench = false

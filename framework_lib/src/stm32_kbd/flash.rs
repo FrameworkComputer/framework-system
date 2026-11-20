@@ -286,6 +286,32 @@ impl<'a> Plan<'a> {
     }
 }
 
+/// Run write planning without a keyboard, for fuzzing. Panics if the plan doesn't
+/// cover the image exactly, with every range inside its page.
+#[cfg(fuzzing)]
+pub fn fuzz_plan(img: &HexImage, protect: bool) {
+    let plan = Plan::new(img, protect);
+    let mut image_bytes = 0;
+    let mut slot_ranges = 0;
+    for page in plan.first_page..=plan.last_page {
+        let lo = FLASH_BASE + page * PAGE_SIZE;
+        for r in plan.page_ranges(page) {
+            assert!(r.addr >= lo && r.addr + r.bytes.len() as u32 <= lo + PAGE_SIZE);
+            if r.is_slot {
+                slot_ranges += 1;
+            } else {
+                assert_eq!(
+                    r.bytes,
+                    &img.bytes[(r.addr - img.base) as usize..][..r.bytes.len()]
+                );
+                image_bytes += r.bytes.len();
+            }
+        }
+    }
+    assert_eq!(image_bytes, img.bytes.len());
+    assert_eq!(slot_ranges, if protect { 1 } else { 0 });
+}
+
 enum ChunkState {
     /// Holds the data
     Matches,

@@ -81,3 +81,13 @@ No seed corpus is needed, inputs are small:
 ```sh
 cargo +nightly fuzz run ec_reflash -- -close_fd_mask=1 -timeout=10
 ```
+
+## STM32 keyboard firmware
+
+`stm32_hex` parses Intel HEX files (`--flash-stm32-kbd`) and plans the flash writes
+for them, checking that the plan covers the image exactly.
+
+```sh
+mkdir -p corpus/stm32_hex && cp seeds/stm32_hex.hex corpus/stm32_hex/
+cargo +nightly fuzz run stm32_hex -- -close_fd_mask=1 -max_len=8192
+```
