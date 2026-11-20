@@ -64,3 +64,10 @@ path = "fuzz_targets/h2o_capsule.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "ec_reflash"
+path = "fuzz_targets/ec_reflash.rs"
+test = false
+doc = false
+bench = false
