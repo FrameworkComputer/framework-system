@@ -1215,9 +1215,16 @@ impl CrosEc {
         //assert!(size <= 0x80); // TODO: I think this is EC_LPC_HOST_PACKET_SIZE - size_of::<EcHostResponse>()
         let data = EcRequestFlashRead { offset, size }.send_command_vec(self)?;
 
-        // TODO: Windows asserts because it returns more data
-        //debug_assert!(data.len() == size as usize); // Make sure we get back what was requested
-        Ok(data[..size as usize].to_vec())
+        // Windows returns more data than requested, so only check that we got at least that much
+        data.get(..size as usize)
+            .map(|x| x.to_vec())
+            .ok_or_else(|| {
+                EcError::DeviceError(format!(
+                    "Flash read returned {} bytes, expected {}",
+                    data.len(),
+                    size
+                ))
+            })
     }
 
     pub fn read_ec_flash(&self, offset: u32, size: u32) -> EcResult<Vec<u8>> {
