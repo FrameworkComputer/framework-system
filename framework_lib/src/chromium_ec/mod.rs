@@ -973,6 +973,12 @@ impl CrosEc {
                 { info.flash_size }
             )));
         }
+        if ft == EcFlashType::Full && FLASH_BASE + FLASH_SIZE > info.flash_size {
+            return Err(EcError::DeviceError(format!(
+                "Full image overruns end of flash 0x{:X}",
+                { info.flash_size }
+            )));
+        }
 
         println!("Unlocking flash");
         self.flash_notify(MecFlashNotify::AccessSpi)?;
