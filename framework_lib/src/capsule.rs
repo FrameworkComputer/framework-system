@@ -112,8 +112,9 @@ fn print_capsule_flags(flags: u32) {
     }
 }
 
-fn read_capsule_header(data: &[u8]) -> EfiCapsuleHeader {
-    EfiCapsuleHeader {
+fn read_capsule_header(data: &[u8]) -> Option<EfiCapsuleHeader> {
+    let data = data.get(..std::mem::size_of::<EfiCapsuleHeader>())?;
+    Some(EfiCapsuleHeader {
         capsule_guid: CGuid::from(GUID::build_from_components(
             u32::from_le_bytes(data[0..4].try_into().unwrap()),
             u16::from_le_bytes(data[4..6].try_into().unwrap()),
@@ -123,11 +124,11 @@ fn read_capsule_header(data: &[u8]) -> EfiCapsuleHeader {
         header_size: u32::from_le_bytes(data[16..20].try_into().unwrap()),
         flags: u32::from_le_bytes(data[20..24].try_into().unwrap()),
         capsule_image_size: u32::from_le_bytes(data[24..28].try_into().unwrap()),
-    }
+    })
 }
 
 pub fn parse_capsule_header(data: &[u8]) -> Option<EfiCapsuleHeader> {
-    let header = read_capsule_header(data);
+    let header = read_capsule_header(data)?;
     if header.is_valid(data) {
         Some(header)
     } else {
@@ -152,10 +153,11 @@ pub fn print_capsule_header(header: &EfiCapsuleHeader) {
     );
 }
 
-pub fn parse_ux_header(data: &[u8]) -> DisplayCapsule {
-    let capsule_header = read_capsule_header(data);
-    let p = &data[std::mem::size_of::<EfiCapsuleHeader>()..];
-    DisplayCapsule {
+pub fn parse_ux_header(data: &[u8]) -> Option<DisplayCapsule> {
+    let capsule_header = read_capsule_header(data)?;
+    let p =
+        data.get(std::mem::size_of::<EfiCapsuleHeader>()..std::mem::size_of::<DisplayCapsule>())?;
+    Some(DisplayCapsule {
         capsule_header,
         image_payload: DisplayPayload {
             version: p[0],
@@ -166,7 +168,7 @@ pub fn parse_ux_header(data: &[u8]) -> DisplayCapsule {
             offset_x: u32::from_le_bytes(p[8..12].try_into().unwrap()),
             offset_y: u32::from_le_bytes(p[12..16].try_into().unwrap()),
         },
-    }
+    })
 }
 pub fn print_ux_header(header: &DisplayCapsule) {
     let header_len = std::mem::size_of::<DisplayCapsule>();
@@ -186,7 +188,7 @@ pub fn print_ux_header(header: &DisplayCapsule) {
     println!("    Mode:       {:>20}", { ux_header.mode });
     println!("    Offset X:   {:>20}", { ux_header.offset_x });
     println!("    Offset Y:   {:>20}", { ux_header.offset_y });
-    let image_size = header.capsule_header.capsule_image_size as usize - header_len;
+    let image_size = (header.capsule_header.capsule_image_size as usize).saturating_sub(header_len);
     println!("    Calculcated Size: {:>14} B", image_size);
     println!("    Calculcated Size: {:>14} KB", image_size / 1024);
 }
@@ -235,7 +237,7 @@ mod tests {
         assert_eq!(cap, expected_header);
 
         assert_eq!(cap.capsule_guid, CGuid::from(esrt::WINUX_GUID));
-        let ux_header = parse_ux_header(&data);
+        let ux_header = parse_ux_header(&data).unwrap();
         assert_eq!(
             ux_header,
             DisplayCapsule {
@@ -251,5 +253,18 @@ mod tests {
                 }
             }
         );
+    }
+
+    #[test]
+    fn truncated_capsule() {
+        let mut capsule_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        capsule_path.push("test_bins/winux.bin");
+        let data = fs::read(capsule_path).unwrap();
+
+        // Shorter than the capsule header
+        assert_eq!(parse_capsule_header(&data[..27]), None);
+        assert_eq!(parse_ux_header(&data[..27]), None);
+        // Has capsule header, but shorter than the UX header
+        assert_eq!(parse_ux_header(&data[..43]), None);
     }
 }

@@ -2206,8 +2206,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("  Size:       {:>20} KB", data.len() / 1024);
             if let Some(header) = analyze_capsule(&data) {
                 if header.capsule_guid == CGuid::from(esrt::WINUX_GUID) {
-                    let ux_header = capsule::parse_ux_header(&data);
-                    if let Some(dump_path) = &args.dump {
+                    if let (Some(ux_header), Some(dump_path)) =
+                        (capsule::parse_ux_header(&data), &args.dump)
+                    {
                         // TODO: Better error handling, rather than just panicking
                         capsule::dump_winux_image(&data, &ux_header, dump_path);
                     }
@@ -3092,8 +3093,11 @@ pub fn analyze_capsule(data: &[u8]) -> Option<capsule::EfiCapsuleHeader> {
         }
         esrt::WINUX_GUID => {
             println!("  Type:            Windows UX capsule");
-            let ux_header = capsule::parse_ux_header(data);
-            capsule::print_ux_header(&ux_header);
+            if let Some(ux_header) = capsule::parse_ux_header(data) {
+                capsule::print_ux_header(&ux_header);
+            } else {
+                println!("    Windows UX header is truncated");
+            }
         }
         _ => {
             println!("  Type:                      Unknown");
