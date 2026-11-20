@@ -816,7 +816,7 @@ fn print_battery_information(power_info: &PowerInfo) {
             battery.last_full_charge_capacity
         );
         println!("  Battery Capacity: {} mAh", battery.remaining_capacity);
-        let wah = battery.remaining_capacity * battery.present_voltage / 1000;
+        let wah = battery.remaining_capacity as u64 * battery.present_voltage as u64 / 1000;
         println!("                    {}.{:2} Wh", wah / 1000, wah % 1000);
         if battery.last_full_charge_capacity == 0 {
             println!("  Charge level:     Unknown (LFCC is 0)");
@@ -842,7 +842,7 @@ fn print_battery_information(power_info: &PowerInfo) {
             // println!("  Current Battery#: {}", battery.current_battery_index);
 
             println!("  Design Capacity:  {} mAh", battery.design_capacity);
-            let design_wah = battery.design_capacity * battery.design_voltage / 1000;
+            let design_wah = battery.design_capacity as u64 * battery.design_voltage as u64 / 1000;
             println!(
                 "                    {}.{} Wh",
                 design_wah / 1000,
