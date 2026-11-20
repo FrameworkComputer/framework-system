@@ -157,7 +157,7 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
             cmd_len.try_into().unwrap(),
             Some(mut_ptr),
             out_len.try_into().unwrap(),
-            Some(&mut returned as *mut u32),
+            Some(&mut returned),
             None,
         )
         .unwrap();
