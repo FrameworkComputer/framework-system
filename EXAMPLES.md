@@ -118,7 +118,7 @@ Options:
       --hash <HASH>
           Hash a file of arbitrary data
       --driver <DRIVER>
-          Select which driver is used. By default portio is used [possible values: portio, cros-ec, windows]
+          Select which driver is used to talk to the EC. Defaults to the first available one [possible values: portio, cros-ec]
       --pd-addrs <PD_ADDRS> <PD_ADDRS> <PD_ADDRS>
           Specify I2C addresses of the PD chips (Advanced)
       --pd-ports <PD_PORTS> <PD_PORTS> <PD_PORTS>
