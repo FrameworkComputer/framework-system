@@ -57,5 +57,7 @@ cargo +nightly fuzz run ccgx_binary -- -close_fd_mask=1 -max_len=262144
 
 mkdir -p corpus/capsule && cp ../framework_lib/test_bins/winux.bin corpus/capsule/
 cargo +nightly fuzz run capsule -- -close_fd_mask=1 -max_len=1048576
+# BIOS capsules are too big to check in, generate minimal ones from test_bins
+python3 seed_h2o_capsule.py
 cargo +nightly fuzz run h2o_capsule -- -close_fd_mask=1 -max_len=1048576
 ```
