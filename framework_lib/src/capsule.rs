@@ -196,9 +196,12 @@ pub fn print_ux_header(header: &DisplayCapsule) {
 /// Extract the image data from the display capsule to a file
 pub fn dump_winux_image(data: &[u8], header: &DisplayCapsule, filename: &str) {
     let header_len = core::mem::size_of::<DisplayCapsule>();
-    let image_size = header.capsule_header.capsule_image_size as usize - header_len;
+    let image_size = (header.capsule_header.capsule_image_size as usize).saturating_sub(header_len);
 
-    let image = &data[header_len..image_size];
+    let Some(image) = data.get(header_len..header_len + image_size) else {
+        println!("Capsule is too small for the image size in its header");
+        return;
+    };
 
     #[cfg(not(feature = "uefi"))]
     {
