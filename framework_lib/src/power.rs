@@ -53,7 +53,9 @@ const EC_MEMMAP_BATT_MODEL: u16 = 0x68; // Battery Model Number String
 const EC_MEMMAP_BATT_SERIAL: u16 = 0x70; // Battery Serial Number String
 const EC_MEMMAP_BATT_TYPE: u16 = 0x78; // Battery Type String
 const EC_MEMMAP_ALS: u16 = 0x80; // ALS readings in lux (2 X 16 bits)
-                                 // Unused 0x84 - 0x8f
+/// Number of ALS readings at EC_MEMMAP_ALS
+const EC_ALS_ENTRIES: usize = 2;
+// Unused 0x84 - 0x8f
 const EC_MEMMAP_ACC_STATUS: u16 = 0x90; // Accelerometer status (8 bits )
                                         // Unused 0x91
 const EC_MEMMAP_ACC_DATA: u16 = 0x92; // Accelerometers data 0x92 - 0x9f
@@ -415,15 +417,16 @@ pub fn print_switches(ec: &CrosEc) -> Option<()> {
 }
 
 /// Not supported on TGL EC
+///
+/// The EC memory map has EC_ALS_ENTRIES readings in lux, 16 bits each
 pub fn get_als_reading(ec: &CrosEc, index: usize) -> Option<u32> {
-    let als = ec.read_memory(EC_MEMMAP_ALS, 0x04)?;
-    let offset = index + 4 * index;
-    Some(u32::from_le_bytes([
-        als[offset],
-        als[1 + offset],
-        als[2 + offset],
-        als[3 + offset],
-    ]))
+    if index >= EC_ALS_ENTRIES {
+        return None;
+    }
+    let als = ec.read_memory(EC_MEMMAP_ALS, 2 * EC_ALS_ENTRIES as u16)?;
+    let offset = 2 * index;
+    let bytes = als.get(offset..offset + 2)?;
+    Some(u16::from_le_bytes([bytes[0], bytes[1]]) as u32)
 }
 
 pub fn get_accel_data(ec: &CrosEc) -> (AccelData, AccelData, LidAngle) {
@@ -482,8 +485,10 @@ pub fn print_sensors(ec: &CrosEc) {
     );
 
     if has_als || als_family {
-        let als_int = get_als_reading(ec, 0).unwrap();
-        println!("ALS: {:>4} Lux", als_int);
+        match get_als_reading(ec, 0) {
+            Some(als_int) => println!("ALS: {:>4} Lux", als_int),
+            None => println!("ALS: Failed to read"),
+        }
     }
 
     // bit 4 = busy
