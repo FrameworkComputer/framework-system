@@ -53,7 +53,9 @@ const EC_MEMMAP_BATT_MODEL: u16 = 0x68; // Battery Model Number String
 const EC_MEMMAP_BATT_SERIAL: u16 = 0x70; // Battery Serial Number String
 const EC_MEMMAP_BATT_TYPE: u16 = 0x78; // Battery Type String
 const EC_MEMMAP_ALS: u16 = 0x80; // ALS readings in lux (2 X 16 bits)
-                                 // Unused 0x84 - 0x8f
+/// Number of ALS readings at EC_MEMMAP_ALS
+const EC_ALS_ENTRIES: usize = 2;
+// Unused 0x84 - 0x8f
 const EC_MEMMAP_ACC_STATUS: u16 = 0x90; // Accelerometer status (8 bits )
                                         // Unused 0x91
 const EC_MEMMAP_ACC_DATA: u16 = 0x92; // Accelerometers data 0x92 - 0x9f
@@ -85,7 +87,7 @@ const EC_FAN_SPEED_NOT_PRESENT: u16 = 0xFFFF;
 /// Reading of a single temperature sensor
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TempSensor {
-    Ok(u8),
+    Ok(i16),
     NotPresent,
     Error,
     NotPowered,
@@ -98,7 +100,7 @@ impl From<u8> for TempSensor {
             0xFE => TempSensor::Error,
             0xFD => TempSensor::NotPowered,
             0xFC => TempSensor::NotCalibrated,
-            _ => TempSensor::Ok(t - 73),
+            _ => TempSensor::Ok(t as i16 - 73),
         }
     }
 }
@@ -415,15 +417,16 @@ pub fn print_switches(ec: &CrosEc) -> Option<()> {
 }
 
 /// Not supported on TGL EC
+///
+/// The EC memory map has EC_ALS_ENTRIES readings in lux, 16 bits each
 pub fn get_als_reading(ec: &CrosEc, index: usize) -> Option<u32> {
-    let als = ec.read_memory(EC_MEMMAP_ALS, 0x04)?;
-    let offset = index + 4 * index;
-    Some(u32::from_le_bytes([
-        als[offset],
-        als[1 + offset],
-        als[2 + offset],
-        als[3 + offset],
-    ]))
+    if index >= EC_ALS_ENTRIES {
+        return None;
+    }
+    let als = ec.read_memory(EC_MEMMAP_ALS, 2 * EC_ALS_ENTRIES as u16)?;
+    let offset = 2 * index;
+    let bytes = als.get(offset..offset + 2)?;
+    Some(u16::from_le_bytes([bytes[0], bytes[1]]) as u32)
 }
 
 pub fn get_accel_data(ec: &CrosEc) -> (AccelData, AccelData, LidAngle) {
@@ -482,8 +485,10 @@ pub fn print_sensors(ec: &CrosEc) {
     );
 
     if has_als || als_family {
-        let als_int = get_als_reading(ec, 0).unwrap();
-        println!("ALS: {:>4} Lux", als_int);
+        match get_als_reading(ec, 0) {
+            Some(als_int) => println!("ALS: {:>4} Lux", als_int),
+            None => println!("ALS: Failed to read"),
+        }
     }
 
     // bit 4 = busy
@@ -816,7 +821,7 @@ fn print_battery_information(power_info: &PowerInfo) {
             battery.last_full_charge_capacity
         );
         println!("  Battery Capacity: {} mAh", battery.remaining_capacity);
-        let wah = battery.remaining_capacity * battery.present_voltage / 1000;
+        let wah = battery.remaining_capacity as u64 * battery.present_voltage as u64 / 1000;
         println!("                    {}.{:2} Wh", wah / 1000, wah % 1000);
         if battery.last_full_charge_capacity == 0 {
             println!("  Charge level:     Unknown (LFCC is 0)");
@@ -842,7 +847,7 @@ fn print_battery_information(power_info: &PowerInfo) {
             // println!("  Current Battery#: {}", battery.current_battery_index);
 
             println!("  Design Capacity:  {} mAh", battery.design_capacity);
-            let design_wah = battery.design_capacity * battery.design_voltage / 1000;
+            let design_wah = battery.design_capacity as u64 * battery.design_voltage as u64 / 1000;
             println!(
                 "                    {}.{} Wh",
                 design_wah / 1000,
@@ -1328,6 +1333,8 @@ mod tests {
         // Raw sensor values are offset by 73 K
         assert_eq!(TempSensor::from(73), TempSensor::Ok(0));
         assert_eq!(TempSensor::from(100), TempSensor::Ok(27));
+        // Below 0 C must not underflow
+        assert_eq!(TempSensor::from(0), TempSensor::Ok(-73));
     }
 
     #[test]
