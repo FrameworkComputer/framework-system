@@ -88,6 +88,14 @@ pub fn read_memory(offset: u16, length: u16) -> EcResult<Vec<u8>> {
     if !init() {
         return Err(EcError::DeviceError("Failed to initialize".to_string()));
     }
+    // The driver rejects reads that end at the last byte of the memory map,
+    // so it can only read up to EC_MEMMAP_SIZE - 1 bytes
+    if offset as u32 + length as u32 >= EC_MEMMAP_SIZE as u32 {
+        return Err(EcError::DeviceError(format!(
+            "Windows driver requires offset + length < {:#X} (offset={:#X}, length={:#X})",
+            EC_MEMMAP_SIZE, offset, length
+        )));
+    }
     let mut rm = CrosEcReadMem {
         offset: offset as u32,
         bytes: length as u32,
