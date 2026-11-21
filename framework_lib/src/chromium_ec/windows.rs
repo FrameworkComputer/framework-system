@@ -115,7 +115,7 @@ pub fn read_memory(offset: u16, length: u16) -> EcResult<Vec<u8>> {
             Some(retb as *mut u32),
             None,
         )
-        .unwrap();
+        .map_err(|err| ioctl_error(err, "reading EC memory"))?;
     }
     let output = &rm.buffer[..(length as usize)];
     Ok(output.to_vec())
@@ -160,7 +160,7 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
             Some(&mut returned as *mut u32),
             None,
         )
-        .unwrap();
+        .map_err(|err| ioctl_error(err, &format!("sending EC command 0x{:04X}", command)))?;
     }
 
     match FromPrimitive::from_u32(cmd.result) {
@@ -179,6 +179,27 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
 
     let out_buffer = &cmd.buffer[..end];
     Ok(out_buffer.to_vec())
+}
+
+/// Turn a failed DeviceIoControl into an error instead of panicking.
+///
+/// Panicking is dangerous here: callers like `reflash` must be able to send their
+/// cleanup commands (e.g. telling the EC that flashing is done) after a failure.
+fn ioctl_error(err: windows::core::Error, action: &str) -> EcError {
+    if err.code() == E_ACCESSDENIED {
+        // The Framework/DHowett CrosEC driver refuses some commands from user space,
+        // no matter if running as admin: flash write/erase/protect and USB PD FW update
+        EcError::DeviceError(format!(
+            "Windows EC driver denied access while {}. \
+             The driver doesn't allow this command from Windows (e.g. flashing the EC).",
+            action
+        ))
+    } else {
+        EcError::DeviceError(format!(
+            "Windows EC driver failed while {}: {}",
+            action, err
+        ))
+    }
 }
 
 const CROSEC_CMD_MAX_REQUEST: usize = 0x100;
