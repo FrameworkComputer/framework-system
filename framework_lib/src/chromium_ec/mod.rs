@@ -361,13 +361,15 @@ impl CrosEc {
         .send_command(self)
         .ok()?;
 
-        let v = EcRequestGetVersion {}.send_command(self).ok()?;
+        let v = EcRequestGetVersion {}.send_command(self);
 
-        // Lock SPI
+        // Lock SPI, even if getting the version failed
         let _ = EcRequestFlashNotify {
             flags: MecFlashNotify::AccessSpiDone as u8,
         }
         .send_command(self);
+
+        let v = v.ok()?;
 
         let curr = match v.current_image {
             1 => EcCurrentImage::RO,
@@ -894,8 +896,6 @@ impl CrosEc {
     /// The Framework EC Flash Storage (flash flags) is not updated during EC
     /// firmware update. It is erased by EC_CMD_FACTORY_MODE.
     pub fn reflash(&self, data: &[u8], ft: EcFlashType, dry_run: bool) -> EcResult<()> {
-        let mut res = Ok(());
-
         let cur_ver = self.version_info()?;
         let platform = if let Some(ver) = ec_binary::parse_ec_version_str(&cur_ver) {
             ver.platform
@@ -962,7 +962,55 @@ impl CrosEc {
 
         println!("Unlocking flash");
         self.flash_notify(MecFlashNotify::AccessSpi)?;
-        self.flash_notify(MecFlashNotify::FirmwareStart)?;
+
+        // From here on, always lock the flash again, even if something fails.
+        // While flashing, the EC ignores the power button and lid switch,
+        // until it's told that flashing is done.
+        let res = self
+            .flash_notify(MecFlashNotify::FirmwareStart)
+            .and_then(|()| {
+                self.reflash_regions(
+                    data,
+                    ft,
+                    dry_run,
+                    flash_ro_size,
+                    flash_rw_size,
+                    info.erase_block_size,
+                )
+            });
+
+        println!("Locking flash");
+        let spi_done = self.flash_notify(MecFlashNotify::AccessSpiDone);
+        let fw_done = self.flash_notify(MecFlashNotify::FirmwareDone);
+        let lock_res = spi_done.and(fw_done);
+
+        match (res, lock_res) {
+            (Ok(()), Ok(())) => {
+                println!("Flashing EC done. You can reboot the EC now");
+                Ok(())
+            }
+            (Ok(()), Err(lock_err)) => Err(lock_err),
+            (Err(err), lock_res) => {
+                if let Err(lock_err) = lock_res {
+                    error!("Failed to lock EC flash again: {:?}", lock_err);
+                }
+                Err(err)
+            }
+        }
+    }
+
+    /// Erase, write and verify the regions selected by `ft`.
+    /// The flash must be unlocked already, see [`Self::reflash`].
+    fn reflash_regions(
+        &self,
+        data: &[u8],
+        ft: EcFlashType,
+        dry_run: bool,
+        flash_ro_size: u32,
+        flash_rw_size: u32,
+        erase_block_size: u32,
+    ) -> EcResult<()> {
+        let mut res = Ok(());
 
         // TODO: Check if erase was successful
         // 1. First erase 0x10000 bytes
@@ -983,7 +1031,7 @@ impl CrosEc {
                 "Erasing full flash{}",
                 if dry_run { " (DRY RUN)" } else { "" }
             );
-            self.erase_ec_flash(FLASH_BASE, FLASH_SIZE, dry_run, info.erase_block_size)?;
+            self.erase_ec_flash(FLASH_BASE, FLASH_SIZE, dry_run, erase_block_size)?;
             println!("  Done");
 
             println!(
@@ -1014,7 +1062,7 @@ impl CrosEc {
                 FLASH_BASE + FLASH_RW_BASE,
                 flash_rw_size,
                 dry_run,
-                info.erase_block_size,
+                erase_block_size,
             )?;
             println!("  Done");
 
@@ -1043,7 +1091,7 @@ impl CrosEc {
                 FLASH_BASE + FLASH_RO_BASE,
                 flash_ro_size,
                 dry_run,
-                info.erase_block_size,
+                erase_block_size,
             )?;
             println!("  Done");
 
@@ -1059,14 +1107,6 @@ impl CrosEc {
                 error!("RO verify fail!");
                 res = Err(EcError::DeviceError("RO verify fail!".to_string()));
             }
-        }
-
-        println!("Locking flash");
-        self.flash_notify(MecFlashNotify::AccessSpiDone)?;
-        self.flash_notify(MecFlashNotify::FirmwareDone)?;
-
-        if res.is_ok() {
-            println!("Flashing EC done. You can reboot the EC now");
         }
 
         res
@@ -1232,10 +1272,12 @@ impl CrosEc {
     pub fn get_entire_ec_flash(&self) -> EcResult<Vec<u8>> {
         self.flash_notify(MecFlashNotify::AccessSpi)?;
 
-        let flash_bin = self.read_ec_flash(0, EC_FLASH_SIZE as u32)?;
+        // Release SPI access again even if reading fails
+        let flash_bin = self.read_ec_flash(0, EC_FLASH_SIZE as u32);
+        let spi_done = self.flash_notify(MecFlashNotify::AccessSpiDone);
 
-        self.flash_notify(MecFlashNotify::AccessSpiDone)?;
-
+        let flash_bin = flash_bin?;
+        spi_done?;
         Ok(flash_bin)
     }
 
