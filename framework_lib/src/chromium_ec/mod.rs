@@ -771,7 +771,45 @@ impl CrosEc {
         println!("  Pos 2: {:?}", status.top_row.pos2);
         println!("  Pos 3: {:?}", status.top_row.pos3);
         println!("  Pos 4: {:?}", status.top_row.pos4);
+
+        if let Some((ids, mvs)) = self.get_input_deck_raw()? {
+            println!("Raw Board IDs:");
+            for (i, name) in input_deck::INPUT_DECK_MUX_NAMES.iter().enumerate() {
+                if mvs[i] == 0xFFFF {
+                    println!("  {:<10} ID {:>3}  ADC read failed", name, ids[i]);
+                } else {
+                    println!("  {:<10} ID {:>3}  {:>4} mV", name, ids[i], mvs[i]);
+                }
+            }
+        }
         Ok(())
+    }
+
+    /// Get the raw board ID and ADC voltage (in mV) of each input deck mux position
+    ///
+    /// Returns `None` if the EC firmware doesn't support reporting the voltages
+    pub fn get_input_deck_raw(
+        &self,
+    ) -> EcResult<
+        Option<(
+            [u8; input_deck::INPUT_DECK_SLOTS],
+            [u16; input_deck::INPUT_DECK_SLOTS],
+        )>,
+    > {
+        if !self
+            .cmd_version_supported(EcCommands::CheckDeckState as u32, 1)
+            .unwrap_or(false)
+        {
+            return Ok(None);
+        }
+        let res = EcRequestDeckStateV1 {
+            mode: DeckStateMode::ReadOnly,
+        }
+        .send_command(self)?;
+        // Copy out of the packed struct
+        let ids = res.board_id;
+        let mvs = res.mv;
+        Ok(Some((ids, mvs)))
     }
 
     pub fn set_input_deck_mode(&self, mode: DeckStateMode) -> EcResult<InputDeckStatus> {
