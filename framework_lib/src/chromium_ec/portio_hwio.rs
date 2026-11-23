@@ -1,5 +1,6 @@
 // Inlined from https://github.com/FrameworkComputer/rust-hwio (freebsd branch)
 // Original crate: redox_hwio by Jeremy Soller <jackpot51@gmail.com>
+// SPDX-FileCopyrightText: 2019 Jeremy Soller <jackpot51@gmail.com>
 // SPDX-License-Identifier: MIT
 
 #[cfg(all(
