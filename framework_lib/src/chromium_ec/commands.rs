@@ -1558,6 +1558,30 @@ impl EcRequest<EcResponseDeckState> for EcRequestDeckState {
     }
 }
 
+/// Same request as [`EcRequestDeckState`], but asks for the V1 response,
+/// which includes the raw ADC voltage of each input deck mux position.
+#[repr(C, packed)]
+pub struct EcRequestDeckStateV1 {
+    pub mode: DeckStateMode,
+}
+
+#[repr(C, packed)]
+pub struct EcResponseDeckStateV1 {
+    pub board_id: [u8; INPUT_DECK_SLOTS],
+    pub deck_state: u8,
+    /// Raw ADC reading in mV per mux position. 0xFFFF if the read failed
+    pub mv: [u16; INPUT_DECK_SLOTS],
+}
+
+impl EcRequest<EcResponseDeckStateV1> for EcRequestDeckStateV1 {
+    fn command_id() -> EcCommands {
+        EcCommands::CheckDeckState
+    }
+    fn command_version() -> u8 {
+        1
+    }
+}
+
 // TODO
 #[repr(C, packed)]
 pub struct EcRequestUefiAppMode {

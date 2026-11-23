@@ -5,6 +5,18 @@ pub const INPUT_DECK_SLOTS: usize = 8;
 /// The number of slots on the top row of the input deck
 pub const TOP_ROW_SLOTS: usize = 5;
 
+/// Human readable names of the input deck mux positions, indexed by mux position
+pub const INPUT_DECK_MUX_NAMES: [&str; INPUT_DECK_SLOTS] = [
+    "Top Row 0",
+    "Top Row 1",
+    "Top Row 2",
+    "Top Row 3",
+    "Top Row 4",
+    "Touchpad",
+    "Reserved",
+    "Hubboard",
+];
+
 #[repr(u8)]
 enum InputDeckMux {
     /// C1 all the way left
