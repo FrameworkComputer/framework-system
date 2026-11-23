@@ -140,7 +140,7 @@ pub fn transfer_read(address: u16, size: u16) -> Vec<u8> {
         }
         Pio::<u16>::new(MEC_LPC_ADDRESS_REGISTER0).write((offset & 0xFFFC) | MEC_EC_BYTE_ACCESS);
 
-        for byte in (offset % 4)..std::cmp::min(4, size) {
+        for byte in (offset % 4)..core::cmp::min(4, size) {
             buffer[usize::from(pos)] = Pio::<u8>::new(MEC_LPC_DATA_REGISTER0 + byte).read();
             if log_enabled!(Level::Trace) {
                 trace!("  Received: {:#X}", buffer[usize::from(pos)]);

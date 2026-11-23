@@ -16,7 +16,7 @@ use crate::power;
 use crate::smbios;
 use crate::util::{self, Platform};
 
-use no_std_compat::time::Duration;
+use core::time::Duration;
 
 use log::Level;
 use num_derive::FromPrimitive;
@@ -345,7 +345,7 @@ impl CrosEc {
     pub fn version_info(&self) -> EcResult<String> {
         // Response is null-terminated string.
         let data = self.send_command(EcCommands::GetBuildInfo as u16, 0, &[])?;
-        Ok(std::str::from_utf8(&data)
+        Ok(core::str::from_utf8(&data)
             .map_err(|utf8_err| {
                 EcError::DeviceError(format!("Failed to decode version: {:?}", utf8_err))
             })?
@@ -376,11 +376,11 @@ impl CrosEc {
         };
 
         Some((
-            std::str::from_utf8(&v.version_string_ro)
+            core::str::from_utf8(&v.version_string_ro)
                 .ok()?
                 .trim_end_matches(char::from(0))
                 .to_string(),
-            std::str::from_utf8(&v.version_string_rw)
+            core::str::from_utf8(&v.version_string_rw)
                 .ok()?
                 .trim_end_matches(char::from(0))
                 .to_string(),
@@ -1091,7 +1091,7 @@ impl CrosEc {
         for chunk_no in 0..chunks {
             let offset = chunk_no * chunk_size;
             // Current chunk might be smaller if it's the last
-            let cur_chunk_size = std::cmp::min(chunk_size, data.len() - chunk_no * chunk_size);
+            let cur_chunk_size = core::cmp::min(chunk_size, data.len() - chunk_no * chunk_size);
 
             if chunk_no % 100 == 0 {
                 if chunk_no != 0 {
@@ -1198,7 +1198,7 @@ impl CrosEc {
             }
 
             let offset = offset + chunk_no * chunk_size;
-            let cur_chunk_size = std::cmp::min(chunk_size, size - chunk_no * chunk_size);
+            let cur_chunk_size = core::cmp::min(chunk_size, size - chunk_no * chunk_size);
             if log_enabled!(Level::Warn) {
                 if chunk_no % 10 == 0 {
                     println!();
@@ -1446,7 +1446,7 @@ impl CrosEc {
 
         while data.len() < len.into() {
             let remaining = len - data.len() as u16;
-            let chunk_len = std::cmp::min(i2c_passthrough::MAX_I2C_CHUNK, remaining.into());
+            let chunk_len = core::cmp::min(i2c_passthrough::MAX_I2C_CHUNK, remaining.into());
             let offset = addr + data.len() as u16;
             // Use 16-bit addressing for GPU EEPROM (required for larger EEPROMs)
             let i2c_response = i2c_passthrough::i2c_read_16bit_addr(
@@ -1525,7 +1525,7 @@ impl CrosEc {
         for chunk_no in 0..chunks {
             let offset = chunk_no * chunk_size;
             // Current chunk might be smaller if it's the last
-            let cur_chunk_size = std::cmp::min(chunk_size, data.len() - chunk_no * chunk_size);
+            let cur_chunk_size = core::cmp::min(chunk_size, data.len() - chunk_no * chunk_size);
 
             if chunk_no % 100 == 0 {
                 println!();
@@ -1601,7 +1601,7 @@ impl CrosEc {
     pub fn read_gpu_desc_header(&self) -> EcResult<GpuCfgDescriptor> {
         let bytes =
             self.read_ec_gpu_chunk(0x00, core::mem::size_of::<GpuCfgDescriptor>() as u16)?;
-        let header: *const GpuCfgDescriptor = unsafe { std::mem::transmute(bytes.as_ptr()) };
+        let header: *const GpuCfgDescriptor = unsafe { core::mem::transmute(bytes.as_ptr()) };
         let header = unsafe { *header };
 
         Ok(header)
@@ -1630,7 +1630,7 @@ impl CrosEc {
                         continue;
                     }
 
-                    let utf8 = std::str::from_utf8(&data).unwrap();
+                    let utf8 = core::str::from_utf8(&data).unwrap();
                     let full_ascii = utf8.replace(|c: char| !c.is_ascii(), "");
                     let ascii = full_ascii.replace(['\0'], "");
 
@@ -1668,7 +1668,7 @@ impl CrosEc {
                         return Ok(console);
                     }
 
-                    let utf8 = std::str::from_utf8(&data).unwrap();
+                    let utf8 = core::str::from_utf8(&data).unwrap();
                     let ascii = utf8
                         .replace(|c: char| !c.is_ascii(), "")
                         .replace(['\0'], "");
@@ -1758,7 +1758,7 @@ impl CrosEc {
     /// Get the name of a temperature sensor
     pub fn get_temp_sensor_name(&self, id: u8) -> EcResult<String> {
         let res = EcRequestTempSensorGetInfo { id }.send_command(self)?;
-        Ok(std::str::from_utf8(&res.sensor_name)
+        Ok(core::str::from_utf8(&res.sensor_name)
             .map_err(|utf8_err| {
                 EcError::DeviceError(format!("Failed to decode sensor name: {:?}", utf8_err))
             })?
@@ -1965,7 +1965,7 @@ impl CrosEc {
             }
             .send_command(self)?;
 
-            let name = std::str::from_utf8(&res.name)
+            let name = core::str::from_utf8(&res.name)
                 .map_err(|utf8_err| {
                     EcError::DeviceError(format!("Failed to decode GPIO name: {:?}", utf8_err))
                 })?

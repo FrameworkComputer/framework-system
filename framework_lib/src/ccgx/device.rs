@@ -245,7 +245,7 @@ impl PdController {
 
         while data.len() < len.into() {
             let remaining = len - data.len() as u16;
-            let chunk_len = std::cmp::min(MAX_I2C_CHUNK, remaining.into());
+            let chunk_len = core::cmp::min(MAX_I2C_CHUNK, remaining.into());
             let offset = addr + data.len() as u16;
             let i2c_response = self.i2c_read(offset, chunk_len as u16)?;
             if let Err(EcError::DeviceError(err)) = i2c_response.is_successful() {
@@ -277,7 +277,7 @@ impl PdController {
         let mut data_written = 0;
 
         while data_written < data.len() {
-            let chunk_len = std::cmp::min(MAX_I2C_CHUNK, data.len());
+            let chunk_len = core::cmp::min(MAX_I2C_CHUNK, data.len());
             let buffer = &data[data_written..data_written + chunk_len];
             let offset = addr + data_written as u16;
 

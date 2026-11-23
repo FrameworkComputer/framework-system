@@ -8,8 +8,8 @@
 //!
 //! Currently NOT implemented is parsing capsules with mutiple header structs!
 
-use std::prelude::v1::*;
-
+use alloc::format;
+use alloc::string::ToString;
 use core::prelude::rust_2021::derive;
 use guid_create::{CGuid, GUID};
 #[cfg(not(feature = "uefi"))]
@@ -43,7 +43,7 @@ impl EfiCapsuleHeader {
     /// This is very useful to check if the binary data we're parsing is a capsule at all, or not.
     pub fn is_valid(&self, data: &[u8]) -> bool {
         let size = data.len() as u32;
-        let header_size = std::mem::size_of::<EfiCapsuleHeader>() as u32;
+        let header_size = core::mem::size_of::<EfiCapsuleHeader>() as u32;
         if self.capsule_image_size != size {
             return false;
         }
@@ -136,7 +136,7 @@ pub fn parse_capsule_header(data: &[u8]) -> Option<EfiCapsuleHeader> {
 }
 
 pub fn print_capsule_header(header: &EfiCapsuleHeader) {
-    let header_len = std::mem::size_of::<EfiCapsuleHeader>();
+    let header_len = core::mem::size_of::<EfiCapsuleHeader>();
     println!("Capsule Header");
     println!("  Capsule GUID: {}", header.capsule_guid);
     println!("  Header size: {:>19} B", header.header_size);
@@ -154,7 +154,7 @@ pub fn print_capsule_header(header: &EfiCapsuleHeader) {
 
 pub fn parse_ux_header(data: &[u8]) -> DisplayCapsule {
     let capsule_header = read_capsule_header(data);
-    let p = &data[std::mem::size_of::<EfiCapsuleHeader>()..];
+    let p = &data[core::mem::size_of::<EfiCapsuleHeader>()..];
     DisplayCapsule {
         capsule_header,
         image_payload: DisplayPayload {
@@ -169,7 +169,7 @@ pub fn parse_ux_header(data: &[u8]) -> DisplayCapsule {
     }
 }
 pub fn print_ux_header(header: &DisplayCapsule) {
-    let header_len = std::mem::size_of::<DisplayCapsule>();
+    let header_len = core::mem::size_of::<DisplayCapsule>();
     let ux_header = &header.image_payload;
     println!("Windows UX Header");
     println!("    Version:    {:>20}", ux_header.version);
@@ -193,7 +193,7 @@ pub fn print_ux_header(header: &DisplayCapsule) {
 
 /// Extract the image data from the display capsule to a file
 pub fn dump_winux_image(data: &[u8], header: &DisplayCapsule, filename: &str) {
-    let header_len = std::mem::size_of::<DisplayCapsule>();
+    let header_len = core::mem::size_of::<DisplayCapsule>();
     let image_size = header.capsule_header.capsule_image_size as usize - header_len;
 
     let image = &data[header_len..image_size];

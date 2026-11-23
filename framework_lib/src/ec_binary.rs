@@ -76,7 +76,7 @@ pub fn print_ec_version(ver: &ImageVersionData, ro: bool) {
 }
 
 fn parse_ec_version(data: &_ImageVersionData) -> Option<ImageVersionData> {
-    let version = std::str::from_utf8(&data.version)
+    let version = core::str::from_utf8(&data.version)
         .ok()?
         .trim_end_matches(char::from(0));
     Some(ImageVersionData {
