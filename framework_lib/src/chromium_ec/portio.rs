@@ -187,9 +187,9 @@ fn checksum_buffer(buffer: &[u8]) -> u8 {
 
 fn pack_request(mut request: EcHostRequest, data: &[u8]) -> Vec<u8> {
     let total = EC_LPC_HOST_PACKET_SIZE as usize;
-    let offset = std::mem::size_of::<EcHostRequest>();
+    let offset = core::mem::size_of::<EcHostRequest>();
     let mut buffer = vec![0_u8; total];
-    let max_transfer = std::cmp::min(total - offset, data.len());
+    let max_transfer = core::cmp::min(total - offset, data.len());
     let checksum_size = offset + max_transfer;
 
     if log_enabled!(Level::Trace) {
@@ -225,7 +225,7 @@ fn unpack_response_header(bytes: &[u8]) -> EcHostResponse {
     let response: EcHostResponse = unsafe {
         // TODO: Why does transmute not work?
         //std::mem::transmute(bytes.as_ptr())
-        std::ptr::read(bytes.as_ptr() as *const _)
+        core::ptr::read(bytes.as_ptr() as *const _)
     };
 
     if response.result == 7 {
@@ -285,7 +285,7 @@ pub fn send_command(command: u16, command_version: u8, data: &[u8]) -> EcResult<
     let resp_hdr_buffer = transfer_read(
         EC_LPC_ADDR_HOST_ARGS,
         0,
-        std::mem::size_of::<EcHostResponse>() as u16,
+        core::mem::size_of::<EcHostResponse>() as u16,
     );
     let resp_header = unpack_response_header(&resp_hdr_buffer);
     // TODO: I think we're already covered by checking res above

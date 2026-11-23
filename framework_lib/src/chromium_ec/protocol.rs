@@ -87,7 +87,7 @@ pub struct EcHostRequest {
 
 /// Max number of request parameter bytes that fit into one host command.
 pub const EC_MAX_REQUEST_SIZE: usize =
-    EC_LPC_HOST_PACKET_SIZE as usize - std::mem::size_of::<EcHostRequest>();
+    EC_LPC_HOST_PACKET_SIZE as usize - core::mem::size_of::<EcHostRequest>();
 
 pub const EC_HOST_RESPONSE_VERSION: u8 = 3;
 
@@ -109,6 +109,6 @@ pub struct EcHostResponse {
     /// Reserved byte in protocol v3. Must be 0
     pub reserved: u16,
 }
-pub const HEADER_LEN: usize = std::mem::size_of::<EcHostResponse>();
+pub const HEADER_LEN: usize = core::mem::size_of::<EcHostResponse>();
 /// Max number of response data bytes that fit into one host command.
 pub const EC_MAX_RESPONSE_SIZE: usize = EC_LPC_HOST_PACKET_SIZE as usize - HEADER_LEN;

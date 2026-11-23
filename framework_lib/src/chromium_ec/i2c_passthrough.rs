@@ -6,7 +6,7 @@ use alloc::format;
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
-use std::mem::size_of;
+use core::mem::size_of;
 
 /// Maximum transfer size for one I2C transaction supported by the chip
 pub const MAX_I2C_CHUNK: usize = 128;
@@ -138,7 +138,7 @@ fn i2c_read_impl(
     buffer[params_len + msgs_len..].copy_from_slice(addr_bytes);
 
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
-    let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
+    let res: _EcI2cPassthruResponse = unsafe { core::ptr::read(data.as_ptr() as *const _) };
     // The EC only returns as many bytes as it managed to read.
     // On NAK or timeout that's less than requested, possibly nothing at all.
     let res_data = &data[size_of::<_EcI2cPassthruResponse>()..];
@@ -208,7 +208,7 @@ pub fn i2c_write_block(
     buffer[params_len + msgs_len + addr_bytes.len()..].copy_from_slice(data);
 
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
-    let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
+    let res: _EcI2cPassthruResponse = unsafe { core::ptr::read(data.as_ptr() as *const _) };
     assert_eq!(data.len(), size_of::<_EcI2cPassthruResponse>()); // No extra data other than the header
 
     // Only assert message count if the transfer was successful
@@ -260,7 +260,7 @@ pub fn i2c_write(
     buffer[params_len + msgs_len + addr_bytes.len()..].copy_from_slice(data);
 
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
-    let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
+    let res: _EcI2cPassthruResponse = unsafe { core::ptr::read(data.as_ptr() as *const _) };
     assert_eq!(data.len(), size_of::<_EcI2cPassthruResponse>()); // No extra data other than the header
 
     // Only assert message count if the transfer was successful
@@ -352,7 +352,7 @@ pub fn i2c_transfer(
             data.len()
         )));
     }
-    let res: _EcI2cPassthruResponse = unsafe { std::ptr::read(data.as_ptr() as *const _) };
+    let res: _EcI2cPassthruResponse = unsafe { core::ptr::read(data.as_ptr() as *const _) };
     let res_data = &data[header_len..];
     let i2c_status = res.i2c_status;
     trace!(

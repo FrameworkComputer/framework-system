@@ -4,8 +4,6 @@
 #![allow(clippy::uninlined_format_args)]
 
 extern crate alloc;
-#[cfg(feature = "uefi")]
-extern crate no_std_compat as std; // TODO: I don't this should be necessary
 
 #[macro_use]
 extern crate lazy_static;

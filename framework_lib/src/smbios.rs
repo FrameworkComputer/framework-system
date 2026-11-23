@@ -1,6 +1,7 @@
 //! Retrieve SMBIOS tables and extract information from them
 
-use std::prelude::v1::*;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 
 use crate::util::Config;
 pub use crate::util::{Platform, PlatformFamily};

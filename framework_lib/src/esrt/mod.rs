@@ -10,9 +10,10 @@
 //!
 //! Not all firmware components are reported here.
 
+use alloc::vec;
+use alloc::vec::Vec;
 #[allow(unused_imports)]
 use log::{debug, error, info, trace};
-use std::prelude::v1::*;
 
 use core::prelude::v1::derive;
 use guid_create::{CGuid, GUID};

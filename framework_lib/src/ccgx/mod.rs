@@ -5,10 +5,10 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec;
 use alloc::vec::Vec;
+use core::fmt;
 #[cfg(feature = "uefi")]
 use core::prelude::rust_2021::derive;
 use num_derive::FromPrimitive;
-use std::fmt;
 use zerocopy::byteorder::little_endian::{U16, U32};
 use zerocopy::{FromBytes, KnownLayout};
 
