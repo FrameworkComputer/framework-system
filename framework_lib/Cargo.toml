@@ -4,7 +4,7 @@ version = "0.6.7"
 description = "Library to control Framework Computer systems"
 repository = "https://github.com/FrameworkComputer/framework-system"
 readme = "../README.md"
-license = "BSD-3-Clause"
+license = "BSD-3-Clause AND MIT"
 edition = "2021"
 # Minimum Supported Rust Version
 rust-version = "1.89"
