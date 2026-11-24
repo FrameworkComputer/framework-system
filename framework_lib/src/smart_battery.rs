@@ -974,6 +974,11 @@ impl SmartBattery {
                 input_text.len()
             )));
         }
+        if !input_text.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err(EcError::DeviceError(
+                "Authentication key contains a non-hex character".to_string(),
+            ));
+        }
 
         let mut auth_key = [0u8; 16];
         for i in 0..16 {
