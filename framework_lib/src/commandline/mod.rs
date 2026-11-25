@@ -2649,21 +2649,24 @@ fn selftest(ec: &CrosEc) -> Option<()> {
     power::power_info(ec)?;
     println!(" - OK");
 
-    println!("  Getting AC info from EC");
+    // The desktop EC doesn't support EC_CMD_USB_PD_POWER_INFO
     if family != Some(PlatformFamily::FrameworkDesktop) {
+        print!("  Getting AC info from EC");
         // All our laptops have at least 4 PD ports so far
         if power::get_pd_info(ec, 4).iter().any(|x| x.is_err()) {
+            println!();
             println!("    Failed to get PD Info from EC");
             return None;
         }
+        println!(" - OK");
     }
 
-    print!("Reading PD Version from EC");
+    print!("  Reading PD Version from EC");
     if let Err(err) = power::read_pd_version(ec) {
         // TGL does not have this command, so we have to ignore it
         if err != EcError::Response(EcResponseStatus::InvalidCommand) {
             println!();
-            println!("Err: {:?}", err);
+            println!("    Err: {:?}", err);
         } else {
             println!(" - Skipped");
         }
