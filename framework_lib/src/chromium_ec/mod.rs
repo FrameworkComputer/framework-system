@@ -1493,6 +1493,13 @@ impl CrosEc {
     /// `newserial` - a string that is 18 characters long
     pub fn set_gpu_serial(&self, magic: u8, newserial: String) -> EcResult<u8> {
         let mut array_tmp: [u8; 20] = [0; 20];
+        // Clap checks the length, the UEFI commandline doesn't
+        if newserial.len() != 18 {
+            return Err(EcError::DeviceError(format!(
+                "GPU serial must be 18 characters, is {}",
+                newserial.len()
+            )));
+        }
         array_tmp[..18].copy_from_slice(newserial.as_bytes());
         let result = EcRequestSetGpuSerial {
             magic,
