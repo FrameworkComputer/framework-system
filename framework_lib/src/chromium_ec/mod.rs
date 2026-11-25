@@ -2271,6 +2271,9 @@ impl CrosEcDriver for CrosEc {
 pub fn print_err_ref<T>(something: &EcResult<T>) {
     match something {
         Ok(_) => {}
+        Err(EcError::Response(EcResponseStatus::InvalidCommand)) => {
+            error!("EC Response Code: InvalidCommand (Not supported by this EC firmware)");
+        }
         // TODO: Some errors we can handle and retry, like Busy, Timeout, InProgress, ...
         Err(EcError::Response(status)) => {
             error!("EC Response Code: {:?}", status);
