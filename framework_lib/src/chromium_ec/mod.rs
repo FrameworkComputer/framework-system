@@ -1557,6 +1557,14 @@ impl CrosEc {
             "Writing GPU EEPROM {}",
             if dry_run { " (DRY RUN)" } else { "" }
         );
+        // EEPROM has 16-bit addresses, anything beyond would wrap around and
+        // overwrite the start
+        if data.len() > 0x10000 {
+            return Err(EcError::DeviceError(format!(
+                "GPU descriptor too large: {} bytes, max 65536",
+                data.len()
+            )));
+        }
         let mut force_power = false;
 
         let info = EcRequestExpansionBayStatus {}.send_command(self)?;
