@@ -429,16 +429,25 @@ fn print_pd_details(ec: &CrosEc) {
         println!("Only supported on Framework systems");
         return;
     }
-    let pd_01 = PdController::new(PdPort::Right01, ec.clone());
-    let pd_23 = PdController::new(PdPort::Left23, ec.clone());
-    let pd_back = PdController::new(PdPort::Back, ec.clone());
-
-    println!("Right / Ports 01");
-    print_single_pd_details(&pd_01);
-    println!("Left / Ports 23");
-    print_single_pd_details(&pd_23);
-    println!("Back");
-    print_single_pd_details(&pd_back);
+    let controllers = [
+        (PdPort::Right01, "Right / Ports 01"),
+        (PdPort::Left23, "Left / Ports 23"),
+        (PdPort::Back, "Back"),
+    ];
+    let mut found = false;
+    for (port, name) in controllers {
+        // Skip controllers that the platform doesn't have
+        // e.g. the desktop only has the back one
+        if !port.exists() {
+            continue;
+        }
+        found = true;
+        println!("{}", name);
+        print_single_pd_details(&PdController::new(port, ec.clone()));
+    }
+    if !found {
+        println!("No known PD controllers on this platform");
+    }
 }
 
 #[cfg(feature = "hidapi")]
