@@ -503,6 +503,10 @@ pub fn print_sensors(ec: &CrosEc) {
     let accel_2 = ec.read_memory(EC_MEMMAP_ACC_DATA + 8, 0x06).unwrap();
 
     let present = (acc_status & 0x80) > 0;
+    if !present && !(has_als || als_family) {
+        // e.g. the desktop has neither
+        println!("No sensors found");
+    }
     if present {
         println!("Accelerometers:");
         debug!("  Status Bit: {} 0x{:X}", acc_status, acc_status);
