@@ -1,4 +1,6 @@
 use super::commands::EcResponseDeckState;
+use super::{EcError, EcResult};
+use alloc::format;
 
 /// The number of slots on the input deck, where modules can be connected to
 pub const INPUT_DECK_SLOTS: usize = 8;
@@ -49,6 +51,9 @@ pub enum InputModuleType {
     Touchpad,
     Reserved15,
     Disconnected,
+    /// Board ID that we don't recognize.
+    /// The EC reports 0xFF if it failed to read the board ID.
+    Unknown(u8),
 }
 impl From<u8> for InputModuleType {
     fn from(item: u8) -> Self {
@@ -69,7 +74,7 @@ impl From<u8> for InputModuleType {
             13 => Self::Touchpad,
             14 => Self::Reserved15,
             15 => Self::Disconnected,
-            _ => panic!("Invalid module type"),
+            x => Self::Unknown(x),
         }
     }
 }
@@ -95,6 +100,7 @@ impl InputModuleType {
             Self::Touchpad => 0,
             Self::Reserved15 => 0,
             Self::Disconnected => 0,
+            Self::Unknown(_) => 0,
         }
     }
 }
@@ -116,9 +122,11 @@ pub enum InputDeckState {
     /// Manual override: Input deck will follow power sequence, no present check
     NoDetection,
 }
-impl From<u8> for InputDeckState {
-    fn from(item: u8) -> Self {
-        match item {
+impl TryFrom<u8> for InputDeckState {
+    /// The unknown value
+    type Error = u8;
+    fn try_from(item: u8) -> Result<Self, Self::Error> {
+        Ok(match item {
             0 => InputDeckState::Off,
             1 => InputDeckState::Disconnected,
             2 => InputDeckState::TurningOn,
@@ -126,8 +134,8 @@ impl From<u8> for InputDeckState {
             4 => InputDeckState::ForceOff,
             5 => InputDeckState::ForceOn,
             6 => InputDeckState::NoDetection,
-            _ => panic!("Invalid value"),
-        }
+            x => return Err(x),
+        })
     }
 }
 
@@ -176,18 +184,22 @@ impl InputDeckStatus {
     }
 }
 
-impl From<EcResponseDeckState> for InputDeckStatus {
-    fn from(item: EcResponseDeckState) -> Self {
+impl TryFrom<EcResponseDeckState> for InputDeckStatus {
+    type Error = EcError;
+    fn try_from(item: EcResponseDeckState) -> EcResult<Self> {
+        let state = InputDeckState::try_from(item.deck_state).map_err(|x| {
+            EcError::DeviceError(format!("EC reported invalid input deck state {x}"))
+        })?;
         let tp_id = InputModuleType::from(item.board_id[InputDeckMux::Touchpad as usize]);
         let tp_present = !matches!(
             tp_id,
-            InputModuleType::Short | InputModuleType::Disconnected
+            InputModuleType::Short | InputModuleType::Disconnected | InputModuleType::Unknown(_)
         );
 
-        InputDeckStatus {
-            state: InputDeckState::from(item.deck_state),
+        Ok(InputDeckStatus {
+            state,
             hubboard_present: matches!(
-                InputModuleType::from(item.board_id[InputDeckMux::HubBoard as usize],),
+                InputModuleType::from(item.board_id[InputDeckMux::HubBoard as usize]),
                 InputModuleType::HubBoard
             ),
             touchpad_present: tp_present,
@@ -199,7 +211,7 @@ impl From<EcResponseDeckState> for InputDeckStatus {
                 pos3: InputModuleType::from(item.board_id[InputDeckMux::TopRow3 as usize]),
                 pos4: InputModuleType::from(item.board_id[InputDeckMux::TopRow4 as usize]),
             },
-        }
+        })
     }
 }
 
