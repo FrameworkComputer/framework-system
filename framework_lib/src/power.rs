@@ -768,8 +768,11 @@ pub fn power_info(ec: &CrosEc) -> Option<PowerInfo> {
 // When no battery is present and we're running on AC
 pub fn is_standalone(ec: &CrosEc) -> bool {
     if let Some(info) = power_info(ec) {
+        // The desktop EC doesn't report AC presence, it's always on internal power
         debug_assert!(
-            info.battery.is_some() || info.ac_present,
+            info.battery.is_some()
+                || info.ac_present
+                || smbios::get_family() == Some(PlatformFamily::FrameworkDesktop),
             "If there's no battery, we must be running off AC"
         );
         info.battery.is_none()
@@ -787,6 +790,14 @@ pub fn get_cutoff_status(ec: &CrosEc) -> Option<bool> {
 }
 
 pub fn get_and_print_power_info(ec: &CrosEc) -> i32 {
+    // The desktop has no battery and the EC doesn't report AC presence,
+    // because it's always powered by the internal power supply.
+    if smbios::get_family() == Some(PlatformFamily::FrameworkDesktop) {
+        println!("Power Source:       Internal power supply");
+        println!("Battery:            None (Desktop)");
+        return 0;
+    }
+
     print!("Battery Cutoff:     ");
     match get_cutoff_status(ec) {
         Some(true) => println!("Cut off"),
