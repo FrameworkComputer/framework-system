@@ -1622,7 +1622,7 @@ impl CrosEc {
                     chunk_no,
                     chunks,
                     offset,
-                    cur_chunk_size * chunks
+                    data.len()
                 );
             } else {
                 print!("X");
