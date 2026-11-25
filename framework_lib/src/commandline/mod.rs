@@ -397,6 +397,15 @@ pub fn parse(args: &[String]) -> Cli {
     }
 }
 
+/// Battery commands can't work on platforms without a battery
+fn platform_has_battery() -> bool {
+    if smbios::get_family() == Some(PlatformFamily::FrameworkDesktop) {
+        error!("The Framework Desktop has no battery");
+        return false;
+    }
+    true
+}
+
 fn print_single_pd_details(pd: &PdController) {
     if let Ok(si) = pd.get_silicon_id() {
         println!("  Silicon ID:     0x{:X}", si);
@@ -1812,10 +1821,19 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         #[cfg(not(feature = "nvidia"))]
         error!("Not built with nvidia feature");
     } else if let Some(maybe_limit) = args.charge_limit {
+        if !platform_has_battery() {
+            return 1;
+        }
         print_err(handle_charge_limit(&ec, maybe_limit));
     } else if let Some((limit, soc)) = args.charge_current_limit {
+        if !platform_has_battery() {
+            return 1;
+        }
         print_err(ec.set_charge_current_limit(limit, soc));
     } else if let Some((limit, soc)) = args.charge_rate_limit {
+        if !platform_has_battery() {
+            return 1;
+        }
         print_err(ec.set_charge_rate_limit(limit, soc));
     } else if let Some(gpio_name) = &args.get_gpio {
         if let Some(gpio_name) = gpio_name {
@@ -2035,6 +2053,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 }
                 None => {
                     // Read from actual battery
+                    if !platform_has_battery() {
+                        return 1;
+                    }
                     let bat = SmartBattery::new();
                     print_err(bat.dump_data(&ec));
                 }
@@ -2045,6 +2066,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
     } else if args.smartbattery_auth {
         #[cfg(not(feature = "uefi"))]
         {
+            if !platform_has_battery() {
+                return 1;
+            }
             let bat = SmartBattery::new();
             print_err(bat.interactive_authenticate(&ec));
         }
