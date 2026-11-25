@@ -2013,6 +2013,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         println!("Retimer Self-Test");
         if let Err(err) = selftest_retimer(&ec) {
             println!("  Failed: {:?}", err);
+            return 1;
         }
     } else if args.boardid {
         print_board_ids(&ec);
@@ -2703,7 +2704,11 @@ fn selftest_retimer(ec: &CrosEc) -> EcResult<()> {
     for i in 0..2 {
         let update_mode = ec.retimer_in_fwupd_mode(i);
         if update_mode == Err(EcError::Response(EcResponseStatus::InvalidParameter)) {
-            println!("  Retimer status not supported on this platform. Cannot test");
+            if i == 0 {
+                println!("  Retimer status not supported on this platform. Cannot test");
+            }
+            // Otherwise there are no more PD controllers
+            // e.g. the desktop only has one for both back ports
             return Ok(());
         }
         println!("  Retimers on PD Controller {}", i);
