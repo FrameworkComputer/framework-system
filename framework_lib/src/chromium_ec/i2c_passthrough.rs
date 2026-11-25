@@ -142,6 +142,15 @@ fn i2c_read_impl(
     // The EC only returns as many bytes as it managed to read.
     // On NAK or timeout that's less than requested, possibly nothing at all.
     let res_data = &data[size_of::<_EcI2cPassthruResponse>()..];
+    // Callers append the data to what they read before, extra bytes would end up
+    // where the next read's data belongs
+    if res_data.len() > usize::from(len) {
+        return Err(EcError::DeviceError(format!(
+            "I2C read returned {} bytes, more than requested {}",
+            res_data.len(),
+            len
+        )));
+    }
     // The EC stops at the first message that fails, so it can have processed
     // any number of messages up to the requested count
     debug_assert!(res.messages as usize <= messages.len());
