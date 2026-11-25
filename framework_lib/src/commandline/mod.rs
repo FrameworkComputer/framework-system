@@ -2060,7 +2060,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             return 1;
         }
     } else if args.boardid {
-        print_board_ids(&ec);
+        if !print_board_ids(&ec) {
+            return 1;
+        }
     } else if args.power {
         return power::get_and_print_power_info(&ec);
     } else if let Some(smartbattery_arg) = &args.smartbattery {
@@ -2575,32 +2577,32 @@ fn hash(data: &[u8]) {
     util::print_buffer(sha512);
 }
 
-fn print_board_ids(ec: &CrosEc) {
+fn print_board_ids(ec: &CrosEc) -> bool {
+    let boards = [
+        ("Mainboard", BoardIdType::Mainboard),
+        ("PowerButton", BoardIdType::PowerButtonBoard),
+        ("Touchpad", BoardIdType::Touchpad),
+        ("AudioBoard", BoardIdType::AudioBoard),
+        ("dGPU0", BoardIdType::DGpu0),
+        ("dGPU1", BoardIdType::DGpu1),
+    ];
+    let ids: Vec<_> = boards
+        .iter()
+        .map(|(name, board)| (name, ec.read_board_id_hc(*board)))
+        .collect();
+
+    // e.g. the desktop EC doesn't have this command
+    let unsupported = Err(EcError::Response(EcResponseStatus::InvalidCommand));
+    if ids.iter().all(|(_, id)| *id == unsupported) {
+        error!("Reading board IDs is not supported by this EC firmware");
+        return false;
+    }
+
     println!("Board IDs");
-    println!(
-        "  Mainboard:    {:?}",
-        ec.read_board_id_hc(BoardIdType::Mainboard)
-    );
-    println!(
-        "  PowerButton:  {:?}",
-        ec.read_board_id_hc(BoardIdType::PowerButtonBoard)
-    );
-    println!(
-        "  Touchpad:     {:?}",
-        ec.read_board_id_hc(BoardIdType::Touchpad)
-    );
-    println!(
-        "  AudioBoard:   {:?}",
-        ec.read_board_id_hc(BoardIdType::AudioBoard)
-    );
-    println!(
-        "  dGPU0:        {:?}",
-        ec.read_board_id_hc(BoardIdType::DGpu0)
-    );
-    println!(
-        "  dGPU1:        {:?}",
-        ec.read_board_id_hc(BoardIdType::DGpu1)
-    );
+    for (name, id) in ids {
+        println!("  {:<13} {:?}", format!("{}:", name), id);
+    }
+    true
 }
 
 /// Print the port 80 history like ectool does, oldest to newest code,
