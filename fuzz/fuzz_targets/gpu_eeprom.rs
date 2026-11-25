@@ -358,8 +358,13 @@ fuzz_target!(|data: &[u8]| {
         0x10021,
     ]) as usize
         % 0x10100;
-    let file_length = input.pick(&lengths);
-    let file_desc_len = input.pick(&lengths);
+    // Mostly a well-formed file, where the header lengths match the file length
+    let consistent = input.u8() < 0xC0 && file_len >= HEADER_LEN;
+    let (file_length, file_desc_len) = if consistent {
+        (HEADER_LEN as u32, (file_len - HEADER_LEN) as u32)
+    } else {
+        (input.pick(&lengths), input.pick(&lengths))
+    };
     let file = Rc::new(descriptor(file_len, file_length, file_desc_len, true));
 
     let mut gpu_serial = [0u8; 22];
@@ -435,6 +440,9 @@ fuzz_target!(|data: &[u8]| {
                 "Expansion bay power not restored, result {:?}",
                 res
             );
+            if !dry_run && m.hit_faults.is_empty() && file_len <= eeprom_size {
+                assert!(res.is_ok(), "Write failed without a fault: {:?}", res);
+            }
             if res.is_ok() && !dry_run {
                 // Can't hold more than it has room for
                 if file_len <= eeprom_size {
@@ -457,12 +465,29 @@ fuzz_target!(|data: &[u8]| {
                         "File larger than EEPROM validated successfully"
                     );
                 }
+                let fits = consistent && file_len <= eeprom_size && file_len <= 0xFFFF;
+                // If power was forced on for writing, it's off again and reading fails
+                if fits && m.hit_faults.is_empty() && initially_powered {
+                    assert!(
+                        matches!(valid, Ok(true)),
+                        "Validation after successful write failed: {:?}",
+                        valid
+                    );
+                }
             }
         }
         1 => {
             let res = ec.read_gpu_descriptor();
+            let total = ee_length as u64 + ee_desc_len as u64;
+            if ee_magic_ok && total <= 0xFFFF && initially_powered {
+                let m = model.borrow();
+                assert!(
+                    res.is_ok() || !m.hit_faults.is_empty(),
+                    "Read of valid descriptor failed without a fault: {:?}",
+                    res
+                );
+            }
             if let Ok(desc) = res {
-                let total = ee_length as u64 + ee_desc_len as u64;
                 assert!(ee_magic_ok, "Read descriptor with invalid magic");
                 assert_eq!(desc.len() as u64, total, "Descriptor length wrong");
                 assert!(desc == expected(desc.len()), "Descriptor content wrong");
@@ -508,7 +533,17 @@ fuzz_target!(|data: &[u8]| {
                 let i = flip % reference.len();
                 reference[i] ^= 0x01;
             }
-            if let Ok(valid) = ec.validate_gpu_descriptor(&reference) {
+            let res = ec.validate_gpu_descriptor(&reference);
+            let total = ee_length as u64 + ee_desc_len as u64;
+            if ee_magic_ok && total <= 0xFFFF && initially_powered {
+                let m = model.borrow();
+                assert!(
+                    res.is_ok() || !m.hit_faults.is_empty(),
+                    "Validation of valid descriptor failed without a fault: {:?}",
+                    res
+                );
+            }
+            if let Ok(valid) = res {
                 assert!(ee_magic_ok);
                 assert_eq!(valid, !flipped, "Validation result wrong");
             }
