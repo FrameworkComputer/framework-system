@@ -1667,7 +1667,18 @@ impl CrosEc {
                 "Invalid descriptor hdr magic".to_string(),
             ));
         }
-        self.read_ec_gpu_chunk(0x00, (header.descriptor_length + header.length) as u16)
+        // Lengths come from the EEPROM, could be anything
+        let (length, descriptor_length) = (header.length, header.descriptor_length);
+        let total = length
+            .checked_add(descriptor_length)
+            .and_then(|total| u16::try_from(total).ok())
+            .ok_or_else(|| {
+                EcError::DeviceError(format!(
+                    "Invalid descriptor length: header {} + descriptor {} bytes",
+                    length, descriptor_length
+                ))
+            })?;
+        self.read_ec_gpu_chunk(0x00, total)
     }
 
     pub fn read_gpu_desc_header(&self) -> EcResult<GpuCfgDescriptor> {
