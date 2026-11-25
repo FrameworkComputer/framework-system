@@ -701,8 +701,25 @@ fn calculate_ti_hmac(key: &[u8; 16], challenge: &[u8; 20]) -> [u8; 20] {
 }
 
 /// Reads a line from stdin without echoing (for sensitive input like keys)
-#[cfg(unix)]
+///
+/// If stdin isn't a terminal (e.g. input is piped in), there is no echo to
+/// disable, so just read the line.
 fn read_password() -> io::Result<String> {
+    use std::io::IsTerminal;
+
+    if io::stdin().is_terminal() {
+        return read_password_tty();
+    }
+
+    let mut input = String::new();
+    io::stdin().lock().read_line(&mut input)?;
+    // End the prompt line
+    println!();
+    Ok(input)
+}
+
+#[cfg(unix)]
+fn read_password_tty() -> io::Result<String> {
     use nix::sys::termios::{self, LocalFlags, SetArg};
     use std::io::BufRead;
     use std::os::fd::AsFd;
@@ -732,9 +749,8 @@ fn read_password() -> io::Result<String> {
     Ok(input)
 }
 
-/// Reads a line from stdin without echoing (for sensitive input like keys)
 #[cfg(windows)]
-fn read_password() -> io::Result<String> {
+fn read_password_tty() -> io::Result<String> {
     use std::io::BufRead;
     use windows::Win32::System::Console::{
         GetConsoleMode, GetStdHandle, SetConsoleMode, CONSOLE_MODE, ENABLE_ECHO_INPUT,
