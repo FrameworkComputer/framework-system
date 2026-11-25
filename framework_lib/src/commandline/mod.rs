@@ -2331,6 +2331,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 println!("  Size:       {:>20} KB", data.len() / 1024);
                 let res = ec.set_gpu_descriptor(&data, args.dry_run);
                 match res {
+                    Ok(()) if args.dry_run => {
+                        println!("GPU Descriptor not written (dry run)");
+                    }
                     Ok(()) => {
                         println!("GPU Descriptor successfully written");
                         println!("Validating GPU Descriptor...");
