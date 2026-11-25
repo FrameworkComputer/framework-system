@@ -49,6 +49,11 @@ pub enum PdPort {
 }
 
 impl PdPort {
+    /// Whether this PD controller exists on the current platform
+    pub fn exists(&self) -> bool {
+        self.i2c_address().is_ok() && self.i2c_port().is_ok()
+    }
+
     /// SMBUS/I2C Address
     fn i2c_address(&self) -> EcResult<u16> {
         let config = Config::get();
