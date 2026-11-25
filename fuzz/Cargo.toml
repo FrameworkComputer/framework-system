@@ -78,3 +78,10 @@ path = "fuzz_targets/stm32_hex.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "gpu_eeprom"
+path = "fuzz_targets/gpu_eeprom.rs"
+test = false
+doc = false
+bench = false

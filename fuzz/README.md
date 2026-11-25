@@ -82,6 +82,24 @@ No seed corpus is needed, inputs are small:
 cargo +nightly fuzz run ec_reflash -- -close_fd_mask=1 -timeout=10
 ```
 
+## GPU EEPROM
+
+`gpu_eeprom` reads and writes the Framework 16 expansion bay EEPROM
+(`--flash-gpu-descriptor-file`, `--dump-gpu-descriptor-file`,
+`--validate-gpu-descriptor-file`, `--expansion-bay`, `--flash-gpu-descriptor`) against
+a model of the EEPROM behind EC_CMD_I2C_PASSTHRU. Like `ec_reflash`, the input selects
+the operation, EEPROM size, descriptor header fields, file length, expansion bay board,
+power state and faults, and the target builds the EEPROM image and file from that.
+
+Besides crashes, it checks that writes carry the file data at the right offset, don't
+cross EEPROM pages, don't happen in dry-run mode, that expansion bay power is turned
+off again if it was forced on, and that successful reads and writes leave or return
+the right data. See the comment at the top of `fuzz_targets/gpu_eeprom.rs`.
+
+```sh
+cargo +nightly fuzz run gpu_eeprom -- -close_fd_mask=1 -timeout=10
+```
+
 ## STM32 keyboard firmware
 
 `stm32_hex` parses Intel HEX files (`--flash-stm32-kbd`) and plans the flash writes
