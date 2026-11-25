@@ -560,11 +560,17 @@ fn active_mode(mode: &FwMode, reference: FwMode) -> &'static str {
 }
 
 #[cfg(feature = "hidapi")]
-fn print_stylus_battery_level() {
+fn print_stylus_battery_level() -> bool {
+    // Otherwise we would wait forever
+    if !touchscreen::has_stylus_interface() {
+        error!("No touchscreen with stylus support found");
+        return false;
+    }
+    // The level is only reported while the stylus is in range, so keep trying
     loop {
         if let Some(level) = touchscreen::get_battery_level() {
             println!("Stylus Battery Strength: {}%", level);
-            return;
+            return true;
         } else {
             debug!("Stylus Battery Strength: Unknown");
         }
@@ -1928,7 +1934,9 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         error!("Not built with hidapi feature");
     } else if args.stylus_battery {
         #[cfg(feature = "hidapi")]
-        print_stylus_battery_level();
+        if !print_stylus_battery_level() {
+            return 1;
+        }
         #[cfg(not(feature = "hidapi"))]
         error!("Not build with hidapi feature");
     } else if let Some(console_arg) = &args.console {
