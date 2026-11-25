@@ -1169,10 +1169,20 @@ pub fn get_and_print_cypd_pd_info(ec: &CrosEc) {
     }
 }
 
-pub fn get_and_print_pd_info(ec: &CrosEc) {
+pub fn get_and_print_pd_info(ec: &CrosEc) -> i32 {
     let fl16 = Some(PlatformFamily::Framework16) == smbios::get_family();
     let ports = 4; // All our platforms have 4 PD ports so far
     let infos = get_pd_info(ec, ports);
+    // Some EC firmware (e.g. on the desktop) doesn't implement this command at all
+    if infos.iter().all(|info| {
+        matches!(
+            info,
+            Err(EcError::Response(EcResponseStatus::InvalidCommand))
+        )
+    }) {
+        error!("EC firmware doesn't support this command. Try --pdports instead.");
+        return 1;
+    }
     for (port, info) in infos.iter().enumerate().take(ports.into()) {
         println!(
             "USB-C Port {} ({}):",
@@ -1236,6 +1246,7 @@ pub fn get_and_print_pd_info(ec: &CrosEc) {
             println!("  Max Power:     Unknown");
         }
     }
+    0
 }
 
 // TODO: Improve return type to be more obvious
