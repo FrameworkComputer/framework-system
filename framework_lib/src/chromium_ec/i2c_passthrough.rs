@@ -61,6 +61,19 @@ impl EcI2cPassthruResponse {
     }
 }
 
+/// Split the EC response into header and read data
+fn parse_response(data: &[u8]) -> EcResult<(_EcI2cPassthruResponse, &[u8])> {
+    let header_len = size_of::<_EcI2cPassthruResponse>();
+    if data.len() < header_len {
+        return Err(EcError::DeviceError(format!(
+            "I2C passthrough response too short: {} bytes",
+            data.len()
+        )));
+    }
+    let res: _EcI2cPassthruResponse = unsafe { core::ptr::read(data.as_ptr() as *const _) };
+    Ok((res, &data[header_len..]))
+}
+
 /// Indicate that it's a read, not a write
 const I2C_READ_FLAG: u16 = 1 << 15;
 
@@ -138,10 +151,9 @@ fn i2c_read_impl(
     buffer[params_len + msgs_len..].copy_from_slice(addr_bytes);
 
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
-    let res: _EcI2cPassthruResponse = unsafe { core::ptr::read(data.as_ptr() as *const _) };
     // The EC only returns as many bytes as it managed to read.
     // On NAK or timeout that's less than requested, possibly nothing at all.
-    let res_data = &data[size_of::<_EcI2cPassthruResponse>()..];
+    let (res, res_data) = parse_response(&data)?;
     // Callers append the data to what they read before, extra bytes would end up
     // where the next read's data belongs
     if res_data.len() > usize::from(len) {
@@ -217,8 +229,14 @@ pub fn i2c_write_block(
     buffer[params_len + msgs_len + addr_bytes.len()..].copy_from_slice(data);
 
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
-    let res: _EcI2cPassthruResponse = unsafe { core::ptr::read(data.as_ptr() as *const _) };
-    assert_eq!(data.len(), size_of::<_EcI2cPassthruResponse>()); // No extra data other than the header
+    let (res, res_data) = parse_response(&data)?;
+    // No extra data other than the header
+    if !res_data.is_empty() {
+        return Err(EcError::DeviceError(format!(
+            "I2C write returned {} bytes of unexpected data",
+            res_data.len()
+        )));
+    }
 
     // Only assert message count if the transfer was successful
     // On error (NAK/timeout), the EC may return 0 messages processed
@@ -269,8 +287,14 @@ pub fn i2c_write(
     buffer[params_len + msgs_len + addr_bytes.len()..].copy_from_slice(data);
 
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
-    let res: _EcI2cPassthruResponse = unsafe { core::ptr::read(data.as_ptr() as *const _) };
-    assert_eq!(data.len(), size_of::<_EcI2cPassthruResponse>()); // No extra data other than the header
+    let (res, res_data) = parse_response(&data)?;
+    // No extra data other than the header
+    if !res_data.is_empty() {
+        return Err(EcError::DeviceError(format!(
+            "I2C write returned {} bytes of unexpected data",
+            res_data.len()
+        )));
+    }
 
     // Only assert message count if the transfer was successful
     // On error (NAK/timeout), the EC may return 0 messages processed
@@ -355,14 +379,7 @@ pub fn i2c_transfer(
     buffer[params_len + msgs_len..].copy_from_slice(write);
 
     let data = ec.send_command(EcCommands::I2cPassthrough as u16, 0, &buffer)?;
-    if data.len() < header_len {
-        return Err(EcError::DeviceError(format!(
-            "I2C passthrough response too short: {} bytes",
-            data.len()
-        )));
-    }
-    let res: _EcI2cPassthruResponse = unsafe { core::ptr::read(data.as_ptr() as *const _) };
-    let res_data = &data[header_len..];
+    let (res, res_data) = parse_response(&data)?;
     let i2c_status = res.i2c_status;
     trace!(
         "  i2c_transfer response (status: 0x{:02X}, messages: {}, data: {:#04X?})",
