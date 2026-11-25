@@ -43,9 +43,9 @@
           openssl
           libgit2
           zlib
-        ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
+        ] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [
           systemdLibs # libudev
-        ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+        ] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
           pkgs.libiconv
           pkgs.darwin.apple_sdk.frameworks.Security
           pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
@@ -364,7 +364,7 @@
             openssl
             libgit2
             zlib
-          ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
+          ] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [
             systemdLibs # libudev
           ];
 
