@@ -1760,6 +1760,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             );
         } else {
             println!("  Unable to tell");
+            return 1;
         }
     } else if args.inputdeck {
         let family = smbios::get_platform().and_then(Platform::which_family);
@@ -1886,6 +1887,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("{}%", percentage);
         } else {
             println!("Unable to tell");
+            return 1;
         }
     } else if let Some((row, col, scanset)) = args.remap_key {
         print_err(ec.remap_key(row, col, scanset));
@@ -1975,9 +1977,13 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         }
     } else if let Some(delay) = &args.ec_hib_delay {
         if let Some(delay) = delay {
-            print_err(ec.set_ec_hib_delay(*delay));
+            if print_err(ec.set_ec_hib_delay(*delay)).is_none() {
+                return 1;
+            }
         }
-        print_err(ec.get_ec_hib_delay());
+        if print_err(ec.get_ec_hib_delay()).is_none() {
+            return 1;
+        }
     } else if args.sysinfo {
         print_err(ec.get_sysinfo());
     } else if args.uptimeinfo {
@@ -2197,7 +2203,7 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
                 if cam { "Connected" } else { "Disconnected" }
             );
         } else {
-            println!("Not all EC versions support this comand.")
+            return 1;
         };
     } else if let Some((command_id, command_version, ref data)) = args.host_command {
         match ec.send_command(command_id, command_version, data) {
