@@ -1516,6 +1516,14 @@ impl CrosEc {
         let eeprom_addr = 0x50;
         let mut data: Vec<u8> = Vec::with_capacity(len.into());
 
+        // EEPROM has 16-bit addresses
+        if usize::from(addr) + usize::from(len) > 0x10000 {
+            return Err(EcError::DeviceError(format!(
+                "EEPROM read 0x{:X}+0x{:X} beyond 16-bit address space",
+                addr, len
+            )));
+        }
+
         while data.len() < len.into() {
             let remaining = len - data.len() as u16;
             let chunk_len = core::cmp::min(i2c_passthrough::MAX_I2C_CHUNK, remaining.into());
