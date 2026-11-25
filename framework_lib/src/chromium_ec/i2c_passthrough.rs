@@ -74,6 +74,19 @@ fn parse_response(data: &[u8]) -> EcResult<(_EcI2cPassthruResponse, &[u8])> {
     Ok((res, &data[header_len..]))
 }
 
+/// The EC stops at the first message that fails, so it can have processed any
+/// number of messages up to the requested count. On success it must have run all.
+fn check_message_count(res: &_EcI2cPassthruResponse, requested: usize) -> EcResult<()> {
+    let ran = res.messages as usize;
+    if ran > requested || (res.i2c_status == 0 && ran != requested) {
+        return Err(EcError::DeviceError(format!(
+            "EC ran {} of {} I2C messages",
+            ran, requested
+        )));
+    }
+    Ok(())
+}
+
 /// Indicate that it's a read, not a write
 const I2C_READ_FLAG: u16 = 1 << 15;
 
@@ -163,9 +176,7 @@ fn i2c_read_impl(
             len
         )));
     }
-    // The EC stops at the first message that fails, so it can have processed
-    // any number of messages up to the requested count
-    debug_assert!(res.messages as usize <= messages.len());
+    check_message_count(&res, messages.len())?;
     let i2c_status = res.i2c_status;
     trace!(
         "  i2c_read response (status: 0x{:02X}, len: {}, data: {:#04X?})",
@@ -238,11 +249,7 @@ pub fn i2c_write_block(
         )));
     }
 
-    // Only assert message count if the transfer was successful
-    // On error (NAK/timeout), the EC may return 0 messages processed
-    if res.i2c_status == 0 {
-        debug_assert_eq!(res.messages as usize, messages.len());
-    }
+    check_message_count(&res, messages.len())?;
 
     Ok(EcI2cPassthruResponse {
         i2c_status: res.i2c_status,
@@ -296,11 +303,7 @@ pub fn i2c_write(
         )));
     }
 
-    // Only assert message count if the transfer was successful
-    // On error (NAK/timeout), the EC may return 0 messages processed
-    if res.i2c_status == 0 {
-        debug_assert_eq!(res.messages as usize, messages.len());
-    }
+    check_message_count(&res, messages.len())?;
 
     Ok(EcI2cPassthruResponse {
         i2c_status: res.i2c_status,
@@ -388,22 +391,14 @@ pub fn i2c_transfer(
         res_data
     );
 
+    check_message_count(&res, messages.len())?;
     // On NAK or timeout the EC stops early, so only check a successful transfer
-    if i2c_status == 0 {
-        if res.messages as usize != messages.len() {
-            return Err(EcError::DeviceError(format!(
-                "EC ran {} of {} I2C messages",
-                res.messages,
-                messages.len()
-            )));
-        }
-        if res_data.len() != read_len as usize {
-            return Err(EcError::DeviceError(format!(
-                "Short I2C read: wanted {} bytes, got {}",
-                read_len,
-                res_data.len()
-            )));
-        }
+    if i2c_status == 0 && res_data.len() != read_len as usize {
+        return Err(EcError::DeviceError(format!(
+            "Short I2C read: wanted {} bytes, got {}",
+            read_len,
+            res_data.len()
+        )));
     }
 
     Ok(EcI2cPassthruResponse {
