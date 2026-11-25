@@ -482,7 +482,14 @@ fuzz_target!(|data: &[u8]| {
                 let want: Vec<u8> = (0..len as usize)
                     .map(|i| initial_eeprom[(addr as usize + i) % initial_eeprom.len()])
                     .collect();
-                assert!(chunk == want, "Read chunk content wrong");
+                assert!(
+                    chunk == want,
+                    "Read chunk content wrong {:?} {:?} addr={:X} len={:X}",
+                    model.borrow().hit_faults,
+                    model.borrow().log,
+                    addr,
+                    len
+                );
             }
         }
         4 => {
