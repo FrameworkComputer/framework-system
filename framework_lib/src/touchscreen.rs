@@ -236,6 +236,11 @@ pub trait TouchScreen {
     fn get_battery_status(&self) -> Option<u8>;
 }
 
+/// Whether there's a touchscreen that can report the stylus battery level
+pub fn has_stylus_interface() -> bool {
+    HidapiTouchScreen::open_device(0x000D, 0).is_some()
+}
+
 pub fn get_battery_level() -> Option<u8> {
     for skip in 0..5 {
         if let Some(device) = HidapiTouchScreen::open_device(0x000D, skip) {
