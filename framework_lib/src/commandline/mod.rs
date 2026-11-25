@@ -1756,7 +1756,12 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             println!("  Unable to tell");
         }
     } else if args.inputdeck {
-        let res = match smbios::get_platform().and_then(Platform::which_family) {
+        let family = smbios::get_platform().and_then(Platform::which_family);
+        if family == Some(PlatformFamily::FrameworkDesktop) {
+            error!("The Framework Desktop has no input deck");
+            return 1;
+        }
+        let res = match family {
             Some(PlatformFamily::Framework12) => ec.print_fw12_inputdeck_status(),
             Some(PlatformFamily::Framework13) => ec.print_fw13_inputdeck_status(),
             Some(PlatformFamily::Framework16) => ec.print_fw16_inputdeck_status(),
@@ -1781,6 +1786,10 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         };
         print_err(res);
     } else if let Some(mode) = &args.inputdeck_mode {
+        if smbios::get_family() == Some(PlatformFamily::FrameworkDesktop) {
+            error!("The Framework Desktop has no input deck");
+            return 1;
+        }
         if *mode == InputDeckModeArg::Reset {
             println!("Resetting input deck (off => auto)");
             ec.set_input_deck_mode(DeckStateMode::ForceOff).unwrap();
@@ -1792,8 +1801,17 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
             ec.set_input_deck_mode((*mode).into()).unwrap();
         }
     } else if args.expansion_bay {
+        // If we don't know the platform, try anyway
+        if !matches!(
+            smbios::get_family(),
+            Some(PlatformFamily::Framework16) | None
+        ) {
+            error!("Only Framework Laptop 16 has an expansion bay");
+            return 1;
+        }
         if let Err(err) = ec.check_bay_status() {
             error!("{:?}", err);
+            return 1;
         }
         if let Ok(header) = ec.read_gpu_desc_header() {
             println!("  Expansion Bay EEPROM");
