@@ -1478,11 +1478,12 @@ impl CrosEc {
     pub fn get_gpu_serial(&self) -> EcResult<String> {
         let gpuserial: EcResponseGetGpuSerial =
             EcRequestGetGpuSerial { idx: 0 }.send_command(self)?;
-        let serial: String = String::from_utf8(gpuserial.serial.to_vec()).unwrap();
-
         if gpuserial.valid == 0 {
             return Err(EcError::DeviceError("No valid GPU serial".to_string()));
         }
+
+        // Comes from the EEPROM, which could contain anything
+        let serial = String::from_utf8_lossy(&gpuserial.serial).to_string();
 
         Ok(serial)
     }
