@@ -2332,13 +2332,13 @@ pub fn run_with_args(args: &Cli, _allupdate: bool) -> i32 {
         if args.force {
             flash_ec(&ec, ec_bin_path, EcFlashType::Both, args.dry_run);
         } else {
-            error!("Flashing EC RO region is unsafe. Use --flash-ec-rw instead");
+            error!("Flashing EC RO region is unsafe. Use --flash-rw-ec instead");
         }
     } else if let Some(ec_bin_path) = &args.flash_ro_ec {
         if args.force {
             flash_ec(&ec, ec_bin_path, EcFlashType::Ro, args.dry_run);
         } else {
-            error!("Flashing EC RO region is unsafe. Use --flash-ec-rw instead");
+            error!("Flashing EC RO region is unsafe. Use --flash-rw-ec instead");
         }
     } else if let Some(ec_bin_path) = &args.flash_rw_ec {
         flash_ec(&ec, ec_bin_path, EcFlashType::Rw, args.dry_run);
